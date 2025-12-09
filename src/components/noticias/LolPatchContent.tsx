@@ -16,7 +16,13 @@ interface StatChange {
 }
 
 interface SpellAttributeChange {
-  attribute: "cooldown" | "cost" | "range" | "description" | "damage";
+  attribute:
+    | "cooldown"
+    | "cost"
+    | "range"
+    | "description"
+    | "damage"
+    | "bugfix";
   old: string;
   new: string;
   type?: "buff" | "nerf" | "adjustment";
