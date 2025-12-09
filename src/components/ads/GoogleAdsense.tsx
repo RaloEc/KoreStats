@@ -29,10 +29,27 @@ export default function GoogleAdsense({
 }: GoogleAdsenseProps) {
   useEffect(() => {
     try {
-      // Intentar forzar la carga de anuncios si window.adsbygoogle ya existe
-      if (window.adsbygoogle) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      }
+      // Esperar a que el script de AdSense esté disponible
+      // Reintentar cada 100ms hasta que esté listo (máx 5 segundos)
+      let attempts = 0;
+      const maxAttempts = 50;
+
+      const tryPushAd = () => {
+        if (window.adsbygoogle) {
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          } catch (error) {
+            console.warn("Error al hacer push del anuncio:", error);
+          }
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(tryPushAd, 100);
+        } else {
+          console.warn("Script de AdSense no se cargó después de 5 segundos");
+        }
+      };
+
+      tryPushAd();
     } catch (error) {
       console.error("Error al cargar el anuncio:", error);
     }
@@ -68,16 +85,15 @@ export function GoogleAdsenseScript({ clientId }: { clientId: string }) {
         crossOrigin="anonymous"
       />
       {/* 
-        CRÍTICO: Usar strategy="lazyOnload" para AdSense
-        - No bloquea LCP (Largest Contentful Paint)
-        - Se carga cuando el navegador está inactivo
-        - Mejora FID (First Input Delay)
-        - Impacto: ↓ 500-800ms en LCP
+        CRÍTICO: Usar strategy="afterInteractive" para AdSense
+        - Se carga después de que la página sea interactiva
+        - Permite que los anuncios se procesen correctamente
+        - Mejor que lazyOnload que es demasiado lento
       */}
       <Script
         id="google-adsense"
         async
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`}
         crossOrigin="anonymous"
         suppressHydrationWarning

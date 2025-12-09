@@ -48,8 +48,11 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
     null
   );
   const [isWeaponModalOpen, setIsWeaponModalOpen] = useState(false);
-  const [weaponStatsPreview, setWeaponStatsPreview] = useState<WeaponStats | null>(null);
-  const [weaponStatsRecordId, setWeaponStatsRecordId] = useState<string | null>(null);
+  const [weaponStatsPreview, setWeaponStatsPreview] =
+    useState<WeaponStats | null>(null);
+  const [weaponStatsRecordId, setWeaponStatsRecordId] = useState<string | null>(
+    null
+  );
   const { user } = useAuth();
   const router = useRouter();
   const { userColor } = useUserTheme();
@@ -86,7 +89,10 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
     setCategoriaId(category.id);
   };
 
-  const handleWeaponStatsExtracted = (stats: WeaponStats, recordId: string | null = null) => {
+  const handleWeaponStatsExtracted = (
+    stats: WeaponStats,
+    recordId: string | null = null
+  ) => {
     // Guardar las estadísticas para previsualización y estado del botón
     setWeaponStatsPreview(stats);
     // Guardar el recordId si viene del hook
@@ -127,28 +133,47 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
       let contenidoProcesado = contenido;
 
       try {
-        console.log("[CrearHiloForm] Iniciando procesamiento de imágenes antes de guardar...");
-        console.log("[CrearHiloForm] Contenido original (primeros 200 chars):", contenido.substring(0, 200));
-        
+        console.log(
+          "[CrearHiloForm] Iniciando procesamiento de imágenes antes de guardar..."
+        );
+        console.log(
+          "[CrearHiloForm] Contenido original (primeros 200 chars):",
+          contenido.substring(0, 200)
+        );
+
         contenidoProcesado = await processEditorImages(contenido);
-        
+
         console.log("[CrearHiloForm] Procesamiento completado");
-        console.log("[CrearHiloForm] Contenido procesado (primeros 200 chars):", contenidoProcesado.substring(0, 200));
-        
+        console.log(
+          "[CrearHiloForm] Contenido procesado (primeros 200 chars):",
+          contenidoProcesado.substring(0, 200)
+        );
+
         // Verificar si hay cambios
         if (contenidoProcesado === contenido) {
-          console.warn("[CrearHiloForm] ADVERTENCIA: El contenido no cambió después del procesamiento");
+          console.warn(
+            "[CrearHiloForm] ADVERTENCIA: El contenido no cambió después del procesamiento"
+          );
         } else {
-          console.log("[CrearHiloForm] Contenido fue modificado durante el procesamiento");
+          console.log(
+            "[CrearHiloForm] Contenido fue modificado durante el procesamiento"
+          );
         }
       } catch (processingError) {
-        console.error("[CrearHiloForm] Error al procesar imágenes antes de guardar el hilo:", processingError);
-        toast.error("No se pudieron procesar algunas imágenes. Intenta nuevamente.");
+        console.error(
+          "[CrearHiloForm] Error al procesar imágenes antes de guardar el hilo:",
+          processingError
+        );
+        toast.error(
+          "No se pudieron procesar algunas imágenes. Intenta nuevamente."
+        );
         setIsLoading(false);
         return;
       }
 
-      console.log("[CrearHiloForm] Enviando hilo a API con contenido procesado...");
+      console.log(
+        "[CrearHiloForm] Enviando hilo a API con contenido procesado..."
+      );
       const response = await fetch("/api/foro/crear-hilo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -240,12 +265,13 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
         <label className="text-sm font-medium text-gray-900 dark:text-foreground">
           Contenido
         </label>
-        <div className="min-h-[300px] rounded-md border border-gray-200 dark:border-input bg-white dark:bg-transparent p-2">
+        <div className="bg-white dark:bg-transparent">
           <TiptapEditor
             value={contenido}
             onChange={setContenido}
             placeholder="Escribe el contenido de tu hilo aquí..."
             userColor={userColor}
+            className="min-h-[400px]"
           />
         </div>
 
@@ -256,7 +282,9 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
           >
             <div className="flex items-center gap-2 text-[var(--user-color,#6366f1)] mb-3">
               <Eye className="w-4 h-4" />
-              <span className="text-sm font-semibold">Previsualización de estadísticas cargadas</span>
+              <span className="text-sm font-semibold">
+                Previsualización de estadísticas cargadas
+              </span>
             </div>
             <div className="max-w-md">
               <WeaponStatsCard stats={weaponStatsPreview} className="w-full" />
@@ -303,7 +331,8 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
                 <DialogHeader>
                   <DialogTitle>Análisis de Estadísticas de Arma</DialogTitle>
                   <DialogDescription>
-                    Sube una captura de pantalla de las estadísticas de tu arma para analizarlas automáticamente
+                    Sube una captura de pantalla de las estadísticas de tu arma
+                    para analizarlas automáticamente
                   </DialogDescription>
                 </DialogHeader>
               </div>

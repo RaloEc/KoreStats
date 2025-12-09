@@ -403,8 +403,8 @@ export const SharedMatchCard = ({
               skinId={0}
               className="h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-white/75 to-transparent dark:from-black/20 dark:via-black/60 dark:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-transparent to-white/25 dark:from-black/35 dark:via-transparent dark:to-black/55" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/50 to-white/5 dark:from-black/20 dark:via-black/60 dark:to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/0 to-white/10 dark:from-black/35 dark:via-black/35 dark:to-black/55" />
           </div>
 
           {/* Contenido superpuesto */}
@@ -412,98 +412,98 @@ export const SharedMatchCard = ({
             {/* Header */}
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-grow min-w-0 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-[11px] ${outcomeBgClass} ${outcomeTextClass}`}
-                    >
-                      {isVictory ? "Victoria" : "Derrota"}
-                    </span>
-                    {partida.tier && (
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/85 px-1.5 py-1 text-slate-900 shadow-sm shadow-slate-900/10 backdrop-blur-[2px] dark:border-white/25 dark:bg-black/40 dark:text-white">
-                        <RiotTierBadge
-                          tier={partida.tier}
-                          rank={partida.rank}
-                          size="sm"
-                        />
-                        <span className="text-[11px] font-semibold tracking-wide">
-                          {rankLabel}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-2xl font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] flex items-center gap-2">
-                      <span>{partida.championName}</span>
-                      {isHidden && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-500/15 border border-amber-200/70 dark:border-amber-500/30 rounded-full px-2 py-0.5 ml-2">
-                          <EyeOff className="w-3 h-3" /> Oculto para ti
-                        </span>
-                      )}
-                    </h3>
-                    {partida.rankingPosition && (
-                      <div
-                        className={`relative overflow-hidden flex items-center justify-center w-12 h-12 rounded-2xl font-bold text-xs tracking-tight border ${rankingBadgeClass}`}
-                      >
-                        <div className="flex flex-col items-center leading-tight text-slate-900 dark:text-white">
-                          <span className="text-[10px] uppercase font-semibold opacity-80">
-                            Rank
-                          </span>
-                          <span className="text-base font-semibold">
-                            #{partida.rankingPosition}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-[11px] ${outcomeBgClass} ${outcomeTextClass}`}
+                  >
+                    {isVictory ? "Victoria" : "Derrota"}
+                  </span>
+                  {partida.tier && (
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/85 px-1.5 py-1 text-slate-900 shadow-sm shadow-slate-900/10 backdrop-blur-[2px] dark:border-white/25 dark:bg-black/40 dark:text-white">
+                      <RiotTierBadge
+                        tier={partida.tier}
+                        rank={partida.rank}
+                        size="sm"
+                      />
+                      <span className="text-[11px] font-semibold tracking-wide">
+                        {rankLabel}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <ActivityCardMenu
-                  activityType="lol_match"
-                  activityId={partida.matchId}
-                  isOwnProfile={isOwnProfile}
-                  isAdmin={isAdmin}
-                  onHide={onHide}
-                  onUnhide={onUnhide}
-                  isHidden={isHidden}
-                />
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-white/80">
-                  {runeIconsWithTooltip}
-                  <span className="h-4 w-px bg-white/25" />
-                  <div className="flex items-center gap-1 text-slate-600 dark:text-white">
-                    {partida.summoner1Id > 0 && (
-                      <div className="relative w-6 h-6 rounded bg-white/15 overflow-hidden">
-                        <Image
-                          src={getSummonerSpellUrl(
-                            partida.summoner1Id,
-                            ddragonVersion
-                          )}
-                          alt="Hechizo 1"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    )}
-                    {partida.summoner2Id > 0 && (
-                      <div className="relative w-6 h-6 rounded bg-white/15 overflow-hidden">
-                        <Image
-                          src={getSummonerSpellUrl(
-                            partida.summoner2Id,
-                            ddragonVersion
-                          )}
-                          alt="Hechizo 2"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <span className="h-4 w-px bg-white/25" />
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm">
                     <Clock className="w-3 h-3" />
                     <span>{relativeTime}</span>
                   </div>
+                  <ActivityCardMenu
+                    activityType="lol_match"
+                    activityId={partida.matchId}
+                    isOwnProfile={isOwnProfile}
+                    isAdmin={isAdmin}
+                    onHide={onHide}
+                    onUnhide={onUnhide}
+                    isHidden={isHidden}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pr-1">
+                <h3 className="text-2xl font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] flex items-center gap-2">
+                  <span>{partida.championName}</span>
+                  {isHidden && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-500/15 border border-amber-200/70 dark:border-amber-500/30 rounded-full px-2 py-0.5 ml-2">
+                      <EyeOff className="w-3 h-3" /> Oculto para ti
+                    </span>
+                  )}
+                </h3>
+                {partida.rankingPosition && (
+                  <div
+                    className={`relative overflow-hidden flex items-center justify-center w-12 h-12 rounded-2xl font-bold text-xs tracking-tight border ${rankingBadgeClass}`}
+                  >
+                    <div className="flex flex-col items-center leading-tight text-slate-900 dark:text-white">
+                      <span className="text-[10px] uppercase font-semibold opacity-80">
+                        Rank
+                      </span>
+                      <span className="text-base font-semibold">
+                        #{partida.rankingPosition}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 mt-1">
+                {runeIconsWithTooltip}
+                <div className="flex items-center gap-1">
+                  {partida.summoner1Id > 0 && (
+                    <div className="relative w-6 h-6 rounded bg-white/15 overflow-hidden">
+                      <Image
+                        src={getSummonerSpellUrl(
+                          partida.summoner1Id,
+                          ddragonVersion
+                        )}
+                        alt="Hechizo 1"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  )}
+                  {partida.summoner2Id > 0 && (
+                    <div className="relative w-6 h-6 rounded bg-white/15 overflow-hidden">
+                      <Image
+                        src={getSummonerSpellUrl(
+                          partida.summoner2Id,
+                          ddragonVersion
+                        )}
+                        alt="Hechizo 2"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs text-slate-700 dark:text-white/85">
@@ -515,11 +515,8 @@ export const SharedMatchCard = ({
 
             {/* Build + stats */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="space-y-2 sm:w-40 lg:w-48 shrink-0">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-white/70">
-                  Build
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              <div className="space-y-2 shrink-0 flex flex-col items-center">
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-2">
                   {partida.items.slice(0, 6).map((itemId, idx) => (
                     <div
                       key={idx}
@@ -538,13 +535,14 @@ export const SharedMatchCard = ({
                   ))}
                 </div>
               </div>
-              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-1">
+              <div className="flex-1 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                 {[
                   {
                     label: "KDA",
                     value: `${partida.kills}/${partida.deaths}/${partida.assists}`,
                     sub: `${partida.kda.toFixed(2)} ratio`,
                     accentClass: outcomeTextClass,
+                    longSub: true,
                   },
                   {
                     label: "CS",
@@ -575,12 +573,14 @@ export const SharedMatchCard = ({
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/20 px-2 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.1)] backdrop-blur-[2px] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/80 before:to-transparent after:content-[''] after:absolute after:top-0 after:left-0 after:w-px after:h-full after:bg-gradient-to-b after:from-white/80 after:via-transparent after:to-white/30 dark:bg-white/10 dark:border-white/20"
+                    className={`relative overflow-hidden rounded-xl border border-white/40 bg-white/65 px-1.5 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-white/10 dark:border-white/20 ${
+                      stat.longSub ? "col-span-1" : ""
+                    }`}
                   >
-                    <div className="flex items-center justify-between text-[9px] uppercase tracking-wide text-slate-500 dark:text-white/60">
-                      <span className="font-semibold">{stat.label}</span>
+                    <div className="flex items-center justify-between text-[9px] uppercase tracking-wide text-slate-700 dark:text-white/60">
+                      <span className="font-bold">{stat.label}</span>
                       {stat.sub && (
-                        <span className="text-[9px] text-slate-400 dark:text-white/50 font-medium">
+                        <span className="text-[9px] text-slate-600 dark:text-white/50 font-semibold">
                           {stat.sub}
                         </span>
                       )}

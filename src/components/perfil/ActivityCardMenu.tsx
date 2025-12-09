@@ -45,13 +45,7 @@ export function ActivityCardMenu({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleHide = async () => {
-    console.log(
-      "[ActivityCardMenu] hideActivity called for",
-      activityType,
-      activityId
-    );
     const success = await hideActivity({ activityType, activityId });
-    console.log("[ActivityCardMenu] hideActivity success:", success);
     if (success && onHide) {
       onHide();
     }

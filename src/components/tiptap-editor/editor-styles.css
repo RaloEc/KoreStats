@@ -1,4 +1,19 @@
 /* Estilos para encabezados en el editor TipTap */
+.tiptap.ProseMirror.editor-content {
+  width: 100%;
+  padding: 1rem;
+  min-height: 400px;
+  outline: none;
+}
+
+.tiptap p.is-empty::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 .tiptap h1 {
   font-size: 2rem;
   font-weight: 700;

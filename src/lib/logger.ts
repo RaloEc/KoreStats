@@ -11,9 +11,10 @@ export const logger = {
    * Log de información (solo en desarrollo)
    */
   info: (prefix: string, message: string, data?: any) => {
-    if (isDev) {
-      console.log(`[${prefix}] ${message}`, data ?? "");
-    }
+    // Disabled for cleaner console
+    // if (isDev) {
+    //   console.log(`[${prefix}] ${message}`, data ?? "");
+    // }
   },
 
   /**
@@ -35,17 +36,19 @@ export const logger = {
    * Log de éxito (solo en desarrollo)
    */
   success: (prefix: string, message: string, data?: any) => {
-    if (isDev) {
-      console.log(`[${prefix}] ✅ ${message}`, data ?? "");
-    }
+    // Disabled for cleaner console
+    // if (isDev) {
+    //   console.log(`[${prefix}] ✅ ${message}`, data ?? "");
+    // }
   },
 
   /**
    * Log de depuración (solo en desarrollo)
    */
   debug: (prefix: string, message: string, data?: any) => {
-    if (isDev) {
-      console.debug(`[${prefix}] 🔍 ${message}`, data ?? "");
-    }
+    // Disabled for cleaner console
+    // if (isDev) {
+    //   console.debug(`[${prefix}] 🔍 ${message}`, data ?? "");
+    // }
   },
 };

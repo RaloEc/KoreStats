@@ -508,215 +508,226 @@ function CrearNoticiaContent() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/admin/noticias" className="flex items-center gap-1">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Volver</span>
-          </Link>
-        </Button>
-      </div>
+    <div className="space-y-6 bg-background min-h-screen px-2 py-4 md:px-5">
+      <div className="max-w-5xl mx-auto space-y-5">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/noticias" className="flex items-center gap-1">
+              <ArrowLeft className="h-4 w-4" />
+              <span>Volver</span>
+            </Link>
+          </Button>
+        </div>
 
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Crear Nueva Noticia
-        </h1>
-        <p className="text-muted-foreground">
-          Añade una nueva noticia al sitio web
-        </p>
-      </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Crear Nueva Noticia
+          </h1>
+          <p className="text-muted-foreground">
+            Añade una nueva noticia al sitio web
+          </p>
+        </div>
 
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle>Crear Nueva Noticia</CardTitle>
-            <CardDescription>
-              Completa el formulario para crear una nueva noticia
-            </CardDescription>
-          </div>
+        <Card className="bg-card shadow-sm border rounded-xl">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-3 py-4 sm:px-6 sm:py-6">
+            <div>
+              <CardTitle className="text-card-foreground">
+                Crear Nueva Noticia
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Completa el formulario para crear una nueva noticia
+              </CardDescription>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Destacada</span>
-            <label
-              htmlFor="toggleDestacadaHeader"
-              className={`relative block h-7 w-12 rounded-full transition-colors [-webkit-tap-highlight-color:_transparent] ${
-                form.watch("destacada")
-                  ? "bg-primary"
-                  : "bg-gray-300 dark:bg-gray-600"
-              }`}
-            >
-              <input
-                type="checkbox"
-                id="toggleDestacadaHeader"
-                className="peer sr-only"
-                checked={form.watch("destacada")}
-                onChange={(e) => form.setValue("destacada", e.target.checked)}
-              />
-
-              <span
-                className={`absolute inset-y-0 start-0 m-1 size-5 rounded-full bg-gray-300 ring-[5px] ring-white transition-all ring-inset dark:bg-gray-600 dark:ring-gray-900 ${
-                  form.watch("destacada")
-                    ? "start-6 w-2 bg-white ring-transparent dark:bg-gray-900"
-                    : ""
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Destacada</span>
+              <label
+                htmlFor="toggleDestacadaHeader"
+                className={`relative block h-7 w-12 rounded-full transition-colors [-webkit-tap-highlight-color:_transparent] ${
+                  form.watch("destacada") ? "bg-primary" : "bg-input"
                 }`}
-              ></span>
-            </label>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="titulo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Título de la noticia" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Este será el título principal de la noticia
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              >
+                <input
+                  type="checkbox"
+                  id="toggleDestacadaHeader"
+                  className="peer sr-only"
+                  checked={form.watch("destacada")}
+                  onChange={(e) => form.setValue("destacada", e.target.checked)}
+                />
 
-              <FormField
-                control={form.control}
-                name="contenido"
-                render={({ field }) => (
-                  <div className="mb-4">
-                    <FormLabel>Contenido</FormLabel>
-                    <TiptapEditorLazy
-                      value={field.value}
-                      onChange={(value) => {
-                        field.onChange(value);
-                      }}
-                    />
-                    <FormMessage />
-                  </div>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <span
+                  className={`absolute inset-y-0 start-0 m-1 size-5 rounded-full bg-background ring-[5px] ring-transparent transition-all ring-inset shadow-sm ${
+                    form.watch("destacada")
+                      ? "start-6 w-2 bg-background"
+                      : "bg-muted-foreground/20"
+                  }`}
+                ></span>
+              </label>
+            </div>
+          </CardHeader>
+          <CardContent className="px-3 py-4 sm:px-6 sm:py-6">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <FormField
                   control={form.control}
-                  name="categoria_ids"
+                  name="titulo"
                   render={({ field }) => (
-                    <FormItem className="w-full md:col-span-2">
-                      <FormLabel>Categorías</FormLabel>
+                    <FormItem>
+                      <FormLabel>Título</FormLabel>
                       <FormControl>
-                        <div className="space-y-2 w-full">
-                          {cargandoCategorias ? (
-                            <div className="text-sm text-muted-foreground">
-                              Cargando categorías...
-                            </div>
-                          ) : categorias.length > 0 ? (
-                            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
-                              <CategorySelector
-                                categories={categorias.map((cat) => ({
-                                  id: cat.id,
-                                  nombre: cat.nombre,
-                                  color: cat.color || undefined,
-                                  descripcion: cat.descripcion || undefined,
-                                  subcategories:
-                                    cat.subcategories?.map((subcat) => ({
-                                      id: subcat.id,
-                                      nombre: subcat.nombre,
-                                      color: subcat.color || undefined,
-                                      descripcion:
-                                        subcat.descripcion || undefined,
-                                      subcategories:
-                                        subcat.subcategories?.map(
-                                          (subsubcat) => ({
-                                            id: subsubcat.id,
-                                            nombre: subsubcat.nombre,
-                                            color: subsubcat.color || undefined,
-                                            descripcion:
-                                              subsubcat.descripcion ||
-                                              undefined,
-                                          })
-                                        ) || [],
-                                    })) || [],
-                                }))}
-                                selectedCategoryIds={field.value || []}
-                                onSelectCategory={(id) =>
-                                  handleSeleccionarCategoria(field, id)
-                                }
-                                maxSelection={4}
-                                showSelectedBadges={true}
-                              />
-                            </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              No hay categorías disponibles
-                            </div>
-                          )}
-                        </div>
+                        <Input
+                          placeholder="Título de la noticia"
+                          className="bg-background border-input text-foreground placeholder:text-muted-foreground"
+                          {...field}
+                        />
                       </FormControl>
                       <FormDescription>
-                        Selecciona hasta 4 categorías para esta noticia
+                        Este será el título principal de la noticia
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <FormField
-                control={form.control}
-                name="imagen_portada"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Imagen destacada</FormLabel>
-                    <FormControl>
-                      <div>
-                        <Dropzone
-                          previewUrl={imagenPreview}
-                          onFileSelect={handleFileUpload}
-                          label="Arrastra y suelta o haz clic para subir una imagen"
-                          id="imagen-noticia"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      Sube una imagen arrastrándola, haciendo clic o pegándola
-                      desde el portapapeles (Ctrl+V)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => router.push("/admin/noticias")}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={enviando} className="gap-1">
-                  {enviando ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                      <span>Guardando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-1" />
-                      <span>Guardar Noticia</span>
-                    </>
+                <FormField
+                  control={form.control}
+                  name="contenido"
+                  render={({ field }) => (
+                    <div className="mb-4">
+                      <FormLabel>Contenido</FormLabel>
+                      <TiptapEditorLazy
+                        value={field.value}
+                        onChange={(value) => {
+                          field.onChange(value);
+                        }}
+                        className="border border-input rounded-lg px-4 py-3 text-foreground bg-background"
+                      />
+                      <FormMessage />
+                    </div>
                   )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="categoria_ids"
+                    render={({ field }) => (
+                      <FormItem className="w-full md:col-span-2">
+                        <FormLabel>Categorías</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2 w-full">
+                            {cargandoCategorias ? (
+                              <div className="text-sm text-muted-foreground">
+                                Cargando categorías...
+                              </div>
+                            ) : categorias.length > 0 ? (
+                              <div className="border border-input bg-muted/40 rounded-md p-4 max-h-[400px] overflow-y-auto">
+                                <CategorySelector
+                                  categories={categorias.map((cat) => ({
+                                    id: cat.id,
+                                    nombre: cat.nombre,
+                                    color: cat.color || undefined,
+                                    descripcion: cat.descripcion || undefined,
+                                    subcategories:
+                                      cat.subcategories?.map((subcat) => ({
+                                        id: subcat.id,
+                                        nombre: subcat.nombre,
+                                        color: subcat.color || undefined,
+                                        descripcion:
+                                          subcat.descripcion || undefined,
+                                        subcategories:
+                                          subcat.subcategories?.map(
+                                            (subsubcat) => ({
+                                              id: subsubcat.id,
+                                              nombre: subsubcat.nombre,
+                                              color:
+                                                subsubcat.color || undefined,
+                                              descripcion:
+                                                subsubcat.descripcion ||
+                                                undefined,
+                                            })
+                                          ) || [],
+                                      })) || [],
+                                  }))}
+                                  selectedCategoryIds={field.value || []}
+                                  onSelectCategory={(id) =>
+                                    handleSeleccionarCategoria(field, id)
+                                  }
+                                  maxSelection={4}
+                                  showSelectedBadges={true}
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">
+                                No hay categorías disponibles
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Selecciona hasta 4 categorías para esta noticia
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="imagen_portada"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Imagen destacada</FormLabel>
+                      <FormControl>
+                        <div>
+                          <Dropzone
+                            previewUrl={imagenPreview}
+                            onFileSelect={handleFileUpload}
+                            label="Arrastra y suelta o haz clic para subir una imagen"
+                            id="imagen-noticia"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Sube una imagen arrastrándola, haciendo clic o pegándola
+                        desde el portapapeles (Ctrl+V)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => router.push("/admin/noticias")}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={enviando} className="gap-1">
+                    {enviando ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                        <span>Guardando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-1" />
+                        <span>Guardar Noticia</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

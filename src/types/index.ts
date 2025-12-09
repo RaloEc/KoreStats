@@ -6,7 +6,7 @@ export type Perfil = {
   id: string;
   username: string;
   avatar_url: string | null;
-  role: 'admin' | 'moderator' | 'user';
+  role: "admin" | "moderator" | "user";
   color: string | null;
   bio?: string | null;
   ubicacion?: string | null;
@@ -72,7 +72,7 @@ export type Hilo = {
   imagen_url?: string;
   // Relaciones
   autor: Perfil | null;
-  categoria: Pick<CategoriaForo, 'nombre' | 'slug'> | null;
+  categoria: Pick<CategoriaForo, "nombre" | "slug"> | null;
 };
 
 export type Post = {
@@ -115,6 +115,8 @@ export type Noticia = {
   imagen_portada?: string | null; // Campo alternativo para la imagen
   vistas?: number;
   comentarios_count?: number;
+  type?: string; // Tipo de noticia (ej: 'lol_patch')
+  data?: any; // Datos adicionales (ej: datos del parche)
   // Relaciones
   autor: Perfil | null;
   categoria: CategoriaNoticia | null;
@@ -124,7 +126,7 @@ export type Noticia = {
   autor_nombre?: string;
   autor_color?: string;
   autor_avatar?: string | null;
-  autor_rol?: 'admin' | 'moderator' | 'user';
+  autor_rol?: "admin" | "moderator" | "user";
   resumen?: string;
 };
 
@@ -139,7 +141,7 @@ export type Servidor = {
   puerto: number;
   descripcion: string;
   version: string;
-  tipo: 'survival' | 'creativo' | 'minijuegos' | 'otro';
+  tipo: "survival" | "creativo" | "minijuegos" | "otro";
   web_url: string | null;
   discord_url: string | null;
   banner_url: string | null;
@@ -157,7 +159,7 @@ export type SolicitudServidor = {
   direccion_ip: string;
   puerto: number;
   descripcion: string;
-  estado: 'pendiente' | 'aprobado' | 'rechazado';
+  estado: "pendiente" | "aprobado" | "rechazado";
   solicitante_id: string;
   fecha_solicitud: string;
   // Relaciones
@@ -198,15 +200,15 @@ interface RecursoBase {
 }
 
 export type Textura = RecursoBase & {
-  resolucion: '16x' | '32x' | '64x' | '128x' | '256x' | '512x+';
+  resolucion: "16x" | "32x" | "64x" | "128x" | "256x" | "512x+";
 };
 
 export type Shader = RecursoBase & {
-  rendimiento: 'bajo' | 'medio' | 'alto';
+  rendimiento: "bajo" | "medio" | "alto";
 };
 
 export type Mod = RecursoBase & {
-  tipo: 'forge' | 'fabric' | 'rift' | 'otro';
+  tipo: "forge" | "fabric" | "rift" | "otro";
   dependencias: string | null;
 };
 
@@ -216,7 +218,7 @@ export type Mod = RecursoBase & {
 
 export interface Comentario {
   id: string;
-  content_type: 'noticia' | 'hilo';
+  content_type: "noticia" | "hilo";
   content_id: string;
   author_id: string;
   text: string;
@@ -232,9 +234,9 @@ export interface Comentario {
     author: string;
     text: string;
   };
-};
+}
 
 // =================================================================
 // SOCIAL - Re-exportar tipos sociales
 // =================================================================
-export * from './social';
+export * from "./social";

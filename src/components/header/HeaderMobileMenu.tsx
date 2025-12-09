@@ -59,6 +59,7 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
   isLoggingOut = false,
 }) => {
   const [adminMenuOpen, setAdminMenuOpen] = React.useState(false);
+  const [legalOpen, setLegalOpen] = React.useState(false);
 
   // Bloquear scroll del body cuando el menú esté abierto
   React.useEffect(() => {
@@ -467,25 +468,46 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
             </div>
 
             {/* Aviso legal */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 space-y-2">
-              <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                Aviso legal
-              </p>
-              <p>
-                KoreStats no está afiliado a Riot Games, Inc. League of Legends,
-                Valorant, Teamfight Tactics, Legends of Runeterra y todos los
-                activos relacionados son propiedad intelectual de Riot Games,
-                Inc.
-              </p>
-              <p>
-                KoreStats es un proyecto comunitario independiente que utiliza
-                datos públicos de las APIs de Riot Games conforme a sus Términos
-                de Servicio.
-              </p>
-              <p>
-                Riot Games es una marca registrada de Riot Games, Inc. © 2024
-                KoreStats.
-              </p>
+            <div className="border-t border-gray-200 dark:border-gray-800 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+              <button
+                type="button"
+                onClick={() => setLegalOpen(!legalOpen)}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors"
+              >
+                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                  Aviso legal
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform duration-200 ${
+                    legalOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  legalOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="px-4 pb-4 space-y-2">
+                  <p>
+                    KoreStats no está afiliado a Riot Games, Inc. League of
+                    Legends, Valorant, Teamfight Tactics, Legends of Runeterra y
+                    todos los activos relacionados son propiedad intelectual de
+                    Riot Games, Inc.
+                  </p>
+                  <p>
+                    KoreStats es un proyecto comunitario independiente que
+                    utiliza datos públicos de las APIs de Riot Games conforme a
+                    sus Términos de Servicio.
+                  </p>
+                  <p>
+                    Riot Games es una marca registrada de Riot Games, Inc. ©
+                    2024 KoreStats.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Botón de cerrar sesión al final */}

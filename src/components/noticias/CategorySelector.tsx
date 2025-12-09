@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from 'react';
-import { ChevronRight, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { ChevronRight, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 export interface NoticiaCategory {
   id: string;
@@ -33,7 +33,9 @@ export function CategorySelector({
   maxSelection = 4,
   showSelectedBadges = true,
 }: CategorySelectorProps) {
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const toggleCategory = (categoryId: string) => {
     setOpenCategories((prev) => ({
@@ -42,10 +44,14 @@ export function CategorySelector({
     }));
   };
 
-  const isSelected = (categoryId: string) => selectedCategoryIds.includes(categoryId);
+  const isSelected = (categoryId: string) =>
+    selectedCategoryIds.includes(categoryId);
   const canSelectMore = selectedCategoryIds.length < maxSelection;
 
-  const findCategoryById = (id: string, cats: NoticiaCategory[] = categories): NoticiaCategory | null => {
+  const findCategoryById = (
+    id: string,
+    cats: NoticiaCategory[] = categories
+  ): NoticiaCategory | null => {
     for (const cat of cats) {
       if (cat.id === id) return cat;
       if (cat.subcategories) {
@@ -57,7 +63,8 @@ export function CategorySelector({
   };
 
   const renderCategory = (category: NoticiaCategory, level: number = 0) => {
-    const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+    const hasSubcategories =
+      category.subcategories && category.subcategories.length > 0;
     const isOpen = openCategories[category.id];
     const selected = isSelected(category.id);
     const disabled = !selected && !canSelectMore;
@@ -65,7 +72,10 @@ export function CategorySelector({
     return (
       <div key={category.id} className="space-y-1">
         {hasSubcategories ? (
-          <Collapsible open={isOpen} onOpenChange={() => toggleCategory(category.id)}>
+          <Collapsible
+            open={isOpen}
+            onOpenChange={() => toggleCategory(category.id)}
+          >
             <div className="flex items-center group">
               <CollapsibleTrigger asChild>
                 <Button
@@ -82,21 +92,24 @@ export function CategorySelector({
                   />
                 </Button>
               </CollapsibleTrigger>
-              
+
               <Button
                 type="button"
                 variant="ghost"
                 disabled={disabled}
                 className={cn(
                   "justify-start p-2 h-auto w-full text-left hover:bg-accent/50 rounded-md transition-colors",
-                  selected && "bg-primary/10 text-primary font-medium hover:bg-primary/20",
+                  selected &&
+                    "bg-primary/10 text-primary font-medium hover:bg-primary/20",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
                 style={{ paddingLeft: `${level * 1.5}rem` }}
                 onClick={() => onSelectCategory(category.id)}
               >
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="truncate">{category.nombre}</span>
+                  <span className="truncate text-foreground font-medium">
+                    {category.nombre}
+                  </span>
                   {category.descripcion && (
                     <span className="text-xs text-muted-foreground block mt-0.5">
                       {category.descripcion}
@@ -124,7 +137,9 @@ export function CategorySelector({
             </div>
 
             <CollapsibleContent className="ml-6 pl-2 border-l-2 border-border/30 dark:border-border/50 space-y-1">
-              {category.subcategories?.map((subcat) => renderCategory(subcat, level + 1))}
+              {category.subcategories?.map((subcat) =>
+                renderCategory(subcat, level + 1)
+              )}
             </CollapsibleContent>
           </Collapsible>
         ) : (
@@ -134,7 +149,8 @@ export function CategorySelector({
             disabled={disabled}
             className={cn(
               "justify-start p-2 h-auto w-full text-left hover:bg-accent/50 rounded-md transition-colors",
-              selected && "bg-primary/10 text-primary font-medium hover:bg-primary/20",
+              selected &&
+                "bg-primary/10 text-primary font-medium hover:bg-primary/20",
               disabled && "opacity-50 cursor-not-allowed"
             )}
             style={{ paddingLeft: `${level * 1.5}rem` }}
@@ -148,7 +164,9 @@ export function CategorySelector({
                 />
               )}
               <div className="flex-1">
-                <span className="block">{category.nombre}</span>
+                <span className="block text-foreground font-medium">
+                  {category.nombre}
+                </span>
                 {category.descripcion && (
                   <span className="text-xs text-muted-foreground block mt-0.5">
                     {category.descripcion}
@@ -190,7 +208,8 @@ export function CategorySelector({
       {showSelectedBadges && selectedCategoryIds.length > 0 && (
         <div className="mt-4 p-3 bg-muted/50 rounded-md">
           <p className="text-sm font-medium mb-2">
-            Categorías seleccionadas ({selectedCategoryIds.length}/{maxSelection}):
+            Categorías seleccionadas ({selectedCategoryIds.length}/
+            {maxSelection}):
           </p>
           <div className="flex flex-wrap gap-2">
             {selectedCategoryIds.map((catId) => {

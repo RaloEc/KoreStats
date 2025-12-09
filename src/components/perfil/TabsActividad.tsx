@@ -47,13 +47,6 @@ export const TabsActividad = ({
   ultimasPartidas,
   userColor = "#3b82f6",
 }: TabsActividadProps) => {
-  console.log("[TabsActividad] Props received:", {
-    ultimosHilos_count: ultimosHilos?.length,
-    ultimosPosts_count: ultimosPosts?.length,
-    weaponStatsRecords_count: weaponStatsRecords?.length,
-    weaponStatsRecords: weaponStatsRecords,
-  });
-
   const colorStyle = {
     "--user-color": userColor,
   } as React.CSSProperties;
@@ -413,16 +406,6 @@ export const TabsActividad = ({
             {weaponStatsRecords?.length ? (
               <ul className="space-y-3 sm:space-y-4">
                 {weaponStatsRecords.map((record) => {
-                  console.log(
-                    "[TabsActividad] Rendering weapon stats record:",
-                    {
-                      id: record.id,
-                      weapon_name: record.weapon_name,
-                      hilo_titulo: record.hilo.titulo,
-                      stats_keys: record.stats ? Object.keys(record.stats) : [],
-                    }
-                  );
-
                   return (
                     <li
                       key={record.hilo.id}

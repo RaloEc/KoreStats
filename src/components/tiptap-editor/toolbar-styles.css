@@ -1,6 +1,6 @@
-/* Estilos para la barra de herramientas */
 .tiptap-toolbar {
-  position: relative;
+  position: sticky;
+  top: 0;
   border-bottom: 1px solid var(--border);
   padding: 0.5rem;
   background-color: var(--background);
@@ -42,7 +42,8 @@
   z-index: 1000;
   background-color: var(--background);
   border-radius: var(--radius);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   min-width: 10rem;
   max-height: 20rem;
   overflow-y: auto;
@@ -82,7 +83,7 @@
   .tiptap-toolbar {
     padding: 0.25rem;
   }
-  
+
   .toolbar-scroll > div {
     margin-right: 0.25rem;
     padding-right: 0.25rem;

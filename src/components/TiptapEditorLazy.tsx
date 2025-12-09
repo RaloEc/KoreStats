@@ -8,6 +8,7 @@ export interface TiptapEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   onImageChange?: (hasTemporaryImages: boolean) => void;
+  className?: string;
 }
 
 // Lazy load TiptapEditor con ssr: false

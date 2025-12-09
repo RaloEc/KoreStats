@@ -86,7 +86,6 @@ export const PerfilHeader = ({ profile }: PerfilHeaderProps) => {
   // Sincronizar estado social desde la API (solo flags, no contadores)
   useEffect(() => {
     if (socialStatusData) {
-      console.log("[PerfilHeader] socialStatusData updated:", socialStatusData);
       const followingChanged =
         prevFollowingRef.current !== socialStatusData.is_following;
 
@@ -98,7 +97,7 @@ export const PerfilHeader = ({ profile }: PerfilHeaderProps) => {
           is_blocked: socialStatusData.is_blocked,
           friend_request_id: socialStatusData.friend_request_id,
         };
-        console.log("[PerfilHeader] Setting socialStats:", newStats);
+
         return newStats;
       });
 
@@ -155,20 +154,10 @@ export const PerfilHeader = ({ profile }: PerfilHeaderProps) => {
   };
 
   const handleFriendRequest = () => {
-    console.log(
-      "[PerfilHeader] handleFriendRequest - profile.public_id:",
-      profile.public_id
-    );
     sendFriendRequestMutation.mutate(profile.public_id, {
       onSuccess: () => {
-        console.log(
-          "[PerfilHeader] handleFriendRequest onSuccess - refetching social status"
-        );
         // Refrescar estado social después de enviar solicitud
         setTimeout(() => {
-          console.log(
-            "[PerfilHeader] handleFriendRequest - calling refetchSocialStatus"
-          );
           refetchSocialStatus();
         }, 500);
       },

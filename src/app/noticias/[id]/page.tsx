@@ -15,6 +15,7 @@ import NoticiaContenido from "@/components/noticias/NoticiaContenido";
 import NoticiaCategorias from "@/components/noticias/NoticiaCategorias";
 import NoticiasRelacionadas from "@/components/noticias/NoticiasRelacionadas";
 import NoticiaComentariosOptimizado from "@/components/noticias/NoticiaComentariosOptimizado";
+import LolPatchContent from "@/components/noticias/LolPatchContent";
 
 // Estilos para el scrollbar
 const scrollbarStyles = `
@@ -97,35 +98,38 @@ export default function NoticiaDetalle({ params }: { params: { id: string } }) {
       // Verificar si ya se incrementó en esta sesión
       const sessionKey = `vista_contada_${params.id}`;
       const yaContado = sessionStorage.getItem(sessionKey);
-      
+
       if (hasCountedView.current || yaContado) {
-        console.log('⚠️ Vista ya contada para esta noticia en esta sesión');
+        console.log("⚠️ Vista ya contada para esta noticia en esta sesión");
         return;
       }
-      
+
       try {
-        console.log('👁️ Incrementando vista para noticia:', params.id);
+        console.log("👁️ Incrementando vista para noticia:", params.id);
         const supabase = createClient();
-        const { data, error } = await supabase.rpc('incrementar_vista_noticia', { 
-          noticia_id: params.id 
-        });
-        
+        const { data, error } = await supabase.rpc(
+          "incrementar_vista_noticia",
+          {
+            noticia_id: params.id,
+          }
+        );
+
         if (error) {
-          console.error('❌ Error al incrementar vista:', error);
+          console.error("❌ Error al incrementar vista:", error);
           return;
         }
-        
-        console.log('✅ Vista incrementada exitosamente. Nuevo total:', data);
+
+        console.log("✅ Vista incrementada exitosamente. Nuevo total:", data);
         hasCountedView.current = true;
-        sessionStorage.setItem(sessionKey, 'true');
+        sessionStorage.setItem(sessionKey, "true");
       } catch (e) {
-        console.error('❌ Error al incrementar vista de noticia:', e);
+        console.error("❌ Error al incrementar vista de noticia:", e);
       }
     };
 
     // Ejecutar tras montar con un pequeño delay para evitar doble ejecución
     const timer = setTimeout(incrementarVista, 100);
-    
+
     return () => clearTimeout(timer);
   }, [params.id]);
 
@@ -155,7 +159,9 @@ export default function NoticiaDetalle({ params }: { params: { id: string } }) {
           {/* Cabecera con título y botón de volver */}
           <NoticiaCabecera
             titulo={noticia.titulo}
-            descripcion={noticia.contenido?.substring(0, 160).replace(/<[^>]*>/g, '') || ''}
+            descripcion={
+              noticia.contenido?.substring(0, 160).replace(/<[^>]*>/g, "") || ""
+            }
             esAdmin={esAdmin}
             noticiaId={params.id}
           />
@@ -181,6 +187,13 @@ export default function NoticiaDetalle({ params }: { params: { id: string } }) {
 
           {/* Contenido de la noticia */}
           <NoticiaContenido contenido={noticia.contenido} />
+
+          {/* Contenido especial para parches de LoL */}
+          {noticia.type === "lol_patch" && noticia.data && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <LolPatchContent data={noticia.data} />
+            </div>
+          )}
 
           {/* Divisor después del contenido */}
           <div className="max-w-4xl mx-auto mb-8">
