@@ -73,6 +73,11 @@ export async function POST(request: Request) {
           .select("*")
           .eq("id", activityId)
           .single();
+        console.log("[Activity Admin Delete] Snapshot foro_hilos", {
+          activityId,
+          found: !!data,
+          deleted_at: data?.deleted_at,
+        });
         contentSnapshot = data;
         originalUserId = data?.user_id;
         break;
@@ -84,6 +89,11 @@ export async function POST(request: Request) {
           .select("*")
           .eq("id", activityId)
           .single();
+        console.log("[Activity Admin Delete] Snapshot foro_posts", {
+          activityId,
+          found: !!data,
+          deleted_at: data?.deleted_at,
+        });
         contentSnapshot = data;
         originalUserId = data?.user_id;
         break;
@@ -95,6 +105,11 @@ export async function POST(request: Request) {
           .select("*")
           .eq("id", activityId)
           .single();
+        console.log("[Activity Admin Delete] Snapshot weapon_stats_records", {
+          activityId,
+          found: !!data,
+          deleted_at: data?.deleted_at,
+        });
         contentSnapshot = data;
         originalUserId = data?.user_id;
         break;
@@ -106,6 +121,11 @@ export async function POST(request: Request) {
           .select("*")
           .eq("match_id", activityId)
           .single();
+        console.log("[Activity Admin Delete] Snapshot user_activity_entries", {
+          activityId,
+          found: !!data,
+          deleted_at: data?.deleted_at,
+        });
         contentSnapshot = data;
         originalUserId = data?.user_id;
         break;
@@ -117,8 +137,15 @@ export async function POST(request: Request) {
           .select("*")
           .eq("id", activityId)
           .single();
+        console.log("[Activity Admin Delete] Snapshot noticia", {
+          activityId,
+          found: !!data,
+          deleted_at: data?.deleted_at,
+          estado: data?.estado,
+          autor_id: data?.autor_id,
+        });
         contentSnapshot = data;
-        originalUserId = data?.user_id;
+        originalUserId = data?.autor_id;
         break;
       }
 
@@ -128,6 +155,11 @@ export async function POST(request: Request) {
           .select("*")
           .eq("id", activityId)
           .single();
+        console.log("[Activity Admin Delete] Snapshot comentario", {
+          activityId,
+          found: !!data,
+          deleted_at: data?.deleted_at,
+        });
         contentSnapshot = data;
         originalUserId = data?.user_id;
         break;
@@ -143,6 +175,10 @@ export async function POST(request: Request) {
           .from("foro_hilos")
           .update({ deleted_at: new Date().toISOString() })
           .eq("id", activityId);
+        console.log("[Activity Admin Delete] Update foro_hilos", {
+          activityId,
+          error,
+        });
         deleteError = error;
         break;
       }
@@ -152,6 +188,10 @@ export async function POST(request: Request) {
           .from("foro_posts")
           .update({ deleted_at: new Date().toISOString() })
           .eq("id", activityId);
+        console.log("[Activity Admin Delete] Update foro_posts", {
+          activityId,
+          error,
+        });
         deleteError = error;
         break;
       }
@@ -161,6 +201,10 @@ export async function POST(request: Request) {
           .from("weapon_stats_records")
           .update({ deleted_at: new Date().toISOString() })
           .eq("id", activityId);
+        console.log("[Activity Admin Delete] Update weapon_stats_records", {
+          activityId,
+          error,
+        });
         deleteError = error;
         break;
       }
@@ -171,16 +215,54 @@ export async function POST(request: Request) {
           .from("user_activity_entries")
           .update({ deleted_at: new Date().toISOString() })
           .eq("match_id", activityId);
+        console.log("[Activity Admin Delete] Update user_activity_entries", {
+          activityId,
+          error,
+        });
         deleteError = error;
         break;
       }
 
       case "noticia": {
-        const { error } = await supabase
-          .from("noticias")
-          .update({ deleted_at: new Date().toISOString() })
-          .eq("id", activityId);
-        deleteError = error;
+        // Intentar primero con RPC si existe
+        console.log(
+          "[Activity Admin Delete] Intentando soft_delete_noticia RPC",
+          {
+            activityId,
+          }
+        );
+
+        let rpcError = null;
+        try {
+          const { error } = await supabase.rpc("soft_delete_noticia", {
+            p_noticia_id: activityId,
+          });
+          rpcError = error;
+          console.log("[Activity Admin Delete] Update noticia (RPC)", {
+            activityId,
+            error: rpcError,
+          });
+        } catch (e) {
+          console.log(
+            "[Activity Admin Delete] RPC no disponible, usando update directo",
+            {
+              activityId,
+              error: e,
+            }
+          );
+          // Fallback: update directo
+          const { error } = await supabase
+            .from("noticias")
+            .update({ deleted_at: new Date().toISOString() })
+            .eq("id", activityId);
+          rpcError = error;
+          console.log("[Activity Admin Delete] Update noticia (directo)", {
+            activityId,
+            error: rpcError,
+          });
+        }
+
+        deleteError = rpcError;
         break;
       }
 
@@ -189,6 +271,10 @@ export async function POST(request: Request) {
           .from("comentarios")
           .update({ deleted_at: new Date().toISOString() })
           .eq("id", activityId);
+        console.log("[Activity Admin Delete] Update comentario", {
+          activityId,
+          error,
+        });
         deleteError = error;
         break;
       }

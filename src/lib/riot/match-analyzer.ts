@@ -16,7 +16,19 @@ export type MatchTag =
   | "KS"
   | "Sacrificado"
   | "Ladron"
-  | "Desafortunado";
+  | "Desafortunado"
+  | "DiosDelCS"
+  | "SoloKill"
+  | "Remontada"
+  | "Destructor"
+  | "FuriaTemprana"
+  | "MaestroDeCC"
+  | "Duelista"
+  | "PrimeraSangre"
+  | "PentaKill"
+  | "QuadraKill"
+  | "TripleKill"
+  | "DobleKill";
 
 export interface MatchTagInput {
   kills: number;
@@ -51,6 +63,17 @@ export interface MatchTagInput {
   teamTotalKills?: number;
   teamTotalDamage?: number;
   teamTotalGold?: number;
+  // Nuevos campos para badges extendidos
+  pentaKills?: number;
+  quadraKills?: number;
+  tripleKills?: number;
+  doubleKills?: number;
+  firstBloodKill?: boolean;
+  totalTimeCCDealt?: number;
+  soloKills?: number; // De challenges
+  turretPlatesTaken?: number; // De challenges
+  earlyLaningPhaseGoldExpAdvantage?: number; // De challenges (prox. Furia Temprana)
+  goldDeficit?: number; // Calculado si es posible, o flag
 }
 
 export interface TeamContext {
@@ -186,6 +209,84 @@ const TAG_INFO: Record<MatchTag, MatchTagInfo> = {
     label: "Desafortunado",
     description: "Jugaste bien pero tu equipo no acompaño",
   },
+  DiosDelCS: {
+    tag: "DiosDelCS",
+    color:
+      "bg-yellow-100 dark:bg-yellow-200/85 text-slate-900 dark:text-slate-950",
+    label: "Dios del CS",
+    description: "Farmeo de nivel profesional",
+  },
+  SoloKill: {
+    tag: "SoloKill",
+    color: "bg-red-100 dark:bg-red-200/85 text-slate-900 dark:text-slate-950",
+    label: "Solo Kill",
+    description: "Eliminaciones en solitario",
+  },
+  Remontada: {
+    tag: "Remontada",
+    color: "bg-blue-100 dark:bg-blue-200/85 text-slate-900 dark:text-slate-950",
+    label: "Remontada",
+    description: "Victoria tras ir por debajo en oro",
+  },
+  Destructor: {
+    tag: "Destructor",
+    color:
+      "bg-orange-200 dark:bg-orange-300/85 text-slate-900 dark:text-slate-950",
+    label: "Destructor",
+    description: "Daño masivo a campeones",
+  },
+  FuriaTemprana: {
+    tag: "FuriaTemprana",
+    color: "bg-rose-200 dark:bg-rose-300/85 text-slate-900 dark:text-slate-950",
+    label: "Furia Temprana",
+    description: "Dominio absoluto del early game",
+  },
+  MaestroDeCC: {
+    tag: "MaestroDeCC",
+    color:
+      "bg-purple-200 dark:bg-purple-300/85 text-slate-900 dark:text-slate-950",
+    label: "Maestro de CC",
+    description: "Gran cantidad de control de masas aplicado",
+  },
+  Duelista: {
+    tag: "Duelista",
+    color: "bg-red-200 dark:bg-red-300/85 text-slate-900 dark:text-slate-950",
+    label: "Duelista",
+    description: "Múltiples victorias en 1v1",
+  },
+  PrimeraSangre: {
+    tag: "PrimeraSangre",
+    color: "bg-rose-100 dark:bg-rose-200/85 text-slate-900 dark:text-slate-950",
+    label: "Primera Sangre",
+    description: "Primer asesinato de la partida",
+  },
+  PentaKill: {
+    tag: "PentaKill",
+    color:
+      "bg-red-500 text-white dark:bg-red-600 dark:text-white font-bold animate-pulse",
+    label: "PENTA KILL",
+    description: "5 asesinatos consecutivos",
+  },
+  QuadraKill: {
+    tag: "QuadraKill",
+    color: "bg-red-400 text-white dark:bg-red-500 dark:text-white font-bold",
+    label: "QUADRA KILL",
+    description: "4 asesinatos consecutivos",
+  },
+  TripleKill: {
+    tag: "TripleKill",
+    color:
+      "bg-orange-400 text-white dark:bg-orange-500 dark:text-white font-bold",
+    label: "TRIPLE KILL",
+    description: "3 asesinatos consecutivos",
+  },
+  DobleKill: {
+    tag: "DobleKill",
+    color:
+      "bg-amber-400 text-white dark:bg-amber-500 dark:text-white font-bold",
+    label: "DOBLE KILL",
+    description: "2 asesinatos consecutivos",
+  },
 };
 
 /**
@@ -237,53 +338,25 @@ export function analyzeMatchTags(stats: MatchTagInput): MatchTag[] {
   // Farmeador: CS por minuto real
   if (shouldGrantFarmerTag(stats, csPerMinute)) {
     tags.push("Farmeador");
+    // Si tiene Duelista, quitamos SoloKill para no redundar
+    const index = tags.indexOf("SoloKill");
+    if (index > -1) tags.splice(index, 1);
   }
 
-  // Visionario: visión colocada
-  if (
-    (visionScorePerMinute !== null && visionScorePerMinute >= 2) ||
-    (visionScorePerMinute === null && (stats.visionScore ?? 0) >= 40) ||
-    (stats.wardsPlaced ?? 0) >= 15
-  ) {
-    tags.push("Visionario");
+  // Primera Sangre
+  if (stats.firstBloodKill) {
+    tags.push("PrimeraSangre");
   }
 
-  // Objetivos: daño alto a objetivos mayores
-  if ((stats.damageToObjectives ?? 0) >= 15000) {
-    tags.push("Objetivos");
-  }
-
-  // Implacable: sin muertes con mucha participación
-  if (
-    stats.deaths === 0 &&
-    (stats.kills >= 7 || stats.assists >= 12 || kda >= 8)
-  ) {
-    tags.push("Implacable");
-  }
-
-  // Titan: participación masiva de daño
-  if (teamDamageShare !== null && teamDamageShare >= 0.35) {
-    tags.push("Titan");
-  }
-
-  // Demoledor: daño altísimo a estructuras
-  if ((stats.damageToTurrets ?? 0) >= 5000) {
-    tags.push("Demoledor");
-  }
-
-  // KS: muchas kills pero bajo aporte de daño
-  if (stats.kills >= 8 && teamDamageShare !== null && teamDamageShare <= 0.2) {
-    tags.push("KS");
-  }
-
-  // Sacrificado: muchas muertes pero se gana la partida
-  if (stats.win && stats.deaths > 9) {
-    tags.push("Sacrificado");
-  }
-
-  // Ladron: robo de objetivos epicos
-  if ((stats.objectivesStolen ?? 0) > 0) {
-    tags.push("Ladron");
+  // Multi-kills (prioridad: Penta > Quadra > Triple > Doble)
+  if ((stats.pentaKills ?? 0) > 0) {
+    tags.push("PentaKill");
+  } else if ((stats.quadraKills ?? 0) > 0) {
+    tags.push("QuadraKill");
+  } else if ((stats.tripleKills ?? 0) > 0) {
+    tags.push("TripleKill");
+  } else if ((stats.doubleKills ?? 0) > 0) {
+    tags.push("DobleKill");
   }
 
   const unluckyAnalysis = analyzeDesafortunado(stats);

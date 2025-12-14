@@ -1,17 +1,17 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePerfilUsuario } from "@/hooks/use-perfil-usuario";
 import { PerfilHeader } from "@/components/perfil/PerfilHeader";
 import { EstadisticasUnificadas } from "@/components/perfil/EstadisticasUnificadas";
 import { FeedActividad } from "@/components/perfil/FeedActividad";
-import { ProfileTabs } from "@/components/perfil/ProfileTabs";
+import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import MobileUserProfileLayout from "@/components/perfil/MobileUserProfileLayout";
 import { PerfilSkeleton } from "@/components/perfil/PerfilSkeleton";
 import { PerfilError } from "@/components/perfil/PerfilError";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LinkedAccountRiot } from "@/types/riot";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
@@ -19,13 +19,26 @@ import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
 
 export default function UserProfilePage() {
+  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const publicId = params.username as string;
   const isMobile = useIsMobile(1024);
-  const activeTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
+  const activeTabFromUrl = (searchParams.get("tab") as ProfileTab) || "posts";
+  const [currentTab, setCurrentTab] = useState<ProfileTab>(activeTabFromUrl);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, profile: currentUserProfile } = useAuth();
+
+  useEffect(() => {
+    setCurrentTab(activeTabFromUrl);
+  }, [activeTabFromUrl]);
+
+  const handleTabChange = (tab: ProfileTab) => {
+    setCurrentTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`);
+  };
 
   const {
     data: profile,
@@ -128,22 +141,15 @@ export default function UserProfilePage() {
       setSyncError(null);
 
       // Invalidar queries para refrescar datos
-      await queryClient.cancelQueries({ queryKey: ["match-history"] });
-      await queryClient.cancelQueries({ queryKey: ["match-history-cache"] });
-
-      queryClient.removeQueries({
-        queryKey: ["match-history", profile?.id],
-      });
-      queryClient.removeQueries({
-        queryKey: ["match-history-cache", profile?.id],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["match-history", profile?.id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["match-history-cache", profile?.id],
-      });
+      const targetUserId = riotUserId ?? profile?.id;
+      if (targetUserId) {
+        queryClient.invalidateQueries({
+          queryKey: ["match-history", targetUserId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["match-history-cache", targetUserId],
+        });
+      }
 
       // Recargar cuenta Riot
       if (riotAccount?.puuid) {
@@ -194,8 +200,6 @@ export default function UserProfilePage() {
 
   const isOwnProfile = Boolean(user && profile && user.id === profile.id);
 
-  // Obtener el perfil del usuario logueado desde useAuth
-  const { profile: currentUserProfile } = useAuth();
   // isAdmin debe ser true si el usuario LOGUEADO es admin, no el perfil visitado
   const isCurrentUserAdmin = Boolean(
     currentUserProfile && currentUserProfile.role === "admin"
@@ -222,16 +226,20 @@ export default function UserProfilePage() {
       <div className="container mx-auto py-6 sm:py-8 px-3 sm:px-4 max-w-6xl">
         {/* Cabecera del Perfil */}
         <div className="mb-6 sm:mb-8">
-          <PerfilHeader profile={profile} />
+          <PerfilHeader profile={profile} riotAccount={riotAccount} />
         </div>
 
         {/* Sistema de Pestañas */}
         <div className="mb-6 sm:mb-8">
-          <ProfileTabs hasRiotAccount={!!riotAccount} />
+          <ProfileTabs
+            hasRiotAccount={!!riotAccount}
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+          />
         </div>
 
         {/* Contenido de Pestañas */}
-        {activeTab === "posts" ? (
+        {currentTab === "posts" ? (
           // Pestaña Actividad
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Columna izquierda - Feed de actividad (estilo red social) */}
@@ -283,6 +291,7 @@ export default function UserProfilePage() {
                   <MatchHistoryList
                     userId={riotUserId ?? profile.id}
                     puuid={riotAccount.puuid}
+                    hideShareButton={true}
                   />
                 )}
               </>

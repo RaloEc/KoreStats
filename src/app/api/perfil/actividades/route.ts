@@ -35,6 +35,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    console.log("[Perfil Actividades API] Iniciando consulta", {
+      userId,
+      page,
+      limit,
+      offset,
+    });
+
     // Obtener actividades del usuario
     const [noticias, comentarios, hilos, respuestas, partidas] =
       await Promise.all([
@@ -43,11 +50,13 @@ export async function GET(request: NextRequest) {
           .from("noticias")
           .select(
             `
-          id, titulo, contenido, created_at, 
+          id, titulo, contenido, created_at, estado, deleted_at,
           categorias:noticias_categorias(categoria:categorias(nombre))
         `
           )
           .eq("autor_id", userId)
+          .is("deleted_at", null)
+          .neq("estado", "borrador")
           .order("created_at", { ascending: false })
           .range(offset, offset + limit - 1),
 
@@ -173,6 +182,17 @@ export async function GET(request: NextRequest) {
     };
 
     // Transformar los resultados a formato ActivityItem
+    console.log("[Perfil Actividades API] Noticias query result", {
+      error: noticias.error,
+      count: noticias.data?.length || 0,
+      data: noticias.data?.map((n: any) => ({
+        id: n.id,
+        titulo: n.titulo,
+        deleted_at: n.deleted_at,
+        estado: n.estado,
+      })),
+    });
+
     const actividadesNoticias = ((noticias.data as NoticiaItem[]) || []).map(
       (noticia) => {
         // Asegurar que categorias es un array y acceder al primer elemento si existe
@@ -247,6 +267,10 @@ export async function GET(request: NextRequest) {
 
     const matchParticipantsMap = new Map<string, any>();
     const rankSnapshotsMap = new Map<string, any>();
+    const matchParticipantNamesByMatchId = new Map<
+      string,
+      Map<string, string>
+    >();
 
     if (userPuuid && uniqueMatchIds.length > 0) {
       const { data: matchParticipants, error: matchParticipantsError } =
@@ -291,6 +315,34 @@ export async function GET(request: NextRequest) {
       } else {
         rankSnapshots?.forEach((rank) => {
           rankSnapshotsMap.set(rank.match_id, rank);
+        });
+      }
+
+      const { data: participantNames, error: participantNamesError } =
+        await supabase
+          .from("match_participants")
+          .select("match_id, puuid, summoner_name")
+          .in("match_id", uniqueMatchIds);
+
+      if (participantNamesError) {
+        console.warn(
+          "[Perfil Actividades API] Error obteniendo nombres de participantes",
+          participantNamesError
+        );
+      } else {
+        participantNames?.forEach((row: any) => {
+          const matchId = row.match_id as string;
+          const puuid = row.puuid as string;
+          const summonerName =
+            typeof row.summoner_name === "string" && row.summoner_name.trim()
+              ? row.summoner_name.trim()
+              : null;
+
+          if (!matchId || !puuid || !summonerName) return;
+          if (!matchParticipantNamesByMatchId.has(matchId)) {
+            matchParticipantNamesByMatchId.set(matchId, new Map());
+          }
+          matchParticipantNamesByMatchId.get(matchId)!.set(puuid, summonerName);
         });
       }
     }
@@ -357,11 +409,223 @@ export async function GET(request: NextRequest) {
       const dataVersion = matchInfo?.data_version ?? metadata.dataVersion ?? "";
 
       let perks = null;
+      let teamTotalDamage = 0;
+      let teamTotalGold = 0;
+      let teamTotalKills = 0;
+      let objectivesStolen = 0;
+      let allPlayers: any[] = [];
+      // Variables para nuevos badges
+      let pentaKills = 0;
+      let quadraKills = 0;
+      let tripleKills = 0;
+      let doubleKills = 0;
+      let firstBloodKill = false;
+      let totalTimeCCDealt = 0;
+      let soloKills = 0;
+      let turretPlatesTaken = 0;
+      let earlyLaningPhaseGoldExpAdvantage = 0;
+      let goldDeficit = 0;
+      let teamAvgDamageToChampions = 0;
+      let teamAvgGoldEarned = 0;
+      let teamAvgKillParticipation = 0;
+      let teamAvgVisionScore = 0;
+      let teamAvgCsPerMin = 0;
+      let teamAvgDamageToTurrets = 0;
+
+      const getParticipantDisplayName = (p: unknown): string => {
+        if (!p || typeof p !== "object") return "Jugador";
+        const obj = p as Record<string, unknown>;
+
+        const riotIdGameNameRaw = obj.riotIdGameName;
+        const riotIdTaglineRaw = obj.riotIdTagline;
+        const summonerNameRaw = obj.summonerName;
+
+        const riotIdGameName =
+          typeof riotIdGameNameRaw === "string" && riotIdGameNameRaw.trim()
+            ? riotIdGameNameRaw.trim()
+            : null;
+        const riotIdTagline =
+          typeof riotIdTaglineRaw === "string" && riotIdTaglineRaw.trim()
+            ? riotIdTaglineRaw.trim()
+            : null;
+        const summonerName =
+          typeof summonerNameRaw === "string" && summonerNameRaw.trim()
+            ? summonerNameRaw.trim()
+            : null;
+
+        if (riotIdGameName && riotIdTagline)
+          return `${riotIdGameName}#${riotIdTagline}`;
+        if (riotIdGameName) return riotIdGameName;
+        return summonerName ?? "Jugador";
+      };
+
+      const getDbParticipantNameFallback = (puuid: unknown): string | null => {
+        const puuidValue =
+          typeof puuid === "string" && puuid.trim() ? puuid.trim() : null;
+        if (!puuidValue) return null;
+        const byPuuid = matchParticipantNamesByMatchId.get(partida.match_id);
+        return byPuuid?.get(puuidValue) ?? null;
+      };
+
+      const getParticipantPosition = (p: unknown): string => {
+        if (!p || typeof p !== "object") return "Unknown";
+        const obj = p as Record<string, unknown>;
+
+        const normalize = (raw: unknown): string | null => {
+          if (typeof raw !== "string") return null;
+          const value = raw.trim().toUpperCase();
+          if (!value) return null;
+          if (value === "TOP") return "TOP";
+          if (value === "JUNGLE" || value === "JG" || value === "JUN")
+            return "JUNGLE";
+          if (value === "MID" || value === "MIDDLE") return "MID";
+          if (
+            value === "BOT" ||
+            value === "BOTTOM" ||
+            value === "ADC" ||
+            value === "CARRY" ||
+            value === "DUO_CARRY"
+          )
+            return "BOT";
+          if (
+            value === "SUP" ||
+            value === "SUPP" ||
+            value === "SUPPORT" ||
+            value === "UTILITY" ||
+            value === "DUO_SUPPORT"
+          )
+            return "SUP";
+          return null;
+        };
+
+        return (
+          normalize(obj.teamPosition) ??
+          normalize(obj.individualPosition) ??
+          normalize(obj.lane) ??
+          normalize(obj.role) ??
+          "Unknown"
+        );
+      };
+
       if (matchInfo?.full_json?.info?.participants) {
-        const participantDetail = matchInfo.full_json.info.participants.find(
+        const participants = matchInfo.full_json.info.participants;
+        const participantDetail = participants.find(
           (p: any) => p.puuid === (participant?.puuid || userPuuid)
         );
         perks = participantDetail?.perks ?? null;
+
+        // Extraer stats base
+        pentaKills = participantDetail?.pentaKills || 0;
+        quadraKills = participantDetail?.quadraKills || 0;
+        tripleKills = participantDetail?.tripleKills || 0;
+        doubleKills = participantDetail?.doubleKills || 0;
+        firstBloodKill = participantDetail?.firstBloodKill || false;
+        totalTimeCCDealt = participantDetail?.totalTimeCCDealt || 0;
+
+        // Extraer challenges
+        const challenges = participantDetail?.challenges || {};
+        soloKills = challenges.soloKills || 0;
+        turretPlatesTaken = challenges.turretPlatesTaken || 0;
+        earlyLaningPhaseGoldExpAdvantage =
+          challenges.earlyLaningPhaseGoldExpAdvantage || 0;
+
+        // Calcular datos de equipo
+        const playerTeamId = participantDetail?.teamId;
+        const teamParticipants = participants.filter(
+          (p: any) => p.teamId === playerTeamId
+        );
+        const enemyParticipants = participants.filter(
+          (p: any) => p.teamId !== playerTeamId
+        );
+
+        teamTotalDamage = teamParticipants.reduce(
+          (sum: number, p: any) => sum + (p.totalDamageDealtToChampions || 0),
+          0
+        );
+        teamTotalGold = teamParticipants.reduce(
+          (sum: number, p: any) => sum + (p.goldEarned || 0),
+          0
+        );
+        const enemyTotalGold = enemyParticipants.reduce(
+          (sum: number, p: any) => sum + (p.goldEarned || 0),
+          0
+        );
+        // Heurística simple para Remontada: Si ganamos pero tuvimos menos oro total (raro pero posible en base race)
+        // O mejor: usar maxGoldAdvantage de challenges si existe? No siempre.
+        // Si no hay timeline, usaremos esta heurística conservadora o 0.
+        // Pero el badge de Remontada decía "4.9k behind". Eso implica max deficit.
+        // challenges tiene "maxKillDeficit"? No. "12AssistStreakCount"? No.
+        // Si challenges tiene "goldPerMinute", etc.
+        // Voy a dejar goldDeficit como 0 por ahora a menos que ganemos con menos oro (que es una remontada épica).
+        if (resultWin && enemyTotalGold > teamTotalGold) {
+          goldDeficit = enemyTotalGold - teamTotalGold;
+        }
+
+        teamTotalKills = teamParticipants.reduce(
+          (sum: number, p: any) => sum + (p.kills || 0),
+          0
+        );
+
+        const teamCount =
+          typeof teamParticipants.length === "number" &&
+          teamParticipants.length > 0
+            ? teamParticipants.length
+            : 5;
+        teamAvgDamageToChampions = teamTotalDamage / teamCount;
+        teamAvgGoldEarned = teamTotalGold / teamCount;
+        teamAvgKillParticipation =
+          teamTotalKills > 0
+            ? teamParticipants.reduce((sum: number, p: any) => {
+                const kp =
+                  (((p.kills || 0) + (p.assists || 0)) / teamTotalKills) * 100;
+                return sum + kp;
+              }, 0) / teamCount
+            : 0;
+
+        teamAvgVisionScore =
+          teamParticipants.reduce(
+            (sum: number, p: any) => sum + (p.visionScore || 0),
+            0
+          ) / teamCount;
+        const minutes = Math.max(
+          1,
+          (gameDuration || matchInfo?.game_duration || 0) / 60
+        );
+        teamAvgCsPerMin =
+          teamParticipants.reduce((sum: number, p: any) => {
+            const cs =
+              (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0);
+            return sum + cs / minutes;
+          }, 0) / teamCount;
+        teamAvgDamageToTurrets =
+          teamParticipants.reduce(
+            (sum: number, p: any) => sum + (p.damageDealtToTurrets || 0),
+            0
+          ) / teamCount;
+
+        // Obtener objectives stolen del metadata si existe
+        objectivesStolen =
+          participant?.objectives_stolen || metadata.objectivesStolen || 0;
+
+        // Obtener todos los jugadores del match
+        allPlayers = participants.map((p: any) => ({
+          championName: p.championName || "Desconocido",
+          championId: p.championId || 0,
+          summonerName: (() => {
+            const displayName = getParticipantDisplayName(p);
+            if (displayName !== "Jugador") return displayName;
+            return getDbParticipantNameFallback(p.puuid) ?? "Jugador";
+          })(),
+          kills: p.kills || 0,
+          deaths: p.deaths || 0,
+          assists: p.assists || 0,
+          kda:
+            p.deaths > 0
+              ? (p.kills + p.assists) / p.deaths
+              : p.kills + p.assists,
+          role: getParticipantPosition(p),
+          team: p.teamId === 100 ? "blue" : "red",
+        }));
       }
 
       return {
@@ -410,6 +674,30 @@ export async function GET(request: NextRequest) {
         rankWins: rankSnapshot?.wins ?? 0,
         rankLosses: rankSnapshot?.losses ?? 0,
         comment: metadata.comment || null,
+        // Datos de equipo para comparativas
+        teamTotalDamage,
+        teamTotalGold,
+        teamTotalKills,
+        teamAvgDamageToChampions,
+        teamAvgGoldEarned,
+        teamAvgKillParticipation,
+        teamAvgVisionScore,
+        teamAvgCsPerMin,
+        teamAvgDamageToTurrets,
+        objectivesStolen,
+        // Nuevos campos para badges
+        pentaKills,
+        quadraKills,
+        tripleKills,
+        doubleKills,
+        firstBloodKill,
+        totalTimeCCDealt,
+        soloKills,
+        turretPlatesTaken,
+        earlyLaningPhaseGoldExpAdvantage,
+        goldDeficit,
+        // Todos los jugadores del match
+        allPlayers,
       };
     });
 

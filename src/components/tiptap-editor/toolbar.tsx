@@ -64,6 +64,7 @@ interface ToolbarProps {
   currentFontFamily: string;
   setCurrentFontFamily: (font: string) => void;
   onClearFormatting: () => void;
+  statusSlot?: React.ReactNode;
 }
 
 // Usar React.memo para evitar renderizaciones innecesarias
@@ -79,43 +80,49 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
     currentFontFamily,
     setCurrentFontFamily,
     onClearFormatting,
+    statusSlot,
   } = props;
 
   // Estados para los menús desplegables
   const [colorPopoverOpen, setColorPopoverOpen] = useState<boolean>(false);
-  const [highlightPopoverOpen, setHighlightPopoverOpen] = useState<boolean>(false);
+  const [highlightPopoverOpen, setHighlightPopoverOpen] =
+    useState<boolean>(false);
   const [linkPopoverOpen, setLinkPopoverOpen] = useState<boolean>(false);
   const [currentColor, setCurrentColor] = useState<string>("#000000");
-  const [currentHighlightColor, setCurrentHighlightColor] = useState<string>("#ffcc00");
+  const [currentHighlightColor, setCurrentHighlightColor] =
+    useState<string>("#ffcc00");
   const [linkUrl, setLinkUrl] = useState<string>("");
   const [linkText, setLinkText] = useState<string>("");
   const [linkTarget, setLinkTarget] = useState<string>("_blank");
-  
+
   // Estado para el menú desplegable de fuentes
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  
+
   // Referencias
   const toolbarScrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Manejador de scroll optimizado
-  const handleWheel = React.useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    // Verificar si algún menú está abierto
-    const isAnyMenuOpen = moreMenuOpen || fontMenuOpen;
-    
-    // Solo actuar si se está desplazando verticalmente y ningún menú está abierto
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !isAnyMenuOpen) {
-      e.preventDefault();
-      
-      if (toolbarScrollRef.current) {
-        // Aplicar desplazamiento suave
-        toolbarScrollRef.current.scrollTo({
-          left: toolbarScrollRef.current.scrollLeft + e.deltaY,
-          behavior: 'smooth'
-        });
+  const handleWheel = React.useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      // Verificar si algún menú está abierto
+      const isAnyMenuOpen = moreMenuOpen || fontMenuOpen;
+
+      // Solo actuar si se está desplazando verticalmente y ningún menú está abierto
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !isAnyMenuOpen) {
+        e.preventDefault();
+
+        if (toolbarScrollRef.current) {
+          // Aplicar desplazamiento suave
+          toolbarScrollRef.current.scrollTo({
+            left: toolbarScrollRef.current.scrollLeft + e.deltaY,
+            behavior: "smooth",
+          });
+        }
       }
-    }
-  }, [moreMenuOpen, fontMenuOpen]);
+    },
+    [moreMenuOpen, fontMenuOpen]
+  );
 
   if (!editor) {
     return null;
@@ -156,7 +163,8 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
   const essentialTools: ToolItem[] = [
     {
       icon: Bold,
-      onClick: (e: React.MouseEvent) => applyStyle(() => editor.chain().focus().toggleBold().run(), e),
+      onClick: (e: React.MouseEvent) =>
+        applyStyle(() => editor.chain().focus().toggleBold().run(), e),
       isActive: editor.isActive("bold"),
       title: "Negrita",
       shortcut: "Ctrl+B",
@@ -192,23 +200,23 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Obtener el texto seleccionado
         const { from, to } = editor.state.selection;
-        const selectedText = editor.state.doc.textBetween(from, to, ' ');
-        
+        const selectedText = editor.state.doc.textBetween(from, to, " ");
+
         // Configurar el estado inicial del popover
         setLinkText(selectedText);
         setLinkUrl("");
         setLinkTarget("_blank");
-        
+
         // Si ya hay un enlace activo, obtener sus propiedades
-        if (editor.isActive('link')) {
-          const attrs = editor.getAttributes('link');
+        if (editor.isActive("link")) {
+          const attrs = editor.getAttributes("link");
           if (attrs.href) setLinkUrl(attrs.href);
           if (attrs.target) setLinkTarget(attrs.target);
         }
-        
+
         // Abrir el popover
         setLinkPopoverOpen(true);
       },
@@ -232,7 +240,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
             <props.icon className="h-4 w-4" />
           </Button>
         );
-        
+
         return (
           <LinkPopover
             open={linkPopoverOpen}
@@ -247,13 +255,13 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
               if (linkUrl) {
                 // Si hay texto seleccionado, validar que no contenga espacios
                 const hasSelection = editor.state.selection.content().size > 0;
-                
+
                 if (hasSelection && linkText) {
                   // Si hay texto seleccionado y se proporcionó un texto, reemplazar la selección
                   editor
                     .chain()
                     .focus()
-                    .extendMarkRange('link')
+                    .extendMarkRange("link")
                     .setLink({ href: linkUrl, target: linkTarget })
                     .run();
                 } else if (hasSelection) {
@@ -261,7 +269,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                   editor
                     .chain()
                     .focus()
-                    .extendMarkRange('link')
+                    .extendMarkRange("link")
                     .setLink({ href: linkUrl, target: linkTarget })
                     .run();
                 } else if (linkText) {
@@ -270,25 +278,25 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                     .chain()
                     .focus()
                     .insertContent({
-                      type: 'text',
+                      type: "text",
                       text: linkText,
                       marks: [
                         {
-                          type: 'link',
-                          attrs: { href: linkUrl, target: linkTarget }
-                        }
-                      ]
+                          type: "link",
+                          attrs: { href: linkUrl, target: linkTarget },
+                        },
+                      ],
                     })
                     .run();
                 }
               }
-              
+
               // Cerrar el popover y limpiar el estado
               setLinkPopoverOpen(false);
-              setLinkUrl('');
-              setLinkText('');
-              setLinkTarget('_blank');
-              
+              setLinkUrl("");
+              setLinkText("");
+              setLinkTarget("_blank");
+
               // Devolver el foco al editor
               setTimeout(() => {
                 editor.commands.focus();
@@ -383,7 +391,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
         ),
       isActive: editor.isActive("heading", { level: 3 }),
       title: "Encabezado 3",
-    }
+    },
   ];
 
   // Botones para los menús desplegables de color
@@ -450,10 +458,10 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
   ];
 
   return (
-    <div className="tiptap-toolbar">
+    <div className="tiptap-toolbar flex items-center gap-3">
       {/* Contenedor con scroll horizontal */}
-      <div 
-        className="toolbar-scroll" 
+      <div
+        className="toolbar-scroll flex-1 min-w-0"
         ref={toolbarScrollRef}
         onWheel={handleWheel}
       >
@@ -477,7 +485,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
 
         {/* Herramientas esenciales */}
         <div className="toolbar-group">
-          {essentialTools.map((tool, index) => (
+          {essentialTools.map((tool, index) =>
             tool.renderCustomButton ? (
               <React.Fragment key={`essential-custom-${index}`}>
                 {tool.renderCustomButton(tool)}
@@ -493,7 +501,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                 disabled={tool.disabled}
               />
             )
-          ))}
+          )}
         </div>
 
         {/* Herramientas de color */}
@@ -524,7 +532,11 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
             onOpenChange={setHighlightPopoverOpen}
             onChange={(val) => setCurrentHighlightColor(val)}
             onSave={() => {
-              editor.chain().focus().toggleHighlight({ color: currentHighlightColor }).run();
+              editor
+                .chain()
+                .focus()
+                .toggleHighlight({ color: currentHighlightColor })
+                .run();
               setHighlightPopoverOpen(false);
             }}
             onClear={() => {
@@ -544,7 +556,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
             }}
             title="Quitar todos los formatos"
           />
-          
+
           {/* El menú desplegable para enlaces ahora se maneja directamente en el botón de enlace */}
         </div>
 
@@ -586,8 +598,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                   key={font.name}
                   className={cn(
                     "cursor-pointer hover:bg-gray-800 hover:text-white transition-colors",
-                    currentFontFamily === font.name &&
-                      "bg-gray-800 text-white"
+                    currentFontFamily === font.name && "bg-gray-800 text-white"
                   )}
                   onSelect={(e) => {
                     e.preventDefault(); // evita que Radix cierre el menú
@@ -610,7 +621,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
         </div> */}
 
         {/* Menú desplegable para herramientas adicionales */}
-        <div className="toolbar-group" style={{ borderRight: 'none' }}>
+        <div className="toolbar-group" style={{ borderRight: "none" }}>
           <DropdownMenu
             open={moreMenuOpen}
             onOpenChange={setMoreMenuOpen}
@@ -669,11 +680,18 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
           </DropdownMenu>
         </div>
       </div>
+      {statusSlot && (
+        <div className="text-xs text-muted-foreground whitespace-nowrap pr-1">
+          {statusSlot}
+        </div>
+      )}
     </div>
   );
 });
 
-export const BubbleToolbar = React.memo(function BubbleToolbar(props: { editor: Editor | null }) {
+export const BubbleToolbar = React.memo(function BubbleToolbar(props: {
+  editor: Editor | null;
+}) {
   const { editor } = props;
   if (!editor) {
     return null;
@@ -736,7 +754,9 @@ export const BubbleToolbar = React.memo(function BubbleToolbar(props: { editor: 
   );
 });
 
-export const FloatingToolbar = React.memo(function FloatingToolbar(props: { editor: Editor | null }) {
+export const FloatingToolbar = React.memo(function FloatingToolbar(props: {
+  editor: Editor | null;
+}) {
   const { editor } = props;
   if (!editor) {
     return null;

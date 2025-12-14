@@ -41,6 +41,7 @@ interface TiptapEditorProps {
   editable?: boolean;
   userColor?: string;
   onImageChange?: (hasTemporaryImages: boolean) => void;
+  statusSlot?: React.ReactNode;
 }
 
 // Componente base del editor
@@ -50,6 +51,7 @@ const TiptapEditorBase = ({
   placeholder = "Escribe tu contenido aquí...",
   className = "",
   onImageChange,
+  statusSlot,
 }: TiptapEditorProps) => {
   // Referencias
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,12 +126,15 @@ const TiptapEditorBase = ({
           onClearFormatting={() => {
             editor?.chain().focus().unsetAllMarks().clearNodes().run();
           }}
+          statusSlot={statusSlot}
         />
 
         {/* Contenido del editor */}
         <EditorContent
           editor={editor}
-          className={`w-full border border-neutral-800/60 rounded-lg px-4 py-3 text-slate-100 bg-transparent ${className ?? ""}`}
+          className={`w-full border border-neutral-800/60 rounded-lg px-4 py-3 text-slate-100 bg-transparent ${
+            className ?? ""
+          }`}
         />
       </div>
 
@@ -142,7 +147,10 @@ const TiptapEditorBase = ({
 
       {/* Toolkit para imágenes seleccionadas */}
       {state.selectedImagePos !== null && (
-        <div className="image-toolkit" style={{ position: "absolute", zIndex: 100 }}>
+        <div
+          className="image-toolkit"
+          style={{ position: "absolute", zIndex: 100 }}
+        >
           <Button
             variant="destructive"
             size="icon"

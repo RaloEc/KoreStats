@@ -10,6 +10,19 @@ import {
   ChevronDown,
   Plus,
 } from "lucide-react";
+
+// Icono SVG de League of Legends (Logo simplificado "L")
+const LoLIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M4.09 16.554h4.945c.44 0 .759-.265.759-.76 0-.422-.32-.686-.76-.686H6.126v-9.67c0-.735.037-1.446.06-2.17h-1.99c-.048.736.037 1.435.037 2.17v10.157c0 .543-.072.76-.145.96zM17.152 4.096c-1.35 0-2.35.253-2.928.52l.626 1.626c.458-.205 1.157-.422 2.157-.422 1.903 0 3.012.988 3.012 2.891v.964h-3.325c-3.145 0-4.663 1.542-4.663 3.663 0 2.229 1.602 3.662 3.976 3.662 1.626 0 2.82-.722 3.325-1.686h.108v1.542h1.832v-5.71c0-4.145-2.29-7.05-4.12-7.05zm.156 11.217c-1.12 0-2.072-.615-2.072-1.928 0-1.217.915-2.012 2.457-2.012h1.603v.795c0 1.94-1.133 3.145-1.988 3.145z" />
+  </svg>
+);
+
 import {
   ConnectedAccountsData,
   AccountPlatform,
@@ -39,7 +52,7 @@ const getPlatformIcon = (platform: AccountPlatform) => {
     case "discord":
       return <MessageCircle {...iconProps} />;
     case "league_of_legends":
-      return <Gamepad2 {...iconProps} />;
+      return <LoLIcon {...iconProps} />;
     case "valorant":
       return <Zap {...iconProps} />;
     case "kick":
@@ -85,16 +98,13 @@ const AccountCard = ({
   subtitle?: string;
 }) => (
   <div
-    className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all hover:shadow-md"
+    className="flex items-center justify-center px-3 py-2 rounded-lg border transition-all hover:shadow-md"
     style={{
       borderColor: `${getPlatformColor(platform as AccountPlatform)}40`,
       backgroundColor: `${getPlatformColor(platform as AccountPlatform)}10`,
     }}
   >
-    <div style={{ color: getPlatformColor(platform as AccountPlatform) }}>
-      {getPlatformIcon(platform as AccountPlatform)}
-    </div>
-    <div className="flex flex-col">
+    <div className="flex flex-col items-center text-center">
       <span className="text-xs font-medium text-muted-foreground">
         {getPlatformLabel(platform as AccountPlatform)}
       </span>
@@ -140,10 +150,22 @@ export const ConnectedAccounts = ({
 
   // Si hay cuenta de Riot, agregarla al principio
   if (riotAccount) {
+    // Priorizar información de SoloQ (solo_tier/solo_rank) sobre la genérica
+    const tier = riotAccount.solo_tier || riotAccount.tier;
+    const rank = riotAccount.solo_rank || riotAccount.rank;
+
+    let subtitle = "Unranked";
+    if (tier && rank && tier !== "UNRANKED") {
+      // Capitalizar Tier (ej: GOLD -> Gold)
+      const formattedTier =
+        tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase();
+      subtitle = `${formattedTier} ${rank}`;
+    }
+
     allAccounts.unshift([
       "league_of_legends",
       `${riotAccount.game_name} #${riotAccount.tag_line}`,
-      `${riotAccount.tier} ${riotAccount.rank}`, // Subtítulo para Riot
+      subtitle,
     ]);
   }
 

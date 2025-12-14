@@ -15,8 +15,11 @@ import {
   computeParticipantScores,
   getParticipantKey as getParticipantKeyUtil,
 } from "@/components/riot/match-card/performance-utils";
+import { useSaveBuild } from "@/hooks/use-save-build";
+import { BookmarkPlus } from "lucide-react";
 
 interface ScoreboardModalTableProps {
+  matchId: string;
   participants: any[];
   currentUserPuuid?: string;
   gameVersion?: string;
@@ -26,6 +29,7 @@ interface ScoreboardModalTableProps {
 }
 
 export function ScoreboardModalTable({
+  matchId,
   participants,
   currentUserPuuid,
   gameVersion,
@@ -35,6 +39,8 @@ export function ScoreboardModalTable({
 }: ScoreboardModalTableProps) {
   const mobileCarouselRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+
+  const { saveBuild, isSaving, savedBuildKeys } = useSaveBuild();
 
   // Calcular scores locales para fallback
   const scoreEntries = computeParticipantScores(
@@ -186,6 +192,12 @@ export function ScoreboardModalTable({
       BOTTOM: "ADC",
       UTILITY: "Sup",
     };
+
+    const savedKey = `${matchId}:${player.puuid ?? ""}`;
+    const isSaved = savedBuildKeys.includes(savedKey);
+    const canSave = Boolean(
+      matchId && typeof player.puuid === "string" && player.puuid
+    );
     const rawLane = (player.lane || player.teamPosition || "").toUpperCase();
     const division = divisionMap[rawLane] ?? null;
 
@@ -368,7 +380,7 @@ export function ScoreboardModalTable({
         </div>
 
         {/* KDA */}
-        <div className="flex flex-col items-end gap-0.5 min-w-fit">
+        <div className="flex flex-col items-end justify-end gap-0.5 min-w-fit mt-4">
           <div className={`font-bold text-xs ${kdaColor} text-right`}>
             {player.kills}/{player.deaths}/{player.assists}
           </div>
@@ -417,8 +429,8 @@ export function ScoreboardModalTable({
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1 min-w-[10px]">
+        {/* Stats Grid - oculto en móvil */}
+        <div className="hidden lg:grid grid-cols-2 gap-x-2 gap-y-1 min-w-[10px]">
           <div className="flex flex-col items-center gap-0.5">
             <div className="text-[11px] font-semibold text-slate-900 dark:text-white">
               {totalLaneCS.toFixed(0)}
@@ -444,6 +456,31 @@ export function ScoreboardModalTable({
             <div className="text-[10px] text-slate-500">ORO</div>
           </div>
         </div>
+
+        {/* Guardar build */}
+        <button
+          type="button"
+          disabled={!canSave || isSaving || isSaved}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!canSave) return;
+            void saveBuild({
+              matchId,
+              targetPuuid: player.puuid as string,
+            });
+          }}
+          className={`ml-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold border transition-colors ${
+            isSaved
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-200 dark:hover:bg-slate-800/40"
+          } ${!canSave || isSaving ? "opacity-60 cursor-not-allowed" : ""}`}
+          title={
+            isSaved ? "Build guardada" : "Guardar items y runas de este jugador"
+          }
+        >
+          <BookmarkPlus className="w-3.5 h-3.5" />
+        </button>
       </div>
     );
 
@@ -567,9 +604,10 @@ export function ScoreboardModalTable({
 
         <div
           ref={mobileCarouselRef}
-          className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-2 px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-4 overflow-x-auto snap-x pb-2 -mx-2 px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth touch-pan-x"
+          style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <div className="min-w-full snap-center ">
+          <div className="min-w-[92%] snap-start">
             <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-500/5 border-b border-slate-200/80 dark:border-slate-800 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -610,7 +648,7 @@ export function ScoreboardModalTable({
             </div>
           </div>
 
-          <div className="min-w-full snap-center">
+          <div className="min-w-[92%] snap-center">
             <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
               <div className="bg-gradient-to-r from-rose-50 to-rose-100 dark:from-red-500/20 dark:to-red-500/5 border-b border-slate-200/80 dark:border-slate-800 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">

@@ -184,7 +184,7 @@ export function RiotAccountCard({
         onSync={() => syncMutation.mutate()}
         onUnlink={onUnlink}
         cooldownSeconds={Math.max(cooldownSeconds, externalCooldownSeconds)}
-        hideSync={true}
+        hideSync={false}
       />
     );
   }

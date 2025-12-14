@@ -22,6 +22,12 @@ import {
   formatDuration,
   getRelativeTime,
 } from "./helpers";
+import {
+  getKeystonePerkId,
+  RunesTooltip,
+  type RunePerks,
+  usePerkAssets,
+} from "./RunesTooltip";
 
 interface RiotParticipant {
   teamId: number;
@@ -38,11 +44,7 @@ interface RiotParticipant {
   wardsPlaced?: number;
   summoner1Id?: number;
   summoner2Id?: number;
-  perks?: {
-    styles?: Array<{
-      style?: number;
-    }>;
-  };
+  perks?: RunePerks;
   teamPosition?: string;
   individualPosition?: string;
   lane?: string;
@@ -65,6 +67,7 @@ interface PlayerSummaryData {
   summoner2Id?: number;
   primaryRune?: number;
   secondaryRune?: number;
+  perks?: RunePerks;
   kills: number;
   deaths: number;
   assists: number;
@@ -225,6 +228,9 @@ function PlayerSummarySection({
   version,
   reverse = false,
 }: PlayerSummaryProps) {
+  const keystonePerkId = getKeystonePerkId(data.perks);
+  const { perkIconById, perkNameById } = usePerkAssets([keystonePerkId]);
+
   const avatarBlock = (
     <div className="flex flex-col items-center gap-1.5 w-[72px]">
       <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-slate-600">
@@ -272,28 +278,44 @@ function PlayerSummarySection({
 
   const runeBlock = (
     <div className={`flex flex-col gap-1.5 ${reverse ? "items-end" : ""}`}>
-      {data.primaryRune && (
-        <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
-          <Image
-            src={getRuneIconUrl(data.primaryRune)}
-            alt="Primary Rune"
-            fill
-            sizes="28px"
-            className="object-cover p-0.5"
-          />
+      <RunesTooltip perks={data.perks}>
+        <div className={`flex flex-col gap-1.5 ${reverse ? "items-end" : ""}`}>
+          {keystonePerkId && perkIconById[keystonePerkId] ? (
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
+              <Image
+                src={perkIconById[keystonePerkId]}
+                alt={perkNameById[keystonePerkId] ?? "Keystone"}
+                fill
+                sizes="28px"
+                className="object-cover p-0.5"
+                unoptimized
+              />
+            </div>
+          ) : data.primaryRune ? (
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
+              <Image
+                src={getRuneIconUrl(data.primaryRune)}
+                alt="Primary Style"
+                fill
+                sizes="28px"
+                className="object-cover p-0.5"
+              />
+            </div>
+          ) : null}
+
+          {data.secondaryRune && (
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
+              <Image
+                src={getRuneIconUrl(data.secondaryRune)}
+                alt="Secondary Style"
+                fill
+                sizes="28px"
+                className="object-cover p-0.5"
+              />
+            </div>
+          )}
         </div>
-      )}
-      {data.secondaryRune && (
-        <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
-          <Image
-            src={getRuneIconUrl(data.secondaryRune)}
-            alt="Sub Rune"
-            fill
-            sizes="28px"
-            className="object-cover p-0.5"
-          />
-        </div>
-      )}
+      </RunesTooltip>
       {typeof data.rankingPosition === "number" && data.rankingPosition > 0 && (
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
@@ -401,6 +423,7 @@ interface MatchCardProps {
   version: string;
   linkedAccountsMap?: Record<string, string>;
   recentMatches?: Match[];
+  hideShareButton?: boolean;
 }
 
 export function MatchCard({
@@ -408,6 +431,7 @@ export function MatchCard({
   version,
   linkedAccountsMap = {},
   recentMatches = [],
+  hideShareButton = false,
 }: MatchCardProps) {
   const [scoreboardModalOpen, setScoreboardModalOpen] = useState(false);
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
@@ -565,6 +589,7 @@ export function MatchCard({
     summoner2Id: match.summoner2_id,
     primaryRune: match.perk_primary_style,
     secondaryRune: match.perk_sub_style,
+    perks: currentParticipant?.perks,
     kills: match.kills,
     deaths: match.deaths,
     assists: match.assists,
@@ -582,6 +607,7 @@ export function MatchCard({
         summoner2Id: laneOpponentParticipant.summoner2Id,
         primaryRune: getParticipantRuneStyle(laneOpponentParticipant, 0),
         secondaryRune: getParticipantRuneStyle(laneOpponentParticipant, 1),
+        perks: laneOpponentParticipant.perks,
         kills: laneOpponentParticipant.kills ?? 0,
         deaths: laneOpponentParticipant.deaths ?? 0,
         assists: laneOpponentParticipant.assists ?? 0,
@@ -721,35 +747,38 @@ export function MatchCard({
             />
             <span>{match.vision_score}</span>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              shareMatch(match.match_id);
-            }}
-            disabled={isSharing || sharedMatches.includes(match.match_id)}
-            className={`
-              flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all
-              ${
+          {!hideShareButton && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                shareMatch(match.match_id);
+              }}
+              disabled={isSharing || sharedMatches.includes(match.match_id)}
+              className={`
+                flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all
+                ${
+                  sharedMatches.includes(match.match_id)
+                    ? "bg-green-500/20 text-green-600 dark:text-green-400 cursor-default"
+                    : "bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 disabled:opacity-50"
+                }
+              `}
+              title={
                 sharedMatches.includes(match.match_id)
-                  ? "bg-green-500/20 text-green-600 dark:text-green-400 cursor-default"
-                  : "bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 disabled:opacity-50"
+                  ? "Compartida"
+                  : "Compartir en Activity"
               }
-            `}
-            title={
-              sharedMatches.includes(match.match_id)
-                ? "Compartida"
-                : "Compartir en Activity"
-            }
-          >
-            <Share2 className="w-3 h-3" />
-            <span className="hidden sm:inline">
-              {sharedMatches.includes(match.match_id)
-                ? "Compartida"
-                : "Compartir"}
-            </span>
-          </button>
+            >
+              <Share2 className="w-3 h-3" />
+              <span className="hidden sm:inline">
+                {sharedMatches.includes(match.match_id)
+                  ? "Compartida"
+                  : "Compartir"}
+              </span>
+            </button>
+          )}
           <TeammateTracker
             matches={recentMatches}
+            currentMatch={match}
             currentPuuid={match.puuid}
             className="text-[11px]"
           />

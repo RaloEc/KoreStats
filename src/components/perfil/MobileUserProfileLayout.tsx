@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, X } from "lucide-react";
 import { PerfilHeader } from "@/components/perfil/PerfilHeader";
 import { FeedActividad } from "@/components/perfil/FeedActividad";
 import { EstadisticasUnificadas } from "@/components/perfil/EstadisticasUnificadas";
-import { ProfileTabs } from "@/components/perfil/ProfileTabs";
+import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
 import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
@@ -35,7 +35,19 @@ export default function MobileUserProfileLayout({
 }: MobileUserProfileLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
+  const activeTabFromUrl = (searchParams.get("tab") as ProfileTab) || "posts";
+  const [currentTab, setCurrentTab] = useState<ProfileTab>(activeTabFromUrl);
+
+  useEffect(() => {
+    setCurrentTab(activeTabFromUrl);
+  }, [activeTabFromUrl]);
+
+  const handleTabChange = (tab: ProfileTab) => {
+    setCurrentTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`);
+  };
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarX, setSidebarX] = useState(0);
@@ -104,11 +116,15 @@ export default function MobileUserProfileLayout({
 
         {/* Sistema de Pestañas */}
         <div className="px-4 mt-2">
-          <ProfileTabs hasRiotAccount={!!riotAccount} />
+          <ProfileTabs
+            hasRiotAccount={!!riotAccount}
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+          />
         </div>
 
         {/* Contenido según pestaña */}
-        {activeTab === "posts" ? (
+        {currentTab === "posts" ? (
           <>
             {/* Título de actividad */}
             <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 mt-2">
@@ -151,6 +167,7 @@ export default function MobileUserProfileLayout({
                     <MatchHistoryList
                       userId={riotUserId ?? profile.id}
                       puuid={riotAccount.puuid}
+                      hideShareButton={!isOwnProfile}
                     />
                   )}
                 </div>

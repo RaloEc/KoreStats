@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getServiceClient } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAutoGuardarNoticia } from "@/hooks/useAutoGuardarNoticia";
 import TiptapEditorLazy, {
   processEditorContent,
 } from "@/components/TiptapEditorLazy"; // Lazy load: ssr: false
@@ -88,6 +89,9 @@ function CrearNoticiaContent() {
   const [nombreUsuario, setNombreUsuario] = useState("Admin"); // Valor predeterminado
   const router = useRouter();
   const { user, session, profile } = useAuth(); // Usar el contexto de autenticación
+  const { autoGuardar, isAutoSaving, lastSavedAt, noticiaId } =
+    useAutoGuardarNoticia();
+  const autoGuardarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Función para manejar la selección de categorías
   const handleSeleccionarCategoria = (field: any, categoriaId: string) => {
@@ -311,6 +315,37 @@ function CrearNoticiaContent() {
     form.setValue("autor", nombreUsuario);
   }, [nombreUsuario, form]);
 
+  // Auto-guardar cuando cambian los valores del formulario
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      // Limpiar timeout anterior
+      if (autoGuardarTimeoutRef.current) {
+        clearTimeout(autoGuardarTimeoutRef.current);
+      }
+
+      // Establecer nuevo timeout para auto-guardar después de 3 segundos de inactividad
+      autoGuardarTimeoutRef.current = setTimeout(() => {
+        if (data.titulo && data.contenido && data.categoria_ids?.length > 0) {
+          autoGuardar({
+            id: noticiaId || undefined,
+            titulo: data.titulo,
+            contenido: data.contenido,
+            imagen_portada: data.imagen_portada,
+            categoria_ids: data.categoria_ids || [],
+            destacada: data.destacada,
+          });
+        }
+      }, 3000); // 3 segundos de inactividad
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (autoGuardarTimeoutRef.current) {
+        clearTimeout(autoGuardarTimeoutRef.current);
+      }
+    };
+  }, [form, autoGuardar, noticiaId]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       console.log("=== INICIO DEL PROCESO DE GUARDADO DE NOTICIA ===");
@@ -462,8 +497,41 @@ function CrearNoticiaContent() {
         tamaño_contenido: datosNoticia.contenido?.length || 0,
       });
 
-      console.log("Llamando a API Route para guardar noticia...");
-      // Llamar a nuestra API Route
+      console.log("Llamando a API Route para publicar noticia...");
+
+      // Si ya existe un borrador, cambiar su estado a publicada
+      if (noticiaId) {
+        console.log("Cambiando estado de borrador a publicada...");
+        const responseEstado = await fetch(
+          "/api/admin/noticias/cambiar-estado?admin=true",
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: noticiaId,
+              estado: "publicada",
+            }),
+          }
+        );
+
+        if (!responseEstado.ok) {
+          console.error("Error al cambiar estado a publicada");
+          alert("Error al publicar la noticia");
+          setEnviando(false);
+          return;
+        }
+
+        console.log("Noticia publicada exitosamente");
+        console.log("=== FIN DEL PROCESO DE PUBLICACIÓN ===");
+
+        // Redirigir a la lista de noticias
+        router.push("/admin/noticias");
+        return;
+      }
+
+      // Si no existe borrador, crear noticia nueva y publicarla
       const response = await fetch("/api/admin/noticias", {
         method: "POST",
         headers: {
@@ -476,6 +544,7 @@ function CrearNoticiaContent() {
           imagen_portada: values.imagen_portada || null,
           categoria_ids: values.categoria_ids || [],
           destacada: values.destacada || false,
+          estado: "publicada", // Crear directamente como publicada
         }),
       });
 
@@ -494,7 +563,10 @@ function CrearNoticiaContent() {
         return;
       }
 
-      console.log("Noticia creada exitosamente con ID:", resultado.id);
+      console.log(
+        "Noticia creada y publicada exitosamente con ID:",
+        resultado.id
+      );
       console.log("=== FIN DEL PROCESO DE GUARDADO DE NOTICIA ===");
 
       // Si todo salió bien, redirigir a la lista de noticias
@@ -539,30 +611,57 @@ function CrearNoticiaContent() {
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Destacada</span>
-              <label
-                htmlFor="toggleDestacadaHeader"
-                className={`relative block h-7 w-12 rounded-full transition-colors [-webkit-tap-highlight-color:_transparent] ${
-                  form.watch("destacada") ? "bg-primary" : "bg-input"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  id="toggleDestacadaHeader"
-                  className="peer sr-only"
-                  checked={form.watch("destacada")}
-                  onChange={(e) => form.setValue("destacada", e.target.checked)}
-                />
+            <div className="flex items-center gap-4">
+              {/* Indicador de auto-guardado */}
+              <div className="flex items-center gap-2 text-sm">
+                {isAutoSaving ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                    <span className="text-muted-foreground">Guardando...</span>
+                  </>
+                ) : lastSavedAt ? (
+                  <>
+                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                    <span className="text-muted-foreground text-xs">
+                      Guardado hace{" "}
+                      {Math.floor((Date.now() - lastSavedAt.getTime()) / 1000) <
+                      60
+                        ? "unos segundos"
+                        : Math.floor(
+                            (Date.now() - lastSavedAt.getTime()) / 60000
+                          ) + " min"}
+                    </span>
+                  </>
+                ) : null}
+              </div>
 
-                <span
-                  className={`absolute inset-y-0 start-0 m-1 size-5 rounded-full bg-background ring-[5px] ring-transparent transition-all ring-inset shadow-sm ${
-                    form.watch("destacada")
-                      ? "start-6 w-2 bg-background"
-                      : "bg-muted-foreground/20"
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Destacada</span>
+                <label
+                  htmlFor="toggleDestacadaHeader"
+                  className={`relative block h-7 w-12 rounded-full transition-colors [-webkit-tap-highlight-color:_transparent] ${
+                    form.watch("destacada") ? "bg-primary" : "bg-input"
                   }`}
-                ></span>
-              </label>
+                >
+                  <input
+                    type="checkbox"
+                    id="toggleDestacadaHeader"
+                    className="peer sr-only"
+                    checked={form.watch("destacada")}
+                    onChange={(e) =>
+                      form.setValue("destacada", e.target.checked)
+                    }
+                  />
+
+                  <span
+                    className={`absolute inset-y-0 start-0 m-1 size-5 rounded-full bg-background ring-[5px] ring-transparent transition-all ring-inset shadow-sm ${
+                      form.watch("destacada")
+                        ? "start-6 w-2 bg-background"
+                        : "bg-muted-foreground/20"
+                    }`}
+                  ></span>
+                </label>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="px-3 py-4 sm:px-6 sm:py-6">
@@ -709,16 +808,24 @@ function CrearNoticiaContent() {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={enviando} className="gap-1">
+                  <Button
+                    type="submit"
+                    disabled={enviando || isAutoSaving}
+                    className="gap-1"
+                  >
                     {enviando ? (
                       <>
                         <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                        <span>Guardando...</span>
+                        <span>Publicando...</span>
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-1" />
-                        <span>Guardar Noticia</span>
+                        <span>
+                          {noticiaId
+                            ? "Publicar Noticia"
+                            : "Guardar y Publicar"}
+                        </span>
                       </>
                     )}
                   </Button>

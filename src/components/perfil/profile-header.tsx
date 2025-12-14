@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { ConnectedAccounts } from "./ConnectedAccounts";
+import { StatusBadge } from "@/components/status/StatusBadge";
 
 interface ProfileHeaderProps {
   perfil: {
+    id: string;
     username: string;
     role: "user" | "admin" | "moderator";
     avatar_url: string;
@@ -89,37 +91,60 @@ export default function ProfileHeader({
         <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 md:items-start">
           {/* Avatar, nombre y rol - Centrado en mobile */}
           <div className="flex flex-col items-center gap-3 flex-shrink-0 w-full md:w-auto">
-            <Avatar
-              className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 border-3 border-background dark:border-gray-950 shadow-md -mt-20 sm:-mt-24 md:-mt-28"
-              style={{
-                borderColor: `color-mix(in srgb, var(--user-color) 30%, white)`,
-                ...colorStyle,
-              }}
-            >
-              {!avatarError ? (
-                <AvatarImage
-                  src={perfil.avatar_url}
-                  alt={perfil.username}
-                  onError={() => setAvatarError(true)}
-                />
-              ) : null}
-              <AvatarFallback
-                className="text-lg sm:text-2xl md:text-3xl font-bold"
+            <div className="relative w-fit">
+              <Avatar
+                className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 border-3 border-background dark:border-gray-950 shadow-md -mt-20 sm:-mt-24 md:-mt-28"
                 style={{
-                  backgroundColor: `color-mix(in srgb, var(--user-color) 15%, transparent)`,
-                  color: `var(--user-color)`,
+                  borderColor: `color-mix(in srgb, var(--user-color) 30%, white)`,
                   ...colorStyle,
                 }}
               >
-                {perfil.username.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+                {!avatarError ? (
+                  <AvatarImage
+                    src={perfil.avatar_url}
+                    alt={perfil.username}
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : null}
+                <AvatarFallback
+                  className="text-lg sm:text-2xl md:text-3xl font-bold"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, var(--user-color) 15%, transparent)`,
+                    color: `var(--user-color)`,
+                    ...colorStyle,
+                  }}
+                >
+                  {perfil.username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              {perfil.id ? (
+                <div className="absolute bottom-1 right-1 z-50 bg-white dark:bg-gray-950 rounded-full p-0.5 border border-background dark:border-gray-950 shadow-sm">
+                  <StatusBadge
+                    userId={perfil.id}
+                    initialStatus="offline"
+                    variant="dot"
+                  />
+                </div>
+              ) : null}
+            </div>
 
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-3 justify-center">
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
                   {perfil.username}
                 </h1>
+                {perfil.id ? (
+                  <div>
+                    <StatusBadge
+                      userId={perfil.id}
+                      initialStatus="offline"
+                      variant="full"
+                      onlyWhenInGame
+                      userColor={perfil.color}
+                    />
+                  </div>
+                ) : null}
               </div>
               {perfil.role !== "user" && (
                 <Badge
@@ -196,15 +221,15 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        {/* Cuentas Conectadas */}
-        <div className="mt-6 pt-6 border-t">
+        {/* Cuentas Conectadas - Temporalmente oculto */}
+        {/* <div className="mt-6 pt-6 border-t">
           <ConnectedAccounts
             accounts={perfil.connected_accounts || {}}
             isOwnProfile={true}
             userColor={perfil.color}
             riotAccount={riotAccount}
           />
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );

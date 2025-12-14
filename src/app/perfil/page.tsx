@@ -27,6 +27,7 @@ import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
 import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { UnifiedRiotSyncButton } from "@/components/riot/UnifiedRiotSyncButton";
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
+import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
 import { ProfilePageSkeleton } from "@/components/perfil/ProfilePageSkeleton";
 import {
   Card,
@@ -125,8 +126,30 @@ function PerfilPageContent() {
 
   const isOwnProfile = user?.id === perfil?.id;
 
-  // Lee el tab activo desde la URL, fallback a "posts"
-  const activeTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
+  // Lee el tab activo desde la URL inicialmente
+  const initialTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
+
+  // Estado local para control inmediato de la UI (sin esperar a router.replace)
+  const [activeTab, setActiveTab] = useState<"posts" | "lol">(initialTab);
+
+  // Sincronizar URL silenciosamente cuando cambia el tab (sin re-render de Next.js)
+  useEffect(() => {
+    const currentTab = new URLSearchParams(window.location.search).get("tab");
+    if (currentTab !== activeTab) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", activeTab);
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    }
+  }, [activeTab]);
+
+  // Estado para controlar si ya se visitó la pestaña de LoL (Lazy Mounting)
+  const [lolTabVisited, setLolTabVisited] = useState(activeTab === "lol");
+
+  useEffect(() => {
+    if (activeTab === "lol" && !lolTabVisited) {
+      setLolTabVisited(true);
+    }
+  }, [activeTab, lolTabVisited]);
 
   const syncEditDataWithPerfil = useCallback((perfilData: PerfilCompleto) => {
     // Parsear connected_accounts si es string JSON
@@ -558,9 +581,9 @@ function PerfilPageContent() {
                 maxRows={4}
               />
 
-              <Divider className="my-4" />
+              {/* Sección de cuentas conectadas - Temporalmente oculto */}
+              {/* <Divider className="my-4" />
 
-              {/* Sección de cuentas conectadas */}
               <div className="space-y-3">
                 <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 amoled:text-gray-200">
                   Cuentas Conectadas
@@ -574,7 +597,7 @@ function PerfilPageContent() {
                     }))
                   }
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-3 bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-gray-200/80 dark:border-gray-700/70">
@@ -687,6 +710,7 @@ function PerfilPageContent() {
         <div className="mb-8">
           <ProfileHeader
             perfil={{
+              id: perfil.id,
               username: perfil.username,
               role: perfil.role,
               avatar_url: perfil.avatar_url,
@@ -718,12 +742,17 @@ function PerfilPageContent() {
         )}
 
         {/* Sistema de Pestañas */}
-        <ProfileTabs hasRiotAccount={!!riotAccount} />
+        <ProfileTabs
+          hasRiotAccount={!!riotAccount}
+          currentTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-        {/* Contenido de Pestañas */}
-        {activeTab === "posts" ? (
-          // Pestaña Actividad
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        {/* Contenido de Pestañas con Persistencia (KeepMounted) */}
+
+        {/* Pestaña Actividad - Siempre montada pero ocultable */}
+        <div className={activeTab === "posts" ? "block mt-8" : "hidden mt-8"}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Columna izquierda - Feed de actividad */}
             <div className="lg:col-span-2">
               {/*
@@ -784,13 +813,21 @@ function PerfilPageContent() {
               </Card>
             </div>
           </div>
-        ) : (
-          // Pestaña League of Legends
-          <div className="mt-8 space-y-6">
+        </div>
+
+        {/* Pestaña League of Legends - Lazy Mounted + Keep Alive */}
+        {(activeTab === "lol" || lolTabVisited) && (
+          <div
+            className={
+              activeTab === "lol"
+                ? "block mt-8 space-y-6"
+                : "hidden mt-8 space-y-6"
+            }
+          >
             {riotAccount ? (
               <>
-                {/* Botón unificado de sincronización */}
-                <div className="flex justify-end">
+                {/* Botón unificado de sincronización - solo visible en desktop */}
+                <div className="hidden lg:flex justify-end">
                   <UnifiedRiotSyncButton
                     userColor={perfil?.color}
                     showLabel={true}
@@ -808,6 +845,9 @@ function PerfilPageContent() {
                 {riotAccount.puuid && (
                   <ChampionStatsSummary puuid={riotAccount.puuid} limit={5} />
                 )}
+
+                {/* Builds guardadas */}
+                <SavedBuildsPanel />
 
                 {/* Historial de partidas */}
                 <MatchHistoryList
@@ -993,9 +1033,9 @@ function PerfilPageContent() {
               maxRows={4}
             />
 
-            <Divider className="my-4" />
+            {/* Sección de cuentas conectadas - Temporalmente oculto */}
+            {/* <Divider className="my-4" />
 
-            {/* Sección de cuentas conectadas */}
             <div className="space-y-3">
               <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 amoled:text-gray-200">
                 Cuentas Conectadas
@@ -1009,7 +1049,7 @@ function PerfilPageContent() {
                   }))
                 }
               />
-            </div>
+            </div> */}
 
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-3 bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-gray-200/80 dark:border-gray-700/70">

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // =====================================================
 // Tipos de datos
@@ -24,6 +24,8 @@ export interface NoticiaReciente {
   autor_id: string | null;
   autor_username: string | null;
   autor_avatar: string | null;
+  // Campos adicionales de la RPC
+  [key: string]: any;
 }
 
 export interface NoticiaMasVista extends NoticiaReciente {
@@ -81,103 +83,103 @@ export function useNoticiasDashboard(
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   // Query principal usando la función RPC optimizada
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery<NoticiasDashboardData>({
-    queryKey: [
-      'noticias-dashboard',
-      limiteRecientes,
-      limiteVistas,
-      incluirBorradores,
-      diasAtras,
-    ],
-    queryFn: async () => {
-      const startTime = performance.now();
-      
-      try {
-        // Llamar a la función RPC unificada
-        const { data, error } = await supabase.rpc('obtener_noticias_dashboard', {
-          limite_recientes: limiteRecientes,
-          limite_vistas: limiteVistas,
-          incluir_borradores: incluirBorradores,
-          dias_atras: diasAtras,
-        });
+  const { data, isLoading, isError, error, refetch } =
+    useQuery<NoticiasDashboardData>({
+      queryKey: [
+        "noticias-dashboard",
+        limiteRecientes,
+        limiteVistas,
+        incluirBorradores,
+        diasAtras,
+      ],
+      queryFn: async () => {
+        const startTime = performance.now();
 
-        if (error) {
-          console.error('❌ Error al obtener noticias del dashboard:', error);
-          throw error;
+        try {
+          // Llamar a la función RPC unificada
+          const { data, error } = await supabase.rpc(
+            "obtener_noticias_dashboard",
+            {
+              limite_recientes: limiteRecientes,
+              limite_vistas: limiteVistas,
+              incluir_borradores: incluirBorradores,
+              dias_atras: diasAtras,
+            }
+          );
+
+          if (error) {
+            console.error("❌ Error al obtener noticias del dashboard:", error);
+            throw error;
+          }
+
+          const endTime = performance.now();
+          const duration = endTime - startTime;
+
+          // Métricas de rendimiento
+          console.log(
+            `⚡ Noticias dashboard cargadas en ${duration.toFixed(2)}ms`
+          );
+
+          // Enviar métrica de rendimiento
+          if (typeof window !== "undefined" && (window as any).gtag) {
+            (window as any).gtag("event", "timing_complete", {
+              name: "load_noticias_dashboard",
+              value: Math.round(duration),
+              event_category: "Performance",
+            });
+          }
+
+          return data as NoticiasDashboardData;
+        } catch (err) {
+          console.error("❌ Error en queryFn:", err);
+          throw err;
         }
-
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-
-        // Métricas de rendimiento
-        console.log(`⚡ Noticias dashboard cargadas en ${duration.toFixed(2)}ms`);
-        
-        // Enviar métrica de rendimiento
-        if (typeof window !== 'undefined' && (window as any).gtag) {
-          (window as any).gtag('event', 'timing_complete', {
-            name: 'load_noticias_dashboard',
-            value: Math.round(duration),
-            event_category: 'Performance',
-          });
-        }
-
-        return data as NoticiasDashboardData;
-      } catch (err) {
-        console.error('❌ Error en queryFn:', err);
-        throw err;
-      }
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos (antes cacheTime)
-    refetchOnWindowFocus: true,
-    refetchInterval,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
+      },
+      staleTime: 2 * 60 * 1000, // 2 minutos
+      gcTime: 10 * 60 * 1000, // 10 minutos (antes cacheTime)
+      refetchOnWindowFocus: true,
+      refetchInterval,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    });
 
   // Configurar suscripciones en tiempo real
   useEffect(() => {
     if (!enableRealtime) return;
 
     const handleRealtimeUpdate = (payload: any) => {
-      console.log('📡 Cambio detectado en noticias:', payload);
+      console.log("📡 Cambio detectado en noticias:", payload);
       setLastUpdate(new Date());
-      
+
       // Invalidar caché
-      queryClient.invalidateQueries({ 
-        queryKey: ['noticias-dashboard'] 
+      queryClient.invalidateQueries({
+        queryKey: ["noticias-dashboard"],
       });
 
       // Enviar evento de actualización
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'realtime_update', {
-          event_category: 'Dashboard',
-          event_label: 'noticias',
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "realtime_update", {
+          event_category: "Dashboard",
+          event_label: "noticias",
         });
       }
     };
 
     // Crear canal de suscripción
     const channel = supabase
-      .channel('noticias-dashboard-changes')
+      .channel("noticias-dashboard-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'noticias',
+          event: "*",
+          schema: "public",
+          table: "noticias",
         },
         handleRealtimeUpdate
       )
       .subscribe((status) => {
-        console.log('📡 Estado de suscripción:', status);
-        setIsRealTimeActive(status === 'SUBSCRIBED');
+        console.log("📡 Estado de suscripción:", status);
+        setIsRealTimeActive(status === "SUBSCRIBED");
       });
 
     channelRef.current = channel;
@@ -196,12 +198,12 @@ export function useNoticiasDashboard(
   const prefetchNoticia = useCallback(
     async (id: string) => {
       await queryClient.prefetchQuery({
-        queryKey: ['noticia', id],
+        queryKey: ["noticia", id],
         queryFn: async () => {
           const { data, error } = await supabase
-            .from('noticias')
-            .select('*')
-            .eq('id', id)
+            .from("noticias")
+            .select("*")
+            .eq("id", id)
             .single();
 
           if (error) throw error;
@@ -236,19 +238,20 @@ export interface UseFiltrarNoticiasOptions {
   searchTerm?: string;
   estado?: string;
   categoriaId?: string;
-  sortBy?: 'fecha' | 'vistas' | 'titulo';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "fecha" | "vistas" | "titulo";
+  sortOrder?: "asc" | "desc";
 }
 
 export function useFiltrarNoticias({
   noticias,
-  searchTerm = '',
+  searchTerm = "",
   estado,
   categoriaId,
-  sortBy = 'fecha',
-  sortOrder = 'desc',
+  sortBy = "fecha",
+  sortOrder = "desc",
 }: UseFiltrarNoticiasOptions) {
-  const [filteredNoticias, setFilteredNoticias] = useState<NoticiaReciente[]>(noticias);
+  const [filteredNoticias, setFilteredNoticias] =
+    useState<NoticiaReciente[]>(noticias);
 
   useEffect(() => {
     let resultado = [...noticias];
@@ -270,7 +273,9 @@ export function useFiltrarNoticias({
 
     // Filtrar por categoría
     if (categoriaId) {
-      resultado = resultado.filter((noticia) => noticia.categoria_id === categoriaId);
+      resultado = resultado.filter(
+        (noticia) => noticia.categoria_id === categoriaId
+      );
     }
 
     // Ordenar
@@ -278,18 +283,19 @@ export function useFiltrarNoticias({
       let comparison = 0;
 
       switch (sortBy) {
-        case 'fecha':
-          comparison = new Date(a.creada_en).getTime() - new Date(b.creada_en).getTime();
+        case "fecha":
+          comparison =
+            new Date(a.creada_en).getTime() - new Date(b.creada_en).getTime();
           break;
-        case 'vistas':
+        case "vistas":
           comparison = a.vistas - b.vistas;
           break;
-        case 'titulo':
+        case "titulo":
           comparison = a.titulo.localeCompare(b.titulo);
           break;
       }
 
-      return sortOrder === 'asc' ? comparison : -comparison;
+      return sortOrder === "asc" ? comparison : -comparison;
     });
 
     setFilteredNoticias(resultado);
@@ -312,12 +318,14 @@ export function usePerformanceMetrics(componentName: string) {
     // Registrar tiempo de montaje en el primer render
     if (renderCountRef.current === 1) {
       const mountDuration = performance.now() - mountTimeRef.current;
-      console.log(`⏱️ ${componentName} montado en ${mountDuration.toFixed(2)}ms`);
+      console.log(
+        `⏱️ ${componentName} montado en ${mountDuration.toFixed(2)}ms`
+      );
 
       // Enviar métrica
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'component_mount', {
-          event_category: 'Performance',
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "component_mount", {
+          event_category: "Performance",
           event_label: componentName,
           value: Math.round(mountDuration),
         });
@@ -328,11 +336,13 @@ export function usePerformanceMetrics(componentName: string) {
   // Registrar tiempo de desmontaje
   useEffect(() => {
     return () => {
-      console.log(`🔄 ${componentName} renderizado ${renderCountRef.current} veces`);
-      
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'component_renders', {
-          event_category: 'Performance',
+      console.log(
+        `🔄 ${componentName} renderizado ${renderCountRef.current} veces`
+      );
+
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "component_renders", {
+          event_category: "Performance",
           event_label: componentName,
           value: renderCountRef.current,
         });

@@ -18,6 +18,8 @@ import {
   Target,
   LifeBuoy,
   EyeOff,
+  TrendingUp,
+  Flame,
 } from "lucide-react";
 import { ChampionCenteredSplash } from "@/components/riot/ChampionCenteredSplash";
 import {
@@ -27,8 +29,8 @@ import {
   getQueueName,
   formatDuration,
   getRelativeTime,
+  getChampionImageUrl,
 } from "@/components/riot/match-card/helpers";
-import { getPerkImg } from "@/lib/riot/helpers";
 import {
   Tooltip,
   TooltipContent,
@@ -43,6 +45,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
 import { ActivityCardMenu } from "@/components/perfil/ActivityCardMenu";
+import { analyzeMatchTags, type MatchTag } from "@/lib/riot/match-analyzer";
+import type { CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 
 export interface SharedMatchData {
@@ -82,11 +86,52 @@ export interface SharedMatchData {
   comment: string | null;
   created_at: string;
   perks?: RunePerks | null;
+  // Datos de equipo para comparativas
+  teamTotalDamage?: number;
+  teamTotalGold?: number;
+  teamTotalKills?: number;
+  teamAvgDamageToChampions?: number;
+  teamAvgGoldEarned?: number;
+  teamAvgKillParticipation?: number;
+  teamAvgVisionScore?: number;
+  teamAvgCsPerMin?: number;
+  teamAvgDamageToTurrets?: number;
+  teamAvgKda?: number;
+  objectivesStolen?: number;
+  // Campos extra para nuevos badges
+  pentaKills?: number;
+  quadraKills?: number;
+  tripleKills?: number;
+  doubleKills?: number;
+  firstBloodKill?: boolean;
+  totalTimeCCDealt?: number;
+  soloKills?: number;
+  turretPlatesTaken?: number;
+  earlyLaningPhaseGoldExpAdvantage?: number;
+  goldDeficit?: number;
+  // Datos de todos los jugadores del match
+  allPlayers?: Array<{
+    championName: string;
+    championId: number;
+    summonerName: string;
+    kills: number;
+    deaths: number;
+    assists: number;
+    kda: number;
+    role: string;
+    team: "blue" | "red";
+  }>;
 }
 
 interface SharedMatchCardProps {
   partida: SharedMatchData;
   userColor?: string;
+  sharedBy?: {
+    username: string | null;
+    public_id?: string | null;
+    avatar_url?: string | null;
+    color?: string | null;
+  };
   isOwnProfile?: boolean;
   isAdmin?: boolean;
   onDelete?: (entryId: string) => Promise<void>;
@@ -101,6 +146,17 @@ type RuneSelection = {
   var1?: number;
   var2?: number;
   var3?: number;
+};
+
+const toSafeNumber = (value: unknown): number | null => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 };
 
 const laneIconMap: Record<string, LucideIcon> = {
@@ -183,17 +239,150 @@ const getLaneAbbreviation = (role?: string, lane?: string): string | null => {
   return null;
 };
 
-export const SharedMatchCard = ({
+// Función para obtener información de badge
+const getTagInfo = (tag: MatchTag) => {
+  const tagInfoMap: Record<MatchTag, { color: string; label: string }> = {
+    MVP: {
+      color:
+        "bg-amber-100 dark:bg-amber-200/85 text-slate-900 dark:text-slate-950",
+      label: "MVP",
+    },
+    Stomper: {
+      color:
+        "bg-rose-100 dark:bg-rose-200/80 text-slate-900 dark:text-slate-950",
+      label: "Stomper",
+    },
+    Muralla: {
+      color:
+        "bg-slate-200 dark:bg-slate-300/80 text-slate-900 dark:text-slate-950",
+      label: "Muralla",
+    },
+    Farmeador: {
+      color:
+        "bg-amber-200 dark:bg-amber-200/85 text-slate-900 dark:text-slate-950",
+      label: "Farmeador",
+    },
+    Visionario: {
+      color:
+        "bg-emerald-100 dark:bg-emerald-200/85 text-slate-900 dark:text-slate-950",
+      label: "Visionario",
+    },
+    Objetivos: {
+      color:
+        "bg-blue-100 dark:bg-blue-200/85 text-slate-900 dark:text-slate-950",
+      label: "Objetivos",
+    },
+    Implacable: {
+      color:
+        "bg-purple-100 dark:bg-fuchsia-200/85 text-slate-900 dark:text-slate-950",
+      label: "Implacable",
+    },
+    Titan: {
+      color:
+        "bg-orange-100 dark:bg-orange-200/85 text-slate-900 dark:text-slate-950",
+      label: "Titan",
+    },
+    Demoledor: {
+      color:
+        "bg-amber-100 dark:bg-amber-200/85 text-slate-900 dark:text-slate-950",
+      label: "Demoledor",
+    },
+    KS: {
+      color:
+        "bg-pink-100 dark:bg-pink-200/85 text-slate-900 dark:text-slate-950",
+      label: "KS",
+    },
+    Sacrificado: {
+      color:
+        "bg-slate-200 dark:bg-slate-200/85 text-slate-900 dark:text-slate-950",
+      label: "Sacrificado",
+    },
+    Ladron: {
+      color: "bg-red-100 dark:bg-red-200/85 text-slate-900 dark:text-slate-950",
+      label: "Ladron",
+    },
+    Desafortunado: {
+      color:
+        "bg-slate-100 dark:bg-slate-200/80 text-slate-900 dark:text-slate-950",
+      label: "Desafortunado",
+    },
+    DiosDelCS: {
+      color:
+        "bg-yellow-100 dark:bg-yellow-200/85 text-slate-900 dark:text-slate-950",
+      label: "Dios del CS",
+    },
+    SoloKill: {
+      color: "bg-red-100 dark:bg-red-200/85 text-slate-900 dark:text-slate-950",
+      label: "Solo Kill",
+    },
+    Remontada: {
+      color:
+        "bg-blue-100 dark:bg-blue-200/85 text-slate-900 dark:text-slate-950",
+      label: "Remontada",
+    },
+    Destructor: {
+      color:
+        "bg-orange-200 dark:bg-orange-300/85 text-slate-900 dark:text-slate-950",
+      label: "Destructor",
+    },
+    FuriaTemprana: {
+      color:
+        "bg-rose-200 dark:bg-rose-300/85 text-slate-900 dark:text-slate-950",
+      label: "Furia Temprana",
+    },
+    MaestroDeCC: {
+      color:
+        "bg-purple-200 dark:bg-purple-300/85 text-slate-900 dark:text-slate-950",
+      label: "Maestro de CC",
+    },
+    Duelista: {
+      color: "bg-red-200 dark:bg-red-300/85 text-slate-900 dark:text-slate-950",
+      label: "Duelista",
+    },
+    PrimeraSangre: {
+      color:
+        "bg-rose-100 dark:bg-rose-200/85 text-slate-900 dark:text-slate-950",
+      label: "Primera Sangre",
+    },
+    PentaKill: {
+      color:
+        "bg-red-500 text-white dark:bg-red-600 dark:text-white font-bold animate-pulse",
+      label: "PENTA KILL",
+    },
+    QuadraKill: {
+      color: "bg-red-400 text-white dark:bg-red-500 dark:text-white font-bold",
+      label: "QUADRA KILL",
+    },
+    TripleKill: {
+      color:
+        "bg-orange-400 text-white dark:bg-orange-500 dark:text-white font-bold",
+      label: "TRIPLE KILL",
+    },
+    DobleKill: {
+      color:
+        "bg-amber-400 text-white dark:bg-amber-500 dark:text-white font-bold",
+      label: "DOBLE KILL",
+    },
+  };
+
+  return tagInfoMap[tag] || { color: "bg-gray-100", label: tag };
+};
+
+export const SharedMatchCard: React.FC<SharedMatchCardProps> = ({
   partida,
-  userColor = "#3b82f6",
-  isOwnProfile = false,
-  isAdmin = false,
-  onDelete,
-  deletingId,
+  userColor,
+  sharedBy,
+  isAdmin,
+  isOwnProfile,
+  isHidden,
   onHide,
   onUnhide,
-  isHidden = false,
-}: SharedMatchCardProps) => {
+  onDelete,
+  deletingId,
+}) => {
+  const mobileCarouselRef = React.useRef<HTMLDivElement | null>(null);
+  const [mobileCarouselIndex, setMobileCarouselIndex] = React.useState(0);
+
   const isWin = partida.result === "win";
   const isVictory = isWin;
   const outcomeTextClass = isVictory
@@ -234,6 +423,105 @@ export const SharedMatchCard = ({
     runeStyles.find((style) => style.style === partida.perkSubStyle);
   const statPerks = partida.perks?.statPerks;
 
+  type PerkJsonEntry = {
+    id: number;
+    name: string;
+    iconPath: string;
+  };
+
+  const isPerkJsonEntry = (value: unknown): value is PerkJsonEntry => {
+    if (!value || typeof value !== "object") return false;
+    const obj = value as Record<string, unknown>;
+    return (
+      typeof obj.id === "number" &&
+      typeof obj.name === "string" &&
+      typeof obj.iconPath === "string"
+    );
+  };
+
+  const iconPathToUrl = (iconPath: string): string | null => {
+    // Ejemplo iconPath: "/lol-game-data/assets/v1/perk-images/Styles/Domination/Electrocute/Electrocute.png"
+    const prefix = "/lol-game-data/assets/";
+    if (!iconPath.startsWith(prefix)) return null;
+    const relative = iconPath.slice(prefix.length).toLowerCase();
+    return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${relative}`;
+  };
+
+  const [perkIconById, setPerkIconById] = React.useState<
+    Record<number, string>
+  >({});
+  const [perkNameById, setPerkNameById] = React.useState<
+    Record<number, string>
+  >({});
+
+  const perkIdsNeeded = React.useMemo(() => {
+    const ids = new Set<number>();
+    for (const selection of primaryStyle?.selections ?? []) {
+      const perkId = toSafeNumber(selection.perk);
+      if (perkId && perkId > 0) {
+        ids.add(perkId);
+      }
+    }
+    for (const selection of secondaryStyle?.selections ?? []) {
+      const perkId = toSafeNumber(selection.perk);
+      if (perkId && perkId > 0) {
+        ids.add(perkId);
+      }
+    }
+    const offenseId = toSafeNumber(statPerks?.offense);
+    const flexId = toSafeNumber(statPerks?.flex);
+    const defenseId = toSafeNumber(statPerks?.defense);
+    if (offenseId) ids.add(offenseId);
+    if (flexId) ids.add(flexId);
+    if (defenseId) ids.add(defenseId);
+    return Array.from(ids);
+  }, [primaryStyle?.selections, secondaryStyle?.selections, statPerks]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadPerkIcons = async () => {
+      if (perkIdsNeeded.length === 0) return;
+      const missing = perkIdsNeeded.some((id) => !perkIconById[id]);
+      if (!missing) return;
+
+      try {
+        const response = await fetch(
+          "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perks.json"
+        );
+        if (!response.ok) return;
+
+        const raw: unknown = await response.json();
+        if (!Array.isArray(raw)) return;
+
+        const neededSet = new Set(perkIdsNeeded);
+        const nextIcons: Record<number, string> = {};
+        const nextNames: Record<number, string> = {};
+
+        for (const entry of raw) {
+          if (!isPerkJsonEntry(entry)) continue;
+          if (!neededSet.has(entry.id)) continue;
+          const url = iconPathToUrl(entry.iconPath);
+          if (!url) continue;
+          nextIcons[entry.id] = url;
+          nextNames[entry.id] = entry.name;
+        }
+
+        if (cancelled) return;
+        setPerkIconById((prev) => ({ ...prev, ...nextIcons }));
+        setPerkNameById((prev) => ({ ...prev, ...nextNames }));
+      } catch {
+        // Silencioso: si falla, solo no mostramos iconos.
+      }
+    };
+
+    void loadPerkIcons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [perkIdsNeeded, perkIconById]);
+
   const hasDetailedRunes = Boolean(
     (primaryStyle?.selections && primaryStyle.selections.length > 0) ||
       (secondaryStyle?.selections && secondaryStyle.selections.length > 0) ||
@@ -247,8 +535,12 @@ export const SharedMatchCard = ({
     return (
       <div className="flex flex-wrap gap-2 mt-2">
         {style.selections.map((selection, index) => {
-          const icon = getPerkImg(selection.perk ?? null);
-          const key = `${style.style}-${selection.perk ?? index}`;
+          const perkId = toSafeNumber(selection.perk);
+          const icon =
+            typeof perkId === "number" ? perkIconById[perkId] : undefined;
+          const perkName =
+            typeof perkId === "number" ? perkNameById[perkId] : undefined;
+          const key = `${style.style}-${perkId ?? "x"}-${index}`;
           return (
             <div
               key={key}
@@ -257,7 +549,7 @@ export const SharedMatchCard = ({
               {icon ? (
                 <Image
                   src={icon}
-                  alt="Runa seleccionada"
+                  alt={perkName ?? "Runa seleccionada"}
                   fill
                   className="object-cover"
                   unoptimized
@@ -275,16 +567,19 @@ export const SharedMatchCard = ({
   const renderShardIcons = () => {
     if (!statPerks) return null;
     const shards = [
-      statPerks.offense,
-      statPerks.flex,
-      statPerks.defense,
-    ].filter(Boolean);
+      toSafeNumber(statPerks.offense),
+      toSafeNumber(statPerks.flex),
+      toSafeNumber(statPerks.defense),
+    ].filter((value): value is number => typeof value === "number");
     if (shards.length === 0) return null;
     return (
       <div className="flex items-center gap-2 mt-2">
         {shards.map((shardId, index) => {
-          const icon = getPerkImg(shardId ?? null);
-          const key = `shard-${shardId ?? index}`;
+          const icon =
+            typeof shardId === "number" ? perkIconById[shardId] : undefined;
+          const perkName =
+            typeof shardId === "number" ? perkNameById[shardId] : undefined;
+          const key = `shard-${shardId}-${index}`;
           return (
             <div
               key={key}
@@ -293,7 +588,7 @@ export const SharedMatchCard = ({
               {icon ? (
                 <Image
                   src={icon}
-                  alt="Fragmento"
+                  alt={perkName ?? "Fragmento"}
                   fill
                   className="object-cover"
                   unoptimized
@@ -340,24 +635,42 @@ export const SharedMatchCard = ({
     );
   };
 
+  const keystonePerkId = toSafeNumber(primaryStyle?.selections?.[0]?.perk);
+  const keystoneIcon =
+    typeof keystonePerkId === "number" ? perkIconById[keystonePerkId] : null;
+  const keystoneName =
+    typeof keystonePerkId === "number" ? perkNameById[keystonePerkId] : null;
+
   const runeIcons = (
     <div className="flex items-center gap-1">
-      {partida.perkPrimaryStyle > 0 && (
+      {keystoneIcon ? (
         <div className="relative w-6 h-6 rounded-full overflow-hidden">
           <Image
-            src={getRuneIconUrl(partida.perkPrimaryStyle)}
-            alt="Runa primaria"
+            src={keystoneIcon}
+            alt={keystoneName ?? "Keystone"}
             fill
             className="object-cover"
             unoptimized
           />
         </div>
+      ) : (
+        partida.perkPrimaryStyle > 0 && (
+          <div className="relative w-6 h-6 rounded-full overflow-hidden">
+            <Image
+              src={getRuneIconUrl(partida.perkPrimaryStyle)}
+              alt="Estilo primario"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        )
       )}
       {partida.perkSubStyle > 0 && (
         <div className="relative w-5 h-5 rounded-full overflow-hidden">
           <Image
             src={getRuneIconUrl(partida.perkSubStyle)}
-            alt="Runa secundaria"
+            alt="Estilo secundario"
             fill
             className="object-cover"
             unoptimized
@@ -387,6 +700,237 @@ export const SharedMatchCard = ({
     if (score >= 45) return "text-orange-600 dark:text-orange-400";
     return "text-red-600 dark:text-red-400";
   };
+
+  // Calcular comparativas vs equipo
+  const damageShare = partida.teamTotalDamage
+    ? (partida.damageToChampions / partida.teamTotalDamage) * 100
+    : 0;
+  const goldShare = partida.teamTotalGold
+    ? (partida.goldEarned / partida.teamTotalGold) * 100
+    : 0;
+  const killParticipation = partida.teamTotalKills
+    ? ((partida.kills + partida.assists) / partida.teamTotalKills) * 100
+    : 0;
+  const killParticipationRatio =
+    partida.teamTotalKills && partida.teamTotalKills > 0
+      ? (partida.kills + partida.assists) / partida.teamTotalKills
+      : undefined;
+
+  // Calcular badges de desempeño
+  const matchTags = analyzeMatchTags({
+    kills: partida.kills,
+    deaths: partida.deaths,
+    assists: partida.assists,
+    win: isWin,
+    gameDuration: partida.gameDuration,
+    goldEarned: partida.goldEarned,
+    csPerMinute: partida.csPerMin,
+    totalDamageDealtToChampions: partida.damageToChampions,
+    damageToTurrets: partida.damageToTurrets,
+    visionScore: partida.visionScore,
+    teamDamageShare: partida.teamTotalDamage
+      ? partida.damageToChampions / partida.teamTotalDamage
+      : undefined,
+    killParticipation: killParticipationRatio,
+    objectivesStolen: partida.objectivesStolen,
+    role: partida.role,
+    teamTotalKills: partida.teamTotalKills,
+    teamTotalDamage: partida.teamTotalDamage,
+    teamTotalGold: partida.teamTotalGold,
+    // Nuevos campos para badges
+    pentaKills: partida.pentaKills,
+    quadraKills: partida.quadraKills,
+    tripleKills: partida.tripleKills,
+    doubleKills: partida.doubleKills,
+    firstBloodKill: partida.firstBloodKill,
+    totalTimeCCDealt: partida.totalTimeCCDealt,
+    soloKills: partida.soloKills,
+    turretPlatesTaken: partida.turretPlatesTaken,
+    earlyLaningPhaseGoldExpAdvantage: partida.earlyLaningPhaseGoldExpAdvantage,
+    goldDeficit: partida.goldDeficit,
+  });
+
+  // Fallback de badges si no hay ninguno
+  const displayTags =
+    matchTags.length > 0 ? matchTags : (["MVP"] as MatchTag[]);
+
+  const teamAvgDamageToChampions =
+    typeof partida.teamAvgDamageToChampions === "number" &&
+    Number.isFinite(partida.teamAvgDamageToChampions)
+      ? partida.teamAvgDamageToChampions
+      : partida.teamTotalDamage
+      ? partida.teamTotalDamage / 5
+      : 0;
+  const teamAvgGoldEarned =
+    typeof partida.teamAvgGoldEarned === "number" &&
+    Number.isFinite(partida.teamAvgGoldEarned)
+      ? partida.teamAvgGoldEarned
+      : partida.teamTotalGold
+      ? partida.teamTotalGold / 5
+      : 0;
+  const teamAvgKillParticipation =
+    typeof partida.teamAvgKillParticipation === "number" &&
+    Number.isFinite(partida.teamAvgKillParticipation)
+      ? partida.teamAvgKillParticipation
+      : 0;
+  const teamAvgVisionScore =
+    typeof partida.teamAvgVisionScore === "number" &&
+    Number.isFinite(partida.teamAvgVisionScore)
+      ? partida.teamAvgVisionScore
+      : 0;
+  const teamAvgCsPerMin =
+    typeof partida.teamAvgCsPerMin === "number" &&
+    Number.isFinite(partida.teamAvgCsPerMin)
+      ? partida.teamAvgCsPerMin
+      : 0;
+  const teamAvgDamageToTurrets =
+    typeof partida.teamAvgDamageToTurrets === "number" &&
+    Number.isFinite(partida.teamAvgDamageToTurrets)
+      ? partida.teamAvgDamageToTurrets
+      : 0;
+
+  const isBetterThanAvgDamage =
+    teamAvgDamageToChampions > 0
+      ? partida.damageToChampions > teamAvgDamageToChampions
+      : false;
+  const isBetterThanAvgGold =
+    teamAvgGoldEarned > 0 ? partida.goldEarned > teamAvgGoldEarned : false;
+  const isBetterThanAvgKP =
+    teamAvgKillParticipation > 0
+      ? killParticipation > teamAvgKillParticipation
+      : false;
+  const isBetterThanAvgVision =
+    teamAvgVisionScore > 0 ? partida.visionScore > teamAvgVisionScore : false;
+  const isBetterThanAvgCs =
+    teamAvgCsPerMin > 0 ? partida.csPerMin > teamAvgCsPerMin : false;
+  const isBetterThanAvgTurrets =
+    teamAvgDamageToTurrets > 0
+      ? partida.damageToTurrets > teamAvgDamageToTurrets
+      : false;
+
+  const resolvedUserColor =
+    typeof userColor === "string" && userColor.trim()
+      ? userColor.trim()
+      : "#3b82f6";
+  const userColorStyle = { "--user-color": resolvedUserColor } as CSSProperties;
+
+  const renderComparativeBullet = (params: {
+    label: string;
+    valueLabel: string;
+    value: number;
+    avg: number;
+    avgLabel?: string;
+    deltaLabel?: string;
+    isBetter: boolean;
+  }) => {
+    const max = params.avg > 0 ? params.avg * 2 : Math.max(params.value, 1);
+    const valuePct =
+      max > 0 ? Math.max(0, Math.min(100, (params.value / max) * 100)) : 0;
+    const avgPct =
+      params.avg > 0 && max > 0
+        ? Math.max(0, Math.min(100, (params.avg / max) * 100))
+        : 0;
+
+    return (
+      <div className="space-y-1">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[11px] font-semibold text-slate-800 dark:text-white/85">
+            {params.label}
+          </span>
+          <div className="flex items-baseline gap-2">
+            {params.deltaLabel && (
+              <span
+                className="text-[10px] font-semibold"
+                style={{
+                  color: resolvedUserColor,
+                  opacity: params.isBetter ? 1 : 0.7,
+                }}
+              >
+                {params.deltaLabel}
+              </span>
+            )}
+            <span
+              className="text-[11px] font-bold"
+              style={{
+                color: resolvedUserColor,
+                opacity: params.isBetter ? 1 : 0.85,
+              }}
+            >
+              {params.valueLabel}
+            </span>
+          </div>
+        </div>
+
+        <div className="relative h-2.5 rounded-full bg-white/35 dark:bg-white/10 overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-slate-800/40 dark:bg-white/35"
+            style={{ width: `${Math.max(2, valuePct)}%` }}
+          />
+          <div
+            className="absolute -top-0.5 h-3.5 w-[2px] rounded-full bg-white/80 dark:bg-white/60"
+            style={{ left: `calc(${avgPct}% - 1px)` }}
+          />
+          <div
+            className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-white/70 shadow"
+            style={{
+              left: `calc(${valuePct}% - 5px)`,
+              backgroundColor: resolvedUserColor,
+              opacity: params.isBetter ? 1 : 0.55,
+            }}
+          />
+        </div>
+
+        {params.avg > 0 && (
+          <div className="text-[10px] text-slate-600 dark:text-white/50">
+            Promedio equipo: {params.avgLabel ?? params.avg.toFixed(0)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const hasComparative =
+    Boolean(partida.teamTotalDamage) ||
+    Boolean(partida.teamTotalGold) ||
+    Boolean(partida.teamTotalKills);
+  const hasTeams = Boolean(partida.allPlayers && partida.allPlayers.length > 0);
+  const mobileCarouselPages = (hasComparative ? 1 : 0) + 1 + (hasTeams ? 1 : 0);
+
+  React.useEffect(() => {
+    const el = mobileCarouselRef.current;
+    if (!el) return;
+
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId != null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        const children = Array.from(el.children) as HTMLElement[];
+        if (children.length === 0) return;
+
+        const scrollLeft = el.scrollLeft;
+        let bestIndex = 0;
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        for (let i = 0; i < children.length; i += 1) {
+          const distance = Math.abs(children[i].offsetLeft - scrollLeft);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestIndex = i;
+          }
+        }
+
+        setMobileCarouselIndex(bestIndex);
+      });
+    };
+
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [mobileCarouselPages]);
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -450,7 +994,14 @@ export const SharedMatchCard = ({
 
               <div className="flex items-center justify-between gap-3 pr-1">
                 <h3 className="text-2xl font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] flex items-center gap-2">
-                  <span>{partida.championName}</span>
+                  <span className="flex flex-col leading-none">
+                    {sharedBy && (sharedBy.username || sharedBy.public_id) && (
+                      <span className="text-[11px] font-semibold text-white/80">
+                        {sharedBy.username ?? sharedBy.public_id}
+                      </span>
+                    )}
+                    <span>{partida.championName}</span>
+                  </span>
                   {isHidden && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-500/15 border border-amber-200/70 dark:border-amber-500/30 rounded-full px-2 py-0.5 ml-2">
                       <EyeOff className="w-3 h-3" /> Oculto para ti
@@ -513,87 +1064,745 @@ export const SharedMatchCard = ({
               </div>
             </div>
 
-            {/* Build + stats */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="space-y-2 shrink-0 flex flex-col items-center">
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-2">
-                  {partida.items.slice(0, 6).map((itemId, idx) => (
-                    <div
-                      key={idx}
-                      className="relative w-9 h-9 rounded border border-slate-200/80 overflow-hidden bg-white/95 shadow-sm dark:border-white/20 dark:bg-white/10"
-                    >
-                      {itemId > 0 && (
-                        <Image
-                          src={getItemImageUrl(itemId, ddragonVersion)}
-                          alt={`Item ${itemId}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
+            {/* Items centrados en una sola línea */}
+            <div className="flex justify-center flex-wrap gap-2 mt-2">
+              {partida.items.slice(0, 6).map((itemId, idx) => (
+                <div
+                  key={idx}
+                  className="relative w-10 h-10 rounded border border-slate-200/80 overflow-hidden bg-white/95 shadow-sm dark:border-white/20 dark:bg-white/10"
+                >
+                  {itemId > 0 && (
+                    <Image
+                      src={getItemImageUrl(itemId, ddragonVersion)}
+                      alt={`Item ${itemId}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Zona de comparativa + estadísticas + jugadores */}
+            <div className="mt-3">
+              <div className="sm:hidden">
+                <div className="relative">
+                  <div
+                    ref={mobileCarouselRef}
+                    className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 px-2"
+                  >
+                    {hasComparative && (
+                      <div className="snap-center w-[88%] shrink-0">
+                        <div className="space-y-3 p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
+                          <h4 className="text-xs uppercase font-bold text-slate-700 dark:text-white/70 tracking-wide">
+                            Comparativa vs Equipo
+                          </h4>
+
+                          {partida.teamTotalDamage &&
+                            renderComparativeBullet({
+                              label: "Daño a Campeones",
+                              valueLabel: `${(
+                                partida.damageToChampions / 1000
+                              ).toFixed(1)}k`,
+                              value: partida.damageToChampions,
+                              avg: teamAvgDamageToChampions,
+                              avgLabel: `${(
+                                teamAvgDamageToChampions / 1000
+                              ).toFixed(1)}k`,
+                              deltaLabel:
+                                teamAvgDamageToChampions > 0
+                                  ? (() => {
+                                      const delta =
+                                        (partida.damageToChampions /
+                                          teamAvgDamageToChampions -
+                                          1) *
+                                        100;
+                                      const sign = delta >= 0 ? "+" : "";
+                                      return `${sign}${delta.toFixed(0)}%`;
+                                    })()
+                                  : undefined,
+                              isBetter: isBetterThanAvgDamage,
+                            })}
+
+                          {partida.teamTotalKills &&
+                            teamAvgKillParticipation > 0 &&
+                            renderComparativeBullet({
+                              label: "Participación en Kills",
+                              valueLabel: `${killParticipation.toFixed(0)}%`,
+                              value: killParticipation,
+                              avg: teamAvgKillParticipation,
+                              avgLabel: `${teamAvgKillParticipation.toFixed(
+                                0
+                              )}%`,
+                              deltaLabel: (() => {
+                                const delta =
+                                  killParticipation - teamAvgKillParticipation;
+                                const sign = delta >= 0 ? "+" : "";
+                                return `${sign}${delta.toFixed(0)}pp`;
+                              })(),
+                              isBetter: isBetterThanAvgKP,
+                            })}
+
+                          {partida.teamTotalGold &&
+                            renderComparativeBullet({
+                              label: "Oro",
+                              valueLabel: `${(
+                                partida.goldEarned / 1000
+                              ).toFixed(1)}k`,
+                              value: partida.goldEarned,
+                              avg: teamAvgGoldEarned,
+                              avgLabel: `${(teamAvgGoldEarned / 1000).toFixed(
+                                1
+                              )}k`,
+                              deltaLabel:
+                                teamAvgGoldEarned > 0
+                                  ? (() => {
+                                      const delta =
+                                        (partida.goldEarned /
+                                          teamAvgGoldEarned -
+                                          1) *
+                                        100;
+                                      const sign = delta >= 0 ? "+" : "";
+                                      return `${sign}${delta.toFixed(0)}%`;
+                                    })()
+                                  : undefined,
+                              isBetter: isBetterThanAvgGold,
+                            })}
+
+                          {teamAvgVisionScore > 0 &&
+                            renderComparativeBullet({
+                              label: "Visión",
+                              valueLabel: `${partida.visionScore}`,
+                              value: partida.visionScore,
+                              avg: teamAvgVisionScore,
+                              avgLabel: `${teamAvgVisionScore.toFixed(0)}`,
+                              deltaLabel: (() => {
+                                const delta =
+                                  (partida.visionScore / teamAvgVisionScore -
+                                    1) *
+                                  100;
+                                const sign = delta >= 0 ? "+" : "";
+                                return `${sign}${delta.toFixed(0)}%`;
+                              })(),
+                              isBetter: isBetterThanAvgVision,
+                            })}
+
+                          {teamAvgCsPerMin > 0 &&
+                            renderComparativeBullet({
+                              label: "CS/min",
+                              valueLabel: `${partida.csPerMin.toFixed(1)}/m`,
+                              value: partida.csPerMin,
+                              avg: teamAvgCsPerMin,
+                              avgLabel: `${teamAvgCsPerMin.toFixed(1)}/m`,
+                              deltaLabel: (() => {
+                                const delta =
+                                  (partida.csPerMin / teamAvgCsPerMin - 1) *
+                                  100;
+                                const sign = delta >= 0 ? "+" : "";
+                                return `${sign}${delta.toFixed(0)}%`;
+                              })(),
+                              isBetter: isBetterThanAvgCs,
+                            })}
+
+                          {teamAvgDamageToTurrets > 0 &&
+                            renderComparativeBullet({
+                              label: "Daño a torres",
+                              valueLabel: `${(
+                                partida.damageToTurrets / 1000
+                              ).toFixed(1)}k`,
+                              value: partida.damageToTurrets,
+                              avg: teamAvgDamageToTurrets,
+                              avgLabel: `${(
+                                teamAvgDamageToTurrets / 1000
+                              ).toFixed(1)}k`,
+                              deltaLabel: (() => {
+                                const delta =
+                                  (partida.damageToTurrets /
+                                    teamAvgDamageToTurrets -
+                                    1) *
+                                  100;
+                                const sign = delta >= 0 ? "+" : "";
+                                return `${sign}${delta.toFixed(0)}%`;
+                              })(),
+                              isBetter: isBetterThanAvgTurrets,
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="snap-center w-[88%] shrink-0">
+                      <div className="p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[
+                            {
+                              label: "KDA",
+                              value: `${partida.kills}/${partida.deaths}/${partida.assists}`,
+                              sub: `${partida.kda.toFixed(2)}`,
+                              accentClass: outcomeTextClass,
+                            },
+                            {
+                              label: "CS",
+                              value: partida.totalCS.toString(),
+                              sub: `${partida.csPerMin.toFixed(1)}/m`,
+                            },
+                            {
+                              label: "Visión avanzada",
+                              value: partida.visionScore.toString(),
+                              sub: "score",
+                            },
+                            {
+                              label: "Daño",
+                              value: `${(
+                                partida.damageToChampions / 1000
+                              ).toFixed(1)}k`,
+                              sub: "champ",
+                            },
+                            {
+                              label: "Oro",
+                              value: `${(partida.goldEarned / 1000).toFixed(
+                                1
+                              )}k`,
+                              sub: "total",
+                            },
+                            {
+                              label: "Torres",
+                              value: `${(
+                                partida.damageToTurrets / 1000
+                              ).toFixed(1)}k`,
+                              sub: "dmg",
+                            },
+                          ].map((stat) => (
+                            <div
+                              key={stat.label}
+                              className="relative overflow-hidden rounded-lg border border-slate-200/60 bg-white px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-slate-950"
+                            >
+                              <div className="text-[8px] uppercase tracking-tight text-slate-700 dark:text-white/60 font-bold">
+                                {stat.label}
+                              </div>
+                              <div
+                                className={`mt-0.5 text-xs font-semibold leading-tight ${
+                                  stat.accentClass ??
+                                  "text-slate-900 dark:text-white"
+                                }`}
+                              >
+                                {stat.value}
+                              </div>
+                              {stat.sub && (
+                                <div className="text-[7px] text-slate-600 dark:text-white/50 font-semibold">
+                                  {stat.sub}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {displayTags.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                            {displayTags.map((tag) => {
+                              const tagInfo = getTagInfo(tag);
+                              return (
+                                <Tooltip key={tag}>
+                                  <TooltipTrigger asChild>
+                                    <span
+                                      className={`inline-flex items-center px-2 py-1 rounded-full font-semibold text-[10px] sm:text-[11px] ${tagInfo.color} cursor-help`}
+                                    >
+                                      {tagInfo.label}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs">
+                                    <p>{tagInfo.label}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {hasTeams && (
+                      <div className="snap-center w-[88%] shrink-0">
+                        <div className="p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
+                          <h4 className="text-xs uppercase font-bold text-slate-700 dark:text-white/70 tracking-wide mb-2">
+                            Equipos
+                          </h4>
+                          {(() => {
+                            const rolePriority: Record<string, number> = {
+                              TOP: 1,
+                              JG: 2,
+                              JUN: 2,
+                              JUNGLE: 2,
+                              MID: 3,
+                              MIDDLE: 3,
+                              ADC: 4,
+                              BOT: 4,
+                              BOTTOM: 4,
+                              CARRY: 4,
+                              DUO_CARRY: 4,
+                              SUP: 5,
+                              SUPP: 5,
+                              SUPPORT: 5,
+                              UTILITY: 5,
+                              DUO_SUPPORT: 5,
+                            };
+                            const normalizeRole = (raw: unknown): string => {
+                              if (typeof raw !== "string") return "";
+                              const value = raw.trim().toUpperCase();
+                              if (!value) return "";
+                              if (
+                                value === "JUNGLE" ||
+                                value === "JG" ||
+                                value === "JUN"
+                              )
+                                return "JUNGLE";
+                              if (value === "MID" || value === "MIDDLE")
+                                return "MID";
+                              if (
+                                value === "BOT" ||
+                                value === "BOTTOM" ||
+                                value === "ADC" ||
+                                value === "CARRY" ||
+                                value === "DUO_CARRY"
+                              )
+                                return "BOT";
+                              if (
+                                value === "SUP" ||
+                                value === "SUPP" ||
+                                value === "SUPPORT" ||
+                                value === "UTILITY" ||
+                                value === "DUO_SUPPORT"
+                              )
+                                return "SUP";
+                              if (value === "TOP") return "TOP";
+                              return value;
+                            };
+                            const sortByRole = (a: any, b: any) =>
+                              (rolePriority[normalizeRole(a.role)] || 99) -
+                              (rolePriority[normalizeRole(b.role)] || 99);
+                            const blue = partida.allPlayers
+                              .filter((p) => p.team === "blue")
+                              .sort(sortByRole);
+                            const red = partida.allPlayers
+                              .filter((p) => p.team === "red")
+                              .sort(sortByRole);
+
+                            const renderPlayer = (
+                              player: (typeof partida.allPlayers)[number],
+                              idx: number
+                            ) => {
+                              const champKey =
+                                player.championName === "FiddleSticks"
+                                  ? "Fiddlesticks"
+                                  : player.championName.replace(/\s+/g, "");
+                              return (
+                                <div
+                                  key={`${player.team}-${idx}`}
+                                  className="flex items-center gap-1.5 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/60"
+                                >
+                                  <div className="relative w-6 h-6 rounded overflow-hidden bg-white/70 dark:bg-white/15 shrink-0">
+                                    <Image
+                                      src={getChampionImageUrl(
+                                        champKey,
+                                        ddragonVersion
+                                      )}
+                                      alt={player.championName}
+                                      fill
+                                      className="object-cover"
+                                      unoptimized
+                                    />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="text-[10px] font-bold text-slate-900 dark:text-white truncate cursor-help">
+                                          {player.summonerName}
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="text-xs">
+                                        {player.summonerName}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <div className="text-[9px] text-slate-700 dark:text-white/70 truncate">
+                                      {player.championName}
+                                    </div>
+                                    <div className="text-[8px] text-slate-600 dark:text-white/60">
+                                      {player.kills}/{player.deaths}/
+                                      {player.assists}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            };
+
+                            return (
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1.5">
+                                  {blue.map((p, idx) => renderPlayer(p, idx))}
+                                </div>
+                                <div className="space-y-1.5">
+                                  {red.map((p, idx) => renderPlayer(p, idx))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {mobileCarouselPages > 1 && (
+                    <div className="mt-2 flex items-center justify-center gap-2">
+                      {Array.from({ length: mobileCarouselPages }).map(
+                        (_, idx) => (
+                          <span
+                            key={idx}
+                            className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                              idx === mobileCarouselIndex
+                                ? "bg-slate-900/80 dark:bg-white/80"
+                                : "bg-slate-500/30 dark:bg-white/20"
+                            }`}
+                          />
+                        )
                       )}
                     </div>
-                  ))}
+                  )}
+
+                  {mobileCarouselPages > 1 && null}
                 </div>
               </div>
-              <div className="flex-1 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {[
-                  {
-                    label: "KDA",
-                    value: `${partida.kills}/${partida.deaths}/${partida.assists}`,
-                    sub: `${partida.kda.toFixed(2)} ratio`,
-                    accentClass: outcomeTextClass,
-                    longSub: true,
-                  },
-                  {
-                    label: "CS",
-                    value: partida.totalCS.toString(),
-                    sub: `${partida.csPerMin.toFixed(1)}/min`,
-                  },
-                  {
-                    label: "Visión",
-                    value: partida.visionScore.toString(),
-                  },
-                  {
-                    label: "Score",
-                    value: partida.performanceScore
-                      ? partida.performanceScore.toFixed(0)
-                      : "-",
-                    accentClass: getScoreColor(partida.performanceScore),
-                  },
-                  {
-                    label: "Daño",
-                    value: `${(partida.damageToChampions / 1000).toFixed(1)}k`,
-                    sub: "champ",
-                  },
-                  {
-                    label: "Oro",
-                    value: `${(partida.goldEarned / 1000).toFixed(1)}k`,
-                    sub: "total",
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className={`relative overflow-hidden rounded-xl border border-white/40 bg-white/65 px-1.5 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-white/10 dark:border-white/20 ${
-                      stat.longSub ? "col-span-1" : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[9px] uppercase tracking-wide text-slate-700 dark:text-white/60">
-                      <span className="font-bold">{stat.label}</span>
-                      {stat.sub && (
-                        <span className="text-[9px] text-slate-600 dark:text-white/50 font-semibold">
-                          {stat.sub}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className={`mt-1 text-sm sm:text-base font-semibold leading-tight ${
-                        stat.accentClass ?? "text-slate-900 dark:text-white"
-                      }`}
-                    >
-                      {stat.value}
-                    </div>
+
+              <div className="hidden sm:grid grid-cols-1 sm:grid-cols-12 gap-4">
+                {(partida.teamTotalDamage ||
+                  partida.teamTotalGold ||
+                  partida.teamTotalKills) && (
+                  <div className="sm:col-span-4 space-y-3 p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
+                    <h4 className="text-xs uppercase font-bold text-slate-700 dark:text-white/70 tracking-wide">
+                      Comparativa vs Equipo
+                    </h4>
+
+                    {partida.teamTotalDamage &&
+                      renderComparativeBullet({
+                        label: "Daño a Campeones",
+                        valueLabel: `${(
+                          partida.damageToChampions / 1000
+                        ).toFixed(1)}k`,
+                        value: partida.damageToChampions,
+                        avg: teamAvgDamageToChampions,
+                        avgLabel: `${(teamAvgDamageToChampions / 1000).toFixed(
+                          1
+                        )}k`,
+                        deltaLabel:
+                          teamAvgDamageToChampions > 0
+                            ? `${(
+                                (partida.damageToChampions /
+                                  teamAvgDamageToChampions -
+                                  1) *
+                                100
+                              ).toFixed(0)}%`
+                            : undefined,
+                        isBetter: isBetterThanAvgDamage,
+                      })}
+
+                    {partida.teamTotalKills &&
+                      teamAvgKillParticipation > 0 &&
+                      renderComparativeBullet({
+                        label: "Participación en Kills",
+                        valueLabel: `${killParticipation.toFixed(0)}%`,
+                        value: killParticipation,
+                        avg: teamAvgKillParticipation,
+                        avgLabel: `${teamAvgKillParticipation.toFixed(0)}%`,
+                        deltaLabel: `${(
+                          killParticipation - teamAvgKillParticipation
+                        ).toFixed(0)}pp`,
+                        isBetter: isBetterThanAvgKP,
+                      })}
+
+                    {partida.teamTotalGold &&
+                      renderComparativeBullet({
+                        label: "Oro",
+                        valueLabel: `${(partida.goldEarned / 1000).toFixed(
+                          1
+                        )}k`,
+                        value: partida.goldEarned,
+                        avg: teamAvgGoldEarned,
+                        avgLabel: `${(teamAvgGoldEarned / 1000).toFixed(1)}k`,
+                        deltaLabel:
+                          teamAvgGoldEarned > 0
+                            ? `${(
+                                (partida.goldEarned / teamAvgGoldEarned - 1) *
+                                100
+                              ).toFixed(0)}%`
+                            : undefined,
+                        isBetter: isBetterThanAvgGold,
+                      })}
+
+                    {teamAvgVisionScore > 0 &&
+                      renderComparativeBullet({
+                        label: "Visión",
+                        valueLabel: `${partida.visionScore}`,
+                        value: partida.visionScore,
+                        avg: teamAvgVisionScore,
+                        avgLabel: `${teamAvgVisionScore.toFixed(0)}`,
+                        deltaLabel: (() => {
+                          const delta =
+                            (partida.visionScore / teamAvgVisionScore - 1) *
+                            100;
+                          const sign = delta >= 0 ? "+" : "";
+                          return `${sign}${delta.toFixed(0)}%`;
+                        })(),
+                        isBetter: isBetterThanAvgVision,
+                      })}
+
+                    {teamAvgCsPerMin > 0 &&
+                      renderComparativeBullet({
+                        label: "CS/min",
+                        valueLabel: `${partida.csPerMin.toFixed(1)}/m`,
+                        value: partida.csPerMin,
+                        avg: teamAvgCsPerMin,
+                        avgLabel: `${teamAvgCsPerMin.toFixed(1)}/m`,
+                        deltaLabel: (() => {
+                          const delta =
+                            (partida.csPerMin / teamAvgCsPerMin - 1) * 100;
+                          const sign = delta >= 0 ? "+" : "";
+                          return `${sign}${delta.toFixed(0)}%`;
+                        })(),
+                        isBetter: isBetterThanAvgCs,
+                      })}
+
+                    {teamAvgDamageToTurrets > 0 &&
+                      renderComparativeBullet({
+                        label: "Daño a torres",
+                        valueLabel: `${(partida.damageToTurrets / 1000).toFixed(
+                          1
+                        )}k`,
+                        value: partida.damageToTurrets,
+                        avg: teamAvgDamageToTurrets,
+                        avgLabel: `${(teamAvgDamageToTurrets / 1000).toFixed(
+                          1
+                        )}k`,
+                        deltaLabel: (() => {
+                          const delta =
+                            (partida.damageToTurrets / teamAvgDamageToTurrets -
+                              1) *
+                            100;
+                          const sign = delta >= 0 ? "+" : "";
+                          return `${sign}${delta.toFixed(0)}%`;
+                        })(),
+                        isBetter: isBetterThanAvgTurrets,
+                      })}
                   </div>
-                ))}
+                )}
+
+                <div className="sm:col-span-4">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      {
+                        label: "KDA",
+                        value: `${partida.kills}/${partida.deaths}/${partida.assists}`,
+                        sub: `${partida.kda.toFixed(2)}`,
+                        accentClass: outcomeTextClass,
+                      },
+                      {
+                        label: "CS",
+                        value: partida.totalCS.toString(),
+                        sub: `${partida.csPerMin.toFixed(1)}/m`,
+                      },
+                      {
+                        label: "Visión avanzada",
+                        value: partida.visionScore.toString(),
+                        sub: "score",
+                      },
+                      {
+                        label: "Daño",
+                        value: `${(partida.damageToChampions / 1000).toFixed(
+                          1
+                        )}k`,
+                        sub: "champ",
+                      },
+                      {
+                        label: "Oro",
+                        value: `${(partida.goldEarned / 1000).toFixed(1)}k`,
+                        sub: "total",
+                      },
+                      {
+                        label: "Torres",
+                        value: `${(partida.damageToTurrets / 1000).toFixed(
+                          1
+                        )}k`,
+                        sub: "dmg",
+                      },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="relative overflow-hidden rounded-lg border border-slate-200/60 bg-white px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-slate-950"
+                      >
+                        <div className="text-[8px] uppercase tracking-tight text-slate-700 dark:text-white/60 font-bold">
+                          {stat.label}
+                        </div>
+                        <div
+                          className={`mt-0.5 text-xs font-semibold leading-tight ${
+                            stat.accentClass ?? "text-slate-900 dark:text-white"
+                          }`}
+                        >
+                          {stat.value}
+                        </div>
+                        {stat.sub && (
+                          <div className="text-[7px] text-slate-600 dark:text-white/50 font-semibold">
+                            {stat.sub}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {displayTags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                      {displayTags.map((tag) => {
+                        const tagInfo = getTagInfo(tag);
+                        return (
+                          <Tooltip key={tag}>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full font-semibold text-[10px] sm:text-[11px] ${tagInfo.color} cursor-help`}
+                              >
+                                {tagInfo.label}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-xs">
+                              <p>{tagInfo.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {partida.allPlayers && partida.allPlayers.length > 0 && (
+                  <div className="sm:col-span-4 p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
+                    <h4 className="text-xs uppercase font-bold text-slate-700 dark:text-white/70 tracking-wide mb-2">
+                      Equipos
+                    </h4>
+                    {(() => {
+                      const rolePriority: Record<string, number> = {
+                        TOP: 1,
+                        JG: 2,
+                        JUN: 2,
+                        JUNGLE: 2,
+                        MID: 3,
+                        MIDDLE: 3,
+                        ADC: 4,
+                        BOT: 4,
+                        BOTTOM: 4,
+                        CARRY: 4,
+                        DUO_CARRY: 4,
+                        SUP: 5,
+                        SUPP: 5,
+                        SUPPORT: 5,
+                        UTILITY: 5,
+                        DUO_SUPPORT: 5,
+                      };
+                      const normalizeRole = (raw: unknown): string => {
+                        if (typeof raw !== "string") return "";
+                        const value = raw.trim().toUpperCase();
+                        if (!value) return "";
+                        if (
+                          value === "JUNGLE" ||
+                          value === "JG" ||
+                          value === "JUN"
+                        )
+                          return "JUNGLE";
+                        if (value === "MID" || value === "MIDDLE") return "MID";
+                        if (
+                          value === "BOT" ||
+                          value === "BOTTOM" ||
+                          value === "ADC" ||
+                          value === "CARRY" ||
+                          value === "DUO_CARRY"
+                        )
+                          return "BOT";
+                        if (
+                          value === "SUP" ||
+                          value === "SUPP" ||
+                          value === "SUPPORT" ||
+                          value === "UTILITY" ||
+                          value === "DUO_SUPPORT"
+                        )
+                          return "SUP";
+                        if (value === "TOP") return "TOP";
+                        return value;
+                      };
+                      const sortByRole = (a: any, b: any) =>
+                        (rolePriority[normalizeRole(a.role)] || 99) -
+                        (rolePriority[normalizeRole(b.role)] || 99);
+                      const blue = partida.allPlayers
+                        .filter((p) => p.team === "blue")
+                        .sort(sortByRole);
+                      const red = partida.allPlayers
+                        .filter((p) => p.team === "red")
+                        .sort(sortByRole);
+
+                      const renderPlayer = (
+                        player: (typeof partida.allPlayers)[number],
+                        idx: number
+                      ) => {
+                        const champKey =
+                          player.championName === "FiddleSticks"
+                            ? "Fiddlesticks"
+                            : player.championName.replace(/\s+/g, "");
+                        return (
+                          <div
+                            key={`${player.team}-${idx}`}
+                            className="flex items-center gap-1.5 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/60"
+                          >
+                            <div className="relative w-6 h-6 rounded overflow-hidden bg-white/70 dark:bg-white/15 shrink-0">
+                              <Image
+                                src={getChampionImageUrl(
+                                  champKey,
+                                  ddragonVersion
+                                )}
+                                alt={player.championName}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-[10px] font-bold text-slate-900 dark:text-white truncate cursor-help">
+                                    {player.summonerName}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">
+                                  {player.summonerName}
+                                </TooltipContent>
+                              </Tooltip>
+                              <div className="text-[9px] text-slate-700 dark:text-white/70 truncate">
+                                {player.championName}
+                              </div>
+                              <div className="text-[8px] text-slate-600 dark:text-white/60">
+                                {player.kills}/{player.deaths}/{player.assists}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1.5">
+                            {blue.map((p, idx) => renderPlayer(p, idx))}
+                          </div>
+                          <div className="space-y-1.5">
+                            {red.map((p, idx) => renderPlayer(p, idx))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 

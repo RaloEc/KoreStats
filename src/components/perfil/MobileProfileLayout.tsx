@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, X } from "lucide-react";
 import { Button, Card, CardBody } from "@nextui-org/react";
 import UserActivityFeedContainer from "./UserActivityFeedContainer";
@@ -11,7 +11,7 @@ import { FriendsListCompact } from "@/components/social/FriendsListCompact";
 import ProfileStats from "./profile-stats";
 import MembershipInfo from "./membership-info";
 import { LogOut } from "lucide-react";
-import { ProfileTabs } from "./ProfileTabs";
+import { ProfileTabs, type ProfileTab } from "./ProfileTabs";
 import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
@@ -19,6 +19,7 @@ import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
 import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { UnifiedRiotSyncButton } from "@/components/riot/UnifiedRiotSyncButton";
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
+import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
 
 interface MobileProfileLayoutProps {
   fetchActivities: (page: number, limit: number) => Promise<any[]>;
@@ -62,6 +63,7 @@ export default function MobileProfileLayout({
   riotAccount,
   onInvalidateCache,
 }: MobileProfileLayoutProps) {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarX, setSidebarX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -70,13 +72,25 @@ export default function MobileProfileLayout({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Lee el tab activo desde la URL, fallback a "posts"
-  const activeTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
+  const activeTabFromUrl = (searchParams.get("tab") as ProfileTab) || "posts";
+  const [currentTab, setCurrentTab] = useState<ProfileTab>(activeTabFromUrl);
+
+  useEffect(() => {
+    setCurrentTab(activeTabFromUrl);
+  }, [activeTabFromUrl]);
+
+  const handleTabChange = (tab: ProfileTab) => {
+    setCurrentTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`);
+  };
 
   const isOwnProfile = userId === perfil.id;
 
   // Hook para sincronización unificada de Riot
   const {
+    sync: unifiedSync,
     isPending: unifiedSyncPending,
     cooldownSeconds: unifiedSyncCooldown,
   } = useUnifiedRiotSync();
@@ -163,6 +177,7 @@ export default function MobileProfileLayout({
         <div className="bg-white dark:bg-black amoled:bg-black">
           <ProfileHeader
             perfil={{
+              id: perfil.id,
               username: perfil.username,
               role: perfil.role,
               avatar_url: perfil.avatar_url,
@@ -182,11 +197,15 @@ export default function MobileProfileLayout({
 
         {/* Sistema de Pestañas */}
         <div className="px-4 mt-2">
-          <ProfileTabs hasRiotAccount={!!riotAccount} />
+          <ProfileTabs
+            hasRiotAccount={!!riotAccount}
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+          />
         </div>
 
         {/* Contenido según pestaña */}
-        {activeTab === "posts" ? (
+        {currentTab === "posts" ? (
           <>
             {/* Indicador de deslizar + Título */}
             <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 mt-2">
@@ -221,19 +240,12 @@ export default function MobileProfileLayout({
               />
             ) : riotAccount ? (
               <>
-                {/* Botón unificado de sincronización */}
-                {isOwnProfile && (
-                  <div className="flex justify-end mb-2">
-                    <UnifiedRiotSyncButton
-                      userColor={perfil?.color}
-                      showLabel={true}
-                    />
-                  </div>
-                )}
+                {/* Botón unificado de sincronización - ahora está dentro de la tarjeta */}
 
                 <RiotAccountCardVisual
                   account={riotAccount}
-                  hideSync={true}
+                  hideSync={false}
+                  onSync={unifiedSync}
                   isSyncing={unifiedSyncPending}
                   cooldownSeconds={unifiedSyncCooldown}
                 />
@@ -241,6 +253,9 @@ export default function MobileProfileLayout({
                 <div className="grid grid-cols-1 gap-6">
                   {/* Estadísticas de campeones */}
                   <ChampionStatsSummary puuid={riotAccount.puuid} />
+
+                  {/* Builds guardadas */}
+                  <SavedBuildsPanel />
 
                   {/* Historial de partidas */}
                   <div>

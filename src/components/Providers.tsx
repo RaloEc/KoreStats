@@ -5,7 +5,9 @@ import { AuthProvider } from "@/context/AuthContext";
 import FABMobile from "@/components/ui/FABMobile";
 import { ReactQueryProvider } from "@/lib/react-query/provider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { UserStatusSyncProvider } from "@/components/status/UserStatusSyncProvider";
 import dynamic from "next/dynamic";
+import { LazyMotion, domAnimation } from "framer-motion";
 
 const Toaster = dynamic(
   () => import("@/components/ui/sonner").then((mod) => mod.Toaster),
@@ -26,10 +28,14 @@ export default function Providers({
       <ReactQueryProvider>
         <ThemeProvider>
           <AuthProvider session={session}>
-            {children}
-            <Toaster />
-            {/* Botón flotante global solo móvil */}
-            {/* <FABMobile /> */}
+            <UserStatusSyncProvider autoDetectMatch={true}>
+              <LazyMotion features={domAnimation}>
+                {children}
+                <Toaster />
+                {/* Botón flotante global solo móvil */}
+                {/* <FABMobile /> */}
+              </LazyMotion>
+            </UserStatusSyncProvider>
           </AuthProvider>
         </ThemeProvider>
       </ReactQueryProvider>

@@ -169,11 +169,15 @@ export default function NoticiaDetalle({ params }: { params: { id: string } }) {
           {/* Información del autor */}
           <NoticiaAutor
             nombre={noticia.autor_nombre || ""}
+            autorId={
+              (noticia as { autor_public_id?: string | null })
+                .autor_public_id || null
+            }
             avatar={noticia.autor_avatar}
             color={noticia.autor_color}
             rol={noticia.autor_rol}
             fecha={noticia.fecha_publicacion}
-            vistas={(noticia as any).vistas || 0}
+            vistas={(noticia as { vistas?: number }).vistas || 0}
           />
 
           {/* Imagen de portada */}

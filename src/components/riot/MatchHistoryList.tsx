@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import React from "react";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import {
   MatchCard,
   MobileMatchCard,
@@ -18,6 +19,10 @@ import {
   FALLBACK_VERSION,
 } from "./match-card";
 import type { Match } from "./match-card";
+import {
+  MatchHistoryAdBanner,
+  MobileMatchHistoryAdBanner,
+} from "./match-card/MatchHistoryAdBanner";
 import { useAuth } from "@/context/AuthContext";
 
 interface MatchHistoryListProps {
@@ -25,6 +30,7 @@ interface MatchHistoryListProps {
   puuid?: string;
   externalSyncPending?: boolean;
   externalCooldownSeconds?: number;
+  hideShareButton?: boolean;
 }
 
 interface PlayerStats {
@@ -70,7 +76,7 @@ const QUEUE_FILTERS = [
 ];
 
 const INITIAL_LOAD = 5; // Primeras 5 partidas para lazy load
-const MATCHES_PER_PAGE = 40; // Después, 40 por página
+const MATCHES_PER_PAGE = 15; // Después, 15 por página
 const DEFAULT_STATS: PlayerStats = {
   totalGames: 0,
   wins: 0,
@@ -89,9 +95,11 @@ export function MatchHistoryList({
   puuid,
   externalSyncPending = false,
   externalCooldownSeconds = 0,
+  hideShareButton = false,
 }: MatchHistoryListProps = {}) {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
   const [localUserId, setLocalUserId] = useState<string | null>(null);
   const [queueFilter, setQueueFilter] = useState<string>(
     QUEUE_FILTERS[0].value
@@ -357,7 +365,6 @@ export function MatchHistoryList({
   });
 
   // Lazy load: cargar más partidas automáticamente después de la carga inicial
-  // SIN DELAY - carga inmediata para mejor UX
   useEffect(() => {
     if (
       !isLoading &&
@@ -365,10 +372,11 @@ export function MatchHistoryList({
       hasNextPage &&
       !syncMutation.isPending
     ) {
-      console.log(
-        "[MatchHistoryList] ⏳ Lazy loading: cargando más partidas en background..."
-      );
-      fetchNextPage();
+      const timeout = setTimeout(() => {
+        fetchNextPage();
+      }, 2000);
+
+      return () => clearTimeout(timeout);
     }
   }, [
     isLoading,
@@ -380,28 +388,7 @@ export function MatchHistoryList({
 
   const pages = matchPages?.pages ?? [];
   const matches = useMemo(() => {
-    console.log("[MatchHistoryList] 📄 RENDER - pages.length:", pages.length);
-    console.log("[MatchHistoryList] 📄 RENDER - matchPages:", matchPages);
-
     const flatMatches = pages.flatMap((page) => page.matches ?? []);
-    console.log(
-      "[MatchHistoryList] 📄 RENDER - flatMatches.length:",
-      flatMatches.length
-    );
-    if (flatMatches.length > 0) {
-      console.log(
-        "[MatchHistoryList] 🎮 RENDER - First match:",
-        flatMatches[0].match_id,
-        "game_creation:",
-        flatMatches[0].matches?.game_creation
-      );
-      console.log(
-        "[MatchHistoryList] 🎮 RENDER - Last match:",
-        flatMatches[flatMatches.length - 1].match_id,
-        "game_creation:",
-        flatMatches[flatMatches.length - 1].matches?.game_creation
-      );
-    }
 
     const seenKeys = new Set<string>();
 
@@ -419,12 +406,6 @@ export function MatchHistoryList({
       seenKeys.add(uniqueKey);
       return true;
     });
-
-    console.log(
-      "[MatchHistoryList] 📄 RENDER - After dedup:",
-      filtered.length,
-      "matches"
-    );
     return filtered;
   }, [pages]);
   const serverStats = pages[0]?.stats ?? DEFAULT_STATS;
@@ -633,24 +614,49 @@ export function MatchHistoryList({
           </div>
         ) : (
           matchesToRender.map((match: Match, idx) => (
-            <div
+            <React.Fragment
               key={
                 match.match_id ??
                 match.id ??
                 match.matches?.match_id ??
                 `${match.puuid ?? "match"}-${idx}`
               }
-              className="match-card-appear space-y-2"
-              style={{ animationDelay: `${Math.min(idx, 5) * 80}ms` }}
             >
-              <MatchCard
-                match={match}
-                version={ddragonVersion}
-                linkedAccountsMap={linkedAccountsMap}
-                recentMatches={matchesToRender}
-              />
-              <MobileMatchCard match={match} version={ddragonVersion} />
-            </div>
+              {/* Banner de anuncio cada 7 partidas (después de la 7, 14, 21...) */}
+              {idx > 0 && idx % 7 === 0 && (
+                <div
+                  className="match-card-appear"
+                  style={{ animationDelay: `${Math.min(idx, 5) * 80}ms` }}
+                >
+                  {isMobile ? (
+                    <MobileMatchHistoryAdBanner />
+                  ) : (
+                    <MatchHistoryAdBanner />
+                  )}
+                </div>
+              )}
+              <div
+                className="match-card-appear space-y-2"
+                style={{ animationDelay: `${Math.min(idx, 5) * 80}ms` }}
+              >
+                {isMobile ? (
+                  <MobileMatchCard
+                    match={match}
+                    version={ddragonVersion}
+                    recentMatches={matchesToRender}
+                    hideShareButton={hideShareButton}
+                  />
+                ) : (
+                  <MatchCard
+                    match={match}
+                    version={ddragonVersion}
+                    linkedAccountsMap={linkedAccountsMap}
+                    recentMatches={matchesToRender}
+                    hideShareButton={hideShareButton}
+                  />
+                )}
+              </div>
+            </React.Fragment>
           ))
         )}
         <div className="h-1" />

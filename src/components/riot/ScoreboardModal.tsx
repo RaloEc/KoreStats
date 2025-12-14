@@ -235,6 +235,7 @@ export function ScoreboardModal({
 
             {!loading && !error && matchData && (
               <ScoreboardModalTable
+                matchId={matchId}
                 participants={participants}
                 currentUserPuuid={currentUserPuuid}
                 gameVersion={gameVersion}

@@ -10,6 +10,7 @@ import {
   getParticipantKey as getParticipantKeyUtil,
 } from "./performance-utils";
 import { ScoreboardModal } from "@/components/riot/ScoreboardModal";
+import { TeammateTracker } from "@/components/riot/TeammateTracker";
 import type { Match } from "./MatchCard";
 import {
   getChampionImageUrl,
@@ -20,6 +21,12 @@ import {
   getRelativeTime,
   getRuneIconUrl,
 } from "./helpers";
+import {
+  getKeystonePerkId,
+  RunesTooltip,
+  type RunePerks,
+  usePerkAssets,
+} from "./RunesTooltip";
 
 interface RiotParticipant {
   teamId: number;
@@ -39,11 +46,7 @@ interface RiotParticipant {
   wardsPlaced?: number;
   summoner1Id?: number;
   summoner2Id?: number;
-  perks?: {
-    styles?: Array<{
-      style?: number;
-    }>;
-  };
+  perks?: RunePerks;
   teamPosition?: string;
   individualPosition?: string;
   lane?: string;
@@ -117,9 +120,16 @@ function findLaneOpponent(
 interface MobileMatchCardProps {
   match: Match;
   version: string;
+  recentMatches?: Match[];
+  hideShareButton?: boolean;
 }
 
-export function MobileMatchCard({ match, version }: MobileMatchCardProps) {
+export function MobileMatchCard({
+  match,
+  version,
+  recentMatches = [],
+  hideShareButton = false,
+}: MobileMatchCardProps) {
   const [scoreboardModalOpen, setScoreboardModalOpen] = useState(false);
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
 
@@ -199,6 +209,15 @@ export function MobileMatchCard({ match, version }: MobileMatchCardProps) {
   const playerSecondaryRune = match.perk_sub_style;
   const opponentPrimaryRune = getParticipantRuneStyle(laneOpponent, 0);
   const opponentSecondaryRune = getParticipantRuneStyle(laneOpponent, 1);
+
+  const playerKeystonePerkId = getKeystonePerkId(currentParticipant?.perks);
+  const opponentKeystonePerkId = getKeystonePerkId(laneOpponent?.perks);
+  const { perkIconById: playerPerkIconById, perkNameById: playerPerkNameById } =
+    usePerkAssets([playerKeystonePerkId]);
+  const {
+    perkIconById: opponentPerkIconById,
+    perkNameById: opponentPerkNameById,
+  } = usePerkAssets([opponentKeystonePerkId]);
 
   const playerCs = currentParticipant
     ? (currentParticipant.totalMinionsKilled ?? 0) +
@@ -321,6 +340,28 @@ export function MobileMatchCard({ match, version }: MobileMatchCardProps) {
     );
   };
 
+  const renderKeystoneIcon = (
+    perkId: number | null,
+    icons: Record<number, string>,
+    names: Record<number, string>
+  ) => {
+    if (!perkId) return null;
+    const icon = icons[perkId];
+    if (!icon) return null;
+    return (
+      <div className="relative w-6 h-6 rounded-full overflow-hidden bg-slate-900">
+        <Image
+          src={icon}
+          alt={names[perkId] ?? "Keystone"}
+          fill
+          sizes="24px"
+          className="object-cover p-0.5"
+          unoptimized
+        />
+      </div>
+    );
+  };
+
   return (
     <>
       <div
@@ -375,8 +416,16 @@ export function MobileMatchCard({ match, version }: MobileMatchCardProps) {
                   />
                 </div>
                 <div className="flex items-center gap-1">
-                  {renderRuneIcon(playerPrimaryRune, "Primary Rune")}
-                  {renderRuneIcon(playerSecondaryRune, "Secondary Rune")}
+                  <RunesTooltip perks={currentParticipant?.perks}>
+                    <div className="flex items-center gap-1">
+                      {renderKeystoneIcon(
+                        playerKeystonePerkId,
+                        playerPerkIconById,
+                        playerPerkNameById
+                      ) ?? renderRuneIcon(playerPrimaryRune, "Primary Style")}
+                      {renderRuneIcon(playerSecondaryRune, "Secondary Rune")}
+                    </div>
+                  </RunesTooltip>
                   {playerRankingPosition && playerRankingPosition > 0 && (
                     <span
                       className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
@@ -439,14 +488,23 @@ export function MobileMatchCard({ match, version }: MobileMatchCardProps) {
                       />
                     </div>
                     <div className="flex items-center gap-1">
-                      {renderRuneIcon(
-                        opponentPrimaryRune,
-                        "Enemy Primary Rune"
-                      )}
-                      {renderRuneIcon(
-                        opponentSecondaryRune,
-                        "Enemy Secondary Rune"
-                      )}
+                      <RunesTooltip perks={laneOpponent?.perks}>
+                        <div className="flex items-center gap-1">
+                          {renderKeystoneIcon(
+                            opponentKeystonePerkId,
+                            opponentPerkIconById,
+                            opponentPerkNameById
+                          ) ??
+                            renderRuneIcon(
+                              opponentPrimaryRune,
+                              "Enemy Primary Style"
+                            )}
+                          {renderRuneIcon(
+                            opponentSecondaryRune,
+                            "Enemy Secondary Rune"
+                          )}
+                        </div>
+                      </RunesTooltip>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 items-center">
@@ -503,35 +561,39 @@ export function MobileMatchCard({ match, version }: MobileMatchCardProps) {
           </div>
         )}
 
-        {/* Botón Compartir */}
-        <div className="flex justify-center pt-2 border-t border-slate-200 dark:border-slate-700">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              shareMatch(match.match_id);
-            }}
-            disabled={isSharing || sharedMatches.includes(match.match_id)}
-            className={`
-              flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all
-              ${
+        {/* Botón Compartir + Teammates */}
+        <div className="flex items-center justify-center gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+          {!hideShareButton && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                shareMatch(match.match_id);
+              }}
+              disabled={isSharing || sharedMatches.includes(match.match_id)}
+              className={`
+                flex items-center justify-center p-2 rounded-full transition-all
+                ${
+                  sharedMatches.includes(match.match_id)
+                    ? "bg-green-500/20 text-green-600 dark:text-green-400 cursor-default"
+                    : "bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 disabled:opacity-50"
+                }
+              `}
+              title={
                 sharedMatches.includes(match.match_id)
-                  ? "bg-green-500/20 text-green-600 dark:text-green-400 cursor-default"
-                  : "bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 disabled:opacity-50"
+                  ? "Compartida"
+                  : "Compartir en Activity"
               }
-            `}
-            title={
-              sharedMatches.includes(match.match_id)
-                ? "Compartida"
-                : "Compartir en Activity"
-            }
-          >
-            <Share2 className="w-4 h-4" />
-            <span>
-              {sharedMatches.includes(match.match_id)
-                ? "Compartida"
-                : "Compartir en Activity"}
-            </span>
-          </button>
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          )}
+          <TeammateTracker
+            matches={recentMatches}
+            currentMatch={match}
+            currentPuuid={match.puuid}
+            className="text-[11px]"
+            showInline={true}
+          />
         </div>
       </div>
 

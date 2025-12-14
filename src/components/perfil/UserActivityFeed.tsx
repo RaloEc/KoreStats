@@ -66,6 +66,40 @@ interface ActivityItem {
   perks?: SharedMatchData["perks"];
   gifUrl?: string;
   content?: string;
+  // Datos de equipo para comparativas
+  teamTotalDamage?: number;
+  teamTotalGold?: number;
+  teamTotalKills?: number;
+  teamAvgDamageToChampions?: number;
+  teamAvgGoldEarned?: number;
+  teamAvgKillParticipation?: number;
+  teamAvgVisionScore?: number;
+  teamAvgCsPerMin?: number;
+  teamAvgDamageToTurrets?: number;
+  objectivesStolen?: number;
+  // Campos extra para nuevos badges
+  pentaKills?: number;
+  quadraKills?: number;
+  tripleKills?: number;
+  doubleKills?: number;
+  firstBloodKill?: boolean;
+  totalTimeCCDealt?: number;
+  soloKills?: number;
+  turretPlatesTaken?: number;
+  earlyLaningPhaseGoldExpAdvantage?: number;
+  goldDeficit?: number;
+  // Todos los jugadores del match
+  allPlayers?: Array<{
+    championName: string;
+    championId: number;
+    summonerName: string;
+    kills: number;
+    deaths: number;
+    assists: number;
+    kda: number;
+    role: string;
+    team: "blue" | "red";
+  }>;
 }
 
 interface UserActivityFeedProps {
@@ -260,6 +294,31 @@ export const UserActivityFeed = ({
             comment: item.comment || null,
             created_at: item.timestamp,
             perks: item.perks,
+            // Datos de equipo para comparativas
+            teamTotalDamage: item.teamTotalDamage || 0,
+            teamTotalGold: item.teamTotalGold || 0,
+            teamTotalKills: item.teamTotalKills || 0,
+            teamAvgDamageToChampions: item.teamAvgDamageToChampions,
+            teamAvgGoldEarned: item.teamAvgGoldEarned,
+            teamAvgKillParticipation: item.teamAvgKillParticipation,
+            teamAvgVisionScore: item.teamAvgVisionScore,
+            teamAvgCsPerMin: item.teamAvgCsPerMin,
+            teamAvgDamageToTurrets: item.teamAvgDamageToTurrets,
+            objectivesStolen: item.objectivesStolen || 0,
+            // Nuevos campos para badges
+            pentaKills: item.pentaKills,
+            quadraKills: item.quadraKills,
+            tripleKills: item.tripleKills,
+            doubleKills: item.doubleKills,
+            firstBloodKill: item.firstBloodKill,
+            totalTimeCCDealt: item.totalTimeCCDealt,
+            soloKills: item.soloKills,
+            turretPlatesTaken: item.turretPlatesTaken,
+            earlyLaningPhaseGoldExpAdvantage:
+              item.earlyLaningPhaseGoldExpAdvantage,
+            goldDeficit: item.goldDeficit,
+            // Todos los jugadores del match
+            allPlayers: item.allPlayers,
           };
 
           return (

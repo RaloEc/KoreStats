@@ -30,12 +30,21 @@ import { useAuth } from "@/context/AuthContext";
 import { ConnectedAccounts } from "./ConnectedAccounts";
 import { ConnectedAccountsModal } from "./ConnectedAccountsModal";
 import { normalizeAvatarUrl } from "@/lib/utils/avatar-utils";
+import { StatusBadge } from "@/components/status/StatusBadge";
 
 interface PerfilHeaderProps {
   profile: ProfileData;
+  riotAccount?: {
+    game_name: string;
+    tag_line: string;
+    solo_tier?: string;
+    solo_rank?: string;
+    tier?: string;
+    rank?: string;
+  } | null;
 }
 
-export const PerfilHeader = ({ profile }: PerfilHeaderProps) => {
+export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
   const [bannerError, setBannerError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
@@ -380,36 +389,58 @@ export const PerfilHeader = ({ profile }: PerfilHeaderProps) => {
         <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 md:items-start">
           {/* Avatar, nombre y rol - Centrado en mobile */}
           <div className="flex flex-col items-center gap-3 flex-shrink-0 w-full md:w-auto md:items-start">
-            <Avatar
-              className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 border-3 border-background dark:border-gray-950 shadow-md -mt-20 sm:-mt-24 md:-mt-28"
-              style={{
-                borderColor: `color-mix(in srgb, var(--user-color) 30%, white)`,
-                ...colorStyle,
-              }}
-            >
-              {!avatarError && normalizeAvatarUrl(profile.avatar_url) ? (
-                <AvatarImage
-                  src={normalizeAvatarUrl(profile.avatar_url) || ""}
-                  alt={profile.username}
-                  onError={() => setAvatarError(true)}
-                />
-              ) : null}
-              <AvatarFallback
-                className="text-lg sm:text-2xl md:text-3xl font-bold"
+            <div className="relative w-fit">
+              <Avatar
+                className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 border-3 border-background dark:border-gray-950 shadow-md -mt-20 sm:-mt-24 md:-mt-28"
                 style={{
-                  backgroundColor: `color-mix(in srgb, var(--user-color) 15%, transparent)`,
-                  color: `var(--user-color)`,
+                  borderColor: `color-mix(in srgb, var(--user-color) 30%, white)`,
                   ...colorStyle,
                 }}
               >
-                {profile.username.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+                {!avatarError && normalizeAvatarUrl(profile.avatar_url) ? (
+                  <AvatarImage
+                    src={normalizeAvatarUrl(profile.avatar_url) || ""}
+                    alt={profile.username}
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : null}
+                <AvatarFallback
+                  className="text-lg sm:text-2xl md:text-3xl font-bold"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, var(--user-color) 15%, transparent)`,
+                    color: `var(--user-color)`,
+                    ...colorStyle,
+                  }}
+                >
+                  {profile.username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Indicador de estado */}
+              <div className="absolute bottom-1 right-1 z-50 bg-white dark:bg-gray-950 rounded-full p-0.5 border border-background dark:border-gray-950 shadow-sm">
+                <StatusBadge
+                  userId={profile.id}
+                  initialStatus="offline"
+                  variant="dot"
+                />
+              </div>
+            </div>
 
             <div className="flex flex-col items-center gap-1">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
-                {profile.username}
-              </h1>
+              <div className="flex items-center gap-3 justify-center">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
+                  {profile.username}
+                </h1>
+                <div>
+                  <StatusBadge
+                    userId={profile.id}
+                    initialStatus="offline"
+                    variant="full"
+                    onlyWhenInGame
+                    userColor={profile.color}
+                  />
+                </div>
+              </div>
               {profile.role !== "user" && (
                 <Badge
                   variant={roleBadge.variant}
@@ -481,14 +512,15 @@ export const PerfilHeader = ({ profile }: PerfilHeaderProps) => {
           </div>
         </div>
 
-        {/* Cuentas Conectadas */}
-        <div className="mt-6 pt-6 border-t">
+        {/* Cuentas Conectadas - Temporalmente oculto */}
+        {/* <div className="mt-6 pt-6 border-t">
           <ConnectedAccounts
             accounts={profile.connected_accounts || {}}
             isOwnProfile={isOwnProfile}
             userColor={profile.color}
+            riotAccount={riotAccount}
           />
-        </div>
+        </div> */}
       </CardContent>
 
       {/* Modal de edición de cuentas */}

@@ -226,6 +226,24 @@ export function RiotAccountCardVisual({
         )}
 
         <div className="relative z-10 p-4 md:p-5 flex flex-col gap-4">
+          {/* Botón de sincronización móvil - esquina superior derecha */}
+          {!hideSync && onSync && (
+            <button
+              onClick={onSync}
+              disabled={isSyncing || cooldownSeconds > 0}
+              className="lg:hidden absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                cooldownSeconds > 0
+                  ? `Espera ${cooldownSeconds}s`
+                  : "Actualizar"
+              }
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
+              />
+            </button>
+          )}
+
           <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full md:items-center">
             <div className="flex flex-col md:flex-row items-center md:items-center gap-4 md:gap-6 flex-1 min-h-[180px]">
               {/* Left: Profile Icon */}

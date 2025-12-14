@@ -102,6 +102,7 @@ interface LolPatchContentProps {
 
 const getStatLabel = (stat: string) => {
   const statMap: Record<string, string> = {
+    // Estadísticas base de campeones
     hp: "Vida",
     hpperlevel: "Vida/Nv",
     mp: "Maná",
@@ -122,6 +123,47 @@ const getStatLabel = (stat: string) => {
     attackdamageperlevel: "AD/Nv",
     attackspeedperlevel: "AS/Nv",
     attackspeed: "AS",
+
+    // Estadísticas de objetos (DDragon names)
+    FlatHPPoolMod: "Vida",
+    FlatMPPoolMod: "Maná",
+    FlatPhysicalDamageMod: "DA Físico",
+    FlatMagicDamageMod: "DA Mágico",
+    FlatArmorMod: "Armadura",
+    FlatSpellBlockMod: "RM",
+    FlatHPRegenMod: "Reg. Vida",
+    FlatMPRegenMod: "Reg. Maná",
+    FlatCritChanceMod: "% Crítico",
+    FlatCritDamageMod: "Daño Crítico",
+    FlatAttackSpeedMod: "Vel. Ataque",
+    PercentMovementSpeedMod: "% Vel. Mov.",
+    PercentAttackSpeedMod: "% Vel. Ataque",
+    PercentLifeStealMod: "% Robo de Vida",
+    PercentSpellVampMod: "% Vampirismo Mágico",
+    PercentArmorMod: "% Armadura",
+    PercentSpellBlockMod: "% RM",
+    PercentHPPoolMod: "% Vida",
+    PercentMPPoolMod: "% Maná",
+    PercentHPRegenMod: "% Reg. Vida",
+    PercentMPRegenMod: "% Reg. Maná",
+    PercentPhysicalDamageMod: "% DA Físico",
+    PercentMagicDamageMod: "% DA Mágico",
+    PercentCritChanceMod: "% Crítico",
+    PercentCritDamageMod: "% Daño Crítico",
+    PercentArmorPenetration: "% Pen. Armadura",
+    PercentMagicPenetration: "% Pen. RM",
+    FlatMagicPenetration: "Pen. RM Plana",
+    FlatArmorPenetration: "Pen. Armadura Plana",
+    PercentCooldownReduction: "% Red. Enfriamiento",
+    PercentEXPBonus: "% EXP Bono",
+    PercentHealPower: "% Poder de Curación",
+    PercentHealShieldPower: "% Poder de Curación/Escudo",
+    PercentTenacity: "% Tenacidad",
+    PercentSlowResistance: "% Resistencia a Ralentización",
+    PercentHealOnHit: "% Curación al Golpear",
+    PercentManaRestoreOnHit: "% Maná al Golpear",
+    PercentOmnivamp: "% Omnivamp",
+    PercentAbilityHaste: "% Celeridad de Habilidad",
   };
   return statMap[stat] || stat;
 };
@@ -147,6 +189,24 @@ const cleanSpellName = (spellName: string, championName: string) => {
   // Eliminar el nombre del campeón del nombre de la habilidad
   // Por ejemplo: "Sejuani Q" -> "Q" o "Arctic Assault" -> "Arctic Assault"
   return spellName.replace(new RegExp(`^${championName}\\s*`, "i"), "").trim();
+};
+
+const parseChangeLine = (
+  line: string
+): { label: string | null; content: string } => {
+  const colonIndex = line.indexOf(":");
+  // Si no hay dos puntos, o está al final, devolvemos todo como contenido
+  if (colonIndex === -1 || colonIndex === line.length - 1) {
+    return { label: null, content: line };
+  }
+
+  const label = line.substring(0, colonIndex).trim();
+  const content = line.substring(colonIndex + 1).trim();
+
+  // Heurística principal: evitar saltos de línea en el label
+  if (label.includes("\n")) return { label: null, content: line };
+
+  return { label, content };
 };
 
 export default function LolPatchContent({ data }: LolPatchContentProps) {
@@ -234,15 +294,30 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
                         <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">
                           Cambios Oficiales
                         </h4>
-                        <ul className="space-y-1 bg-muted/20 p-3 rounded text-sm">
-                          {champ.developerContext.changes.map((change, idx) => (
-                            <li key={idx} className="flex gap-2">
-                              <span className="select-none text-primary">
-                                •
-                              </span>
-                              <span>{change}</span>
-                            </li>
-                          ))}
+                        <ul className="space-y-2 bg-muted/20 p-3 rounded text-sm">
+                          {champ.developerContext.changes.map((change, idx) => {
+                            const parsed = parseChangeLine(change);
+                            return (
+                              <li key={idx} className="flex gap-2 items-start">
+                                <span className="select-none text-primary mt-1.5">
+                                  •
+                                </span>
+                                <div className="flex flex-col gap-1 w-full">
+                                  {parsed.label && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="w-fit sm:w-fit max-w-xs sm:max-w-none text-[10px] px-2 py-0.5 h-auto sm:h-5 font-semibold inline-block sm:inline-block whitespace-normal sm:whitespace-nowrap"
+                                    >
+                                      {parsed.label}
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm text-foreground/90">
+                                    {parsed.content}
+                                  </span>
+                                </div>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     )}
@@ -265,15 +340,26 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
                       <p className="font-semibold text-sm">
                         {champ.passive.name}
                       </p>
-                      {champ.passive.descriptionChange?.old === "" ? (
-                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
-                          {champ.passive.descriptionChange.new}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Descripción actualizada
-                        </p>
-                      )}
+                      {(() => {
+                        const parsed = parseChangeLine(
+                          champ.passive.descriptionChange?.new || ""
+                        );
+                        return (
+                          <div className="mt-1 space-y-1">
+                            {parsed.label && (
+                              <Badge
+                                variant="secondary"
+                                className="w-fit sm:w-fit max-w-xs sm:max-w-none text-[10px] px-2 py-0.5 h-auto sm:h-5 font-semibold inline-block sm:inline-block whitespace-normal sm:whitespace-nowrap"
+                              >
+                                {parsed.label}
+                              </Badge>
+                            )}
+                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                              {parsed.content}
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -307,31 +393,31 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
                         </div>
 
                         {/* Changes List */}
-                        <div className="pl-13 space-y-1">
+                        <div className="pl-13 space-y-2">
                           {(spell.changes || []).map((change, cIdx) => (
                             <div
                               key={cIdx}
-                              className="flex items-center gap-2 text-sm"
+                              className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm"
                             >
                               <Badge
-                                variant="outline"
-                                className="text-[10px] px-2 h-5 shrink-0"
+                                variant="secondary"
+                                className="w-fit text-[10px] px-2 py-0.5 h-auto sm:h-5 shrink-0 sm:shrink-0 font-semibold whitespace-normal sm:whitespace-nowrap"
                               >
                                 {getAttributeLabel(change.attribute)}
                               </Badge>
 
                               {change.attribute === "description" ||
                               change.attribute === "bugfix" ? (
-                                <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
+                                <p className="text-xs text-muted-foreground italic whitespace-pre-wrap break-words">
                                   {change.new}
                                 </p>
                               ) : (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground text-xs">
+                                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                                  <span className="text-muted-foreground text-xs break-all">
                                     {change.old}
                                   </span>
                                   <ArrowRight className="w-3 h-3 shrink-0" />
-                                  <span className="font-bold text-primary text-xs">
+                                  <span className="font-bold text-primary text-xs break-all">
                                     {change.new}
                                   </span>
                                 </div>

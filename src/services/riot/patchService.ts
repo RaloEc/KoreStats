@@ -383,10 +383,75 @@ export const patchService = {
     > = {}
   ): ItemChange[] {
     const changes: ItemChange[] = [];
+
+    // First, include all items mentioned in context (from official patch notes)
+    for (const itemName in contextMap) {
+      // Try to find the item in DDragon data by name
+      let foundItem: ItemData | null = null;
+      let itemKey: string | null = null;
+
+      for (const key in newData) {
+        const item = newData[key];
+        if (item.name.toLowerCase() === itemName.toLowerCase()) {
+          foundItem = item;
+          itemKey = key;
+          break;
+        }
+      }
+
+      if (foundItem && itemKey) {
+        const oldItem = oldData[itemKey];
+        if (oldItem) {
+          const statChanges: StatChange[] = [];
+
+          // Stats
+          for (const stat in foundItem.stats) {
+            const oldVal = oldItem.stats[stat] || 0;
+            const newVal = foundItem.stats[stat];
+            if (oldVal !== newVal) {
+              statChanges.push({
+                stat,
+                old: oldVal,
+                new: newVal,
+                type: newVal > oldVal ? "buff" : "nerf",
+              });
+            }
+          }
+
+          // Gold
+          let goldChange;
+          if (foundItem.gold.total !== oldItem.gold.total) {
+            goldChange = { old: oldItem.gold.total, new: foundItem.gold.total };
+          }
+
+          const descriptionChanged =
+            foundItem.description !== oldItem.description;
+
+          // Always include items mentioned in context
+          changes.push({
+            id: itemKey,
+            name: foundItem.name,
+            image: foundItem.image.full,
+            statChanges,
+            goldChange,
+            descriptionChange: descriptionChanged
+              ? { old: "...", new: "Updated" }
+              : undefined,
+            type: "adjustment",
+            developerContext: contextMap[itemName],
+          });
+        }
+      }
+    }
+
+    // Then, include items with changes but not mentioned in context
     for (const key in newData) {
       const newItem = newData[key];
       const oldItem = oldData[key];
       if (!oldItem || !newItem.gold.purchasable) continue;
+
+      // Skip if already included from context
+      if (contextMap[newItem.name]) continue;
 
       // Map 11 is Summoner's Rift. DDragon item.maps is a map of string->boolean {"11": true}
       // But checking if "11" key exists or is true is safer.
@@ -416,15 +481,7 @@ export const patchService = {
 
       const descriptionChanged = newItem.description !== oldItem.description;
 
-      // Get context
-      const context = contextMap[newItem.name];
-
-      if (
-        statChanges.length > 0 ||
-        goldChange ||
-        descriptionChanged ||
-        context
-      ) {
+      if (statChanges.length > 0 || goldChange || descriptionChanged) {
         changes.push({
           id: key,
           name: newItem.name,
@@ -435,7 +492,7 @@ export const patchService = {
             ? { old: "...", new: "Updated" }
             : undefined,
           type: "adjustment",
-          developerContext: context,
+          developerContext: undefined,
         });
       }
     }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getServiceClient } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase/client";
 import type { Noticia } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAutoGuardarNoticia } from "@/hooks/useAutoGuardarNoticia";
 import TiptapEditorLazy, {
   processEditorContent,
 } from "@/components/TiptapEditorLazy"; // Lazy load: ssr: false
@@ -93,6 +94,7 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
   const [cargandoCategorias, setCargandoCategorias] = useState(true);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [nombreUsuario, setNombreUsuario] = useState<string>("Admin");
+  const [autoSaveReady, setAutoSaveReady] = useState(false);
   const router = useRouter();
   const { id } = params;
 
@@ -107,6 +109,47 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
       destacada: false,
     },
   });
+  const { autoGuardar, isAutoSaving, lastSavedAt, noticiaId } =
+    useAutoGuardarNoticia();
+  const autoGuardarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-guardado con debounce de 3s
+  useEffect(() => {
+    if (!autoSaveReady) return;
+
+    const subscription = form.watch((values) => {
+      if (autoGuardarTimeoutRef.current) {
+        clearTimeout(autoGuardarTimeoutRef.current);
+      }
+
+      autoGuardarTimeoutRef.current = setTimeout(() => {
+        void autoGuardar({
+          id,
+          titulo: values.titulo || "",
+          contenido: values.contenido || "",
+          imagen_portada: values.imagen_portada || undefined,
+          categoria_ids: values.categoria_ids || [],
+          destacada: values.destacada,
+        });
+      }, 3000);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (autoGuardarTimeoutRef.current) {
+        clearTimeout(autoGuardarTimeoutRef.current);
+        const values = form.getValues();
+        void autoGuardar({
+          id,
+          titulo: values.titulo || "",
+          contenido: values.contenido || "",
+          imagen_portada: values.imagen_portada || undefined,
+          categoria_ids: values.categoria_ids || [],
+          destacada: values.destacada,
+        });
+      }
+    };
+  }, [autoGuardar, form, id, autoSaveReady]);
 
   // Función para manejar la selección de categorías
   const handleSeleccionarCategoria = (field: any, categoriaId: string) => {
@@ -297,6 +340,9 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
           imagen_portada: data.imagen_portada || "",
           destacada: data.destacada || false,
         });
+
+        // Habilitar autosave una vez cargados los datos iniciales
+        setAutoSaveReady(true);
 
         // Establecer la vista previa de la imagen si existe
         if (data.imagen_portada) {
@@ -601,6 +647,15 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
                       onChange={(value) => {
                         field.onChange(value);
                       }}
+                      statusSlot={
+                        <span className="text-xs text-muted-foreground px-2">
+                          {isAutoSaving
+                            ? "Guardando borrador..."
+                            : lastSavedAt
+                            ? "Guardado hace unos segundos"
+                            : "Auto-guardado activo"}
+                        </span>
+                      }
                     />
                     <FormMessage />
                   </div>

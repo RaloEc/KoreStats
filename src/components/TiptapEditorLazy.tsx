@@ -9,6 +9,7 @@ export interface TiptapEditorProps {
   placeholder?: string;
   onImageChange?: (hasTemporaryImages: boolean) => void;
   className?: string;
+  statusSlot?: React.ReactNode;
 }
 
 // Lazy load TiptapEditor con ssr: false

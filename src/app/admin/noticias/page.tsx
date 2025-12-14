@@ -260,20 +260,25 @@ function AdminNoticiasContent() {
               : undefined
           }
         />
-        <EstadisticaCard
-          icon={Calendar}
-          title="Pendientes"
-          value={valoresFormateados?.noticias_pendientes || "0"}
-          loading={isLoading}
-          trend={
-            estadisticas?.trends?.pendientes
-              ? {
-                  value: Math.abs(estadisticas.trends.pendientes),
-                  isPositive: estadisticas.trends.pendientes > 0,
-                }
-              : undefined
-          }
-        />
+        <button
+          onClick={() => router.push("/admin/noticias/pendientes")}
+          className="block w-full h-full"
+        >
+          <EstadisticaCard
+            icon={Calendar}
+            title="Pendientes"
+            value={valoresFormateados?.noticias_pendientes || "0"}
+            loading={isLoading}
+            trend={
+              estadisticas?.trends?.pendientes
+                ? {
+                    value: Math.abs(estadisticas.trends.pendientes),
+                    isPositive: estadisticas.trends.pendientes > 0,
+                  }
+                : undefined
+            }
+          />
+        </button>
       </div>
 
       {/* Contenido principal */}

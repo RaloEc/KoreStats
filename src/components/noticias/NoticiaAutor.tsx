@@ -8,6 +8,7 @@ import { ExternalLink } from "lucide-react";
 
 interface NoticiaAutorProps {
   nombre: string;
+  autorId?: string | null;
   avatar?: string | null;
   color?: string;
   rol?: "admin" | "moderator" | "user";
@@ -17,19 +18,24 @@ interface NoticiaAutorProps {
 
 const NoticiaAutor: React.FC<NoticiaAutorProps> = ({
   nombre,
+  autorId,
   avatar,
   color = "#4B5563",
   rol = "user",
   fecha,
   vistas = 0,
 }) => {
+  // Usar autorId si está disponible, sino usar nombre como fallback
+  const perfilUrl = autorId
+    ? `/perfil/${encodeURIComponent(autorId)}`
+    : `/perfil/${encodeURIComponent(nombre || "")}`;
   return (
     <div className="flex flex-col mb-4 border-b pb-6">
       {/* Autor con foto e info */}
       <div className="flex items-center gap-3 mb-4">
         {/* Enlace al perfil del autor */}
         <Link
-          href={`/perfil/${encodeURIComponent(nombre || "")}`}
+          href={perfilUrl}
           className="flex items-center gap-3 group/author"
           title={`Ver perfil de ${nombre || "usuario"}`}
         >
