@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * API para migrar avatares de Google a Supabase Storage
  * POST /api/perfil/migrate-google-avatar
