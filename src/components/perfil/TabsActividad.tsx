@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { ProfileData } from "@/hooks/use-perfil-usuario";
 import { WeaponStatsCard } from "@/components/weapon/WeaponStatsCard";
+import { ActiveMatchCard } from "@/components/riot/ActiveMatchCard";
 import React from "react";
 
 interface TabsActividadProps {
@@ -38,6 +39,7 @@ interface TabsActividadProps {
   weaponStatsRecords: ProfileData["weaponStatsRecords"];
   ultimasPartidas?: ProfileData["ultimasPartidas"];
   userColor?: string;
+  userId?: string;
 }
 
 export const TabsActividad = ({
@@ -46,6 +48,7 @@ export const TabsActividad = ({
   weaponStatsRecords,
   ultimasPartidas,
   userColor = "#3b82f6",
+  userId,
 }: TabsActividadProps) => {
   const colorStyle = {
     "--user-color": userColor,
@@ -501,6 +504,9 @@ export const TabsActividad = ({
 
       {/* Tab de Partidas LoL */}
       <TabsContent value="partidas" className="mt-4">
+        <div className="mb-4">
+          <ActiveMatchCard userId={userId} />
+        </div>
         <Card className="transition-shadow hover:shadow-lg dark:border-gray-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">

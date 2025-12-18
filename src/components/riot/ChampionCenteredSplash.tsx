@@ -50,7 +50,9 @@ export function ChampionCenteredSplash({
     const mediaQuery = window.matchMedia("(min-width: 768px)");
 
     const syncObjectPosition = (mq: MediaQueryList | MediaQueryListEvent) => {
-      setObjectPositionY(mq.matches ? desktopFocalOffsetY : focalOffsetY);
+      setObjectPositionY(
+        mq.matches ? desktopFocalOffsetY ?? focalOffsetY : focalOffsetY
+      );
     };
 
     syncObjectPosition(mediaQuery);

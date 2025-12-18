@@ -345,7 +345,8 @@ function sortByRoleOrder(a: ActiveParticipant, b: ActiveParticipant): number {
 export async function GET(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseServiceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
     const RIOT_API_KEY = process.env.RIOT_API_KEY;
 
     const requestUrl = new URL(request.url);

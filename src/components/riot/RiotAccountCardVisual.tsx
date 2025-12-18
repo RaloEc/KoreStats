@@ -142,7 +142,6 @@ export function RiotAccountCardVisual({
     queryKey: ["champion-mastery", account.puuid],
     queryFn: async () => {
       if (!userId || !account.puuid) {
-        console.log("[RiotAccountCardVisual] No userId or puuid");
         return null;
       }
 

@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     // Crear cliente dentro del handler para evitar errores de build en Netlify
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error("[check-google-avatars] Variables de entorno faltantes");
