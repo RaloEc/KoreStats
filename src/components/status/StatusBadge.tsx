@@ -1,9 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Gamepad2 } from "lucide-react";
-import createClient from "@/utils/supabase/client";
 
 type StatusType = "online" | "in-game" | "offline";
 
@@ -22,63 +21,75 @@ export function StatusBadge({
   userColor,
   onlyWhenInGame = false,
 }: StatusBadgeProps) {
+  // Estado inicial según lo que venga del servidor
   const [status, setStatus] = useState<StatusType>(initialStatus);
-  const supabase = createClient();
+  const pollIntervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    // Carga inicial del estado
-    const fetchInitialStatus = async () => {
+    // Función para obtener el estado del usuario desde la API
+    // La API ahora consulta el campo `status` de la tabla perfiles
+    // que se actualiza cuando el usuario tiene sesión activa
+    const checkUserStatus = async () => {
       try {
-        const { data, error } = await supabase
-          .from("perfiles")
-          .select("status")
-          .eq("id", userId)
-          .single();
+        // Crear un AbortController con timeout de 10 segundos
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        if (error) {
-          console.warn("[StatusBadge] initial status fetch error", {
-            userId,
-            message: error.message,
+        const response = await fetch(
+          `/api/riot/matches/active/public?userId=${userId}`,
+          { signal: controller.signal }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn("[StatusBadge] Failed to check user status", {
+            status: response.status,
           });
+          return;
         }
 
-        if (data?.status) {
-          console.log("[StatusBadge] initial status", {
-            userId,
-            status: data.status,
-          });
-          setStatus(data.status as StatusType);
+        const data = await response.json();
+
+        console.log("[StatusBadge] User status check result:", {
+          userId: userId.substring(0, 8) + "...",
+          status: data.status,
+          reason: data.reason,
+        });
+
+        // Confiar en la respuesta de la API que ahora consulta la BD
+        if (data.status === "in-game") {
+          setStatus("in-game");
+        } else if (data.status === "online") {
+          setStatus("online");
+        } else {
+          setStatus("offline");
         }
       } catch (err) {
-        console.error("Error fetching initial status:", err);
+        // Silenciar errores de abort (timeout)
+        if (err instanceof Error && err.name === "AbortError") {
+          console.warn(
+            "[StatusBadge] Request timeout for user:",
+            userId.substring(0, 8) + "..."
+          );
+        } else {
+          console.error("[StatusBadge] Error checking user status:", err);
+        }
       }
     };
 
-    fetchInitialStatus();
+    // Verificar inmediatamente
+    checkUserStatus();
 
-    const channel = supabase
-      .channel(`profile-status-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "perfiles",
-          filter: `id=eq.${userId}`,
-        },
-        (payload: unknown) => {
-          const data = payload as { new?: { status?: StatusType } };
-          if (data.new?.status) {
-            setStatus(data.new.status);
-          }
-        }
-      )
-      .subscribe();
+    // Verificar cada 30 segundos para mantener el estado actualizado
+    pollIntervalRef.current = setInterval(checkUserStatus, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
     };
-  }, [userId, supabase]);
+  }, [userId]);
 
   const getStatusStyles = (): {
     dotClass: string;
@@ -118,17 +129,20 @@ export function StatusBadge({
 
   const styles = getStatusStyles();
 
-  if (variant === "full" && onlyWhenInGame && status !== "in-game") {
+  // Si onlyWhenInGame está activo y no está en partida, no mostrar nada
+  if (onlyWhenInGame && status !== "in-game") {
     return null;
   }
 
   if (variant === "dot") {
     return (
-      <div
-        className={`w-4 h-4 rounded-full ${styles.dotClass} border-2 border-white dark:border-black shadow-sm`}
-        style={styles.dotStyle}
-        title={styles.label}
-      />
+      <div className="absolute bottom-1 right-1 z-50 bg-white dark:bg-gray-950 rounded-full p-0.5 border border-background dark:border-gray-950 shadow-sm">
+        <div
+          className={`w-3 h-3 rounded-full ${styles.dotClass}`}
+          style={styles.dotStyle}
+          title={styles.label}
+        />
+      </div>
     );
   }
 

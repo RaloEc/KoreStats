@@ -78,7 +78,7 @@ export default function PWAUpdatePrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 max-w-sm animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-24 lg:bottom-4 left-4 z-50 max-w-sm animate-in slide-in-from-bottom-5">
       <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-2xl p-4 border border-green-400">
         <button
           onClick={handleDismiss}

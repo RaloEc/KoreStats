@@ -12,7 +12,10 @@ import {
   EyeOff,
 } from "lucide-react";
 import React from "react";
-import { SharedMatchCard, SharedMatchData } from "./SharedMatchCard";
+import {
+  SharedMatchCard,
+  SharedMatchData,
+} from "@/components/perfil/shared-match-card";
 import { ActivityCardMenu } from "@/components/perfil/ActivityCardMenu";
 
 interface ActivityItem {
@@ -112,6 +115,7 @@ interface UserActivityFeedProps {
   onHideItem?: (id: string) => void;
   onUnhideItem?: (id: string) => void;
   filter?: "all" | "hilos" | "respuestas" | "partidas" | "armas";
+  userId?: string;
 }
 
 export const UserActivityFeed = ({
@@ -124,6 +128,7 @@ export const UserActivityFeed = ({
   onHideItem,
   onUnhideItem,
   filter = "all",
+  userId,
 }: UserActivityFeedProps) => {
   const colorStyle = {
     "--user-color": userColor,
@@ -331,6 +336,7 @@ export const UserActivityFeed = ({
               isHidden={isHidden}
               onHide={() => onHideItem?.(item.id)}
               onUnhide={() => onUnhideItem?.(item.id)}
+              userId={userId}
             />
           );
         }

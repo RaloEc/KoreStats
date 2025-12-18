@@ -85,7 +85,10 @@ export function ActivityCardMenu({
             <span className="sr-only">Opciones</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+        >
           {isOwnProfile &&
             (isHidden ? (
               <DropdownMenuItem onClick={handleUnhide} disabled={isLoading}>

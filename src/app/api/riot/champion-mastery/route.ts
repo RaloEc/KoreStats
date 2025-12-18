@@ -16,19 +16,41 @@ export async function GET(request: NextRequest) {
   try {
     console.log("[GET /api/riot/champion-mastery] Iniciando...");
 
-    // Obtener sesión del usuario autenticado
-    const supabase = await createClient();
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+    // Obtener userId del header (para perfiles públicos) o de la sesión
+    const headerUserId = request.headers.get("x-user-id");
 
-    if (sessionError || !session?.user?.id) {
-      console.error(
-        "[GET /api/riot/champion-mastery] Usuario no autenticado:",
-        sessionError
+    // Si hay x-user-id en el header, es una consulta pública
+    // Si no, requiere autenticación
+    let targetUserId: string;
+
+    if (headerUserId) {
+      // Consulta pública - no requiere autenticación
+      targetUserId = headerUserId;
+      console.log(
+        "[GET /api/riot/champion-mastery] Consulta pública para userId:",
+        targetUserId
       );
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    } else {
+      // Consulta propia - requiere autenticación
+      const supabase = await createClient();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user?.id) {
+        console.error(
+          "[GET /api/riot/champion-mastery] Usuario no autenticado:",
+          sessionError
+        );
+        return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      }
+
+      targetUserId = session.user.id;
+      console.log(
+        "[GET /api/riot/champion-mastery] Consulta autenticada para userId:",
+        targetUserId
+      );
     }
 
     // Obtener puuid del header
@@ -40,11 +62,22 @@ export async function GET(request: NextRequest) {
 
     console.log("[GET /api/riot/champion-mastery] PUUID:", puuid);
 
+    // Crear cliente de Supabase
+    // Para consultas públicas, usar service role para bypassear RLS
+    const supabase = headerUserId
+      ? await (async () => {
+          const { createClient } = await import("@supabase/supabase-js");
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+          return createClient(supabaseUrl, supabaseServiceKey);
+        })()
+      : await createClient();
+
     // Obtener cuenta de Riot para el region/shard
     const { data: riotAccount, error: accountError } = await supabase
       .from("linked_accounts_riot")
       .select("active_shard")
-      .eq("user_id", session.user.id)
+      .eq("user_id", targetUserId)
       .single();
 
     if (accountError || !riotAccount) {
@@ -75,7 +108,7 @@ export async function GET(request: NextRequest) {
     const { data: cachedMasteries, error: cacheError } = await supabase
       .from("champion_mastery_cache")
       .select("*")
-      .eq("user_id", session.user.id)
+      .eq("user_id", targetUserId)
       .eq("puuid", puuid)
       .gt("expires_at", new Date().toISOString())
       .order("rank_position", { ascending: true })
@@ -142,7 +175,7 @@ export async function GET(request: NextRequest) {
 
     // Cachear los datos en BD (sin esperar)
     const cacheInserts = masteryData.map((mastery: any, index: number) => ({
-      user_id: session.user.id,
+      user_id: targetUserId,
       puuid,
       champion_id: mastery.championId,
       mastery_level: mastery.championLevel,

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { m, LazyMotion, domAnimation } from "framer-motion";
-import BtnCrearFlotante from "@/components/BtnCrearFlotante";
+
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthModal } from "@/hooks/useAuthModal";
@@ -151,11 +151,6 @@ export default function Home() {
             variant="horizontal"
             className="w-full max-w-4xl"
           />
-        </div>
-
-        {/* Botón flotante para crear contenido (solo móvil/tablet) */}
-        <div className="lg:hidden">
-          <BtnCrearFlotante tipo="foro" />
         </div>
 
         {/* Modal de autenticación */}

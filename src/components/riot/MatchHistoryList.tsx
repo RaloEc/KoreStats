@@ -12,6 +12,10 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import React from "react";
 import { useIsMobile } from "@/components/ui/use-mobile";
+import { useMatchStatusDetector } from "@/hooks/use-match-status-detector";
+import type { ActiveMatchSnapshot } from "@/hooks/use-match-status-detector";
+import { ActiveMatchCard } from "./ActiveMatchCard";
+import { EndedMatchPreviewCard } from "./EndedMatchPreviewCard";
 import {
   MatchCard,
   MobileMatchCard,
@@ -51,6 +55,32 @@ interface LinkedAccountEntry {
 
 interface LinkedAccountsResponse {
   accounts: LinkedAccountEntry[];
+}
+
+interface SessionStatsResponse {
+  success: boolean;
+  gapHours: number;
+  tzOffsetMinutes: number;
+  queue: string;
+  session: {
+    total: number;
+    wins: number;
+    losses: number;
+    winrate: number;
+    startMs: number | null;
+    endMs: number | null;
+    winStreak: number;
+    lossStreak: number;
+  };
+  today: {
+    total: number;
+    wins: number;
+    losses: number;
+    winrate: number;
+    startMs: number;
+    endMs: number;
+  };
+  lastMatch: { matchId: string; gameCreation: number } | null;
 }
 
 interface MatchHistoryPage {
@@ -107,6 +137,13 @@ export function MatchHistoryList({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [lastStableMatches, setLastStableMatches] = useState<Match[]>([]);
   const [isFilterTransition, setIsFilterTransition] = useState(false);
+  const lastAutoSyncAtRef = useRef<number>(0);
+  const lastDetectedStatusRef = useRef<"online" | "in-game" | "offline">(
+    "offline"
+  );
+  const lastActiveSnapshotRef = useRef<ActiveMatchSnapshot | null>(null);
+  const [endedSnapshot, setEndedSnapshot] =
+    useState<ActiveMatchSnapshot | null>(null);
 
   // Obtener user_id del contexto o localStorage si no se pasa por props
   useEffect(() => {
@@ -131,6 +168,27 @@ export function MatchHistoryList({
   });
 
   const userId = propUserId || localUserId;
+  const isOwnProfile = Boolean(profile?.id && userId && profile.id === userId);
+
+  const { data: sessionStats } = useQuery<SessionStatsResponse>({
+    queryKey: ["match-session-stats"], // Sin filtro de cola - siempre mostrar todas las partidas del día
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("gapHours", "2");
+      params.set("tzOffsetMinutes", String(new Date().getTimezoneOffset()));
+      // NO enviamos el filtro de cola aquí - queremos ver todas las partidas del día
+      const response = await fetch(
+        `/api/riot/matches/session-stats?${params.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error("Error al obtener stats de sesión");
+      }
+      return (await response.json()) as SessionStatsResponse;
+    },
+    enabled: isOwnProfile,
+    staleTime: 5 * 1000, // 5 segundos - actualizar frecuentemente para reflejar nuevas partidas
+    retry: false, // No reintentar si falla - es opcional
+  });
 
   const { data: cachedMatchesData } = useQuery<CachedMatchesResponse>({
     queryKey: ["match-history-cache", userId],
@@ -355,6 +413,10 @@ export function MatchHistoryList({
       queryClient.invalidateQueries({
         queryKey: ["match-history-cache", userId],
       });
+      // Invalidar también las estadísticas de sesión para actualizar el mensaje de "hoy"
+      queryClient.invalidateQueries({
+        queryKey: ["match-session-stats"],
+      });
 
       console.log("[MatchHistoryList] Cache limpiado, refetching...");
 
@@ -363,6 +425,42 @@ export function MatchHistoryList({
       console.log("[MatchHistoryList] Refetch completado, resultado:", result);
     },
   });
+
+  useMatchStatusDetector({
+    enabled: isOwnProfile && !externalSyncPending,
+    onSnapshotChange: (snapshot) => {
+      if (snapshot && snapshot.hasActiveMatch) {
+        lastActiveSnapshotRef.current = snapshot;
+      }
+    },
+    onStatusChange: (status) => {
+      const prev = lastDetectedStatusRef.current;
+      lastDetectedStatusRef.current = status;
+
+      if (
+        prev === "in-game" &&
+        status === "online" &&
+        !syncMutation.isPending &&
+        externalCooldownSeconds <= 0
+      ) {
+        if (lastActiveSnapshotRef.current) {
+          setEndedSnapshot(lastActiveSnapshotRef.current);
+        }
+        const now = Date.now();
+        if (now - lastAutoSyncAtRef.current >= 90_000) {
+          lastAutoSyncAtRef.current = now;
+          syncMutation.mutate();
+        }
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!syncMutation.isPending && syncMutation.isSuccess) {
+      setEndedSnapshot(null);
+      lastActiveSnapshotRef.current = null;
+    }
+  }, [syncMutation.isPending, syncMutation.isSuccess]);
 
   // Lazy load: cargar más partidas automáticamente después de la carga inicial
   useEffect(() => {
@@ -504,7 +602,56 @@ export function MatchHistoryList({
     } satisfies PlayerStats;
   }, [matches, cachedMatches, hasCachedMatches, serverStats]);
 
-  // Renderizado condicional debe estar después de todos los hooks
+  const todayMessage = useMemo(() => {
+    if (!isOwnProfile || !sessionStats?.success) return null;
+    if (sessionStats.today.total === 0) {
+      return "Hoy todavía no has jugado.";
+    }
+    if (sessionStats.today.losses > 0) {
+      return `Hoy has perdido ${sessionStats.today.losses} partida${
+        sessionStats.today.losses === 1 ? "" : "s"
+      }.`;
+    }
+    return `Hoy llevas ${sessionStats.today.wins} victoria${
+      sessionStats.today.wins === 1 ? "" : "s"
+    }.`;
+  }, [isOwnProfile, sessionStats]);
+
+  const streakMessage = useMemo(() => {
+    if (!isOwnProfile || !sessionStats?.success) return null;
+
+    // Solo mostrar mensajes de racha si se ha jugado hoy
+    if (sessionStats.today.total === 0) return null;
+
+    if (sessionStats.session.winStreak >= 2) {
+      return `Estás teniendo buena racha. Llevas ${
+        sessionStats.session.winStreak
+      } victoria${
+        sessionStats.session.winStreak === 1 ? "" : "s"
+      } seguidas. Sigue así.`;
+    }
+
+    if (sessionStats.session.lossStreak >= 2) {
+      return `Hoy se está complicando. Llevas ${
+        sessionStats.session.lossStreak
+      } derrota${
+        sessionStats.session.lossStreak === 1 ? "" : "s"
+      } seguidas. Tómate un respiro y vuelve con todo.`;
+    }
+
+    return null;
+  }, [isOwnProfile, sessionStats]);
+
+  const streakTone = useMemo(() => {
+    if (!isOwnProfile || !sessionStats?.success) return null;
+    // Solo mostrar badge de racha si se ha jugado hoy
+    if (sessionStats.today.total === 0) return null;
+    if (sessionStats.session.winStreak >= 2) return "win";
+    if (sessionStats.session.lossStreak >= 2) return "loss";
+    return null;
+  }, [isOwnProfile, sessionStats]);
+
+  // ...
   const shouldShowInitialSkeleton =
     isLoading &&
     pages.length === 0 &&
@@ -560,6 +707,10 @@ export function MatchHistoryList({
 
   return (
     <div className="space-y-4 h-full flex flex-col">
+      <ActiveMatchCard userId={userId || undefined} />
+      {isOwnProfile && endedSnapshot ? (
+        <EndedMatchPreviewCard snapshot={endedSnapshot} />
+      ) : null}
       {/* Encabezado con Estadísticas y filtros */}
       <div className="flex flex-col gap-3 flex-shrink-0">
         <div className="flex flex-wrap items-center gap-3 justify-between">
@@ -567,10 +718,43 @@ export function MatchHistoryList({
             <h3 className="text-lg font-bold text-slate-600 dark:text-white ">
               Historial de Partidas
             </h3>
-            <p className="text-sm text-slate-400">
-              {stats.totalGames} partidas • {stats.wins}V {stats.losses}D •
-              {stats.winrate}% WR
-            </p>
+            {isOwnProfile && sessionStats?.success ? (
+              <div
+                className={`mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed shadow-sm backdrop-blur
+                  ${
+                    streakTone === "loss"
+                      ? "border-rose-500/20 bg-gradient-to-r from-slate-900/40 via-slate-900/25 to-rose-500/10 text-slate-100"
+                      : streakTone === "win"
+                      ? "border-emerald-500/20 bg-gradient-to-r from-slate-900/40 via-slate-900/25 to-emerald-500/10 text-slate-100"
+                      : "border-slate-700/50 bg-gradient-to-r from-slate-900/35 via-slate-900/25 to-slate-800/20 text-slate-100"
+                  }
+                `}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  {streakTone ? (
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide
+                        ${
+                          streakTone === "loss"
+                            ? "border-rose-500/25 bg-rose-500/10 text-rose-200"
+                            : "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                        }
+                      `}
+                    >
+                      {streakTone === "loss" ? "Racha" : "On fire"}
+                    </span>
+                  ) : null}
+
+                  <div className="font-medium text-slate-100/95">
+                    {todayMessage}
+                  </div>
+                </div>
+
+                {streakMessage ? (
+                  <div className="mt-1 text-slate-200/85">{streakMessage}</div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -645,6 +829,8 @@ export function MatchHistoryList({
                     version={ddragonVersion}
                     recentMatches={matchesToRender}
                     hideShareButton={hideShareButton}
+                    userId={userId}
+                    isOwnProfile={isOwnProfile}
                   />
                 ) : (
                   <MatchCard
@@ -653,6 +839,8 @@ export function MatchHistoryList({
                     linkedAccountsMap={linkedAccountsMap}
                     recentMatches={matchesToRender}
                     hideShareButton={hideShareButton}
+                    userId={userId}
+                    isOwnProfile={isOwnProfile}
                   />
                 )}
               </div>

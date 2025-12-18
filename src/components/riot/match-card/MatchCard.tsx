@@ -28,6 +28,7 @@ import {
   type RunePerks,
   usePerkAssets,
 } from "./RunesTooltip";
+import { LPBadge } from "./LPBadge";
 
 interface RiotParticipant {
   teamId: number;
@@ -424,6 +425,8 @@ interface MatchCardProps {
   linkedAccountsMap?: Record<string, string>;
   recentMatches?: Match[];
   hideShareButton?: boolean;
+  userId?: string;
+  isOwnProfile?: boolean;
 }
 
 export function MatchCard({
@@ -432,6 +435,8 @@ export function MatchCard({
   linkedAccountsMap = {},
   recentMatches = [],
   hideShareButton = false,
+  userId,
+  isOwnProfile = false,
 }: MatchCardProps) {
   const [scoreboardModalOpen, setScoreboardModalOpen] = useState(false);
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
@@ -659,6 +664,17 @@ export function MatchCard({
           >
             {statusLabel}
           </span>
+          <LPBadge
+            gameId={(() => {
+              // Extraer solo el número del gameId
+              // El match_id puede venir como "LA2_1676038425" o "1676038425"
+              const parts = match.match_id.split("_");
+              const gameIdStr = parts.length > 1 ? parts[1] : parts[0];
+              return gameIdStr;
+            })()}
+            userId={userId}
+            isOwnProfile={isOwnProfile}
+          />
           <span className="text-sm font-bold text-slate-600 dark:text-white leading-tight">
             {getQueueName(match.matches.queue_id)}
           </span>

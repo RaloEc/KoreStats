@@ -587,10 +587,10 @@ export async function GET(request: NextRequest) {
             (sum: number, p: any) => sum + (p.visionScore || 0),
             0
           ) / teamCount;
-        const minutes = Math.max(
-          1,
-          (gameDuration || matchInfo?.game_duration || 0) / 60
-        );
+        // gameDuration está en segundos, convertir a minutos
+        const gameDurationSeconds =
+          gameDuration || matchInfo?.game_duration || 0;
+        const minutes = Math.max(1, gameDurationSeconds / 60);
         teamAvgCsPerMin =
           teamParticipants.reduce((sum: number, p: any) => {
             const cs =

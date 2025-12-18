@@ -1,8 +1,12 @@
-"use client"
+"use client";
 
-import Link from 'next/link'
+import Link from "next/link";
 
-export default function FloatingCreateButton({ categoriaId }: { categoriaId: string }) {
+export default function FloatingCreateButton({
+  categoriaId,
+}: {
+  categoriaId: string;
+}) {
   return (
     <>
       {/* Desktop button */}
@@ -15,7 +19,7 @@ export default function FloatingCreateButton({ categoriaId }: { categoriaId: str
         </Link>
       </div>
       {/* Mobile FAB */}
-      <div className="md:hidden fixed bottom-5 right-5 z-30">
+      <div className="md:hidden fixed bottom-24 right-5 z-30">
         <Link
           href={`/foro/crear-hilo?categoria=${encodeURIComponent(categoriaId)}`}
           className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl text-2xl"
@@ -25,5 +29,5 @@ export default function FloatingCreateButton({ categoriaId }: { categoriaId: str
         </Link>
       </div>
     </>
-  )
+  );
 }

@@ -35,7 +35,8 @@ export const UserActivityFeedContainer = ({
   itemsPerPage = 10,
   isAdmin = false,
   isOwnProfile = true,
-}: UserActivityFeedContainerProps) => {
+  userId,
+}: UserActivityFeedContainerProps & { userId?: string }) => {
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -207,6 +208,7 @@ export const UserActivityFeedContainer = ({
             return next;
           })
         }
+        userId={userId}
       />
 
       {/* Indicador de carga al final */}

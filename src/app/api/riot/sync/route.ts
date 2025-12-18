@@ -117,12 +117,59 @@ export async function POST(request: NextRequest) {
       level: statsData.summonerLevel,
     });
 
+    // Obtener gameName y tagLine actualizados desde Riot Account API
+    console.log("[POST /api/riot/sync] Obteniendo gameName y tagLine...");
+    let gameName = riotAccount.game_name;
+    let tagLine = riotAccount.tag_line;
+
+    try {
+      const routingRegion = getRoutingRegionFromShard(platformId);
+      const accountUrl = `https://${routingRegion}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${puuid}`;
+
+      console.log("[POST /api/riot/sync] Consultando Account API:", accountUrl);
+
+      const accountResponse = await fetch(accountUrl, {
+        method: "GET",
+        headers: {
+          "X-Riot-Token": process.env.RIOT_API_KEY || "",
+        },
+      });
+
+      if (accountResponse.ok) {
+        const accountData = await accountResponse.json();
+        gameName = accountData.gameName;
+        tagLine = accountData.tagLine;
+        console.log("[POST /api/riot/sync] ✅ Nombre actualizado:", {
+          gameName,
+          tagLine,
+        });
+      } else {
+        console.warn(
+          "[POST /api/riot/sync] No se pudo obtener gameName/tagLine, usando valores existentes"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "[POST /api/riot/sync] Error al obtener gameName/tagLine:",
+        error
+      );
+      // Continuar con los valores existentes
+    }
+
     // Actualizar base de datos
     console.log("[POST /api/riot/sync] Actualizando base de datos...");
+    console.log("[POST /api/riot/sync] Datos a guardar:", {
+      game_name: gameName,
+      tag_line: tagLine,
+      summoner_id: statsData.summonerId,
+      summoner_level: statsData.summonerLevel,
+    });
 
     const { error: updateError } = await supabase
       .from("linked_accounts_riot")
       .update({
+        game_name: gameName,
+        tag_line: tagLine,
         active_shard: statsData.activeShard,
         summoner_id: statsData.summonerId,
         profile_icon_id: statsData.profileIconId,

@@ -142,6 +142,7 @@ export default function MobileUserProfileLayout({
                 ultimasPartidas={profile.ultimasPartidas}
                 userColor={profile.color}
                 isOwnProfile={isOwnProfile}
+                userId={profile.id}
               />
             </div>
           </>
@@ -151,6 +152,7 @@ export default function MobileUserProfileLayout({
               <>
                 <RiotAccountCardVisual
                   account={riotAccount}
+                  userId={riotUserId ?? profile.id}
                   isSyncing={isSyncing}
                   syncError={syncError}
                   onSync={onSync}

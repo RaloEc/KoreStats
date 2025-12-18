@@ -768,6 +768,7 @@ function PerfilPageContent() {
                     .trim()
                     .toLowerCase() === "admin"
                 )}
+                userId={perfil.id}
               />
             </div>
 

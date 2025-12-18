@@ -8,7 +8,7 @@ import BannerPublicitario from "@/components/home/BannerPublicitario";
 import {
   SharedMatchCard,
   type SharedMatchData,
-} from "@/components/perfil/SharedMatchCard";
+} from "@/components/perfil/shared-match-card";
 import type { Noticia } from "@/types";
 import type { WeaponStats } from "@/types/weapon";
 

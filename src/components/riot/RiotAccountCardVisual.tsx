@@ -38,6 +38,7 @@ const REGION_NAMES: Record<string, string> = {
 
 interface RiotAccountCardVisualProps {
   account: LinkedAccountRiot;
+  userId?: string;
   isLoading?: boolean;
   isSyncing?: boolean;
   syncError?: string | null;
@@ -53,6 +54,7 @@ interface RiotAccountCardVisualProps {
  */
 export function RiotAccountCardVisual({
   account,
+  userId: propUserId,
   isLoading = false,
   isSyncing = false,
   syncError = null,
@@ -61,7 +63,9 @@ export function RiotAccountCardVisual({
   cooldownSeconds = 0,
   hideSync = false,
 }: RiotAccountCardVisualProps) {
-  const [userId, setUserId] = useState<string | null>(account.user_id ?? null);
+  const [userId, setUserId] = useState<string | null>(
+    propUserId ?? account.user_id ?? null
+  );
   const [topChampionName, setTopChampionName] = useState<string | null>(null);
 
   const soloTier = account.solo_tier ?? account.tier ?? "UNRANKED";
@@ -115,8 +119,13 @@ export function RiotAccountCardVisual({
 
   const hasSplash = Boolean(topChampionName);
 
-  // Obtener userId desde la cuenta o como fallback desde localStorage
+  // Obtener userId desde props, cuenta o como fallback desde localStorage
   useEffect(() => {
+    if (propUserId) {
+      setUserId(propUserId);
+      return;
+    }
+
     if (account.user_id) {
       setUserId(account.user_id);
       return;
@@ -126,7 +135,7 @@ export function RiotAccountCardVisual({
     if (storedId) {
       setUserId(storedId);
     }
-  }, [account.user_id]);
+  }, [account.user_id, propUserId]);
 
   // Obtener maestría de campeones con caché agresivo
   const { data: masteryData } = useQuery({

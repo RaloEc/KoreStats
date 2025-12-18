@@ -38,22 +38,36 @@ export async function GET(request: NextRequest) {
 
     const supabase = getServiceClient();
 
-    // 1. Obtener el perfil del usuario por public_id
-    const { data: perfil, error: perfilError } = await supabase
+    // 1. Obtener el perfil del usuario por public_id o username como fallback
+    let { data: perfil, error: perfilError } = await supabase
       .from("perfiles")
       .select("id, public_id, username")
       .eq("public_id", publicId)
       .single();
 
+    // Si no encontramos por public_id, intentar por username
     if (perfilError || !perfil) {
       console.log(
-        "[GET /api/riot/account/public] Perfil no encontrado para publicId:",
-        publicId
+        `[GET /api/riot/account/public] public_id "${publicId}" no encontrado, intentando por username...`
       );
-      return NextResponse.json(
-        { error: "Usuario no encontrado" },
-        { status: 404 }
-      );
+      const { data: perfilPorUsername, error: errorUsername } = await supabase
+        .from("perfiles")
+        .select("id, public_id, username")
+        .eq("username", publicId)
+        .single();
+
+      if (errorUsername || !perfilPorUsername) {
+        console.log(
+          "[GET /api/riot/account/public] Perfil no encontrado ni por public_id ni por username:",
+          publicId
+        );
+        return NextResponse.json(
+          { error: "Usuario no encontrado" },
+          { status: 404 }
+        );
+      }
+
+      perfil = perfilPorUsername;
     }
 
     console.log("[GET /api/riot/account/public] Perfil encontrado:", {

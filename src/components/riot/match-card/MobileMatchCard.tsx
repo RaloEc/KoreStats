@@ -27,6 +27,7 @@ import {
   type RunePerks,
   usePerkAssets,
 } from "./RunesTooltip";
+import { LPBadge } from "./LPBadge";
 
 interface RiotParticipant {
   teamId: number;
@@ -122,6 +123,8 @@ interface MobileMatchCardProps {
   version: string;
   recentMatches?: Match[];
   hideShareButton?: boolean;
+  userId?: string;
+  isOwnProfile?: boolean;
 }
 
 export function MobileMatchCard({
@@ -129,6 +132,8 @@ export function MobileMatchCard({
   version,
   recentMatches = [],
   hideShareButton = false,
+  userId,
+  isOwnProfile = false,
 }: MobileMatchCardProps) {
   const [scoreboardModalOpen, setScoreboardModalOpen] = useState(false);
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
@@ -383,12 +388,23 @@ export function MobileMatchCard({
             <span className="flex-1 text-[11px] font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 truncate">
               {queueName}
             </span>
-            <div className="flex-1 text-center">
+            <div className="flex-1 flex flex-col items-center gap-1">
               <span
                 className={`inline-flex items-center justify-center text-[11px] font-bold uppercase tracking-wide ${resultBadgeClass}`}
               >
                 {resultLabel}
               </span>
+              <LPBadge
+                gameId={(() => {
+                  // Extraer solo el número del gameId
+                  // El match_id puede venir como "LA2_1676038425" o "1676038425"
+                  const parts = match.match_id.split("_");
+                  const gameIdStr = parts.length > 1 ? parts[1] : parts[0];
+                  return gameIdStr;
+                })()}
+                userId={userId}
+                isOwnProfile={isOwnProfile}
+              />
             </div>
             <div className="flex-1 text-right text-xs">
               <p className="font-semibold text-slate-900 dark:text-slate-200">

@@ -388,7 +388,7 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
         {/* Layout: Centrado en mobile, lado a lado en desktop */}
         <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 md:items-start">
           {/* Avatar, nombre y rol - Centrado en mobile */}
-          <div className="flex flex-col items-center gap-3 flex-shrink-0 w-full md:w-auto md:items-start">
+          <div className="flex flex-col items-center gap-3 flex-shrink-0 w-full md:w-auto">
             <div className="relative w-fit">
               <Avatar
                 className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 border-3 border-background dark:border-gray-950 shadow-md -mt-20 sm:-mt-24 md:-mt-28"
@@ -417,30 +417,24 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
               </Avatar>
 
               {/* Indicador de estado */}
-              <div className="absolute bottom-1 right-1 z-50 bg-white dark:bg-gray-950 rounded-full p-0.5 border border-background dark:border-gray-950 shadow-sm">
-                <StatusBadge
-                  userId={profile.id}
-                  initialStatus="offline"
-                  variant="dot"
-                />
-              </div>
+              <StatusBadge
+                userId={profile.id}
+                initialStatus="offline"
+                variant="dot"
+                userColor={profile.color}
+              />
             </div>
 
             <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center gap-3 justify-center">
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
-                  {profile.username}
-                </h1>
-                <div>
-                  <StatusBadge
-                    userId={profile.id}
-                    initialStatus="offline"
-                    variant="full"
-                    onlyWhenInGame
-                    userColor={profile.color}
-                  />
-                </div>
-              </div>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
+                {profile.username}
+              </h1>
+              <StatusBadge
+                userId={profile.id}
+                initialStatus="offline"
+                variant="full"
+                userColor={profile.color}
+              />
               {profile.role !== "user" && (
                 <Badge
                   variant={roleBadge.variant}

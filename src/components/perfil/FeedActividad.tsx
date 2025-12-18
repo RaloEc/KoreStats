@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { ProfileData } from "@/hooks/use-perfil-usuario";
 import { WeaponStatsCard } from "@/components/weapon/WeaponStatsCard";
-import { SharedMatchCard } from "@/components/perfil/SharedMatchCard";
+import { SharedMatchCard } from "@/components/perfil/shared-match-card";
 import { ActivityCardMenu } from "@/components/perfil/ActivityCardMenu";
 import React from "react";
 
@@ -91,7 +91,8 @@ export const FeedActividad = ({
   isOwnProfile = false,
   isAdmin = false,
   onMatchDeleted,
-}: FeedActividadProps) => {
+  userId,
+}: FeedActividadProps & { userId?: string }) => {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [hiddenItems, setHiddenItems] = React.useState<Set<string>>(new Set());
 
@@ -676,6 +677,7 @@ export const FeedActividad = ({
                 newSet.delete(item.id);
                 setHiddenItems(newSet);
               }}
+              userId={userId}
             />
           );
         }

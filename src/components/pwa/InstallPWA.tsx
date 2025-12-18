@@ -89,7 +89,7 @@ export default function InstallPWA() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-24 lg:bottom-4 right-4 z-50 max-w-sm animate-in slide-in-from-bottom-5">
       <div className="bg-white dark:bg-black text-foreground rounded-xl shadow-2xl p-5 border-2 border-primary/60 backdrop-blur-sm">
         <button
           onClick={handleDismiss}

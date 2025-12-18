@@ -256,6 +256,7 @@ export default function UserProfilePage() {
                 )}
                 isAdmin={isCurrentUserAdmin}
                 onMatchDeleted={() => refetch()}
+                userId={profile.id}
               />
             </div>
 
@@ -272,9 +273,9 @@ export default function UserProfilePage() {
           <div className="space-y-6">
             {riotAccount ? (
               <>
-                {/* Tarjeta de cuenta de Riot */}
                 <RiotAccountCardVisual
                   account={riotAccount}
+                  userId={riotUserId ?? profile.id}
                   isLoading={loadingRiotAccount || syncMutation.isPending}
                   isSyncing={syncMutation.isPending}
                   syncError={syncError}
