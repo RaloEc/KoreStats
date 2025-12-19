@@ -11,7 +11,7 @@ import {
   getWinrateColor,
 } from "@/lib/riot/rank-emblems";
 import { getChampionNameById } from "@/lib/riot/helpers";
-import { ChampionCenteredSplash } from "./ChampionCenteredSplash";
+import { RankAnimatedBackground } from "./RankAnimatedBackground";
 import { Loader2, RefreshCw, Unlink } from "lucide-react";
 import Image from "next/image";
 
@@ -117,8 +117,6 @@ export function RiotAccountCardVisual({
       queue.wins + queue.losses > 0,
   }));
 
-  const hasSplash = Boolean(topChampionName);
-
   // Obtener userId desde props, cuenta o como fallback desde localStorage
   useEffect(() => {
     if (propUserId) {
@@ -170,6 +168,7 @@ export function RiotAccountCardVisual({
   });
 
   const topChampionId = masteryData?.[0]?.championId ?? null;
+  const hasSplash = Boolean(topChampionId);
 
   // Obtener nombre del campeón más usado cuando cambie el ID detectado
   useEffect(() => {
@@ -219,19 +218,8 @@ export function RiotAccountCardVisual({
             : "bg-white dark:bg-[#0f111a] amoled:bg-black"
         }`}
       >
-        {/* Fondo: splash del campeón */}
-        {hasSplash && (
-          <div className="absolute inset-0">
-            <ChampionCenteredSplash
-              championName={topChampionName}
-              skinId={0}
-              className="w-full h-full"
-              focalOffsetY="10%"
-              desktopFocalOffsetY="35%"
-            />
-            <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
-          </div>
-        )}
+        {/* Fondo: gradiente animado según tier */}
+        <RankAnimatedBackground tier={soloTier} />
 
         <div className="relative z-10 p-4 md:p-5 flex flex-col gap-4">
           {/* Botón de sincronización móvil - esquina superior derecha */}

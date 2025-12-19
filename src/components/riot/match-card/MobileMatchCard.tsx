@@ -420,8 +420,11 @@ export function MobileMatchCard({
         {/* Campeón principal vs oponente */}
         <div className="flex items-center gap-2 mb-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0">
               <div className="flex flex-col items-center gap-1">
+                <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
+                  {match.champion_name}
+                </p>
                 <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0">
                   <Image
                     src={getChampionImageUrl(match.champion_name, version)}
@@ -431,9 +434,9 @@ export function MobileMatchCard({
                     className="object-cover"
                   />
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center">
                   <RunesTooltip perks={currentParticipant?.perks}>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center">
                       {renderKeystoneIcon(
                         playerKeystonePerkId,
                         playerPerkIconById,
@@ -454,20 +457,17 @@ export function MobileMatchCard({
                   )}
                 </div>
               </div>
-              <div className="flex flex-col gap-1 items-center">
+              <div className="flex flex-col gap-1 items-center -ml-1">
                 {renderSpellIcon(match.summoner1_id, "Summoner Spell 1")}
                 {renderSpellIcon(match.summoner2_id, "Summoner Spell 2")}
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                {match.champion_name}
-              </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {match.kills}/{match.deaths}/{match.assists}
               </p>
-              <p className={`text-xs font-semibold ${ratioClass}`}>
-                {match.kda.toFixed(2)} KDA
+              <p className={`text-sm font-bold ${ratioClass}`}>
+                {match.kda.toFixed(2)}
               </p>
             </div>
           </div>
@@ -479,19 +479,23 @@ export function MobileMatchCard({
               </span>
               <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
                 <div className="flex-1 min-w-0 text-right">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                    {laneOpponent.championName}
-                  </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {opponentKills}/{opponentDeaths}/{opponentAssists}
                   </p>
-                  <p className={`text-xs font-semibold ${opponentRatioClass}`}>
-                    {opponentKda?.toFixed(2) ?? "—"} KDA
+                  <p className={`text-sm font-bold ${opponentRatioClass}`}>
+                    {opponentKda?.toFixed(2) ?? "—"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0">
+                  <div className="flex flex-col gap-1 items-center ml-1">
+                    {renderSpellIcon(laneOpponent.summoner1Id, "Enemy Spell 1")}
+                    {renderSpellIcon(laneOpponent.summoner2Id, "Enemy Spell 2")}
+                  </div>
                   <div className="flex flex-col items-center gap-1">
-                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0">
+                    <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
+                      {laneOpponent.championName}
+                    </p>
+                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0">
                       <Image
                         src={getChampionImageUrl(
                           laneOpponent.championName,
@@ -499,13 +503,13 @@ export function MobileMatchCard({
                         )}
                         alt={laneOpponent.championName}
                         fill
-                        sizes="48px"
+                        sizes="56px"
                         className="object-cover"
                       />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center">
                       <RunesTooltip perks={laneOpponent?.perks}>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center">
                           {renderKeystoneIcon(
                             opponentKeystonePerkId,
                             opponentPerkIconById,
@@ -522,10 +526,6 @@ export function MobileMatchCard({
                         </div>
                       </RunesTooltip>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-1 items-center">
-                    {renderSpellIcon(laneOpponent.summoner1Id, "Enemy Spell 1")}
-                    {renderSpellIcon(laneOpponent.summoner2Id, "Enemy Spell 2")}
                   </div>
                 </div>
               </div>

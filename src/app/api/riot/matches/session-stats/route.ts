@@ -243,6 +243,39 @@ export async function GET(request: NextRequest) {
 
     console.log("  Partidas de hoy encontradas:", todayMatches.length);
 
+    // Logging detallado de todas las partidas para debugging
+    console.log("\n📊 [session-stats] ANÁLISIS DETALLADO DE PARTIDAS:");
+    console.log("=".repeat(70));
+    normalized.forEach((match, index) => {
+      const isToday = match.gameCreation >= todayStartMs;
+      const matchDate = new Date(match.gameCreation);
+      const hoursSinceToday =
+        (match.gameCreation - todayStartMs) / (1000 * 60 * 60);
+
+      console.log(`\n  Partida #${index + 1}:`);
+      console.log(`    Match ID: ${match.matchId}`);
+      console.log(`    Resultado: ${match.win ? "✅ VICTORIA" : "❌ DERROTA"}`);
+      console.log(`    Timestamp: ${match.gameCreation}`);
+      console.log(`    Fecha/Hora: ${matchDate.toISOString()}`);
+      console.log(
+        `    Fecha Local: ${matchDate.toLocaleString("es-ES", {
+          timeZone: "America/Bogota",
+        })}`
+      );
+      console.log(
+        `    Horas desde inicio del día: ${hoursSinceToday.toFixed(2)}h`
+      );
+      console.log(`    ¿Cuenta como HOY?: ${isToday ? "✅ SÍ" : "❌ NO"}`);
+      console.log(`    Queue ID: ${match.queueId}`);
+    });
+
+    console.log("\n" + "=".repeat(70));
+    console.log("📈 RESUMEN DE PARTIDAS DE HOY:");
+    console.log(`  Total: ${todayMatches.length}`);
+    console.log(`  Victorias: ${todayMatches.filter((m) => m.win).length}`);
+    console.log(`  Derrotas: ${todayMatches.filter((m) => !m.win).length}`);
+    console.log("=".repeat(70) + "\n");
+
     const sessionMatches: typeof normalized = [];
     if (normalized.length > 0) {
       sessionMatches.push(normalized[0]);

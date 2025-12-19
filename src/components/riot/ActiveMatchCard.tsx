@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useRef, useEffect } from "react";
 import {
   getChampionImg,
   getSpellImg,
@@ -225,6 +227,40 @@ function ParticipantRow({
 
 export function ActiveMatchCard({ userId }: { userId?: string }) {
   const { supabase } = useAuth();
+  const queryClient = useQueryClient();
+  const wasInGameRef = useRef<boolean>(false);
+
+  // Mutación para sincronizar historial
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      console.log("[ActiveMatchCard] 🔄 Auto-syncing match history...");
+      const response = await fetch("/api/riot/matches/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // Si hay userId explícito (perfil público), lo enviamos.
+        // Si no, el endpoint usará la sesión del usuario.
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to auto-sync");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      console.log("[ActiveMatchCard] ✅ Auto-sync successful");
+      // Invalidar queries para que el historial se actualice
+      queryClient.invalidateQueries({ queryKey: ["match-history"] });
+      queryClient.invalidateQueries({ queryKey: ["match-history-cache"] });
+      // También invalidamos active-match por si acaso, aunque ya sabemos que terminó
+      queryClient.invalidateQueries({ queryKey: ["active-match"] });
+    },
+    onError: (err) => {
+      console.error("[ActiveMatchCard] ❌ Auto-sync failed:", err);
+    },
+  });
 
   const { data, isLoading } = useQuery<ActiveMatchResponse>({
     queryKey: ["active-match", userId || "local"],
@@ -303,6 +339,26 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
     if (!hasMatch) return new Map<string, ActiveParticipant>();
     return assignParticipantsToRoles(data.teams.team200, ROLE_ORDER);
   }, [data, hasMatch]);
+
+  // Detectar fin de partida y sincronizar
+  useEffect(() => {
+    // Si antes estábamos en partida (true) y ahora no (false)
+    if (wasInGameRef.current && !hasMatch) {
+      console.log(
+        "[ActiveMatchCard] 🏁 Match ended detected! Scheduling sync in 5s..."
+      );
+
+      // Esperar un poco para asegurar que Riot API tenga los datos (Spectator vs Match-V5)
+      const timer = setTimeout(() => {
+        syncMutation.mutate();
+      }, 5000); // 5 segundos de espera prudencial
+
+      return () => clearTimeout(timer);
+    }
+
+    // Actualizar ref
+    wasInGameRef.current = hasMatch;
+  }, [hasMatch, syncMutation]);
 
   if (isLoading && !data) {
     return null;

@@ -511,150 +511,161 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
 
       {/* Modal de Filtros del Foro */}
       {/* Modal de Filtros del Foro */}
-      <AnimatePresence>
-        {isFiltersOpen && (
-          <motion.div
-            key="filters-modal"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden"
-          >
-            <div className="mx-auto max-w-md px-4">
-              <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0 max-h-[70vh] overflow-hidden flex flex-col">
-                {/* Header del modal */}
-                <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700/50">
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                    Filtros del Foro
-                  </h2>
-                  <button
-                    onClick={() => setIsFiltersOpen(false)}
-                    className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    aria-label="Cerrar filtros"
-                  >
-                    <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  </button>
-                </div>
-
-                {/* Contenido del modal con scroll */}
-                <div className="flex-1 overflow-y-auto p-3">
-                  <div className="space-y-1.5">
-                    {/* Recientes */}
-                    <Link
-                      href="/foro"
-                      onClick={() => setIsFiltersOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm text-gray-900 dark:text-white">
-                          Recientes
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Hilos más nuevos
-                        </p>
-                      </div>
-                    </Link>
-
-                    {/* Populares */}
-                    <Link
-                      href="/foro?sort=popular"
-                      onClick={() => setIsFiltersOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm text-gray-900 dark:text-white">
-                          Populares
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Más votados
-                        </p>
-                      </div>
-                    </Link>
-
-                    {/* Sin respuesta */}
-                    <Link
-                      href="/foro?filter=sin_respuesta"
-                      onClick={() => setIsFiltersOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm text-gray-900 dark:text-white">
-                          Sin respuesta
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Necesitan ayuda
-                        </p>
-                      </div>
-                    </Link>
-
-                    {user && (
-                      <>
-                        {/* Siguiendo */}
-                        <Link
-                          href="/foro?filter=siguiendo"
-                          onClick={() => setIsFiltersOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                        >
-                          <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                            <Star className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm text-gray-900 dark:text-white">
-                              Siguiendo
-                            </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Hilos que sigues
-                            </p>
-                          </div>
-                        </Link>
-
-                        {/* Míos */}
-                        <Link
-                          href="/foro?filter=mios"
-                          onClick={() => setIsFiltersOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                        >
-                          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm text-gray-900 dark:text-white">
-                              Mis hilos
-                            </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Creados por ti
-                            </p>
-                          </div>
-                        </Link>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Mensaje para usuarios no autenticados */}
-                  {!user && (
-                    <div className="mt-3 p-3 bg-blue-900/10 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                      <p className="text-xs text-blue-700 dark:text-blue-100">
-                        💡 <strong>Inicia sesión</strong> para ver tus hilos y
-                        los que sigues
-                      </p>
+      {/* Modal de Filtros del Foro */}
+      {mounted &&
+        createPortal(
+          <div className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden">
+            <AnimatePresence>
+              {isFiltersOpen && (
+                <motion.div
+                  key="filters-modal"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 270,
+                    mass: 0.9,
+                  }}
+                  style={{ willChange: "transform" }}
+                  className="mx-auto max-w-md px-4"
+                >
+                  <div className="bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0 max-h-[70vh] overflow-hidden flex flex-col">
+                    {/* Header del modal */}
+                    <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700/50">
+                      <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                        Filtros del Foro
+                      </h2>
+                      <button
+                        onClick={() => setIsFiltersOpen(false)}
+                        className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        aria-label="Cerrar filtros"
+                      >
+                        <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      </button>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
+
+                    {/* Contenido del modal con scroll */}
+                    <div className="flex-1 overflow-y-auto p-3">
+                      <div className="space-y-1.5">
+                        {/* Recientes */}
+                        <Link
+                          href="/foro"
+                          onClick={() => setIsFiltersOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                            <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm text-gray-900 dark:text-white">
+                              Recientes
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Hilos más nuevos
+                            </p>
+                          </div>
+                        </Link>
+
+                        {/* Populares */}
+                        <Link
+                          href="/foro?sort=popular"
+                          onClick={() => setIsFiltersOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                            <TrendingUp className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm text-gray-900 dark:text-white">
+                              Populares
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Más votados
+                            </p>
+                          </div>
+                        </Link>
+
+                        {/* Sin respuesta */}
+                        <Link
+                          href="/foro?filter=sin_respuesta"
+                          onClick={() => setIsFiltersOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                            <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm text-gray-900 dark:text-white">
+                              Sin respuesta
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Necesitan ayuda
+                            </p>
+                          </div>
+                        </Link>
+
+                        {user && (
+                          <>
+                            {/* Siguiendo */}
+                            <Link
+                              href="/foro?filter=siguiendo"
+                              onClick={() => setIsFiltersOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                            >
+                              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                                <Star className="w-4 h-4 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm text-gray-900 dark:text-white">
+                                  Siguiendo
+                                </h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Hilos que sigues
+                                </p>
+                              </div>
+                            </Link>
+
+                            {/* Míos */}
+                            <Link
+                              href="/foro?filter=mios"
+                              onClick={() => setIsFiltersOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                            >
+                              <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                                <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm text-gray-900 dark:text-white">
+                                  Mis hilos
+                                </h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Creados por ti
+                                </p>
+                              </div>
+                            </Link>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Mensaje para usuarios no autenticados */}
+                      {!user && (
+                        <div className="mt-3 p-3 bg-blue-900/10 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                          <p className="text-xs text-blue-700 dark:text-blue-100">
+                            💡 <strong>Inicia sesión</strong> para ver tus hilos
+                            y los que sigues
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>,
+          document.body
         )}
-      </AnimatePresence>
 
       {/* Backdrop para menús - Renderizado con Portal */}
       {mounted &&
@@ -669,8 +680,9 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-gray-900/30 dark:bg-black/60 backdrop-blur-sm transform-gpu z-[9990] lg:hidden"
+                transition={{ duration: 0.2 }}
+                style={{ willChange: "opacity" }}
+                className="fixed inset-0 bg-gray-900/30 dark:bg-black/60 transform-gpu z-[9990] lg:hidden"
                 onClick={() => {
                   setIsProfileMenuOpen(false);
                   setIsCreateModalOpen(false);
@@ -684,163 +696,187 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         )}
 
       {/* Menú de Perfil */}
-      <AnimatePresence>
-        {isProfileMenuOpen && (
-          <motion.div
-            key="profile-menu"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden"
-          >
-            <div className="mx-auto max-w-md px-4">
-              <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0">
-                <div className="p-3">
-                  {/* Header del menú */}
-                  <div className="flex items-center justify-between mb-3 pl-1">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="w-10 h-10 ring-2 ring-white dark:ring-gray-800">
-                        <AvatarImage
-                          src={profile?.avatar_url || undefined}
-                          alt={profile?.username || "Usuario"}
-                        />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
-                          {getUserInitials(profile?.username || "", 1, "U")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white">
-                          {profile?.username || "Usuario"}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                          {profile?.role || "user"}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </button>
-                  </div>
-
-                  {/* Opciones del menú */}
-                  <div className="space-y-0.5">
-                    <button
-                      onClick={() => handleNavClick("/perfil")}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
-                    >
-                      <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span className="text-sm text-gray-700 dark:text-white">
-                        Mi Perfil
-                      </span>
-                    </button>
-
-                    {isAdmin && (
-                      <>
-                        <div className="my-1.5 border-t border-gray-100 dark:border-gray-800" />
+      {/* Menú de Perfil */}
+      {mounted &&
+        createPortal(
+          <div className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden">
+            <AnimatePresence>
+              {isProfileMenuOpen && (
+                <motion.div
+                  key="profile-menu"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 270,
+                    mass: 0.9,
+                  }}
+                  style={{ willChange: "transform" }}
+                  className="mx-auto max-w-md px-4"
+                >
+                  <div className="bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0">
+                    <div className="p-3">
+                      {/* Header del menú */}
+                      <div className="flex items-center justify-between mb-3 pl-1">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="w-10 h-10 ring-2 ring-white dark:ring-gray-800">
+                            <AvatarImage
+                              src={profile?.avatar_url || undefined}
+                              alt={profile?.username || "Usuario"}
+                            />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
+                              {getUserInitials(profile?.username || "", 1, "U")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                              {profile?.username || "Usuario"}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                              {profile?.role || "user"}
+                            </p>
+                          </div>
+                        </div>
                         <button
-                          onClick={() => handleNavClick("/admin/dashboard")}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                          <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                            Panel Admin
+                          <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </button>
+                      </div>
+
+                      {/* Opciones del menú */}
+                      <div className="space-y-0.5">
+                        <button
+                          onClick={() => handleNavClick("/perfil")}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
+                        >
+                          <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm text-gray-700 dark:text-white">
+                            Mi Perfil
                           </span>
                         </button>
-                      </>
-                    )}
 
-                    <div className="my-1.5 border-t border-gray-100 dark:border-gray-800" />
+                        {isAdmin && (
+                          <>
+                            <div className="my-1.5 border-t border-gray-100 dark:border-gray-800" />
+                            <button
+                              onClick={() => handleNavClick("/admin/dashboard")}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left"
+                            >
+                              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                Panel Admin
+                              </span>
+                            </button>
+                          </>
+                        )}
 
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
-                    >
-                      <LogOut className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-red-500">
-                        Cerrar Sesión
-                      </span>
-                    </button>
+                        <div className="my-1.5 border-t border-gray-100 dark:border-gray-800" />
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
+                        >
+                          <LogOut className="w-4 h-4 text-red-500" />
+                          <span className="text-sm text-red-500">
+                            Cerrar Sesión
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>,
+          document.body
         )}
-      </AnimatePresence>
 
       {/* Modal de Crear */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <motion.div
-            key="create-modal"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden"
-          >
-            <div className="mx-auto max-w-md px-4">
-              <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0">
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                      Crear nuevo
-                    </h3>
-                    <button
-                      onClick={() => setIsCreateModalOpen(false)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => handleNavClick("/foro/crear-hilo")}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all text-left group border border-transparent hover:border-gray-200 dark:hover:border-gray-800"
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-                        style={{
-                          backgroundColor: `${userColor}15`,
-                        }}
-                      >
-                        <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        Nuevo Hilo
-                      </span>
-                    </button>
-
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleNavClick("/admin/noticias/crear")}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all text-left group border border-transparent hover:border-gray-200 dark:hover:border-gray-800"
-                      >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-                          style={{
-                            backgroundColor: `${userColor}15`,
-                          }}
+      {/* Modal de Crear */}
+      {mounted &&
+        createPortal(
+          <div className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden">
+            <AnimatePresence>
+              {isCreateModalOpen && (
+                <motion.div
+                  key="create-modal"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 270,
+                    mass: 0.9,
+                  }}
+                  style={{ willChange: "transform" }}
+                  className="mx-auto max-w-md px-4"
+                >
+                  <div className="bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0">
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                          Crear nuevo
+                        </h3>
+                        <button
+                          onClick={() => setIsCreateModalOpen(false)}
+                          className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                          <Plus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          Nueva Noticia
-                        </span>
-                      </button>
-                    )}
+                          <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => handleNavClick("/foro/crear-hilo")}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all text-left group border border-transparent hover:border-gray-200 dark:hover:border-gray-800"
+                        >
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                            style={{
+                              backgroundColor: `${userColor}15`,
+                            }}
+                          >
+                            <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            Nuevo Hilo
+                          </span>
+                        </button>
+
+                        {isAdmin && (
+                          <button
+                            onClick={() =>
+                              handleNavClick("/admin/noticias/crear")
+                            }
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all text-left group border border-transparent hover:border-gray-200 dark:hover:border-gray-800"
+                          >
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                              style={{
+                                backgroundColor: `${userColor}15`,
+                              }}
+                            >
+                              <Plus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              Nueva Noticia
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>,
+          document.body
         )}
-      </AnimatePresence>
 
       {/* Modal de Notificaciones - Renderizado con Portal */}
       {mounted &&
@@ -853,10 +889,16 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                   initial={{ y: "100%" }}
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
-                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 270,
+                    mass: 0.9,
+                  }}
+                  style={{ willChange: "transform" }}
                   className="mx-auto max-w-md px-4"
                 >
-                  <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0">
+                  <div className="bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-x border-t border-gray-200 dark:border-gray-700/50 border-b-0">
                     <div className="p-3">
                       <div className="flex items-center justify-between mb-3 px-1">
                         <h3 className="text-base font-semibold text-gray-900 dark:text-white">
@@ -949,66 +991,77 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         )}
 
       {/* Menú para usuarios no autenticados */}
-      <AnimatePresence>
-        {isProfileMenuOpen && !user && (
-          <motion.div
-            key="guest-menu"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden"
-          >
-            <div className="mx-auto max-w-md px-4">
-              <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700/50 border-b-0">
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                      Opciones
-                    </h3>
-                    <button
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </button>
-                  </div>
+      {/* Menú para usuarios no autenticados */}
+      {mounted &&
+        createPortal(
+          <div className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden">
+            <AnimatePresence>
+              {isProfileMenuOpen && !user && (
+                <motion.div
+                  key="guest-menu"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 270,
+                    mass: 0.9,
+                  }}
+                  style={{ willChange: "transform" }}
+                  className="mx-auto max-w-md px-4"
+                >
+                  <div className="bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700/50 border-b-0">
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                          Opciones
+                        </h3>
+                        <button
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </button>
+                      </div>
 
-                  <div className="space-y-1.5">
-                    {/* Botón de Iniciar Sesión */}
-                    <button
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onOpenAuthModal?.("login");
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
-                    >
-                      <LogIn className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span className="text-sm text-gray-700 dark:text-white">
-                        Iniciar Sesión
-                      </span>
-                    </button>
+                      <div className="space-y-1.5">
+                        {/* Botón de Iniciar Sesión */}
+                        <button
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onOpenAuthModal?.("login");
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
+                        >
+                          <LogIn className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm text-gray-700 dark:text-white">
+                            Iniciar Sesión
+                          </span>
+                        </button>
 
-                    {/* Botón de Registrarse */}
-                    <button
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onOpenAuthModal?.("register");
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
-                    >
-                      <UserPlus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span className="text-sm text-gray-700 dark:text-white">
-                        Registrarse
-                      </span>
-                    </button>
+                        {/* Botón de Registrarse */}
+                        <button
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onOpenAuthModal?.("register");
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
+                        >
+                          <UserPlus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm text-gray-700 dark:text-white">
+                            Registrarse
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>,
+          document.body
         )}
-      </AnimatePresence>
 
       {/* Navbar principal */}
       <nav className="fixed bottom-0 left-0 right-0 z-[10000] lg:hidden">

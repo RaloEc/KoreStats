@@ -155,7 +155,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
           {/* Splash art base */}
           <div className="absolute inset-0 overflow-hidden">
             <ChampionCenteredSplash
-              championName={partida.championName}
+              champion={partida.championName}
               skinId={0}
               className="h-full w-full object-cover"
             />
@@ -336,13 +336,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
             <MatchComment comment={partida.comment} />
 
             {/* Footer acciones */}
-            <MatchFooter
-              matchId={partida.matchId}
-              entryId={partida.entryId}
-              isOwnProfile={isOwnProfile}
-              onDelete={onDelete}
-              deletingId={deletingId}
-            />
+            <MatchFooter matchId={partida.matchId} />
           </div>
         </div>
       </Card>

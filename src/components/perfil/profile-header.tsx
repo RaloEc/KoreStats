@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { ConnectedAccounts } from "./ConnectedAccounts";
-import { StatusBadge } from "@/components/status/StatusBadge";
 
 interface ProfileHeaderProps {
   perfil: {
@@ -117,35 +116,12 @@ export default function ProfileHeader({
                   {perfil.username.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-
-              {perfil.id ? (
-                <div className="absolute bottom-1 right-1 z-50 bg-white dark:bg-gray-950 rounded-full p-0.5 border border-background dark:border-gray-950 shadow-sm">
-                  <StatusBadge
-                    userId={perfil.id}
-                    initialStatus="offline"
-                    variant="dot"
-                  />
-                </div>
-              ) : null}
             </div>
 
             <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center gap-3 justify-center">
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
-                  {perfil.username}
-                </h1>
-                {perfil.id ? (
-                  <div>
-                    <StatusBadge
-                      userId={perfil.id}
-                      initialStatus="offline"
-                      variant="full"
-                      onlyWhenInGame
-                      userColor={perfil.color}
-                    />
-                  </div>
-                ) : null}
-              </div>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
+                {perfil.username}
+              </h1>
               {perfil.role !== "user" && (
                 <Badge
                   variant={roleBadge.variant}

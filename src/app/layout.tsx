@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import Providers from "@/components/Providers";
 import { createClient } from "@/lib/supabase/server";
 import { GoogleAdsenseScript } from "@/components/ads/GoogleAdsense";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
 const MobileNavbarWrapper = dynamic(
   () => import("@/components/layout/MobileNavbarWrapper"),
@@ -254,11 +255,15 @@ export default async function RootLayout({
         className={`${nunito.variable} ${inter.variable} font-sans bg-background text-foreground h-screen w-screen overflow-hidden flex flex-col`}
       >
         <Providers session={session}>
+          <ScrollToTop />
           {/* Header: estático, no hace scroll */}
           <Header />
 
           {/* Main: único elemento que hace scroll */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-14 lg:pt-16 pb-24 lg:pb-0">
+          <main
+            id="main-scroll-container"
+            className="flex-1 overflow-y-auto overflow-x-hidden pt-14 lg:pt-16 pb-24 lg:pb-0"
+          >
             <div className="container mx-auto px-0">{children}</div>
           </main>
 

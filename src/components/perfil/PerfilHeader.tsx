@@ -30,7 +30,6 @@ import { useAuth } from "@/context/AuthContext";
 import { ConnectedAccounts } from "./ConnectedAccounts";
 import { ConnectedAccountsModal } from "./ConnectedAccountsModal";
 import { normalizeAvatarUrl } from "@/lib/utils/avatar-utils";
-import { StatusBadge } from "@/components/status/StatusBadge";
 
 interface PerfilHeaderProps {
   profile: ProfileData;
@@ -415,26 +414,12 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
                   {profile.username.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-
-              {/* Indicador de estado */}
-              <StatusBadge
-                userId={profile.id}
-                initialStatus="offline"
-                variant="dot"
-                userColor={profile.color}
-              />
             </div>
 
             <div className="flex flex-col items-center gap-1">
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-center">
                 {profile.username}
               </h1>
-              <StatusBadge
-                userId={profile.id}
-                initialStatus="offline"
-                variant="full"
-                userColor={profile.color}
-              />
               {profile.role !== "user" && (
                 <Badge
                   variant={roleBadge.variant}

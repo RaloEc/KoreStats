@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { syncMatchHistory } from "@/lib/riot/matches";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Máximo 60 segundos para Vercel
@@ -199,13 +200,43 @@ export async function GET(request: NextRequest) {
                 result = { error: snapshotError.message };
                 success = false;
               } else {
-                result = {
-                  success: true,
-                  lp: soloQ.leaguePoints,
-                  tier: soloQ.tier,
-                  rank: soloQ.rank,
-                };
                 success = true;
+
+                // TRIGGER: Sincronizar historial de partidas automáticamente al terminar
+                if (job.action === "snapshot_lp_end") {
+                  console.log(
+                    `[process-lp-queue] Game ended for ${job.user_id}. triggering full sync...`
+                  );
+                  // Ejecutar sync de historial (partidas, stats, etc)
+                  // No esperamos a que termine para no retrasar la cola de LP,
+                  // pero como syncMatchHistory es asíncrono, lo lanzamos y seguimos.
+                  syncMatchHistory(
+                    job.puuid,
+                    job.platform_region,
+                    RIOT_API_KEY,
+                    20
+                  )
+                    .then(async (syncResult) => {
+                      console.log(
+                        `[process-lp-queue] Background sync for ${job.user_id}:`,
+                        syncResult
+                      );
+                      // Limpiar caches para que el usuario vea lo nuevo al entrar
+                      if (syncResult.success && syncResult.newMatches > 0) {
+                        await supabase
+                          .from("player_stats_cache")
+                          .delete()
+                          .eq("user_id", job.user_id);
+                        await supabase
+                          .from("match_history_cache")
+                          .delete()
+                          .eq("user_id", job.user_id);
+                      }
+                    })
+                    .catch((err) => {
+                      console.error(`[process-lp-queue] Sync error:`, err);
+                    });
+                }
               }
             } else {
               result = { error: "No SoloQ ranking found" };

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 interface ChampionCenteredSplashProps {
-  championName: string;
+  champion: string | number | null; // Acepta nombre o ID
   skinId?: number;
   className?: string;
   focalOffsetY?: string;
@@ -16,7 +16,7 @@ interface ChampionCenteredSplashProps {
  * desde Community Dragon con optimización de imagen y manejo de errores
  */
 export function ChampionCenteredSplash({
-  championName,
+  champion,
   skinId = 0,
   className = "",
   focalOffsetY = "10%",
@@ -26,7 +26,11 @@ export function ChampionCenteredSplash({
   const [hasError, setHasError] = useState(false);
   const [objectPositionY, setObjectPositionY] = useState(focalOffsetY);
 
-  const imageUrl = `https://cdn.communitydragon.org/latest/champion/${championName}/splash-art/centered/skin/${skinId}`;
+  // Si no hay campeón, no intentamos cargar nada
+  const safeChampion = champion ?? "Unknown";
+
+  // Community Dragon acepta tanto ID como nombre en la URL
+  const imageUrl = `https://cdn.communitydragon.org/latest/champion/${safeChampion}/splash-art/centered/skin/${skinId}`;
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -73,6 +77,10 @@ export function ChampionCenteredSplash({
     .filter(Boolean)
     .join(" ");
 
+  if (!champion) {
+    return <div className={containerClass + " bg-slate-900"} />;
+  }
+
   return (
     <div className={containerClass}>
       {/* Skeleton de carga */}
@@ -89,7 +97,7 @@ export function ChampionCenteredSplash({
       {!hasError && (
         <Image
           src={imageUrl}
-          alt={`${championName} Splash Art`}
+          alt={`Champion ${champion} Splash Art`}
           fill
           sizes="100vw"
           className="object-cover"

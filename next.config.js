@@ -6,6 +6,38 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   buildExcludes: [/middleware-manifest\.json$/, /_next\/app-build-manifest\.json$/, /\.map$/],
   cacheOnFrontEndNav: false,
   reloadOnOnline: true,
+  // Estrategia de caché runtime para reducir peticiones a Supabase
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*$/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'supabase-storage-images',
+        expiration: {
+          maxEntries: 500,
+          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*$/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'supabase-api-cache',
+        networkTimeoutSeconds: 10,
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24, // 24 horas
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+  ],
 });
 
 /** @type {import('next').NextConfig} */
@@ -38,6 +70,11 @@ const nextConfig = {
   // Optimizar CSS y reducir render-blocking resources
   productionBrowserSourceMaps: false,
   images: {
+    // Aumentar el TTL del caché de imágenes optimizadas (default es 60 seg)
+    minimumCacheTTL: 31536000,
+    // Limitar tamaños de dispositivos para evitar generar demasiadas variantes
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: 'https',

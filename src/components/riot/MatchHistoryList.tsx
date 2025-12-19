@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import React from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useMatchStatusDetector } from "@/hooks/use-match-status-detector";
 import type { ActiveMatchSnapshot } from "@/hooks/use-match-status-detector";
@@ -177,13 +178,29 @@ export function MatchHistoryList({
       params.set("gapHours", "2");
       params.set("tzOffsetMinutes", String(new Date().getTimezoneOffset()));
       // NO enviamos el filtro de cola aquí - queremos ver todas las partidas del día
+
+      console.log("🔍 [MatchHistoryList] Fetching session stats...");
+      console.log(
+        "  URL:",
+        `/api/riot/matches/session-stats?${params.toString()}`
+      );
+      console.log("  tzOffsetMinutes:", new Date().getTimezoneOffset());
+      console.log(
+        "  Hora local actual:",
+        new Date().toLocaleString("es-ES", { timeZone: "America/Bogota" })
+      );
+
       const response = await fetch(
         `/api/riot/matches/session-stats?${params.toString()}`
       );
       if (!response.ok) {
         throw new Error("Error al obtener stats de sesión");
       }
-      return (await response.json()) as SessionStatsResponse;
+      const data = (await response.json()) as SessionStatsResponse;
+
+      console.log("✅ [MatchHistoryList] Session stats received:", data);
+
+      return data;
     },
     enabled: isOwnProfile,
     staleTime: 5 * 1000, // 5 segundos - actualizar frecuentemente para reflejar nuevas partidas
@@ -604,17 +621,55 @@ export function MatchHistoryList({
 
   const todayMessage = useMemo(() => {
     if (!isOwnProfile || !sessionStats?.success) return null;
-    if (sessionStats.today.total === 0) {
+
+    // Logging para debugging
+    console.log("📊 [MatchHistoryList] Stats de Hoy:", {
+      total: sessionStats.today.total,
+      wins: sessionStats.today.wins,
+      losses: sessionStats.today.losses,
+      winrate: sessionStats.today.winrate,
+      startMs: sessionStats.today.startMs,
+      endMs: sessionStats.today.endMs,
+      startDate: new Date(sessionStats.today.startMs).toISOString(),
+      endDate: new Date(sessionStats.today.endMs).toISOString(),
+    });
+
+    const { total, wins, losses } = sessionStats.today;
+
+    // Sin partidas jugadas
+    if (total === 0) {
       return "Hoy todavía no has jugado.";
     }
-    if (sessionStats.today.losses > 0) {
-      return `Hoy has perdido ${sessionStats.today.losses} partida${
-        sessionStats.today.losses === 1 ? "" : "s"
-      }.`;
+
+    // Solo victorias
+    if (losses === 0) {
+      return `Hoy llevas ${wins} victoria${
+        wins === 1 ? "" : "s"
+      } perfectas. ¡Sigue así!`;
     }
-    return `Hoy llevas ${sessionStats.today.wins} victoria${
-      sessionStats.today.wins === 1 ? "" : "s"
-    }.`;
+
+    // Solo derrotas
+    if (wins === 0) {
+      return `Hoy has perdido ${losses} partida${
+        losses === 1 ? "" : "s"
+      }. Tómate un respiro.`;
+    }
+
+    // Hay ambas - mostrar lo que predomina
+    if (wins > losses) {
+      return `Hoy llevas ${wins} victoria${
+        wins === 1 ? "" : "s"
+      } y ${losses} derrota${losses === 1 ? "" : "s"}. ¡Vas bien!`;
+    } else if (losses > wins) {
+      return `Hoy llevas ${losses} derrota${
+        losses === 1 ? "" : "s"
+      } y ${wins} victoria${wins === 1 ? "" : "s"}. No te rindas.`;
+    } else {
+      // Empate
+      return `Hoy llevas ${wins} victoria${
+        wins === 1 ? "" : "s"
+      } y ${losses} derrota${losses === 1 ? "" : "s"}. Todo equilibrado.`;
+    }
   }, [isOwnProfile, sessionStats]);
 
   const streakMessage = useMemo(() => {
@@ -797,32 +852,24 @@ export function MatchHistoryList({
             No hay partidas registradas
           </div>
         ) : (
-          matchesToRender.map((match: Match, idx) => (
-            <React.Fragment
-              key={
-                match.match_id ??
-                match.id ??
-                match.matches?.match_id ??
-                `${match.puuid ?? "match"}-${idx}`
-              }
-            >
-              {/* Banner de anuncio cada 7 partidas (después de la 7, 14, 21...) */}
-              {idx > 0 && idx % 7 === 0 && (
-                <div
-                  className="match-card-appear"
-                  style={{ animationDelay: `${Math.min(idx, 5) * 80}ms` }}
-                >
-                  {isMobile ? (
-                    <MobileMatchHistoryAdBanner />
-                  ) : (
-                    <MatchHistoryAdBanner />
-                  )}
-                </div>
-              )}
-              <div
-                className="match-card-appear space-y-2"
-                style={{ animationDelay: `${Math.min(idx, 5) * 80}ms` }}
+          <AnimatePresence initial={false} mode="popLayout">
+            {matchesToRender.map((match: Match, idx) => (
+              <motion.div
+                layout
+                key={match.match_id ?? match.id ?? `match-${idx}`}
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
               >
+                {/* Publicidad móvil cada 4 partidas */}
+                {isMobile && idx > 0 && idx % 4 === 0 && (
+                  <div className="mb-2">
+                    <MobileMatchHistoryAdBanner />
+                  </div>
+                )}
+
+                {/* Match Card */}
                 {isMobile ? (
                   <MobileMatchCard
                     match={match}
@@ -833,19 +880,27 @@ export function MatchHistoryList({
                     isOwnProfile={isOwnProfile}
                   />
                 ) : (
-                  <MatchCard
-                    match={match}
-                    version={ddragonVersion}
-                    linkedAccountsMap={linkedAccountsMap}
-                    recentMatches={matchesToRender}
-                    hideShareButton={hideShareButton}
-                    userId={userId}
-                    isOwnProfile={isOwnProfile}
-                  />
+                  <>
+                    {/* Publicidad desktop cada 6 partidas */}
+                    {!isMobile && idx > 0 && idx % 6 === 0 && (
+                      <div className="mb-2">
+                        <MatchHistoryAdBanner />
+                      </div>
+                    )}
+                    <MatchCard
+                      match={match}
+                      version={ddragonVersion}
+                      linkedAccountsMap={linkedAccountsMap}
+                      recentMatches={matchesToRender}
+                      hideShareButton={hideShareButton}
+                      userId={userId}
+                      isOwnProfile={isOwnProfile}
+                    />
+                  </>
                 )}
-              </div>
-            </React.Fragment>
-          ))
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
         <div className="h-1" />
       </div>

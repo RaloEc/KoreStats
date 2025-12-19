@@ -190,6 +190,10 @@ module.exports = {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(100%)' },
         },
+        "gradient-flow": {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -200,6 +204,7 @@ module.exports = {
         pulse: 'pulse 1.5s ease-in-out infinite',
         "theme-slide-right": 'theme-slide-right 0.7s ease-in-out',
         "theme-slide-down": 'theme-slide-down 0.7s ease-in-out',
+        "gradient-flow": 'gradient-flow 15s ease infinite',
       },
       typography: (theme) => ({
         DEFAULT: {
