@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ChampionCenteredSplash } from "@/components/riot/ChampionCenteredSplash";
@@ -132,7 +133,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
     matchTags.length > 0 ? matchTags : (["MVP"] as MatchTag[]);
 
   // Componente de runas
-  const runesComponent = (
+  const runesOnly = (
     <MatchRunes
       primaryStyle={primaryStyle}
       secondaryStyle={secondaryStyle}
@@ -144,27 +145,78 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
     />
   );
 
+  // Grid 2x2 completo: runas + hechizos
+  const runesComponent = (
+    <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-10 h-10">
+      {/* Fila 1: Runas */}
+      {runesOnly}
+
+      {/* Fila 2: Hechizos */}
+      {partida.summoner1Id > 0 && (
+        <div className="group/spell relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
+          <Image
+            src={`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/SummonerSpell${partida.summoner1Id}.png`}
+            alt="Hechizo 1"
+            fill
+            className="object-cover"
+            unoptimized
+          />
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
+        </div>
+      )}
+      {partida.summoner2Id > 0 && (
+        <div className="group/spell relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
+          <Image
+            src={`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/SummonerSpell${partida.summoner2Id}.png`}
+            alt="Hechizo 2"
+            fill
+            className="object-cover"
+            unoptimized
+          />
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={150}>
       <Card
-        className={`transition-shadow hover:shadow-xl border-none bg-white/70 dark:bg-slate-950/60 overflow-hidden ${
+        className={`group relative transition-all duration-500 border-none overflow-hidden ${
           isHidden ? "opacity-60" : ""
+        } ${
+          isWin
+            ? "hover:shadow-[0_20px_60px_-15px_rgba(16,185,129,0.4)] dark:hover:shadow-[0_20px_60px_-15px_rgba(16,185,129,0.3)]"
+            : "hover:shadow-[0_20px_60px_-15px_rgba(244,63,94,0.4)] dark:hover:shadow-[0_20px_60px_-15px_rgba(244,63,94,0.3)]"
         }`}
       >
-        <div className="relative min-h-[22rem]">
-          {/* Splash art base */}
+        {/* Borde con gradiente dinámico */}
+        <div className="absolute inset-0 rounded-lg p-[1px] bg-gradient-to-br from-white/40 via-white/10 to-white/40 dark:from-white/20 dark:via-white/5 dark:to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+        <div className="relative min-h-[22rem] rounded-lg overflow-hidden backdrop-blur-[1px]">
+          {/* Splash art base con tratamiento premium */}
           <div className="absolute inset-0 overflow-hidden">
             <ChampionCenteredSplash
               champion={partida.championName}
               skinId={0}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover scale-105 group-hover:scale-100 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/50 to-white/5 dark:from-black/20 dark:via-black/60 dark:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/0 to-white/10 dark:from-black/35 dark:via-black/35 dark:to-black/55" />
+            {/* Vignette dinámico según resultado */}
+            <div
+              className={`absolute inset-0 ${
+                isWin
+                  ? "bg-gradient-to-b from-emerald-900/5 via-white/60 to-emerald-50/80 dark:from-emerald-950/30 dark:via-black/70 dark:to-emerald-950/40"
+                  : "bg-gradient-to-b from-rose-900/5 via-white/60 to-rose-50/80 dark:from-rose-950/30 dark:via-black/70 dark:to-rose-950/40"
+              }`}
+            />
+            {/* Gradiente radial para profundidad */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,transparent_0%,rgba(0,0,0,0.15)_100%)] dark:bg-[radial-gradient(ellipse_at_top_right,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+            {/* Overlay de glassmorphism */}
+            <div className="absolute inset-0 backdrop-blur-[0.5px] bg-white/5 dark:bg-black/10" />
           </div>
 
-          {/* Contenido superpuesto */}
-          <div className="relative z-10 flex flex-col gap-4 p-4 sm:p-6 text-slate-900 dark:text-white">
+          {/* Contenido superpuesto con glassmorphism */}
+          <div className="relative z-10 flex flex-col gap-4 p-4 sm:p-6 text-slate-900 dark:text-white backdrop-blur-sm">
             {/* Header */}
             <MatchHeader
               isVictory={isWin}
@@ -192,8 +244,12 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
               runesComponent={runesComponent}
             />
 
-            {/* Items */}
-            <MatchItems items={partida.items} dataVersion={ddragonVersion} />
+            {/* Items con runas/hechizos */}
+            <MatchItems
+              items={partida.items}
+              dataVersion={ddragonVersion}
+              runesComponent={runesComponent}
+            />
 
             {/* Zona de comparativa + estadísticas + jugadores */}
             <div className="mt-3">

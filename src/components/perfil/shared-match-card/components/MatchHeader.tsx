@@ -93,9 +93,9 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
             {isVictory ? "Victoria" : "Derrota"}
           </span>
           {tier && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/85 px-1.5 py-1 text-slate-900 shadow-sm shadow-slate-900/10 backdrop-blur-[2px] dark:border-white/25 dark:bg-black/40 dark:text-white">
+            <div className="group/tier inline-flex items-center gap-2.5 rounded-full border-2 border-white/50 dark:border-white/30 bg-gradient-to-br from-white/90 via-white/80 to-white/70 dark:from-black/50 dark:via-black/40 dark:to-black/30 px-2.5 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:shadow-[0_6px_24px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_6px_24px_rgba(0,0,0,0.4)]">
               <RiotTierBadge tier={tier} rank={rank} size="sm" />
-              <span className="text-[11px] font-semibold tracking-wide">
+              <span className="text-xs font-black tracking-wide text-slate-900 dark:text-white">
                 {rankLabel}
               </span>
               <LPBadge
@@ -126,66 +126,53 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
         </div>
       </div>
 
-      {/* Segunda fila: nombre del campeón y ranking */}
-      <div className="flex items-center justify-between gap-3 pr-1">
-        <h3 className="text-2xl font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] flex items-center gap-2">
+      {/* Segunda fila: nombre del campeón y ranking - REDISEÑADO */}
+      <div className="flex items-start justify-between gap-3 pr-1">
+        <h3 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
           <span className="flex flex-col leading-none">
             {sharedBy && (sharedBy.username || sharedBy.public_id) && (
-              <span className="text-[11px] font-semibold text-white/80">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/70 dark:text-white/60 mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
                 {sharedBy.username ?? sharedBy.public_id}
               </span>
             )}
-            <span>{championName}</span>
+            <span className="bg-gradient-to-br from-white via-white to-white/90 dark:from-white dark:via-white dark:to-white/80 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)]">
+              {championName}
+            </span>
           </span>
           {isHidden && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-500/15 border border-amber-200/70 dark:border-amber-500/30 rounded-full px-2 py-0.5 ml-2">
-              <EyeOff className="w-3 h-3" /> Oculto para ti
+            <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-amber-900 dark:text-amber-100 bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/10 border-2 border-amber-300/60 dark:border-amber-500/40 rounded-full px-3 py-1 shadow-lg backdrop-blur-sm">
+              <EyeOff className="w-3 h-3" /> Oculto
             </span>
           )}
         </h3>
+
         {rankingPosition && (
           <div
-            className={`relative overflow-hidden flex items-center justify-center w-12 h-12 rounded-2xl font-bold text-xs tracking-tight border ${rankingBadgeClass}`}
+            className={`relative group/rank overflow-hidden flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl font-black border-2 transition-all duration-300 hover:scale-110 ${
+              rankingPosition === 1
+                ? "bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-300 border-amber-200 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-400 dark:border-amber-300 shadow-[0_8px_32px_rgba(251,191,36,0.5)] dark:shadow-[0_8px_32px_rgba(251,191,36,0.4)]"
+                : rankingPosition === 2
+                ? "bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300 border-slate-200 dark:from-slate-400 dark:via-slate-300 dark:to-slate-400 dark:border-slate-300 shadow-[0_8px_32px_rgba(148,163,184,0.4)] dark:shadow-[0_8px_32px_rgba(148,163,184,0.3)]"
+                : rankingPosition === 3
+                ? "bg-gradient-to-br from-orange-400 via-amber-600 to-orange-400 border-orange-300 dark:from-orange-500 dark:via-amber-500 dark:to-orange-500 dark:border-orange-400 shadow-[0_8px_32px_rgba(251,146,60,0.4)] dark:shadow-[0_8px_32px_rgba(251,146,60,0.3)]"
+                : "bg-gradient-to-br from-white via-slate-50 to-white border-slate-200 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700 dark:border-slate-500 shadow-[0_6px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_24px_rgba(0,0,0,0.3)]"
+            }`}
           >
-            <div className="flex flex-col items-center leading-tight text-slate-900 dark:text-white">
-              <span className="text-[10px] uppercase font-semibold opacity-80">
+            {/* Brillo superior */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-2xl" />
+            {/* Contenido */}
+            <div className="relative flex flex-col items-center leading-none text-slate-900 dark:text-slate-900">
+              <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-wider opacity-70">
                 Rank
               </span>
-              <span className="text-base font-semibold">
+              <span className="text-xl sm:text-2xl font-black mt-0.5">
                 #{rankingPosition}
               </span>
             </div>
+            {/* Efecto de brillo al hover */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/0 to-white/30 opacity-0 group-hover/rank:opacity-100 transition-opacity duration-300 rounded-2xl" />
           </div>
         )}
-      </div>
-
-      {/* Tercera fila: runas y hechizos */}
-      <div className="flex items-center gap-3 mt-1">
-        {runesComponent}
-        <div className="flex items-center gap-1">
-          {summoner1Id > 0 && (
-            <div className="relative w-6 h-6 rounded bg-white/15 overflow-hidden">
-              <Image
-                src={getSummonerSpellUrl(summoner1Id, dataVersion)}
-                alt="Hechizo 1"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-          )}
-          {summoner2Id > 0 && (
-            <div className="relative w-6 h-6 rounded bg-white/15 overflow-hidden">
-              <Image
-                src={getSummonerSpellUrl(summoner2Id, dataVersion)}
-                alt="Hechizo 2"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Cuarta fila: tipo de cola y duración */}

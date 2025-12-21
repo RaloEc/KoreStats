@@ -70,7 +70,7 @@ export function FeaturedNews({
             </span>
           </h3>
           <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-            {getExcerpt(noticia.contenido, 150)}
+            {noticia.resumen || getExcerpt(noticia.contenido, 150)}
           </div>
           <div className="mt-3 pt-3 ">
             <NoticiaMetaInfo

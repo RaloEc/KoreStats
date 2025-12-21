@@ -11,7 +11,6 @@ import {
   type ParticipantScoreEntry,
 } from "./performance-utils";
 import { TeamPlayerList } from "./TeamPlayerList";
-import { ScoreboardModal } from "@/components/riot/ScoreboardModal";
 import { TeammateTracker } from "@/components/riot/TeammateTracker";
 import {
   getChampionImageUrl,
@@ -83,6 +82,7 @@ interface PlayerSummaryProps {
   data: PlayerSummaryData;
   version: string;
   reverse?: boolean;
+  priority?: boolean;
 }
 
 const POSITION_ALIASES: Record<string, string> = {
@@ -228,19 +228,21 @@ function PlayerSummarySection({
   data,
   version,
   reverse = false,
+  priority = false,
 }: PlayerSummaryProps) {
   const keystonePerkId = getKeystonePerkId(data.perks);
   const { perkIconById, perkNameById } = usePerkAssets([keystonePerkId]);
 
   const avatarBlock = (
     <div className="flex flex-col items-center gap-1.5 w-[72px]">
-      <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-slate-600">
+      <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-slate-600 bg-slate-800">
         <Image
           src={getChampionImageUrl(data.championName, version)}
           alt={data.championName}
           fill
           sizes="64px"
           className="object-cover"
+          priority={priority}
         />
       </div>
 
@@ -255,6 +257,7 @@ function PlayerSummarySection({
                   fill
                   sizes="28px"
                   className="object-cover"
+                  unoptimized
                 />
               )}
             </div>
@@ -268,6 +271,7 @@ function PlayerSummarySection({
                   fill
                   sizes="28px"
                   className="object-cover"
+                  unoptimized
                 />
               )}
             </div>
@@ -300,6 +304,7 @@ function PlayerSummarySection({
                 fill
                 sizes="28px"
                 className="object-cover p-0.5"
+                unoptimized
               />
             </div>
           ) : null}
@@ -312,6 +317,7 @@ function PlayerSummarySection({
                 fill
                 sizes="28px"
                 className="object-cover p-0.5"
+                unoptimized
               />
             </div>
           )}
@@ -427,7 +433,11 @@ interface MatchCardProps {
   hideShareButton?: boolean;
   userId?: string;
   isOwnProfile?: boolean;
+  priority?: boolean;
+  onSelectMatch?: () => void;
 }
+
+export type { MatchCardProps };
 
 export function MatchCard({
   match,
@@ -437,8 +447,9 @@ export function MatchCard({
   hideShareButton = false,
   userId,
   isOwnProfile = false,
+  priority = false,
+  onSelectMatch,
 }: MatchCardProps) {
-  const [scoreboardModalOpen, setScoreboardModalOpen] = useState(false);
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
 
   // Validar que match.matches existe
@@ -649,7 +660,14 @@ export function MatchCard({
         Desde el modal se puede navegar a la página completa con análisis
       */}
       <div
-        onClick={() => setScoreboardModalOpen(true)}
+        role="button"
+        tabIndex={0}
+        onClick={onSelectMatch}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            onSelectMatch?.();
+          }
+        }}
         className={`
           hidden md:grid grid-cols-[60px,auto,180px,90px,200px] items-center gap-3 p-3 rounded-lg border-l-4 transition-all hover:shadow-lg hover:border-l-8 cursor-pointer
           ${isProcessing ? "opacity-70" : ""} ${
@@ -689,7 +707,11 @@ export function MatchCard({
         {/* 2. Champion summaries */}
         <div className="flex items-stretch gap-4 pr-4 border-r border-slate-800/60">
           <div className="flex-[0.9] min-w-0">
-            <PlayerSummarySection data={playerSummary} version={version} />
+            <PlayerSummarySection
+              data={playerSummary}
+              version={version}
+              priority={priority}
+            />
           </div>
           {opponentSummary && (
             <>
@@ -703,6 +725,7 @@ export function MatchCard({
                   data={opponentSummary}
                   version={version}
                   reverse
+                  priority={priority}
                 />
               </div>
             </>
@@ -728,6 +751,7 @@ export function MatchCard({
                     fill
                     sizes="28px"
                     className="object-cover"
+                    unoptimized
                   />
                 )}
               </div>
@@ -748,6 +772,7 @@ export function MatchCard({
                   fill
                   sizes="28px"
                   className="object-cover"
+                  unoptimized
                 />
               )}
             </div>
@@ -824,13 +849,6 @@ export function MatchCard({
           )}
         </div>
       </div>
-
-      {/* Modal del Scoreboard */}
-      <ScoreboardModal
-        matchId={match.match_id}
-        open={scoreboardModalOpen}
-        onOpenChange={setScoreboardModalOpen}
-      />
     </div>
   );
 }

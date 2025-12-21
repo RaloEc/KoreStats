@@ -51,6 +51,12 @@ export function NotificationBell() {
       } else if (data?.contentType === "noticia" && data?.contentSlug) {
         window.location.href = `/noticias/${data.contentSlug}${commentHash}`;
       }
+    } else if (notification.type === "new_follower" && data?.fromUserId) {
+      // Navegar al perfil del usuario que te siguió
+      window.location.href = `/perfil/${data.fromUserId}`;
+    } else if (notification.type === "friend_request" && data?.fromUserId) {
+      // Navegar al perfil del usuario que envió la solicitud
+      window.location.href = `/perfil/${data.fromUserId}`;
     } else if (data?.link) {
       // Fallback para notificaciones genéricas que traen un link directo
       window.location.href = data.link;

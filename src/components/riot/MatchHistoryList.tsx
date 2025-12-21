@@ -9,9 +9,14 @@ import {
 import type { InfiniteData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+// Removed extensive Framer Motion imports that caused layout trashing on mobile lists
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useMatchStatusDetector } from "@/hooks/use-match-status-detector";
 import type { ActiveMatchSnapshot } from "@/hooks/use-match-status-detector";
@@ -22,6 +27,7 @@ import {
   MobileMatchCard,
   getLatestDDragonVersion,
   FALLBACK_VERSION,
+  type MatchCardProps,
 } from "./match-card";
 import type { Match } from "./match-card";
 import {
@@ -29,6 +35,7 @@ import {
   MobileMatchHistoryAdBanner,
 } from "./match-card/MatchHistoryAdBanner";
 import { useAuth } from "@/context/AuthContext";
+import { ScoreboardModal } from "./ScoreboardModal";
 
 interface MatchHistoryListProps {
   userId?: string;
@@ -145,6 +152,13 @@ export function MatchHistoryList({
   const lastActiveSnapshotRef = useRef<ActiveMatchSnapshot | null>(null);
   const [endedSnapshot, setEndedSnapshot] =
     useState<ActiveMatchSnapshot | null>(null);
+
+  // Estado para controlar el modal de scoreboard centralizado
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+
+  const handleSelectMatch = useCallback((matchId: string) => {
+    setSelectedMatchId(matchId);
+  }, []);
 
   // Obtener user_id del contexto o localStorage si no se pasa por props
   useEffect(() => {
@@ -305,17 +319,6 @@ export function MatchHistoryList({
         params.set("cursor", pageParam.toString());
       }
 
-      console.log(
-        "[MatchHistoryList] 📡 Fetching page - isFirstPage:",
-        isFirstPage,
-        "limit:",
-        limit,
-        "cursor:",
-        pageParam,
-        "url:",
-        `/api/riot/matches?${params.toString()}`
-      );
-
       const response = await fetch(`/api/riot/matches?${params.toString()}`);
 
       if (!response.ok) {
@@ -323,22 +326,6 @@ export function MatchHistoryList({
       }
 
       const data = (await response.json()) as MatchHistoryPage;
-      console.log(
-        "[MatchHistoryList] 📥 Page received - matches:",
-        data.matches?.length || 0,
-        "hasMore:",
-        data.hasMore,
-        "nextCursor:",
-        data.nextCursor
-      );
-      if (data.matches && data.matches.length > 0) {
-        console.log(
-          "[MatchHistoryList] 🎮 First match in page:",
-          data.matches[0].match_id,
-          "game_creation:",
-          data.matches[0].matches?.game_creation
-        );
-      }
       return data;
     },
     getNextPageParam: (lastPage) =>
@@ -348,34 +335,6 @@ export function MatchHistoryList({
     gcTime: 60 * 60 * 1000, // 60 minutos en caché antes de garbage collection
     initialPageParam: null,
   });
-
-  // Infinite scroll: cargar más partidas al hacer scroll
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const handleScroll = () => {
-      if (!hasNextPage || isFetchingNextPage) {
-        return;
-      }
-
-      const threshold = 200;
-      const position = container.scrollTop + container.clientHeight;
-      const triggerPoint = container.scrollHeight - threshold;
-
-      if (position >= triggerPoint) {
-        fetchNextPage();
-      }
-    };
-
-    container.addEventListener("scroll", handleScroll);
-
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-    };
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   // Mutación para sincronizar partidas
   const syncMutation = useMutation({
@@ -523,6 +482,54 @@ export function MatchHistoryList({
     });
     return filtered;
   }, [pages]);
+
+  // Infinite scroll mejorado: cargar más partidas antes de llegar al final
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (!hasNextPage || isFetchingNextPage) return;
+
+      // Umbral aumentado a 800px para que la carga sea imperceptible
+      const threshold = 800;
+      const position = container.scrollTop + container.clientHeight;
+      const triggerPoint = container.scrollHeight - threshold;
+
+      if (position >= triggerPoint) {
+        console.log(
+          "[MatchHistoryList] 🚀 Pre-fetching next page (scroll threshold hit)"
+        );
+        fetchNextPage();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Observer adicional para disparar carga apenas se asoma el final
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          console.log(
+            "[MatchHistoryList] 🚀 Pre-fetching (Intersection Observer)"
+          );
+          fetchNextPage();
+        }
+      },
+      { root: scrollContainerRef.current, rootMargin: "400px" }
+    );
+
+    const sentinel = document.getElementById("match-list-sentinel");
+    if (sentinel) observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, matches.length]);
+
   const serverStats = pages[0]?.stats ?? DEFAULT_STATS;
 
   const userColor = profile?.color || "#3b82f6";
@@ -687,9 +694,7 @@ export function MatchHistoryList({
     }
 
     if (sessionStats.session.lossStreak >= 2) {
-      return `Hoy se está complicando. Llevas ${
-        sessionStats.session.lossStreak
-      } derrota${
+      return `Llevas ${sessionStats.session.lossStreak} derrota${
         sessionStats.session.lossStreak === 1 ? "" : "s"
       } seguidas. Tómate un respiro y vuelve con todo.`;
     }
@@ -715,27 +720,56 @@ export function MatchHistoryList({
 
   if (shouldShowInitialSkeleton) {
     return (
-      <div className="space-y-3 py-4">
-        {Array.from({ length: 3 }).map((_, idx) => (
+      <div className="space-y-4 py-2">
+        {Array.from({ length: 5 }).map((_, idx) => (
           <div
             key={`match-skeleton-${idx}`}
-            className="animate-pulse rounded-xl border border-slate-800/70 bg-slate-900/40 p-4"
+            className="animate-pulse rounded-xl border-l-4 border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 p-3"
           >
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded bg-slate-800/80" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-1/3 rounded bg-slate-800/80" />
-                  <div className="h-3 w-1/4 rounded bg-slate-800/70" />
+            <div className="flex flex-col md:grid md:grid-cols-[60px,auto,180px,90px,200px] gap-4 items-center">
+              {/* Metadata Skeleton */}
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                <div className="h-3 w-12 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-4 w-16 rounded bg-slate-300 dark:bg-slate-700" />
+                <div className="h-3 w-14 rounded bg-slate-200 dark:bg-slate-800" />
+              </div>
+
+              {/* Champion Summary Skeleton */}
+              <div className="flex items-center justify-center gap-4 w-full border-r border-slate-200 dark:border-slate-800/60 pr-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-14 w-14 rounded-lg bg-slate-300 dark:bg-slate-700" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-10 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-3 w-8 rounded bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                </div>
+                <div className="h-4 w-4 rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="flex items-center gap-3">
+                  <div className="space-y-2">
+                    <div className="h-3 w-10 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-3 w-8 rounded bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                  <div className="h-14 w-14 rounded-lg bg-slate-300 dark:bg-slate-700" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 6 }).map((__, itemIdx) => (
-                  <div
-                    key={`match-skeleton-item-${idx}-${itemIdx}`}
-                    className="h-5 rounded bg-slate-800/60"
-                  />
-                ))}
+
+              {/* Items Skeleton */}
+              <div className="hidden md:flex items-center gap-2">
+                <div className="grid grid-cols-3 gap-1">
+                  {Array.from({ length: 6 }).map((__, i) => (
+                    <div
+                      key={i}
+                      className="h-7 w-7 rounded bg-slate-200 dark:bg-slate-800"
+                    />
+                  ))}
+                </div>
+                <div className="h-7 w-7 rounded bg-slate-200 dark:bg-slate-800" />
+              </div>
+
+              {/* Stats Skeleton */}
+              <div className="hidden md:flex flex-col gap-2 items-center">
+                <div className="h-4 w-8 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-6 w-12 rounded bg-slate-300 dark:bg-slate-700" />
               </div>
             </div>
           </div>
@@ -852,15 +886,12 @@ export function MatchHistoryList({
             No hay partidas registradas
           </div>
         ) : (
-          <AnimatePresence initial={false} mode="popLayout">
+          <div className="space-y-4">
             {matchesToRender.map((match: Match, idx) => (
-              <motion.div
-                layout
+              <div
                 key={match.match_id ?? match.id ?? `match-${idx}`}
-                initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards"
+                style={{ animationDelay: `${idx < 5 ? idx * 50 : 0}ms` }}
               >
                 {/* Publicidad móvil cada 4 partidas */}
                 {isMobile && idx > 0 && idx % 4 === 0 && (
@@ -878,6 +909,10 @@ export function MatchHistoryList({
                     hideShareButton={hideShareButton}
                     userId={userId}
                     isOwnProfile={isOwnProfile}
+                    priority={idx < 2}
+                    onSelectMatch={() =>
+                      handleSelectMatch(match.match_id || match.id)
+                    }
                   />
                 ) : (
                   <>
@@ -895,29 +930,43 @@ export function MatchHistoryList({
                       hideShareButton={hideShareButton}
                       userId={userId}
                       isOwnProfile={isOwnProfile}
+                      priority={idx < 3}
+                      onSelectMatch={() =>
+                        handleSelectMatch(match.match_id || match.id)
+                      }
                     />
                   </>
                 )}
-              </motion.div>
+              </div>
             ))}
-          </AnimatePresence>
+            {hasNextPage && (
+              <div
+                id="match-list-sentinel"
+                className="h-10 w-full flex items-center justify-center py-8"
+              >
+                {isFetchingNextPage && (
+                  <div className="flex items-center gap-2 text-slate-400 animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-xs uppercase tracking-widest font-bold">
+                      Cargando más partidas...
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
-        <div className="h-1" />
       </div>
 
-      {isFetchingNextPage && (
-        <div className="flex items-center justify-center text-slate-400 text-sm">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Cargando más partidas...
-        </div>
-      )}
-
-      {hasNextPage && !isFetchingNextPage && matches.length > 0 && (
-        <div className="flex justify-center">
-          <Button onClick={() => fetchNextPage()} variant="outline" size="sm">
-            Cargar más partidas
-          </Button>
-        </div>
+      {/* Modal centralizado para mejor rendimiento */}
+      {selectedMatchId && (
+        <ScoreboardModal
+          matchId={selectedMatchId}
+          open={!!selectedMatchId}
+          onOpenChange={(open) => {
+            if (!open) setSelectedMatchId(null);
+          }}
+        />
       )}
     </div>
   );

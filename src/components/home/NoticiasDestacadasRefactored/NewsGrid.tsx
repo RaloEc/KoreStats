@@ -76,7 +76,7 @@ export function NewsGrid({
                   </span>
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  {getExcerpt(noticia.contenido, 100)}
+                  {noticia.resumen || getExcerpt(noticia.contenido, 100)}
                 </p>
               </div>
               <div className="mt-auto pt-2">

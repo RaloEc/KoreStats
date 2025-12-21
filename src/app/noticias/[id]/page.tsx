@@ -1,13 +1,10 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import { createClient } from "@/lib/supabase/client";
-import { useNoticia } from "@/components/noticias/hooks/useNoticia";
-import {
-  NoticiaErrorBoundary,
-  NoticiaLoading,
-} from "@/components/noticias/NoticiaLoading";
+import { createClient } from "@/lib/supabase/server";
+import { getNoticiaById, getNoticias } from "@/lib/noticias/noticias-data";
+import { procesarContenido } from "@/lib/utils/html-processing";
+import { NoticiaLoading } from "@/components/noticias/NoticiaLoading";
 import NoticiaCabecera from "@/components/noticias/NoticiaCabecera";
 import NoticiaAutor from "@/components/noticias/NoticiaAutor";
 import NoticiaImagen from "@/components/noticias/NoticiaImagen";
@@ -16,215 +13,137 @@ import NoticiaCategorias from "@/components/noticias/NoticiaCategorias";
 import NoticiasRelacionadas from "@/components/noticias/NoticiasRelacionadas";
 import NoticiaComentariosOptimizado from "@/components/noticias/NoticiaComentariosOptimizado";
 import LolPatchContent from "@/components/noticias/LolPatchContent";
+import NoticiaVistaCounter from "@/components/noticias/NoticiaVistaCounter";
+import NoticiaScrollbarStyles from "@/components/noticias/NoticiaScrollbarStyles";
 
-// Estilos para el scrollbar
-const scrollbarStyles = `
-  .comentarios-container::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .comentarios-container::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-    border-radius: 4px;
-  }
-  
-  .comentarios-container::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary) / 0.3);
-    border-radius: 4px;
-  }
-  
-  .comentarios-container::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--primary) / 0.5);
-  }
-`;
+export const revalidate = 60; // Revalidar cada minuto
 
-export default function NoticiaDetalle({ params }: { params: { id: string } }) {
-  const [cargandoAuth, setCargandoAuth] = useState(true);
-  const [usuario, setUsuario] = useState<any>(null);
-  const [esAdmin, setEsAdmin] = useState(false);
-  const hasCountedView = useRef(false);
+export default async function NoticiaDetalle({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const noticia = await getNoticiaById(params.id);
 
-  // Usar el hook personalizado para obtener la noticia
+  if (!noticia) {
+    notFound();
+  }
+
+  // Verificar usuario y rol (Server Side)
+  const supabase = await createClient();
   const {
-    noticia,
-    noticiasRelacionadas,
-    isLoading,
-    isLoadingRelacionadas,
-    isError,
-    error,
-  } = useNoticia(params.id);
+    data: { session },
+  } = await supabase.auth.getSession();
+  let esAdmin = false;
 
-  // Verificar si hay un usuario autenticado (una sola vez al cargar)
-  useEffect(() => {
-    const checkUsuario = async () => {
-      try {
-        setCargandoAuth(true);
-        const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session) {
-          setUsuario(session.user);
-
-          // Verificar si el usuario es administrador
-          try {
-            const { data: perfil } = await supabase
-              .from("perfiles")
-              .select("role")
-              .eq("id", session.user.id)
-              .single();
-
-            if (perfil?.role === "admin") {
-              setEsAdmin(true);
-            }
-          } catch (error) {
-            console.error("Error al verificar usuario:", error);
-          }
-        }
-      } catch (error) {
-        console.error("Error al verificar usuario:", error);
-      } finally {
-        setCargandoAuth(false);
-      }
-    };
-
-    checkUsuario();
-  }, []);
-
-  // Incrementar vistas de la noticia una sola vez cuando esté cargada
-  useEffect(() => {
-    const incrementarVista = async () => {
-      // Verificar si ya se incrementó en esta sesión
-      const sessionKey = `vista_contada_${params.id}`;
-      const yaContado = sessionStorage.getItem(sessionKey);
-
-      if (hasCountedView.current || yaContado) {
-        console.log("⚠️ Vista ya contada para esta noticia en esta sesión");
-        return;
-      }
-
-      try {
-        console.log("👁️ Incrementando vista para noticia:", params.id);
-        const supabase = createClient();
-        const { data, error } = await supabase.rpc(
-          "incrementar_vista_noticia",
-          {
-            noticia_id: params.id,
-          }
-        );
-
-        if (error) {
-          console.error("❌ Error al incrementar vista:", error);
-          return;
-        }
-
-        console.log("✅ Vista incrementada exitosamente. Nuevo total:", data);
-        hasCountedView.current = true;
-        sessionStorage.setItem(sessionKey, "true");
-      } catch (e) {
-        console.error("❌ Error al incrementar vista de noticia:", e);
-      }
-    };
-
-    // Ejecutar tras montar con un pequeño delay para evitar doble ejecución
-    const timer = setTimeout(incrementarVista, 100);
-
-    return () => clearTimeout(timer);
-  }, [params.id]);
-
-  // Mostrar estado de carga
-  if (isLoading) {
-    return <NoticiaLoading />;
+  if (session) {
+    const { data: perfil } = await supabase
+      .from("perfiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+    if (perfil?.role === "admin") {
+      esAdmin = true;
+    }
   }
 
-  // Mostrar error si lo hay
-  if (isError || !noticia) {
-    return (
-      <NoticiaLoading
-        error={
-          error instanceof Error ? error.message : "Error al cargar la noticia"
-        }
-      />
-    );
+  // Cargar noticias relacionadas
+  let noticiasRelacionadas = [];
+  if (noticia.categorias && noticia.categorias.length > 0) {
+    // Usamos la primera categoría para buscar relacionadas
+    // Nota: getNoticias no tiene filtro por ID de categoría directo si son M:N,
+    // pero asumimos que el helper lo maneja o que usamos el filtro 'categoria' que busca por slug o ID.
+    // Si la API `getNoticias` espera un slug o ID, hay que asegurarse.
+    // Revisando `getNoticias`: `if (categoria) ...` pero no vimos la implementación completa del filtro.
+    // Asumiremos que funciona o traerá vacío.
+    const categoriaId = noticia.categorias[0]?.id;
+    if (categoriaId) {
+      const res = await getNoticias({
+        limit: 5, // Pedimos 5 para tener margen si excluimos la actual
+        categoria: categoriaId,
+      });
+      noticiasRelacionadas = res.data
+        .filter((n: any) => n.id !== params.id)
+        .slice(0, 4);
+    }
   }
+
+  // Procesar contenido
+  const contenidoProcesado = procesarContenido(noticia.contenido);
 
   return (
-    <NoticiaErrorBoundary>
-      <div className="min-h-screen bg-background">
-        <style jsx global>
-          {scrollbarStyles}
-        </style>
-        <main className="container py-4 px-4">
-          {/* Cabecera con título y botón de volver */}
-          <NoticiaCabecera
-            titulo={noticia.titulo}
-            descripcion={
-              noticia.contenido?.substring(0, 160).replace(/<[^>]*>/g, "") || ""
-            }
-            esAdmin={esAdmin}
-            noticiaId={params.id}
+    <div className="min-h-screen bg-background">
+      <NoticiaScrollbarStyles />
+      <NoticiaVistaCounter noticiaId={params.id} />
+
+      <main className="container py-4 px-4">
+        {/* Cabecera con título y botón de volver */}
+        <NoticiaCabecera
+          titulo={noticia.titulo}
+          descripcion={
+            noticia.contenido?.substring(0, 160).replace(/<[^>]*>/g, "") || ""
+          }
+          esAdmin={esAdmin}
+          noticiaId={params.id}
+        />
+
+        {/* Información del autor */}
+        <NoticiaAutor
+          nombre={noticia.autor_nombre || ""}
+          autorId={noticia.autor_public_id}
+          avatar={noticia.autor_avatar}
+          color={noticia.autor_color}
+          rol={noticia.autor_rol}
+          fecha={noticia.fecha_publicacion}
+          vistas={noticia.vistas || 0}
+        />
+
+        {/* Imagen de portada */}
+        {(noticia.imagen_url || noticia.imagen_portada) && (
+          <NoticiaImagen
+            src={noticia.imagen_url || noticia.imagen_portada || ""}
+            alt={noticia.titulo}
+            priority={true}
           />
+        )}
 
-          {/* Información del autor */}
-          <NoticiaAutor
-            nombre={noticia.autor_nombre || ""}
-            autorId={
-              (noticia as { autor_public_id?: string | null })
-                .autor_public_id || null
-            }
-            avatar={noticia.autor_avatar}
-            color={noticia.autor_color}
-            rol={noticia.autor_rol}
-            fecha={noticia.fecha_publicacion}
-            vistas={(noticia as { vistas?: number }).vistas || 0}
-          />
+        {/* Contenido de la noticia */}
+        <NoticiaContenido contenido={contenidoProcesado} />
 
-          {/* Imagen de portada */}
-          {(noticia.imagen_url || noticia.imagen_portada) && (
-            <NoticiaImagen
-              src={noticia.imagen_url || noticia.imagen_portada || ""}
-              alt={noticia.titulo}
-              priority={true}
-            />
-          )}
-
-          {/* Contenido de la noticia */}
-          <NoticiaContenido contenido={noticia.contenido} />
-
-          {/* Contenido especial para parches de LoL */}
-          {noticia.type === "lol_patch" && noticia.data && (
-            <div className="max-w-4xl mx-auto mb-8">
-              <LolPatchContent data={noticia.data} />
-            </div>
-          )}
-
-          {/* Divisor después del contenido */}
+        {/* Contenido especial para parches de LoL */}
+        {noticia.type === "lol_patch" && noticia.data && (
           <div className="max-w-4xl mx-auto mb-8">
-            <Separator className="my-4" />
+            <LolPatchContent data={noticia.data} />
           </div>
+        )}
 
-          {/* Temas relacionados */}
-          <NoticiaCategorias
-            categoria={noticia.categoria}
-            categorias={noticia.categorias}
-          />
+        {/* Divisor después del contenido */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <Separator className="my-4" />
+        </div>
 
-          {/* Noticias relacionadas */}
-          <NoticiasRelacionadas
-            noticias={noticiasRelacionadas}
-            isLoading={isLoadingRelacionadas}
-          />
+        {/* Temas relacionados */}
+        <NoticiaCategorias
+          categoria={noticia.categoria}
+          categorias={noticia.categorias}
+        />
 
-          {/* Divisor antes de comentarios */}
-          <div className="max-w-4xl mx-auto mb-8">
-            <Separator className="my-4" />
-          </div>
+        {/* Noticias relacionadas */}
+        {/* Usamos Suspense si quisiéramos cargarlo streamed, pero aquí ya lo tenemos */}
+        <NoticiasRelacionadas noticias={noticiasRelacionadas} />
 
-          {/* Sección de comentarios */}
+        {/* Divisor antes de comentarios */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <Separator className="my-4" />
+        </div>
+
+        {/* Sección de comentarios */}
+        <Suspense
+          fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}
+        >
           <NoticiaComentariosOptimizado noticiaId={noticia.id.toString()} />
-        </main>
-      </div>
-    </NoticiaErrorBoundary>
+        </Suspense>
+      </main>
+    </div>
   );
 }

@@ -135,7 +135,6 @@ export function formatGameVersion(version: string): string {
 
 export function getChampionImg(name: string, gameVersion?: string) {
   const version = resolveAssetVersion(gameVersion);
-  // Handle special cases
   const championName = name === "FiddleSticks" ? "Fiddlesticks" : name;
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championName}.png`;
 }

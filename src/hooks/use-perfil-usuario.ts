@@ -109,11 +109,15 @@ const fetchPerfilUsuario = async (publicId: string): Promise<ProfileData> => {
   return response.json();
 };
 
-export const usePerfilUsuario = (publicId: string) => {
+export const usePerfilUsuario = (
+  publicId: string,
+  initialData?: ProfileData | null
+) => {
   return useQuery<ProfileData, Error>({
     queryKey: ["perfil", publicId],
     queryFn: () => fetchPerfilUsuario(publicId),
     enabled: !!publicId,
+    initialData: initialData || undefined,
     staleTime: 30 * 60 * 1000, // 30 minutos
     gcTime: 60 * 60 * 1000, // 60 minutos
     retry: 1,

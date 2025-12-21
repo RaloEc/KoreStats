@@ -9,7 +9,6 @@ import {
   computeParticipantScores,
   getParticipantKey as getParticipantKeyUtil,
 } from "./performance-utils";
-import { ScoreboardModal } from "@/components/riot/ScoreboardModal";
 import { TeammateTracker } from "@/components/riot/TeammateTracker";
 import type { Match } from "./MatchCard";
 import {
@@ -125,7 +124,11 @@ interface MobileMatchCardProps {
   hideShareButton?: boolean;
   userId?: string;
   isOwnProfile?: boolean;
+  priority?: boolean;
+  onSelectMatch?: () => void;
 }
+
+export type { MobileMatchCardProps };
 
 export function MobileMatchCard({
   match,
@@ -134,8 +137,9 @@ export function MobileMatchCard({
   hideShareButton = false,
   userId,
   isOwnProfile = false,
+  priority = false,
+  onSelectMatch,
 }: MobileMatchCardProps) {
-  const [scoreboardModalOpen, setScoreboardModalOpen] = useState(false);
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
 
   if (!match.matches) {
@@ -369,8 +373,9 @@ export function MobileMatchCard({
 
   return (
     <>
-      <div
-        onClick={() => setScoreboardModalOpen(true)}
+      <button
+        type="button"
+        onClick={onSelectMatch}
         className={`
           md:hidden w-full text-left rounded-xl p-4 border transition-all cursor-pointer shadow-sm
           ${
@@ -432,6 +437,7 @@ export function MobileMatchCard({
                     fill
                     sizes="56px"
                     className="object-cover"
+                    priority={priority}
                   />
                 </div>
                 <div className="flex items-center">
@@ -495,7 +501,7 @@ export function MobileMatchCard({
                     <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
                       {laneOpponent.championName}
                     </p>
-                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0">
+                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0 bg-slate-800">
                       <Image
                         src={getChampionImageUrl(
                           laneOpponent.championName,
@@ -505,6 +511,7 @@ export function MobileMatchCard({
                         fill
                         sizes="56px"
                         className="object-cover"
+                        priority={priority}
                       />
                     </div>
                     <div className="flex items-center">
@@ -570,6 +577,7 @@ export function MobileMatchCard({
                     fill
                     sizes="32px"
                     className="object-cover"
+                    unoptimized
                   />
                 )}
               </div>
@@ -611,14 +619,7 @@ export function MobileMatchCard({
             showInline={true}
           />
         </div>
-      </div>
-
-      {/* Modal del Scoreboard */}
-      <ScoreboardModal
-        matchId={match.match_id}
-        open={scoreboardModalOpen}
-        onOpenChange={setScoreboardModalOpen}
-      />
+      </button>
     </>
   );
 }

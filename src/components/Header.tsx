@@ -70,7 +70,7 @@ const Header: React.FC = () => {
 
       <div
         role="banner"
-        className="hidden lg:block fixed top-0 left-0 right-0 z-50 border-b border-gray-200/50 dark:border-gray-800/50 bg-white dark:bg-black text-gray-900 dark:text-white shadow-sm w-full"
+        className="lg:block hide-on-mobile-pwa fixed top-0 left-0 right-0 z-50 border-b border-gray-200/50 dark:border-gray-800/50 bg-white dark:bg-black text-gray-900 dark:text-white shadow-sm w-full"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-2 md:gap-4">

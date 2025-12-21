@@ -86,19 +86,6 @@ export function normalizeAvatarUrl(
     return null;
   }
 
-  // Si es URL de Google (lh3.googleusercontent.com), retornar null
-  // porque puede tener CORS issues o cambiar
-  if (
-    trimmedUrl.includes("lh3.googleusercontent.com") ||
-    trimmedUrl.includes("googleusercontent.com")
-  ) {
-    console.warn(
-      "[normalizeAvatarUrl] URL de Google detectada, usando fallback:",
-      trimmedUrl
-    );
-    return null;
-  }
-
   // Si es URL de Supabase Storage, retornar como está
   if (trimmedUrl.includes("supabase.co/storage")) {
     return trimmedUrl;

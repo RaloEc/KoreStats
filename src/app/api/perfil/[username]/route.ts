@@ -68,20 +68,24 @@ export async function GET(
 
     const userPuuid = linkedAccountRiot?.puuid || null;
 
-    // Obtener actividades ocultas por el usuario actual (si está autenticado)
+    // Obtener actividades ocultas por el DUEÑO del perfil (no por el visitante)
+    // Solo el dueño del perfil puede ocultar sus propias actividades
     let hiddenActivities: Set<string> = new Set();
-    if (currentUser) {
-      const { data: hidden } = await supabase
-        .from("activity_visibility")
-        .select("activity_type, activity_id")
-        .eq("user_id", currentUser.id);
+    const { data: hidden } = await supabase
+      .from("activity_visibility")
+      .select("activity_type, activity_id")
+      .eq("user_id", perfil.id); // Usar perfil.id, no currentUser.id
 
-      if (hidden) {
-        hiddenActivities = new Set(
-          hidden.map((h) => `${h.activity_type}:${h.activity_id}`)
-        );
-      }
+    if (hidden) {
+      hiddenActivities = new Set(
+        hidden.map((h) => `${h.activity_type}:${h.activity_id}`)
+      );
     }
+
+    console.log("[Perfil API] Actividades ocultas:", {
+      user_id: perfil.id,
+      hidden_count: hiddenActivities.size,
+    });
 
     // 2. Obtener estadísticas de actividad (solo contenido no eliminado)
     const { count: hilosCount, error: hilosCountError } = await supabase
@@ -753,6 +757,7 @@ export async function GET(
       }
     }
 
+    // Respuesta final
     const publicProfile = {
       ...perfil,
       stats: {
@@ -766,10 +771,10 @@ export async function GET(
     };
 
     return NextResponse.json(publicProfile);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Unexpected error fetching profile:", error);
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      { error: "Error interno del servidor", details: error.message },
       { status: 500 }
     );
   }

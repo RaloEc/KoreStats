@@ -154,9 +154,9 @@ export const MatchRunes: React.FC<MatchRunesProps> = ({
     typeof keystonePerkId === "number" ? perkNameById[keystonePerkId] : null;
 
   const runeIcons = (
-    <div className="flex items-center gap-1">
+    <>
       {keystoneIcon ? (
-        <div className="relative w-6 h-6 rounded-full overflow-hidden">
+        <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
           <Image
             src={keystoneIcon}
             alt={keystoneName ?? "Keystone"}
@@ -164,10 +164,12 @@ export const MatchRunes: React.FC<MatchRunesProps> = ({
             className="object-cover"
             unoptimized
           />
+          {/* Brillo superior */}
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
         </div>
       ) : (
         perkPrimaryStyle > 0 && (
-          <div className="relative w-6 h-6 rounded-full overflow-hidden">
+          <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
             <Image
               src={getRuneIconUrl(perkPrimaryStyle)}
               alt="Estilo primario"
@@ -175,11 +177,13 @@ export const MatchRunes: React.FC<MatchRunesProps> = ({
               className="object-cover"
               unoptimized
             />
+            {/* Brillo superior */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
           </div>
         )
       )}
       {perkSubStyle > 0 && (
-        <div className="relative w-5 h-5 rounded-full overflow-hidden">
+        <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
           <Image
             src={getRuneIconUrl(perkSubStyle)}
             alt="Estilo secundario"
@@ -187,9 +191,11 @@ export const MatchRunes: React.FC<MatchRunesProps> = ({
             className="object-cover"
             unoptimized
           />
+          {/* Brillo superior */}
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
         </div>
       )}
-    </div>
+    </>
   );
 
   if (hasDetailedRunes) {

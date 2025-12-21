@@ -339,7 +339,9 @@ function sortByRoleOrder(a: ActiveParticipant, b: ActiveParticipant): number {
   const bKey = b.position ? order[b.position] ?? 99 : 99;
 
   if (aKey !== bKey) return aKey - bKey;
-  return a.summonerName.localeCompare(b.summonerName);
+  if (aKey !== bKey) return aKey - bKey;
+  // If positions are the same (or both null), preserve original order (stable sort)
+  return 0;
 }
 
 export async function GET(request: NextRequest) {

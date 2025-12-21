@@ -171,8 +171,14 @@ export async function GET(request: NextRequest) {
             const soloQ = rankings.find(
               (r: any) => r.queueType === "RANKED_SOLO_5x5"
             );
+            const flexQ = rankings.find(
+              (r: any) => r.queueType === "RANKED_FLEX_SR"
+            );
 
-            if (soloQ) {
+            // Preferir SoloQ, pero usar Flex si no hay SoloQ
+            const leagueEntry = soloQ || flexQ;
+
+            if (leagueEntry) {
               // Guardar snapshot
               const { error: snapshotError } = await supabase
                 .from("lp_snapshots")
@@ -184,12 +190,12 @@ export async function GET(request: NextRequest) {
                     job.action === "snapshot_lp_start"
                       ? "pre_game"
                       : "post_game",
-                  tier: soloQ.tier,
-                  rank: soloQ.rank,
-                  league_points: soloQ.leaguePoints,
-                  wins: soloQ.wins,
-                  losses: soloQ.losses,
-                  queue_type: "RANKED_SOLO_5x5",
+                  tier: leagueEntry.tier,
+                  rank: leagueEntry.rank,
+                  league_points: leagueEntry.leaguePoints,
+                  wins: leagueEntry.wins,
+                  losses: leagueEntry.losses,
+                  queue_type: leagueEntry.queueType,
                 });
 
               if (snapshotError) {
@@ -239,7 +245,10 @@ export async function GET(request: NextRequest) {
                 }
               }
             } else {
-              result = { error: "No SoloQ ranking found" };
+              result = {
+                error: "No Ranked ranking found (SoloQ or Flex)",
+                rankings,
+              };
               success = false;
             }
           } else {

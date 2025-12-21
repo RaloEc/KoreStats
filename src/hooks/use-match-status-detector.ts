@@ -76,14 +76,19 @@ export function useMatchStatusDetector(
       return;
     }
 
+    // AbortController para cancelar peticiones pendientes al desmontar/actualizar
+    const abortController = new AbortController();
+
     // Función para verificar si hay una partida activa
     const checkActiveMatch = async () => {
+      if (abortController.signal.aborted) return;
+
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
-        if (!session?.access_token) return;
+        if (!session?.access_token || abortController.signal.aborted) return;
 
         const debugParam =
           process.env.NODE_ENV !== "production" ? "?debug=1" : "";
@@ -94,6 +99,7 @@ export function useMatchStatusDetector(
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
+          signal: abortController.signal,
         });
 
         // 401/403: auth inválida o sesión expirada. No cambiar estado.
@@ -114,6 +120,8 @@ export function useMatchStatusDetector(
         }
 
         const data = await response.json();
+
+        if (abortController.signal.aborted) return;
 
         // Si Riot falla (rate limit / error temporal) o no se pudo resolver summoner_id,
         // NO cambies estado ni snapshot.
@@ -138,12 +146,6 @@ export function useMatchStatusDetector(
 
         lastSnapshotRef.current = data as ActiveMatchSnapshot;
         onSnapshotChange?.(lastSnapshotRef.current);
-
-        console.log("[useMatchStatusDetector] API response:", {
-          hasActiveMatch: data.hasActiveMatch,
-          reason: data.reason,
-          currentStatus: lastStatusRef.current,
-        });
 
         // Si hay una partida activa, estado es "in-game"
         if (data.hasActiveMatch && lastStatusRef.current !== "in-game") {
@@ -172,6 +174,24 @@ export function useMatchStatusDetector(
               );
             });
           }
+
+          // Notificar al servidor que estamos en partida
+          fetch("/api/riot/matches/status", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              isInGame: true,
+              gameId: data.gameId || null,
+            }),
+          }).catch((err) =>
+            console.error(
+              "[useMatchStatusDetector] Error updating server status:",
+              err
+            )
+          );
 
           lastStatusRef.current = "in-game";
           onStatusChange?.("in-game");
@@ -241,6 +261,24 @@ export function useMatchStatusDetector(
             }, 30000); // 30 segundos de delay
           }
 
+          // Notificar al servidor que la partida terminó
+          fetch("/api/riot/matches/status", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              isInGame: false,
+              gameId: null,
+            }),
+          }).catch((err) =>
+            console.error(
+              "[useMatchStatusDetector] Error updating server status:",
+              err
+            )
+          );
+
           lastStatusRef.current = "online";
           onStatusChange?.("online");
         } else if (
@@ -252,7 +290,11 @@ export function useMatchStatusDetector(
           lastStatusRef.current = "online";
           onStatusChange?.("online");
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === "AbortError") {
+          // Ignorar errores por cancelación
+          return;
+        }
         console.error(
           "[useMatchStatusDetector] Error checking active match:",
           error
@@ -262,7 +304,7 @@ export function useMatchStatusDetector(
 
     // Verificar inmediatamente
     console.log("[useMatchStatusDetector] Starting initial check and polling");
-    checkActiveMatch();
+    void checkActiveMatch();
 
     // Verificar cada 10 segundos
     pollIntervalRef.current = setInterval(checkActiveMatch, 10000);
@@ -271,6 +313,7 @@ export function useMatchStatusDetector(
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
+      abortController.abort();
     };
   }, [enabled, user?.id, onStatusChange, onSnapshotChange, supabase]);
 

@@ -2,7 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { CACHE_TIME } from "../constants";
 import { Noticia, TabType } from "../types";
 
-export function useNoticias(activeTab: TabType) {
+export function useNoticias(
+  activeTab: TabType,
+  initialDestacadas?: Noticia[],
+  initialRecientes?: Noticia[]
+) {
   // Función para obtener noticias
   const fetchNoticias = async (tipo: string): Promise<Noticia[]> => {
     const res = await fetch(
@@ -20,12 +24,14 @@ export function useNoticias(activeTab: TabType) {
     queryKey: ["noticias", "destacadas"],
     queryFn: () => fetchNoticias("destacadas"),
     staleTime: CACHE_TIME,
+    initialData: initialDestacadas,
   });
 
   const { data: recientes = [], isLoading: isLoadingRecientes } = useQuery({
     queryKey: ["noticias", "recientes"],
     queryFn: () => fetchNoticias("recientes"),
     staleTime: CACHE_TIME,
+    initialData: initialRecientes,
   });
 
   const { data: populares = [], isLoading: isLoadingPopulares } = useQuery({
@@ -45,9 +51,9 @@ export function useNoticias(activeTab: TabType) {
   // Loading solo de la pestaña activa (las otras ya están cargadas)
   const loading =
     activeTab === "destacadas"
-      ? isLoadingDestacadas
+      ? isLoadingDestacadas && !initialDestacadas
       : activeTab === "recientes"
-      ? isLoadingRecientes
+      ? isLoadingRecientes && !initialRecientes
       : isLoadingPopulares;
 
   return {

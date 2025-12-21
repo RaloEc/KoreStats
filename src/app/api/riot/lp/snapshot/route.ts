@@ -204,27 +204,6 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Obtener el token de autorización
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Missing or invalid authorization header" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.slice(7);
-
-    // Verificar el token y obtener el usuario
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Obtener gameId de query params
     const { searchParams } = new URL(request.url);
     const gameId = searchParams.get("gameId");
@@ -237,21 +216,49 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Si se especifica userId, usamos service role para bypassear RLS (para perfiles públicos)
-    // Si no, usamos el cliente normal autenticado (solo propios)
-    const clientToUse = targetUserId
-      ? createClient(supabaseUrl, supabaseServiceKey)
-      : supabase;
+    // Obtener el token de autorización (opcional si hay targetUserId)
+    const authHeader = request.headers.get("authorization");
+    let user = null;
 
-    const userIdToQuery = targetUserId || user.id;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser(token);
+      user = authUser;
+    }
+
+    // Si no hay usuario autenticado Y no hay targetUserId, rechazar
+    if (!user && !targetUserId) {
+      return NextResponse.json(
+        { error: "Missing or invalid authorization header" },
+        { status: 401 }
+      );
+    }
+
+    // Si se especifica userId, usamos service role para bypassear RLS (para perfiles públicos)
+    // Si no, usamos el cliente normal autenticado (solo propios) - aunque aquí ya estamos usando service key
+    const clientToUse = supabase;
+
+    const userIdToQuery = targetUserId || user?.id;
 
     // Obtener snapshots para esta partida
+    console.log(`[GET /api/riot/lp/snapshot] Querying DB:`, {
+      userIdToQuery,
+      gameId: parseInt(gameId),
+    });
+
     const { data: snapshots, error: snapshotsError } = await clientToUse
       .from("lp_snapshots")
       .select("*")
       .eq("user_id", userIdToQuery)
       .eq("game_id", parseInt(gameId))
       .order("created_at", { ascending: true });
+
+    console.log(`[GET /api/riot/lp/snapshot] DB Result:`, {
+      count: snapshots?.length || 0,
+      error: snapshotsError,
+    });
 
     if (snapshotsError) {
       console.error(

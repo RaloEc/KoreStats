@@ -65,8 +65,8 @@ export const TeamComparison: React.FC<TeamComparisonProps> = ({
   };
 
   return (
-    <div className="space-y-3 p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
-      <h4 className="text-xs uppercase font-bold text-slate-700 dark:text-white/70 tracking-wide">
+    <div className="group/comparison space-y-3 p-4 rounded-2xl border border-white/40 dark:border-white/20 bg-white/30 dark:bg-black/30 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:bg-white/40 dark:hover:bg-black/40 hover:shadow-[0_12px_48px_rgba(0,0,0,0.16)] dark:hover:shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+      <h4 className="text-[10px] sm:text-xs uppercase font-black text-slate-700 dark:text-slate-200 tracking-widest mb-1">
         Comparativa vs Equipo
       </h4>
 

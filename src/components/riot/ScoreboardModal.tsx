@@ -145,16 +145,19 @@ export function ScoreboardModal({
 
   const handleViewAnalysis = () => {
     onOpenChange(false);
-    router.push(`/match/${matchId}`);
+    // Use window.location for faster immediate navigation on heavy pages
+    window.location.href = `/match/${matchId}`;
   };
 
   const handleClose = () => {
     onOpenChange(false);
   };
 
-  if (!matchData && !loading && !error) {
-    return null;
-  }
+  // Removed conditional null return to allow immediate rendering of the dialog
+  // This ensures the modal opens immediately with a spinner instead of waiting for data fetch
+  // if (!matchData && !loading && !error) {
+  //   return null;
+  // }
 
   const { match, participants } = matchData || {};
   const gameVersion =

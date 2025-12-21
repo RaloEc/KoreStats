@@ -5,14 +5,27 @@ import { getItemImageUrl } from "@/components/riot/match-card/helpers";
 interface MatchItemsProps {
   items: number[];
   dataVersion: string;
+  runesComponent?: React.ReactNode;
 }
 
 export const MatchItems: React.FC<MatchItemsProps> = ({
   items,
   dataVersion,
+  runesComponent,
 }) => {
   return (
-    <div className="flex justify-center flex-wrap gap-2 mt-2">
+    <div className="flex items-center justify-center flex-wrap gap-2 mt-2">
+      {/* Grid de runas/hechizos */}
+      {runesComponent && (
+        <>
+          {runesComponent}
+
+          {/* Divider vertical */}
+          <div className="h-10 w-px bg-gradient-to-b from-transparent via-slate-300 dark:via-slate-600 to-transparent mx-1" />
+        </>
+      )}
+
+      {/* Items */}
       {items.slice(0, 6).map((itemId, idx) => (
         <div
           key={idx}

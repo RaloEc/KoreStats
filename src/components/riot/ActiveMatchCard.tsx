@@ -16,6 +16,9 @@ import {
   getQueueName,
 } from "@/components/riot/match-card/helpers";
 import { usePerkAssets } from "@/components/riot/match-card/RunesTooltip";
+import useEmblaCarousel from "embla-carousel-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 type SpectatorPerks = {
   perkIds: number[];
@@ -229,6 +232,8 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
   const { supabase } = useAuth();
   const queryClient = useQueryClient();
   const wasInGameRef = useRef<boolean>(false);
+  const isMobile = useIsMobile();
+  const [emblaRef] = useEmblaCarousel({ active: isMobile, align: "start" });
 
   // Mutación para sincronizar historial
   const syncMutation = useMutation({
@@ -276,7 +281,6 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
       if (userId) {
         // Perfil público: no requerimos autenticación
         url += `?userId=${userId}${debugParam}`;
-        console.log("[ActiveMatchCard] 🔵 Public profile, fetching URL:", url);
       } else {
         // Perfil propio: requerimos autenticación
         const {
@@ -284,7 +288,6 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
         } = await supabase.auth.getSession();
 
         if (!session?.access_token) {
-          console.warn("[ActiveMatchCard] 🔴 No session token");
           return { hasActiveMatch: false, reason: "No session" };
         }
 
@@ -292,7 +295,6 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
         if (debugParam) {
           url += `?debug=1`;
         }
-        console.log("[ActiveMatchCard] 🔵 Own profile, fetching URL:", url);
       }
 
       const response = await fetch(url, {
@@ -300,15 +302,11 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
         headers,
       });
 
-      console.log("[ActiveMatchCard] 🟢 Response status:", response.status);
-
       if (!response.ok) {
-        console.error("[ActiveMatchCard] 🔴 Request failed");
         return { hasActiveMatch: false, reason: "Request failed" };
       }
 
       const data = (await response.json()) as ActiveMatchResponse;
-      console.log("[ActiveMatchCard] ✅ Data received:", data);
       return data;
     },
     refetchInterval: 10_000,
@@ -391,33 +389,43 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
         </div>
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-sky-700 dark:text-sky-300">
-            Equipo azul
+      <div
+        className={cn(
+          "mt-3",
+          isMobile ? "overflow-hidden" : "grid gap-3 md:grid-cols-2"
+        )}
+        ref={emblaRef}
+      >
+        <div className={cn(isMobile ? "flex touch-pan-y" : "contents")}>
+          {/* Slide/Column 1: Blue Team */}
+          <div className={cn("space-y-1", isMobile && "min-w-full pl-1 pr-4")}>
+            <div className="text-xs font-semibold text-sky-700 dark:text-sky-300 mb-2 px-1">
+              Equipo azul
+            </div>
+            {ROLE_ORDER.map((role) => (
+              <ParticipantRow
+                key={`blue-${role.key}`}
+                participant={team100ByPos.get(role.key) ?? null}
+                side="blue"
+                perkIconById={perkIconById}
+              />
+            ))}
           </div>
-          {ROLE_ORDER.map((role) => (
-            <ParticipantRow
-              key={`blue-${role.key}`}
-              participant={team100ByPos.get(role.key) ?? null}
-              side="blue"
-              perkIconById={perkIconById}
-            />
-          ))}
-        </div>
 
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-rose-700 dark:text-rose-300">
-            Equipo rojo
+          {/* Slide/Column 2: Red Team */}
+          <div className={cn("space-y-1", isMobile && "min-w-full pl-4 pr-1")}>
+            <div className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-2 px-1">
+              Equipo rojo
+            </div>
+            {ROLE_ORDER.map((role) => (
+              <ParticipantRow
+                key={`red-${role.key}`}
+                participant={team200ByPos.get(role.key) ?? null}
+                side="red"
+                perkIconById={perkIconById}
+              />
+            ))}
           </div>
-          {ROLE_ORDER.map((role) => (
-            <ParticipantRow
-              key={`red-${role.key}`}
-              participant={team200ByPos.get(role.key) ?? null}
-              side="red"
-              perkIconById={perkIconById}
-            />
-          ))}
         </div>
       </div>
     </div>

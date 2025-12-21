@@ -2,6 +2,7 @@ import { Json } from "../lib/database.types";
 
 export type NotificationType =
   | "friend_request"
+  | "new_follower"
   | "info"
   | "news_comment"
   | "thread_comment"

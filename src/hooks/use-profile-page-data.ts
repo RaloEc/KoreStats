@@ -159,7 +159,10 @@ async function fetchDynamicProfileData(
 // HOOK PRINCIPAL
 // ============================================================================
 
-export function useProfilePageData() {
+export function useProfilePageData(
+  initialStaticData?: StaticProfileData | null,
+  initialDynamicData?: DynamicProfileData | null
+) {
   const { user, session, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
@@ -167,6 +170,7 @@ export function useProfilePageData() {
   const staticQuery = useQuery({
     queryKey: ["profile", "static", user?.id],
     queryFn: fetchStaticProfileData,
+    initialData: initialStaticData || undefined,
     staleTime: CACHE_TIMES.static.staleTime,
     gcTime: CACHE_TIMES.static.gcTime,
     enabled: !!user?.id && !!session,
@@ -178,6 +182,7 @@ export function useProfilePageData() {
   const dynamicQuery = useQuery({
     queryKey: ["profile", "dynamic", user?.id],
     queryFn: () => fetchDynamicProfileData(user!.id),
+    initialData: initialDynamicData || undefined,
     staleTime: CACHE_TIMES.dynamic.staleTime,
     gcTime: CACHE_TIMES.dynamic.gcTime,
     enabled: !!user?.id && !!session && !!staticQuery.data,

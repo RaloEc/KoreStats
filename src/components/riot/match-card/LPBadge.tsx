@@ -24,16 +24,9 @@ export function LPBadge({
       // If we have a target userId, we pass it. If not, API defaults to logged in user.
       const url = new URL("/api/riot/lp/snapshot", window.location.origin);
       url.searchParams.set("gameId", gameId.toString());
-      if (userId && !isOwnProfile) {
+      if (userId) {
         url.searchParams.set("userId", userId);
       }
-
-      console.log("[LPBadge] Fetching LP snapshot:", {
-        gameId,
-        userId,
-        isOwnProfile,
-        url: url.toString(),
-      });
 
       const headers: HeadersInit = {};
       if (session?.access_token) {
@@ -42,15 +35,12 @@ export function LPBadge({
 
       const res = await fetch(url.toString(), { headers });
 
-      console.log("[LPBadge] Response status:", res.status);
-
       if (!res.ok) {
         const errorText = await res.text();
         console.error("[LPBadge] Error response:", errorText);
         return null;
       }
       const data = await res.json();
-      console.log("[LPBadge] Response data:", data);
       return data;
     },
     enabled: !!gameId,
@@ -64,12 +54,6 @@ export function LPBadge({
   if (!lpData?.lpChange) return null;
 
   const { gained } = lpData.lpChange;
-
-  console.log("[LPBadge] Rendering badge:", {
-    gameId,
-    gained,
-    lpChange: lpData.lpChange,
-  });
 
   const isPositive = gained > 0;
   const isZero = gained === 0;

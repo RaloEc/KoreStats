@@ -96,6 +96,8 @@ export const FeedActividad = ({
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [hiddenItems, setHiddenItems] = React.useState<Set<string>>(new Set());
 
+  // Debug eliminado
+
   const handleDeleteMatch = async (entryId: string) => {
     if (
       !confirm("¿Estás seguro de que deseas eliminar esta partida compartida?")
@@ -181,7 +183,7 @@ export const FeedActividad = ({
 
   const getContentIndicators = React.useMemo(() => {
     return (contenido: string) => {
-      if (!contenido || typeof document === "undefined") {
+      if (!contenido) {
         return {
           hasCode: false,
           hasTweet: false,
@@ -192,24 +194,14 @@ export const FeedActividad = ({
         };
       }
 
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = contenido;
-
-      const hasCode =
-        tempDiv.querySelector("pre") !== null ||
-        tempDiv.querySelector("code") !== null;
-      const hasTweet =
-        tempDiv.querySelector('[data-type="twitter-embed"]') !== null;
-      const hasYoutube = Array.from(tempDiv.querySelectorAll("iframe")).some(
-        (iframe) => {
-          const src = iframe.getAttribute("src") ?? "";
-          return /youtube\.com|youtu\.be/.test(src);
-        }
+      const hasCode = /<pre|<code/i.test(contenido);
+      const hasTweet = /data-type="twitter-embed"/i.test(contenido);
+      const hasYoutube =
+        /youtube\.com|youtu\.be/i.test(contenido) && /<iframe/i.test(contenido);
+      const hasImages = /<img/i.test(contenido);
+      const hasMentions = /class="[^"]*editor-mention[^"]*"|@\w+/i.test(
+        contenido
       );
-      const hasImages = tempDiv.querySelector("img") !== null;
-      const hasMentions =
-        tempDiv.querySelector(".editor-mention") !== null ||
-        /@\w+/.test(tempDiv.textContent ?? "");
 
       return {
         hasCode,
@@ -341,7 +333,10 @@ export const FeedActividad = ({
                       >
                         {hilo.categoria_titulo}
                       </span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span
+                        className="text-xs text-muted-foreground flex items-center gap-1"
+                        suppressHydrationWarning
+                      >
                         <Clock className="w-3 h-3" />
                         {formatearFecha(hilo.created_at)}
                       </span>
@@ -382,6 +377,7 @@ export const FeedActividad = ({
                     <div
                       className="text-sm leading-relaxed space-y-2"
                       dangerouslySetInnerHTML={{ __html: hilo.contenido }}
+                      suppressHydrationWarning
                     />
                   </div>
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent" />
@@ -496,7 +492,10 @@ export const FeedActividad = ({
                         Respuesta en: {post.hilo_titulo}
                       </h3>
                     </Link>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <span
+                      className="text-xs text-muted-foreground flex items-center gap-1 mt-1"
+                      suppressHydrationWarning
+                    >
                       <Clock className="w-3 h-3" />
                       {formatearFecha(post.created_at)}
                     </span>
@@ -588,7 +587,10 @@ export const FeedActividad = ({
                       </h3>
                     </Link>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span
+                        className="text-xs text-muted-foreground flex items-center gap-1"
+                        suppressHydrationWarning
+                      >
                         <Clock className="w-3 h-3" />
                         {formatearFecha(record.created_at)}
                       </span>

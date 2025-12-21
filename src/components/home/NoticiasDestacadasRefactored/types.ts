@@ -11,6 +11,7 @@ export interface Noticia {
   votos?: number;
   comentarios_count?: number;
   mi_voto?: number | null;
+  resumen?: string;
   categorias?: {
     categoria: {
       nombre: string;

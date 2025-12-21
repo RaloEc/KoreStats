@@ -93,9 +93,9 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = ({
     return (
       <div
         key={`${player.team}-${idx}`}
-        className="flex items-center gap-1.5 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/60"
+        className="group/player flex items-center gap-2 p-2 rounded-lg bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/60 dark:border-white/20 shadow-sm transition-all duration-200 hover:bg-white/70 dark:hover:bg-black/70 hover:scale-[1.02]"
       >
-        <div className="relative w-6 h-6 rounded overflow-hidden bg-white/70 dark:bg-white/15 shrink-0">
+        <div className="relative w-7 h-7 rounded-md overflow-hidden bg-white/80 dark:bg-white/20 shrink-0 shadow-sm">
           <Image
             src={getChampionImageUrl(champKey, dataVersion)}
             alt={player.championName}
@@ -107,7 +107,7 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = ({
         <div className="min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-[10px] font-bold text-slate-900 dark:text-white truncate cursor-help">
+              <div className="text-[10px] sm:text-xs font-black text-slate-900 dark:text-slate-50 truncate cursor-help">
                 {player.summonerName}
               </div>
             </TooltipTrigger>
@@ -115,10 +115,10 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = ({
               {player.summonerName}
             </TooltipContent>
           </Tooltip>
-          <div className="text-[9px] text-slate-700 dark:text-white/70 truncate">
+          <div className="text-[9px] sm:text-[10px] text-slate-700 dark:text-slate-200 truncate font-semibold">
             {player.championName}
           </div>
-          <div className="text-[8px] text-slate-600 dark:text-white/60">
+          <div className="text-[8px] sm:text-[9px] text-slate-600 dark:text-slate-300 font-bold">
             {player.kills}/{player.deaths}/{player.assists}
           </div>
         </div>
@@ -127,8 +127,8 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = ({
   };
 
   return (
-    <div className="p-3 rounded-xl border border-slate-200/60 bg-white dark:border-white/10 dark:bg-slate-950">
-      <h4 className="text-xs uppercase font-bold text-slate-700 dark:text-white/70 tracking-wide mb-2">
+    <div className="group/teams p-4 rounded-2xl border border-white/40 dark:border-white/20 bg-white/30 dark:bg-black/30 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:bg-white/40 dark:hover:bg-black/40 hover:shadow-[0_12px_48px_rgba(0,0,0,0.16)] dark:hover:shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+      <h4 className="text-[10px] sm:text-xs uppercase font-black text-slate-700 dark:text-slate-200 tracking-widest mb-3">
         Equipos
       </h4>
       <div className="grid grid-cols-2 gap-2">

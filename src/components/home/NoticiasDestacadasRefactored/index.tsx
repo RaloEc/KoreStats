@@ -13,14 +13,18 @@ import { NewsSidebar } from "./NewsSidebar";
 import { NewsSkeleton } from "./NewsSkeleton";
 import { useNoticias } from "./hooks/useNoticias";
 import { useThemeDetection } from "./hooks/useThemeDetection";
-import { TabType } from "./types";
+import { Noticia, TabType } from "./types";
 
 interface NoticiasDestacadasProps {
   className?: string;
+  initialNoticias?: Noticia[];
+  initialRecientes?: Noticia[];
 }
 
 function NoticiasDestacadasContent({
   className = "",
+  initialNoticias,
+  initialRecientes,
 }: NoticiasDestacadasProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -31,7 +35,11 @@ function NoticiasDestacadasContent({
   const [activeTab, setActiveTab] = useState<TabType>("destacadas");
 
   // Cargar noticias usando el hook personalizado
-  const { noticias, ultimasNoticias, loading } = useNoticias(activeTab);
+  const { noticias, ultimasNoticias, loading } = useNoticias(
+    activeTab,
+    initialNoticias,
+    initialRecientes
+  );
 
   // Manejador para el clic en el perfil del autor
   const handleProfileClick = useCallback(

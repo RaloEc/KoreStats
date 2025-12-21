@@ -55,3 +55,41 @@
 .backdrop-exit {
   animation: fadeOut 0.2s ease-in;
 }
+
+/* 
+   PWA Only Navbar
+   Oculta el navbar por defecto (en navegador móvil)
+   y solo lo muestra cuando la app está en modo standalone (PWA)
+*/
+.pwa-only-nav {
+  display: none;
+}
+
+@media all and (display-mode: standalone) {
+  .pwa-only-nav {
+    display: block;
+  }
+}
+
+/* 
+   Browser Header Logic
+   Controla la visibilidad del Header principal en móviles.
+   
+   Por defecto (browser): Visible
+   En PWA (standalone): Oculto (porque usamos el navbar inferior)
+   En Desktop: Siempre visible (controlado por media queries de Tailwind si es necesario)
+*/
+
+@media all and (display-mode: standalone) {
+  .hide-on-mobile-pwa {
+    display: none !important;
+  }
+}
+
+/* En desktop (lg+), queremos que siempre se muestre el header, incluso en PWA,
+   ya que el navbar inferior se oculta en desktop */
+@media (min-width: 1024px) {
+  .hide-on-mobile-pwa {
+    display: block !important;
+  }
+}

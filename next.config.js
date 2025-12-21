@@ -22,6 +22,21 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         },
       },
     },
+
+    {
+      urlPattern: /^https:\/\/(ddragon\.leagueoflegends\.com|raw\.communitydragon\.org|cdn\.communitydragon\.org)\/.*$/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'riot-cdn-assets',
+        expiration: {
+          maxEntries: 1000,
+          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*$/,
       handler: 'NetworkFirst',
