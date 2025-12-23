@@ -546,7 +546,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
             </div>
 
             {/* Botones editar, eliminar y reportar a la derecha */}
-            <div className="flex items-center gap-2 sm:gap-1">
+            <div className="flex items-center gap-4">
               {isAuthor && onEdit && (
                 <button
                   onClick={() => {
@@ -558,7 +558,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                   aria-label="Editar comentario"
                 >
                   <EditIcon className="w-4 h-4" />
-                  <span className="sm:hidden">Editar</span>
+                  <span className="sr-only">Editar</span>
                 </button>
               )}
 
@@ -570,7 +570,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                   aria-label="Eliminar comentario"
                 >
                   <DeleteIcon className="w-4 h-4" />
-                  <span className="sm:hidden">Eliminar</span>
+                  <span className="sr-only">Eliminar</span>
                 </button>
               )}
 

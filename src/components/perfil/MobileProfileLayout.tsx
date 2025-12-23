@@ -196,7 +196,7 @@ export default function MobileProfileLayout({
         </div>
 
         {/* Sistema de Pestañas */}
-        <div className="px-4 mt-2">
+        <div className="px-4 mt-2 sticky top-0 z-20 bg-white dark:bg-black amoled:bg-black py-2 shadow-sm">
           <ProfileTabs
             hasRiotAccount={!!riotAccount}
             currentTab={currentTab}
@@ -204,28 +204,28 @@ export default function MobileProfileLayout({
           />
         </div>
 
-        {/* Contenido según pestaña */}
-        {currentTab === "posts" ? (
-          <>
-            {/* Indicador de deslizar + Título */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 mt-2">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
-                Actividad
-              </h2>
-            </div>
+        {/* Contenido según pestaña - Renderizado condicional con display para mantener estado */}
+        <div className={currentTab === "posts" ? "block" : "hidden"}>
+          {/* Indicador de deslizar + Título */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 mt-2">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
+              Actividad
+            </h2>
+          </div>
 
-            {/* Feed de actividad con scroll infinit */}
-            <div className="px-4 py-4 pb-20">
-              <UserActivityFeedContainer
-                fetchActivities={fetchActivities}
-                userColor={perfil.color}
-                initialPage={1}
-                itemsPerPage={10}
-                isAdmin={perfil.role.toLowerCase() === "admin"}
-              />
-            </div>
-          </>
-        ) : (
+          {/* Feed de actividad con scroll infinit */}
+          <div className="px-4 py-4 pb-20">
+            <UserActivityFeedContainer
+              fetchActivities={fetchActivities}
+              userColor={perfil.color}
+              initialPage={1}
+              itemsPerPage={10}
+              isAdmin={perfil.role.toLowerCase() === "admin"}
+            />
+          </div>
+        </div>
+
+        <div className={currentTab !== "posts" ? "block" : "hidden"}>
           <div className="px-4 py-4 pb-20 space-y-6">
             {!riotAccount && isOwnProfile ? (
               <RiotEmptyState
@@ -276,7 +276,7 @@ export default function MobileProfileLayout({
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Indicador visual fijo en la pantalla - Flecha para deslizar */}

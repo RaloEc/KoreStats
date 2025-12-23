@@ -29,7 +29,13 @@ function extractFirstParagraph(html: string): string {
   return textMatch.substring(0, 100) + (textMatch.length > 100 ? "..." : "");
 }
 
+import { useUserTheme } from "@/hooks/useUserTheme";
+
 export function HiloCarouselCard({ hilo }: HiloCarouselCardProps) {
+  const { userColor } = useUserTheme(); // Hook para obtener el color del usuario actual
+  // Nota: Si quisiéramos usar el color de la CATEGORÍA del hilo, necesitaríamos que el backend lo envíe.
+  // Por ahora usaremos un diseño neutral pero elegante o el color del usuario para detalles.
+
   const firstImage = extractFirstImage(hilo.contenido);
   const firstText = extractFirstParagraph(hilo.contenido);
   const hasWeaponStats = hilo.weapon_stats_record?.stats;
@@ -40,94 +46,101 @@ export function HiloCarouselCard({ hilo }: HiloCarouselCardProps) {
       className="group block h-full"
       prefetch={false}
     >
-      <div className="flex flex-col h-full bg-white dark:bg-black amoled:bg-black rounded-lg border border-gray-200 dark:border-gray-800 amoled:border-gray-900 overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
-        {/* Imagen o Estadísticas del Arma */}
+      <div className="flex flex-col h-full bg-white dark:bg-black amoled:bg-black rounded-xl border border-gray-200 dark:border-gray-800 amoled:border-gray-900 overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        {/* Contenido Visual Principal */}
         {hasWeaponStats ? (
-          <div className="relative w-full h-[22rem] md:h-[22rem] lg:h-[22rem] bg-gray-50 dark:bg-black amoled:bg-black overflow-hidden flex items-center justify-center p-0 md:p-1">
-            <div className="h-full w-full max-w-sm">
+          <div className="relative w-full h-48 bg-gray-50 dark:bg-black amoled:bg-black overflow-hidden flex items-center justify-center p-0 md:p-1">
+            <div className="h-full w-full max-w-sm scale-90 origin-center">
               <WeaponStatsCard
                 stats={hilo.weapon_stats_record!.stats}
-                className="h-full w-full"
+                className="h-full w-full shadow-none border-none"
               />
             </div>
           </div>
         ) : firstImage ? (
-          <div className="relative w-full h-[22rem] md:h-[22rem] lg:h-[22rem] bg-gradient-to-br from-gray-100 to-gray-200 dark:bg-black amoled:bg-black overflow-hidden flex items-center justify-center">
+          <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-900 overflow-hidden">
             <Image
               src={firstImage}
               alt={hilo.titulo}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               loading="lazy"
             />
+            {/* Gradiente sutil para mejorar legibilidad si quisiéramos poner texto encima */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
         ) : (
-          <div className="relative w-full h-[22rem] md:h-[22rem] lg:h-[22rem] bg-white dark:bg-black amoled:bg-black overflow-hidden p-4 md:p-6 flex flex-col">
-            {/* Título */}
-            <h3 className="font-semibold text-sm line-clamp-2 text-gray-900 dark:text-gray-100 amoled:text-gray-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {hilo.titulo}
-            </h3>
+          <div className="relative w-full h-48 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black overflow-hidden p-6 flex flex-col justify-center">
+            {/* Decoración de fondo (Watermark) */}
+            <MessageSquare
+              className="absolute -right-4 -bottom-4 w-32 h-32 text-gray-200 dark:text-gray-800/50 opacity-50 rotate-[-10deg]"
+              strokeWidth={1}
+            />
 
-            {/* Preview de texto */}
-            <p className="text-xs text-gray-600 dark:text-gray-400 amoled:text-gray-500 line-clamp-4 flex-1">
-              {firstText}
-            </p>
+            <div className="relative z-10">
+              {/* Categoría Placeholder o Icono */}
+              <div className="mb-3 w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+
+              {/* Título Grande para hilos sin imagen */}
+              <h3 className="font-bold text-lg leading-tight text-gray-900 dark:text-gray-100 line-clamp-3 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {hilo.titulo}
+              </h3>
+            </div>
           </div>
         )}
 
-        {/* Contenido */}
-        <div className="flex flex-col flex-1 p-3">
-          {/* Título (solo si hay imagen o estadísticas) */}
-          {(hasWeaponStats || firstImage) && (
-            <h3 className="font-semibold text-sm line-clamp-2 text-gray-900 dark:text-gray-100 amoled:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {hilo.titulo}
-            </h3>
-          )}
-
-          {/* Preview de texto (solo si hay imagen) */}
-          {firstImage && !hasWeaponStats && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 amoled:text-gray-500 line-clamp-2 mb-2">
+        {/* Sección de detalles (Título pequeño si hay imagen, texto si no, footer) */}
+        <div className="flex flex-col flex-1 p-4 border-t border-gray-100 dark:border-gray-800/50">
+          {/* Si hay imagen o stats, mostramos título aquí. Si NO, ya está arriba grande. */}
+          {hasWeaponStats || firstImage ? (
+            <>
+              <h3 className="font-semibold text-base line-clamp-2 text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {hilo.titulo}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 flex-1">
+                {firstText}
+              </p>
+            </>
+          ) : (
+            /* Si no hay imagen, mostramos más texto descriptivo aquí */
+            <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 mb-4 flex-1">
               {firstText}
             </p>
           )}
 
-          {/* Autor y Estadísticas en una línea */}
-          <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-gray-100 dark:border-gray-800 amoled:border-gray-900">
-            {/* Autor a la izquierda */}
-            <div className="flex items-center gap-2 min-w-0">
-              <Avatar className="h-5 w-5 flex-shrink-0">
+          {/* Footer: Autor y Stats */}
+          <div className="flex items-center justify-between gap-2 mt-auto pt-2">
+            <div className="flex items-center gap-2 max-w-[65%]">
+              <Avatar className="h-6 w-6 shrink-0 ring-1 ring-gray-100 dark:ring-gray-800">
                 <AvatarImage src={hilo.autor?.avatar_url || ""} />
-                <AvatarFallback className="text-xs">
+                <AvatarFallback className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500">
                   {hilo.autor?.username?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-600 dark:text-gray-400 amoled:text-gray-500 truncate">
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-medium text-gray-900 dark:text-gray-200 truncate">
                   {hilo.autor?.username}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 amoled:text-gray-600">
+                </span>
+                <span className="text-[10px] text-gray-400">
                   {format(new Date(hilo.created_at), "d MMM", { locale: es })}
-                </p>
+                </span>
               </div>
             </div>
 
-            {/* Estadísticas a la derecha */}
-            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 amoled:text-gray-500 flex-shrink-0">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+              <div className="flex items-center gap-1" title="Vistas">
                 <Eye className="h-3.5 w-3.5" />
-                <span>{hilo.vistas}</span>
+                <span className="font-medium text-gray-600 dark:text-gray-400">
+                  {hilo.vistas}
+                </span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" title="Respuestas">
                 <MessageSquare className="h-3.5 w-3.5" />
-                <span>{hilo.respuestas ?? 0}</span>
+                <span className="font-medium text-gray-600 dark:text-gray-400">
+                  {hilo.respuestas ?? 0}
+                </span>
               </div>
-              {hilo.votos !== undefined && hilo.votos !== 0 && (
-                <div className="flex items-center gap-1">
-                  <ThumbsUp className="h-3.5 w-3.5" />
-                  <span>{hilo.votos}</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

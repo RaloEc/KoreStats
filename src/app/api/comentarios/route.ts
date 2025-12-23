@@ -405,6 +405,16 @@ export async function GET(request: Request) {
         (c) => !c.parent_id
       );
 
+      // Encontrar la solución si existe
+      const solucion = comentariosPrincipales.find((c) => c.es_solucion);
+
+      // Filtrar la solución de la lista principal para no duplicarla
+      if (solucion) {
+        comentariosPrincipales = comentariosPrincipales.filter(
+          (c) => c.id !== solucion.id
+        );
+      }
+
       if (sortBy === "replies") {
         // Contar respuestas para cada comentario
         const contarRespuestas = (commentId: string): number => {
@@ -418,6 +428,13 @@ export async function GET(request: Request) {
           const countB = contarRespuestas(b.id);
           return countB - countA;
         });
+      } else if (sortBy === "votes") {
+        // Ordenar por votos (descendente)
+        comentariosPrincipales = comentariosPrincipales.sort((a, b) => {
+          const votesA = a.votos_totales || 0;
+          const votesB = b.votos_totales || 0;
+          return votesB - votesA;
+        });
       } else {
         // Ordenar por fecha (más recientes primero)
         comentariosPrincipales = comentariosPrincipales.sort((a, b) => {
@@ -428,10 +445,24 @@ export async function GET(request: Request) {
       }
 
       // 7) Aplicar paginación después del ordenamiento
-      const comentariosPaginados = comentariosPrincipales.slice(
-        offset,
-        offset + limite
-      );
+      // Si hay solución y es la primera página (offset 0), incluimos la solución al principio
+      let comentariosPaginados;
+
+      if (solucion && offset === 0) {
+        // En la primera página, mostramos la solución + (limite - 1) comentarios
+        comentariosPaginados = [
+          solucion,
+          ...comentariosPrincipales.slice(0, limite - 1),
+        ];
+      } else {
+        // En otras páginas o si no hay solución, paginación normal
+        // Ajustamos el offset si hubo solución extraída para no saltar comentarios
+        const adjustedOffset = solucion ? Math.max(0, offset - 1) : offset;
+        comentariosPaginados = comentariosPrincipales.slice(
+          adjustedOffset,
+          adjustedOffset + limite
+        );
+      }
 
       // 7) Construir árbol de comentarios para los paginados
       const buildForoCommentTree = (
@@ -473,7 +504,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         comentarios: comentariosConReplies,
-        total: comentariosPrincipales.length,
+        total: comentariosPrincipales.length + (solucion ? 1 : 0),
         offset,
         limite,
       });

@@ -59,6 +59,8 @@ export const SUMMONER_SPELL_MAP: Record<number, string> = {
   21: "SummonerBarrier",
   32: "SummonerSnowball",
   39: "SummonerSnowURFSnowball_Mark",
+  54: "SummonerFlee",
+  55: "SummonerSummonerAttack",
 };
 
 export const RUNE_STYLE_MAP: Record<number, string> = {

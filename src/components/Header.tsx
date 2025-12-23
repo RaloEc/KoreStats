@@ -49,6 +49,7 @@ const Header: React.FC = () => {
     // Datos de autenticación
     authUser,
     profile,
+    isAuthLoading,
 
     // Funciones
     handleLogout,
@@ -164,6 +165,7 @@ const Header: React.FC = () => {
             <HeaderRightControls
               isAdmin={isAdmin}
               authUser={authUser}
+              isAuthLoading={isAuthLoading}
               profile={profile}
               isUserMenuOpen={isUserMenuOpen}
               setIsUserMenuOpen={setIsUserMenuOpen}

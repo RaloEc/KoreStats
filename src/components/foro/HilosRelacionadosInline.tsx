@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/carousel";
 import { HiloCarouselCard } from "./HiloCarouselCard";
 import type { ForoHiloRelacionado } from "@/types/foro";
+import HiloDivider from "./HiloDivider";
 
 interface HilosRelacionadosInlineProps {
   categoriaId: string;
@@ -91,10 +92,7 @@ export default function HilosRelacionadosInline({
   if (!hilosRelacionados || hilosRelacionados.length === 0) {
     return (
       <>
-        <div
-          className="mt-8 border-t"
-          style={{ borderColor: userColor }}
-        />
+        <div className="mt-8 border-t" style={{ borderColor: userColor }} />
         <section className="mt-6">
           <div className="bg-white dark:bg-black amoled:bg-black rounded-lg border border-gray-200 dark:border-gray-800 amoled:border-gray-900 p-4">
             <h3 className="font-semibold mb-3 text-gray-900 dark:text-gray-100 amoled:text-white">
@@ -111,15 +109,11 @@ export default function HilosRelacionadosInline({
 
   return (
     <>
-      <div
-        className="mt-8 border-t"
-        style={{ borderColor: userColor }}
-      />
-      <section className="mt-6">
-        <div className="bg-white dark:bg-black amoled:bg-black p-4">
-          <h3 className="font-semibold mb-4 text-gray-900 dark:text-gray-100 amoled:text-white">
-            Más en {categoriaNombre}
-          </h3>
+      <HiloDivider label={`Más en ${categoriaNombre}`} />
+
+      <section>
+        <div className="bg-white dark:bg-black amoled:bg-black rounded-lg">
+          {/* Header removed from here as it is now in the divider */}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">

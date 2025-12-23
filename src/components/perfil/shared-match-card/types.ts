@@ -89,6 +89,7 @@ export interface SharedMatchCardProps {
   onUnhide?: () => void;
   isHidden?: boolean;
   userId?: string;
+  priority?: boolean; // Para optimizar carga de las primeras tarjetas
 }
 
 export type RuneSelection = {

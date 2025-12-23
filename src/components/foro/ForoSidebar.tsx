@@ -31,9 +31,32 @@ const CategoryItem = ({
   category: Categoria;
   isRoot?: boolean;
 }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { profile } = useAuth();
+
+  // Persistir el estado de desplegado
+  React.useEffect(() => {
+    try {
+      const key = `foro_cat_${category.id}_open`;
+      const saved = localStorage.getItem(key);
+      if (saved !== null) {
+        setIsOpen(saved === "true");
+      }
+    } catch (e) {
+      console.error("Error accessing localStorage", e);
+    }
+  }, [category.id]);
+
+  const toggleOpen = () => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    try {
+      localStorage.setItem(`foro_cat_${category.id}_open`, String(newState));
+    } catch (e) {
+      // Ignore storage errors
+    }
+  };
   const hasSubcategories = !!(
     category.subcategorias && category.subcategorias.length > 0
   );
@@ -171,7 +194,7 @@ const CategoryItem = ({
               isOpen ? "Colapsar subcategorías" : "Expandir subcategorías"
             }
             aria-expanded={isOpen}
-            onClick={() => setIsOpen((v) => !v)}
+            onClick={toggleOpen}
             className="p-1 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg

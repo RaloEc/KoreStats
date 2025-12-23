@@ -1,18 +1,18 @@
-import Link from 'next/link'
+import Link from "next/link";
 
 type Categoria = {
-  id: string
-  slug: string | null
-  nombre: string | null
-  descripcion: string | null
-  color?: string | null
-  nivel?: number | null
-  parent_id?: string | null
-}
+  id: string;
+  slug: string | null;
+  nombre: string | null;
+  descripcion: string | null;
+  color?: string | null;
+  nivel?: number | null;
+  parent_id?: string | null;
+};
 
 type Props = {
-  categoria: Categoria
-}
+  categoria: Categoria;
+};
 
 export default function CategoriaHeader({ categoria }: Props) {
   return (
@@ -20,11 +20,15 @@ export default function CategoriaHeader({ categoria }: Props) {
       <nav className="text-sm text-muted-foreground" aria-label="breadcrumb">
         <ol className="flex flex-wrap items-center gap-1">
           <li>
-            <Link href="/foro" className="hover:underline">Foros</Link>
+            <Link href="/foro" className="hover:underline">
+              Foros
+            </Link>
           </li>
-          <li aria-hidden className="px-1">/</li>
+          <li aria-hidden className="px-1">
+            /
+          </li>
           <li className="text-foreground font-medium">
-            {categoria.nombre || 'Categoría'}
+            {categoria.nombre || "Categoría"}
           </li>
         </ol>
       </nav>
@@ -40,12 +44,6 @@ export default function CategoriaHeader({ categoria }: Props) {
           )}
         </div>
       </div>
-      <div className="rounded-md border bg-card dark:bg-black p-3">
-        <p className="text-sm">
-          <span className="font-semibold">Información / Reglas:</span>{' '}
-          En esta categoría comparte contenido relevante. Respeta las normas y usa etiquetas apropiadas. Si tu post es una pregunta, añade detalles para recibir mejores respuestas.
-        </p>
-      </div>
     </header>
-  )
+  );
 }

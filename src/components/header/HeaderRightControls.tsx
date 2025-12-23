@@ -23,6 +23,7 @@ interface HeaderRightControlsProps {
   handleLogout: () => void;
   openAuthModal: (mode: "login" | "register") => void;
   isLoggingOut: boolean;
+  isAuthLoading?: boolean;
 }
 
 export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
@@ -38,6 +39,7 @@ export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
   handleLogout,
   openAuthModal,
   isLoggingOut,
+  isAuthLoading,
 }) => {
   return (
     <div className="flex items-center gap-1 md:gap-3">
@@ -106,7 +108,12 @@ export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
 
       {/* Usuario/Auth - Desktop */}
       <div className="hidden lg:flex items-center gap-4">
-        {authUser ? (
+        {isAuthLoading ? (
+          // Skeleton loader para evitar parpadeo
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
+          </div>
+        ) : authUser ? (
           <UserDesktopMenu
             isOpen={isUserMenuOpen}
             onToggle={() => setIsUserMenuOpen(!isUserMenuOpen)}

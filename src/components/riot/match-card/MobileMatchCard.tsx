@@ -373,8 +373,7 @@ export function MobileMatchCard({
 
   return (
     <>
-      <button
-        type="button"
+      <div
         onClick={onSelectMatch}
         className={`
           md:hidden w-full text-left rounded-xl p-4 border transition-all cursor-pointer shadow-sm
@@ -619,7 +618,7 @@ export function MobileMatchCard({
             showInline={true}
           />
         </div>
-      </button>
+      </div>
     </>
   );
 }

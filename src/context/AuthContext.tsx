@@ -74,6 +74,17 @@ export function AuthProvider({
       "Configurando listener de auth state change..."
     );
 
+    // Sincronizar color del perfil con localStorage
+    if (profile?.color) {
+      try {
+        localStorage.setItem("korestats-color", profile.color);
+        // Actualizar variable CSS inmediatamente
+        document.documentElement.style.setProperty("--primary", profile.color);
+      } catch (e) {
+        console.error("Error saving color preference", e);
+      }
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -95,6 +106,15 @@ export function AuthProvider({
           queryKey: ["auth", "profile"],
           exact: false,
         });
+
+        // Limpiar preferencias guardadas
+        try {
+          localStorage.removeItem("korestats-color");
+          // No removemos el tema, eso es preferencia global del navegador/dispositivo
+        } catch (e) {
+          console.error("Error clearing localStorage", e);
+        }
+
         // CRÍTICO: Invalidar caché de Next.js
         router.refresh();
         logger.success(
@@ -171,7 +191,7 @@ export function AuthProvider({
       logger.info("AuthProvider", "Limpiando listener de auth state change");
       subscription.unsubscribe();
     };
-  }, [supabase, queryClient, router]);
+  }, [supabase, queryClient, router, profile]);
 
   // Funciones de utilidad
   const signOut = React.useCallback(async () => {

@@ -26,9 +26,15 @@ type ApiForoCategoria = {
 
 export const useHeaderLogic = () => {
   const router = useRouter();
-  const { session, user: authUser, profile, signOut } = useAuth();
+  const {
+    session,
+    user: authUser,
+    profile,
+    signOut,
+    loading: isLoading,
+  } = useAuth();
   const { resolvedTheme } = useTheme();
-  
+
   // Estados principales
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -36,10 +42,16 @@ export const useHeaderLogic = () => {
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const [isForoMenuOpen, setIsForoMenuOpen] = useState(false);
   const [isNoticiasMenuOpen, setIsNoticiasMenuOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >({});
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
-  const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>(undefined);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">(
+    "login"
+  );
+  const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>(
+    undefined
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [foroCategorias, setForoCategorias] = useState<ForoCategoria[]>([]);
   const [foroMobileOpen, setForoMobileOpen] = useState(false);
@@ -111,7 +123,9 @@ export const useHeaderLogic = () => {
 
         data.forEach((cat: ApiForoCategoria) => {
           if (cat.parent_id && categoriasMap[cat.parent_id]) {
-            categoriasMap[cat.parent_id].subcategorias!.push(categoriasMap[cat.id]);
+            categoriasMap[cat.parent_id].subcategorias!.push(
+              categoriasMap[cat.id]
+            );
           } else {
             rootCategorias.push(categoriasMap[cat.id]);
           }
@@ -129,28 +143,27 @@ export const useHeaderLogic = () => {
   // Función para cerrar sesión
   const handleLogout = async () => {
     console.log("[Header] handleLogout: inicio");
-    
+
     // 1. Activar estado de carga para feedback visual inmediato
     setIsLoggingOut(true);
-    
+
     // 2. Cerrar menús inmediatamente
     setIsUserMenuOpen(false);
     setIsMenuOpen(false);
-    
+
     try {
       // 3. signOut() hace actualización optimista: queryClient.setQueryData(null)
       //    La UI reacciona INMEDIATAMENTE aquí
       await signOut();
       console.log("[Header] handleLogout: signOut() completado");
-      
+
       // 4. Navegar a home (no necesitamos setIsLoggingOut(false) porque navegamos)
       console.log("[Header] handleLogout: redirigiendo a home...");
       router.push("/");
       router.refresh(); // Refresca Server Components si es necesario
-      
     } catch (e) {
       console.error("[Header] handleLogout: error en signOut()", e);
-      
+
       // Fallback: intentar signOut directo
       try {
         const sb = createClient();
@@ -234,18 +247,19 @@ export const useHeaderLogic = () => {
     noticiasMobileOpen,
     setNoticiasMobileOpen,
     isLoggingOut,
-    
+
     // Referencias
     adminMenuRef,
     userMenuRef,
     userButtonRef,
     foroMenuRef,
     noticiasMenuRef,
-    
+
     // Datos de autenticación
     authUser,
     profile,
-    
+    isAuthLoading: isLoading,
+
     // Funciones
     handleLogout,
     closeAllMenus,

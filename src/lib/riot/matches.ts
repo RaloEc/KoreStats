@@ -832,42 +832,48 @@ async function processMatchRankingAsync(
       );
     }
 
-    const rankSnapshots: any[] = [];
+    // Obtener rankings en paralelo para mejorar el tiempo de procesamiento
+    // (Aun siendo async, esto libera recursos más rápido)
+    const rankSnapshots = await Promise.all(
+      matchData.info.participants.map(
+        async (participant: any, index: number) => {
+          if (!participant.summonerId || !participant.puuid) {
+            return null;
+          }
 
-    for (const participant of matchData.info.participants) {
-      if (!participant.summonerId || !participant.puuid) {
-        continue;
-      }
+          // Añadimos un pequeño escalonado para no lanzar las 10 peticiones exactamente al mismo tiempo
+          await delay(index * 50);
 
-      let rankData = null;
+          let rankData = null;
+          if (apiKey) {
+            rankData = await getOrUpdateSummonerRank(
+              participant.puuid,
+              platformRegion,
+              apiKey
+            );
+          }
 
-      if (apiKey) {
-        rankData = await getOrUpdateSummonerRank(
-          participant.puuid,
-          platformRegion,
-          apiKey
-        );
-      }
+          return {
+            match_id: matchId,
+            puuid: participant.puuid,
+            summoner_id: participant.summonerId,
+            queue_type: "RANKED_SOLO_5x5",
+            tier: rankData?.tier || null,
+            rank: rankData?.rank || null,
+            league_points: rankData?.league_points || 0,
+            wins: rankData?.wins || 0,
+            losses: rankData?.losses || 0,
+          };
+        }
+      )
+    );
 
-      rankSnapshots.push({
-        match_id: matchId,
-        puuid: participant.puuid,
-        summoner_id: participant.summonerId,
-        queue_type: "RANKED_SOLO_5x5",
-        tier: rankData?.tier || null,
-        rank: rankData?.rank || null,
-        league_points: rankData?.league_points || 0,
-        wins: rankData?.wins || 0,
-        losses: rankData?.losses || 0,
-      });
+    const validSnapshots = rankSnapshots.filter((s) => s !== null);
 
-      await delay(100);
-    }
-
-    if (rankSnapshots.length > 0) {
+    if (validSnapshots.length > 0) {
       const { error: rankError } = await supabase
         .from("match_participant_ranks")
-        .insert(rankSnapshots);
+        .insert(validSnapshots);
 
       if (rankError) {
         console.warn(
@@ -994,28 +1000,44 @@ export async function syncMatchHistory(
       `[syncMatchHistory] ${matchesToDownload.length} partidas nuevas para descargar`
     );
 
-    // Descargar y guardar partidas nuevas
-    for (const matchId of matchesToDownload) {
-      console.log(`[syncMatchHistory] 📥 Descargando partida: ${matchId}`);
-      const matchData = await getMatchDetails(matchId, routingRegion, apiKey);
+    // Descargar y guardar partidas nuevas en lotes para mejorar rendimiento
+    const BATCH_SIZE = 5; // Procesar de 5 en 5 para balancear velocidad y límites de la API
+    for (let i = 0; i < matchesToDownload.length; i += BATCH_SIZE) {
+      const batch = matchesToDownload.slice(i, i + BATCH_SIZE);
+      console.log(
+        `[syncMatchHistory] 📥 Procesando lote de ${batch.length} partidas...`
+      );
 
-      if (matchData) {
-        console.log(`[syncMatchHistory] 💾 Guardando partida: ${matchId}`);
-        const saved = await saveMatch(matchData);
-        if (saved) {
-          console.log(`[syncMatchHistory] ✅ Partida guardada: ${matchId}`);
-          newMatchCount++;
-        } else {
-          console.error(`[syncMatchHistory] ❌ Error al guardar: ${matchId}`);
-        }
-      } else {
-        console.warn(
-          `[syncMatchHistory] ⚠️ No se obtuvo data para: ${matchId}`
-        );
+      await Promise.all(
+        batch.map(async (matchId) => {
+          try {
+            const matchData = await getMatchDetails(
+              matchId,
+              routingRegion,
+              apiKey
+            );
+            if (matchData) {
+              console.log(
+                `[syncMatchHistory] 💾 Guardando partida: ${matchId}`
+              );
+              const saved = await saveMatch(matchData);
+              if (saved) {
+                newMatchCount++;
+              }
+            }
+          } catch (err: any) {
+            console.error(
+              `[syncMatchHistory] ❌ Error con ${matchId}:`,
+              err.message
+            );
+          }
+        })
+      );
+
+      // Solo esperar si no es el último lote
+      if (i + BATCH_SIZE < matchesToDownload.length) {
+        await delay(API_REQUEST_DELAY_MS * 1.5); // Delay ligeramente mayor entre lotes
       }
-
-      // Pequeño delay para no saturar la API
-      await delay(API_REQUEST_DELAY_MS);
     }
 
     const backfilledMatches = await ensureHistoricalCoverage(

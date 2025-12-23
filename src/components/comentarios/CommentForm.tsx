@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "./ui/Button";
-import { SendHorizontal, Image } from "lucide-react";
+import { SendHorizontal } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { GifPicker } from "./GifPicker";
 
@@ -90,7 +90,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
             <button
               type="button"
               disabled={isLoading}
-              className="p-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              className="p-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center justify-center"
               style={{
                 backgroundColor: isLoading ? "#9ca3af" : `${userColor}40`,
                 color: userColor,
@@ -101,7 +101,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
               aria-label="Agregar GIF"
               title="Agregar GIF"
             >
-              <Image className="h-5 w-5" />
+              <span className="font-bold text-xs">GIF</span>
             </button>
           </GifPicker>
 

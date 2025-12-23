@@ -1,132 +1,167 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { MessageSquare, ThumbsUp, HelpCircle } from 'lucide-react'
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { MessageSquare, ThumbsUp, HelpCircle } from "lucide-react";
+import { useUserTheme } from "@/hooks/useUserTheme";
 
 type Item = {
-  id: string
-  slug: string | null
-  titulo: string
-  ultima_respuesta_at: string | null
-  respuestas: number
-  votos: number
-}
+  id: string;
+  slug: string | null;
+  titulo: string;
+  ultima_respuesta_at: string | null;
+  respuestas: number;
+  votos: number;
+};
 
-export default function ContenidoRelevante({ categoriaSlugOrId }: { categoriaSlugOrId: string }) {
-  const [tab, setTab] = useState<'comentados' | 'votados' | 'sin'>('comentados')
-  const [data, setData] = useState<{ masComentados: Item[]; masVotados: Item[]; sinResponder: Item[] } | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function ContenidoRelevante({
+  categoriaSlugOrId,
+}: {
+  categoriaSlugOrId: string;
+}) {
+  const { userColor } = useUserTheme();
+  const [data, setData] = useState<{
+    masComentados: Item[];
+    masVotados: Item[];
+    sinResponder: Item[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancel = false
+    let cancel = false;
     const run = async () => {
       try {
-        setLoading(true)
-        const res = await fetch(`/api/foro/hilos/relevantes?categoriaSlug=${encodeURIComponent(categoriaSlugOrId)}`)
-        const json = await res.json()
-        if (!cancel) setData(json)
+        setLoading(true);
+        const res = await fetch(
+          `/api/foro/hilos/relevantes?categoriaSlug=${encodeURIComponent(
+            categoriaSlugOrId
+          )}`
+        );
+        const json = await res.json();
+        if (!cancel) setData(json);
       } catch {
-        if (!cancel) setData({ masComentados: [], masVotados: [], sinResponder: [] })
+        if (!cancel)
+          setData({ masComentados: [], masVotados: [], sinResponder: [] });
       } finally {
-        if (!cancel) setLoading(false)
+        if (!cancel) setLoading(false);
       }
-    }
-    run()
-    return () => { cancel = true }
-  }, [categoriaSlugOrId])
+    };
+    run();
+    return () => {
+      cancel = true;
+    };
+  }, [categoriaSlugOrId]);
 
-  const items = tab === 'comentados' ? data?.masComentados || []
-    : tab === 'votados' ? data?.masVotados || []
-    : data?.sinResponder || []
-
-  const tabConfig = {
-    comentados: { icon: MessageSquare, label: 'Comentados', color: 'text-blue-500' },
-    votados: { icon: ThumbsUp, label: 'Votados', color: 'text-green-500' },
-    sin: { icon: HelpCircle, label: 'Sin responder', color: 'text-amber-500' }
-  }
-
-  const currentConfig = tabConfig[tab]
-  const CurrentIcon = currentConfig.icon
+  // Directamente usamos 'masComentados' para simplificar
+  const items = data?.masComentados || [];
 
   return (
-    <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/50 bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900/50 dark:to-transparent">
-        <h3 className="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-          <span className="w-1 h-4 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></span>
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800/50">
+        <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-3">
+          <span
+            className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]"
+            style={{ backgroundColor: userColor, color: userColor }}
+          ></span>
           Contenido Relevante
         </h3>
       </div>
 
-      {/* Tabs */}
-      <div className="px-3 py-2 flex justify-center gap-4 bg-gray-50/50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800/50">
-        {(Object.entries(tabConfig) as [keyof typeof tabConfig, typeof tabConfig[keyof typeof tabConfig]][]).map(([key, config]) => {
-          const TabIcon = config.icon
-          const isActive = tab === key
-          return (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              title={config.label}
-              className={`p-1.5 rounded-md transition-all ${
-                isActive
-                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
-              }`}
-            >
-              <TabIcon className="w-4 h-4" />
-            </button>
-          )
-        })}
-      </div>
-
       {/* Content */}
-      <div className="p-3">
+      <div className="p-2 min-h-[100px]">
         {loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-8 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+          <div className="space-y-3 p-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-3/4" />
+                  <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-1/2" />
+                </div>
+              </div>
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="py-6 text-center">
-            <CurrentIcon className={`w-8 h-8 mx-auto mb-2 opacity-30 ${currentConfig.color}`} />
-            <p className="text-xs text-gray-500 dark:text-gray-400">No hay resultados</p>
+          <div className="flex flex-col items-center justify-center h-48 text-center px-4">
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center mb-3 bg-opacity-10"
+              style={{ backgroundColor: `${userColor}20` }}
+            >
+              <MessageSquare
+                className="w-6 h-6 opacity-60"
+                style={{ color: userColor }}
+              />
+            </div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              Sin resultados
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              No hay hilos destacados por ahora.
+            </p>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {items.slice(0, 6).map((it, idx) => {
-              const href = it.slug ? `/foro/hilos/${it.slug}` : `/foro/hilos/${it.id}`
+          <ul className="space-y-1">
+            {items.slice(0, 5).map((it, idx) => {
+              const href = it.slug
+                ? `/foro/hilos/${it.slug}`
+                : `/foro/hilos/${it.id}`;
               return (
-                <li key={it.id} className="group">
-                  <Link 
-                    href={href} 
-                    className="flex items-start gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                <li key={it.id}>
+                  <Link
+                    href={href}
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group relative overflow-hidden"
                   >
-                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-600 mt-0.5 min-w-fit">{idx + 1}.</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <span
+                      className="flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-white transition-colors"
+                      style={{
+                        // @ts-ignore custom property
+                        "--hover-bg": userColor,
+                      }}
+                    >
+                      <span className="group-hover:hidden">{idx + 1}</span>
+                      <span
+                        className="absolute inset-0 hidden group-hover:flex items-center justify-center rounded transition-colors"
+                        style={{ backgroundColor: userColor }}
+                      >
+                        {idx + 1}
+                      </span>
+                    </span>
+
+                    <div className="flex-1 min-w-0 z-10">
+                      <p className="text-sm font-medium leading-snug line-clamp-2 text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                         {it.titulo}
                       </p>
-                      <div className="flex gap-3 mt-1 text-xs text-gray-500 dark:text-gray-500">
-                        <span className="flex items-center gap-1">
+
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span
+                          className="flex items-center gap-1 text-[11px] text-gray-400"
+                          style={{ color: userColor }}
+                        >
                           <MessageSquare className="w-3 h-3" />
-                          {it.respuestas}
+                          <span className="font-bold">{it.respuestas}</span>
                         </span>
-                        <span className="flex items-center gap-1">
+
+                        <span className="flex items-center gap-1 text-[11px] text-gray-400">
                           <ThumbsUp className="w-3 h-3" />
-                          {it.votos}
+                          <span>{it.votos}</span>
                         </span>
                       </div>
                     </div>
                   </Link>
                 </li>
-              )
+              );
             })}
           </ul>
         )}
       </div>
+
+      {/* Footer link style */}
+      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800/50 text-center">
+        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
+          Más populares
+        </span>
+      </div>
     </div>
-  )
+  );
 }

@@ -1,46 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
-import type { ForoHiloRelacionado, ForoCategoria } from "@/types/foro";
+import AdRectangle from "@/components/ads/AdRectangle";
 
-interface HiloSidebarProps {
-  categoriaId: string;
-  categoriaNombre: string;
-  hiloActualId: string;
-  hilosRelacionadosIniciales?: ForoHiloRelacionado[];
-}
-
-export default function HiloSidebar({
-  categoriaId,
-  categoriaNombre,
-  hiloActualId,
-  hilosRelacionadosIniciales = [],
-}: HiloSidebarProps) {
-  // Query para hilos relacionados con caché
-  const { data: hilosRelacionados } = useQuery({
-    queryKey: ["hilos-relacionados", categoriaId, hiloActualId],
-    queryFn: async () => {
-      const supabase = createClient();
-
-      const { data, error } = await supabase
-        .from("foro_hilos")
-        .select("id, slug, titulo")
-        .eq("categoria_id", categoriaId)
-        .neq("id", hiloActualId)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (error) throw new Error(error.message);
-
-      return (data as ForoHiloRelacionado[]) || [];
-    },
-    initialData: hilosRelacionadosIniciales,
-    staleTime: 1000 * 60 * 5, // 5 minutos
-  });
-
+export default function HiloSidebar() {
   return (
     <aside className="lg:col-span-2 space-y-4 pb-24 lg:pb-0">
       {/* Módulo: Reglas rápidas */}
@@ -53,6 +15,8 @@ export default function HiloSidebar({
           <li>Reporta contenido inapropiado.</li>
         </ul>
       </div>
+
+      <AdRectangle />
     </aside>
   );
 }

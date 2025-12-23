@@ -677,6 +677,18 @@ export async function GET(
                 : p.kills + p.assists,
             role: getParticipantPosition(p),
             team: p.teamId === 100 ? "blue" : "red",
+            // Build y runas
+            summoner1Id: p.summoner1Id,
+            summoner2Id: p.summoner2Id,
+            perkPrimaryStyle: p.perks?.styles?.[0]?.style,
+            perkSubStyle: p.perks?.styles?.[1]?.style,
+            item0: p.item0,
+            item1: p.item1,
+            item2: p.item2,
+            item3: p.item3,
+            item4: p.item4,
+            item5: p.item5,
+            item6: p.item6,
           }));
         }
 

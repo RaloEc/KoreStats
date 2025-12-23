@@ -54,7 +54,7 @@ export function useHiloComentarios(
   hiloId: string,
   pageSize: number = 20,
   order: "asc" | "desc" = "asc",
-  sortBy: "recent" | "replies" = "recent",
+  sortBy: "recent" | "replies" | "votes" = "recent",
   initialUser?: ComentariosUser | null
 ) {
   const queryClient = useQueryClient();

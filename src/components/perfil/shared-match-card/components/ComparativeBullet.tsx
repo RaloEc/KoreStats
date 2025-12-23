@@ -30,13 +30,13 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = ({
   return (
     <div className="group/bullet space-y-2">
       <div className="flex items-baseline justify-between">
-        <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-slate-800 dark:text-slate-100">
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-slate-800 dark:text-slate-100">
           {label}
         </span>
         <div className="flex items-baseline gap-2">
           {deltaLabel && (
             <span
-              className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md backdrop-blur-sm border border-white/30 dark:border-white/10"
+              className="text-[8px] sm:text-[9px] font-black px-1 py-0.5 rounded-md backdrop-blur-sm border border-white/30 dark:border-white/10"
               style={{
                 color: userColor,
                 opacity: isBetter ? 1 : 0.7,
@@ -47,7 +47,7 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = ({
             </span>
           )}
           <span
-            className="text-xs sm:text-sm font-black"
+            className="text-[10px] sm:text-xs font-black"
             style={{
               color: userColor,
               opacity: isBetter ? 1 : 0.85,
@@ -97,7 +97,7 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = ({
       </div>
 
       {avg > 0 && (
-        <div className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+        <div className="text-[8px] sm:text-[9px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
           <span className="inline-block w-1 h-1 rounded-full bg-slate-500 dark:bg-slate-400" />
           Promedio equipo: {avgLabel ?? avg.toFixed(0)}
         </div>

@@ -6,6 +6,8 @@ import ForoSidebar from "@/components/foro/ForoSidebar";
 import HiloHeader from "@/components/foro/HiloHeader";
 import HiloSidebar from "@/components/foro/HiloSidebar";
 import HilosRelacionadosInline from "@/components/foro/HilosRelacionadosInline";
+import AdBanner from "@/components/ads/AdBanner";
+import HiloDivider from "@/components/foro/HiloDivider";
 
 // Importación dinámica del componente de comentarios para evitar problemas de SSR
 const HiloComentariosOptimizado = dynamic(
@@ -82,94 +84,87 @@ export default async function HiloPage({ params }: PageProps) {
     ]);
 
   return (
-    <div className="container mx-auto lg:px-0 px-4 mt-4">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <ForoSidebar categorias={categorias} />
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Contenido principal */}
+      <div className="lg:col-span-10 mt-0">
+        {/* Breadcrumbs */}
+        <nav className="text-sm mb-3 text-gray-600 dark:text-gray-300 amoled:text-gray-200">
+          <ol className="flex flex-wrap items-center gap-1">
+            <li>
+              <Link href="/" className="hover:underline">
+                Inicio
+              </Link>
+            </li>
+            <li>›</li>
+            <li>
+              <Link href="/foro" className="hover:underline">
+                Foro
+              </Link>
+            </li>
+            <li>›</li>
+            {categoriaParent && (
+              <>
+                <li>
+                  <Link
+                    href={`/foro/categoria/${categoriaParent.slug}`}
+                    className="hover:underline"
+                  >
+                    {categoriaParent.nombre}
+                  </Link>
+                </li>
+                <li>›</li>
+              </>
+            )}
+            {hilo.categoria && (
+              <>
+                <li>
+                  <Link
+                    href={`/foro/categoria/${hilo.categoria.slug}`}
+                    className="hover:underline"
+                  >
+                    {hilo.categoria.nombre}
+                  </Link>
+                </li>
+                <li>›</li>
+              </>
+            )}
+            <li className="text-gray-800 dark:text-gray-200 amoled:text-white truncate max-w-[60%]">
+              {hilo.titulo}
+            </li>
+          </ol>
+        </nav>
 
-        <main className="w-full lg:flex-1">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Contenido principal */}
-            <div className="lg:col-span-10 mt-0">
-              {/* Breadcrumbs */}
-              <nav className="text-sm mb-3 text-gray-600 dark:text-gray-300 amoled:text-gray-200">
-                <ol className="flex flex-wrap items-center gap-1">
-                  <li>
-                    <Link href="/" className="hover:underline">
-                      Inicio
-                    </Link>
-                  </li>
-                  <li>›</li>
-                  <li>
-                    <Link href="/foro" className="hover:underline">
-                      Foro
-                    </Link>
-                  </li>
-                  <li>›</li>
-                  {categoriaParent && (
-                    <>
-                      <li>
-                        <Link
-                          href={`/foro/categoria/${categoriaParent.slug}`}
-                          className="hover:underline"
-                        >
-                          {categoriaParent.nombre}
-                        </Link>
-                      </li>
-                      <li>›</li>
-                    </>
-                  )}
-                  {hilo.categoria && (
-                    <>
-                      <li>
-                        <Link
-                          href={`/foro/categoria/${hilo.categoria.slug}`}
-                          className="hover:underline"
-                        >
-                          {hilo.categoria.nombre}
-                        </Link>
-                      </li>
-                      <li>›</li>
-                    </>
-                  )}
-                  <li className="text-gray-800 dark:text-gray-200 amoled:text-white truncate max-w-[60%]">
-                    {hilo.titulo}
-                  </li>
-                </ol>
-              </nav>
+        {/* Encabezado del hilo */}
+        <HiloHeader hilo={hilo} etiquetas={etiquetas} />
 
-              {/* Encabezado del hilo */}
-              <HiloHeader hilo={hilo} etiquetas={etiquetas} />
+        <HiloDivider label="Comentarios" />
 
-              {/* Más en ... (relacionados) */}
-              <HilosRelacionadosInline
-                categoriaId={hilo.categoria_id}
-                categoriaNombre={hilo.categoria?.nombre || "la categoría"}
-                hiloActualId={hilo.id}
-                hilosRelacionadosIniciales={hilosRelacionados}
-              />
+        {/* Sistema de Posts/Respuestas */}
+        <section className="mt-4" id="responder">
+          <HiloComentariosOptimizado
+            hiloId={hilo.id}
+            autorHiloId={hilo.autor_id}
+            hiloCerrado={hilo.es_cerrado}
+            pageSize={3}
+            order="desc"
+          />
+        </section>
 
-              {/* Sistema de Posts/Respuestas */}
-              <section className="mt-6" id="responder">
-                <HiloComentariosOptimizado
-                  hiloId={hilo.id}
-                  autorHiloId={hilo.autor_id}
-                  hiloCerrado={hilo.es_cerrado}
-                  pageSize={5}
-                  order="desc"
-                />
-              </section>
-            </div>
+        <section className="my-12">
+          <AdBanner />
+        </section>
 
-            {/* Sidebar */}
-            <HiloSidebar
-              categoriaId={hilo.categoria_id}
-              categoriaNombre={hilo.categoria?.nombre || "la categoría"}
-              hiloActualId={hilo.id}
-              hilosRelacionadosIniciales={hilosRelacionados}
-            />
-          </div>
-        </main>
+        {/* Más en ... (relacionados) */}
+        <HilosRelacionadosInline
+          categoriaId={hilo.categoria_id}
+          categoriaNombre={hilo.categoria?.nombre || "la categoría"}
+          hiloActualId={hilo.id}
+          hilosRelacionadosIniciales={hilosRelacionados}
+        />
       </div>
+
+      {/* Sidebar */}
+      <HiloSidebar />
     </div>
   );
 }

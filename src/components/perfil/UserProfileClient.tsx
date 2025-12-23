@@ -270,8 +270,8 @@ export default function UserProfileClient({
         {currentTab === "posts" ? (
           // Pestaña Actividad
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-            {/* Columna izquierda - Feed de actividad (estilo red social) */}
-            <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+            {/* Columna única - Feed de actividad (antes ocupaba 2 col, ahora 3) */}
+            <div className="lg:col-span-3 space-y-6 sm:space-y-8">
               {/* Feed unificado de hilos, respuestas y partidas */}
               <FeedActividad
                 ultimosHilos={profile.ultimosHilos}
@@ -288,13 +288,15 @@ export default function UserProfileClient({
               />
             </div>
 
-            {/* Columna derecha - Estadísticas unificadas */}
+            {/* Columna derecha - Estadísticas unificadas (Oculto por ahora) */}
+            {/* 
             <div className="lg:col-span-1 space-y-6">
               <EstadisticasUnificadas
                 stats={profile.stats}
                 userColor={profile.color}
               />
             </div>
+            */}
           </div>
         ) : (
           // Pestaña League of Legends

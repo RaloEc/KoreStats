@@ -347,6 +347,7 @@ function HiloCard(props: HiloCardProps) {
       transition={{ duration: 0.2 }} // Reducir duración
     >
       <Card
+        suppressHydrationWarning={true}
         className="group flex flex-col overflow-hidden bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-200 rounded-xl"
         style={{
           borderWidth: "1px",
@@ -490,6 +491,7 @@ function HiloCard(props: HiloCardProps) {
               </div>
               {/* Barra inferior con estadísticas */}
               <div
+                suppressHydrationWarning={true}
                 className="border-t p-2 transition-colors duration-300 flex flex-wrap items-center gap-x-4 gap-y-2"
                 style={{
                   borderColor: getColorWithOpacity(0.1),

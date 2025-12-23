@@ -34,19 +34,14 @@ export function RiotTierBadge({ tier, rank, size = "md" }: RiotTierBadgeProps) {
   const emblemUrl = getRankEmblemUrl(tier);
 
   return (
-    <div className="relative group">
+    <div className="relative">
       <Image
         src={emblemUrl}
         alt={`${tier} ${rank || ""}`}
         width={config.width}
         height={config.height}
         className={`${config.className} object-contain drop-shadow-lg`}
-        title={`${tier} ${rank || ""}`}
       />
-      {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-        {tier} {rank}
-      </div>
     </div>
   );
 }

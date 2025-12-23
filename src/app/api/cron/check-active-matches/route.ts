@@ -19,21 +19,71 @@ export async function GET(request: NextRequest) {
 
   try {
     // 1. Auth Check
-    const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get("authorization") || "";
+    const urlKey = request.nextUrl.searchParams.get("key") || "";
+    const cronSecret = (process.env.CRON_SECRET || "").trim();
 
-    // Si hay CRON_SECRET configurado, exigimos el header
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      log("Unauthorized: Invalid/Missing Token");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Si hay CRON_SECRET configurado, exigimos el header o el parametro key
+    if (cronSecret) {
+      // Normalizar entradas
+      const cleanHeader = authHeader.replace(/^Bearer\s+/i, "").trim();
+      const cleanKey = urlKey.trim();
+
+      const isValidHeader = cleanHeader === cronSecret;
+      const isValidKey = cleanKey === cronSecret;
+
+      if (!isValidHeader && !isValidKey) {
+        log("Unauthorized: Invalid/Missing Token");
+        log(`Auth Debug Details:`);
+        log(`- Env Secret Length: ${cronSecret.length}`);
+        log(`- Received Key: '${cleanKey}' (Length: ${cleanKey.length})`);
+        log(
+          `- Received Header: '${cleanHeader}' (Length: ${cleanHeader.length})`
+        );
+
+        // No devolver el secreto real, pero sí pistas de por qué falla
+        return NextResponse.json(
+          {
+            error: "Unauthorized",
+            debug: {
+              secret_length: cronSecret.length,
+              received_key_length: cleanKey.length,
+              received_header_length: cleanHeader.length,
+              key_match: isValidKey,
+              header_match: isValidHeader,
+              // Check first/last chars match
+              secret_start: cronSecret.substring(0, 3) + "...",
+              received_start: cleanKey.substring(0, 3) + "...",
+            },
+            logs,
+          },
+          { status: 401 }
+        );
+      }
     }
 
     const supabase = getServiceClient();
     const RIOT_API_KEY = process.env.RIOT_API_KEY;
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_SERVICE_KEY =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-    if (!RIOT_API_KEY) {
-      log("Error: RIOT_API_KEY missing");
-      return NextResponse.json({ error: "Config missing" }, { status: 500 });
+    if (!RIOT_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      const missing = [];
+      if (!RIOT_API_KEY) missing.push("RIOT_API_KEY");
+      if (!SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+      if (!SUPABASE_SERVICE_KEY)
+        missing.push("SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY");
+
+      log(`Error: Missing config: ${missing.join(", ")}`);
+      return NextResponse.json(
+        {
+          error: "Config missing",
+          missing_vars: missing,
+          logs,
+        },
+        { status: 500 }
+      );
     }
 
     // =========================================================================
@@ -44,6 +94,11 @@ export async function GET(request: NextRequest) {
       .select("user_id, puuid, active_shard, last_known_game_id")
       .eq("is_in_game", true)
       .limit(30); // Límite seguro
+
+    if (activeError) {
+      log(`Database Error (Active Users): ${activeError.message}`);
+      throw new Error(`DB Error: ${activeError.message}`);
+    }
 
     let activeProcessed = 0;
     let gamesEnded = 0;
@@ -128,14 +183,16 @@ export async function GET(request: NextRequest) {
     if (Date.now() - startTime < MAX_EXECUTION_TIME_MS) {
       // Sincronizar un par de usuarios que no estén en juego, para asegurar historial al día
       const limit = 3;
-      const { data: passiveUsers } = await supabase
+      const { data: passiveUsers, error: passiveError } = await supabase
         .from("linked_accounts_riot")
         .select("user_id, puuid, active_shard")
         .eq("is_in_game", false)
         .order("last_updated", { ascending: true, nullsFirst: true })
         .limit(limit);
 
-      if (passiveUsers) {
+      if (passiveError) {
+        log(`Database Error (Passive Users): ${passiveError.message}`);
+      } else if (passiveUsers) {
         log(`Passive check for ${passiveUsers.length} users...`);
         for (const user of passiveUsers) {
           if (Date.now() - startTime > MAX_EXECUTION_TIME_MS) break;
@@ -212,8 +269,8 @@ export async function GET(request: NextRequest) {
     if (Date.now() - startTime < MAX_EXECUTION_TIME_MS) {
       log("Processing LP/Sync Queue...");
       queueStats = await processLpQueue(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        SUPABASE_URL,
+        SUPABASE_SERVICE_KEY,
         RIOT_API_KEY,
         10 // Lote pequeño
       );

@@ -23,7 +23,7 @@ export async function getHiloPorSlugOId(
     .select(
       `
       *,
-      autor:perfiles!foro_hilos_autor_id_fkey ( id, username, avatar_url ),
+      autor:perfiles!foro_hilos_autor_id_fkey ( id, username, avatar_url, public_id ),
       categoria:foro_categorias!foro_hilos_categoria_id_fkey ( id, nombre, color, slug, parent_id ),
       weapon_stats_record:weapon_stats_records!weapon_stats_id ( id, weapon_name, stats, created_at, updated_at )
     `
@@ -39,7 +39,7 @@ export async function getHiloPorSlugOId(
       .select(
         `
         *,
-        autor:perfiles!foro_hilos_autor_id_fkey ( id, username, avatar_url ),
+        autor:perfiles!foro_hilos_autor_id_fkey ( id, username, avatar_url, public_id ),
         categoria:foro_categorias!foro_hilos_categoria_id_fkey ( id, nombre, color, slug, parent_id ),
         weapon_stats_record:weapon_stats_records!weapon_stats_id ( id, weapon_name, stats, created_at, updated_at )
       `
@@ -62,8 +62,13 @@ export async function getHiloPorSlugOId(
     .select("value")
     .eq("hilo_id", hilo.id);
 
-  const votosList: { value: number | null }[] = (votosData ?? []) as { value: number | null }[];
-  const votos = votosList.reduce((sum: number, voto: { value: number | null }) => sum + (voto.value ?? 0), 0);
+  const votosList: { value: number | null }[] = (votosData ?? []) as {
+    value: number | null;
+  }[];
+  const votos = votosList.reduce(
+    (sum: number, voto: { value: number | null }) => sum + (voto.value ?? 0),
+    0
+  );
 
   // Obtener el conteo de respuestas (posts que no son el hilo principal y no están eliminados)
   const { count: respuestas } = await supabase
@@ -147,7 +152,7 @@ export async function getHilosRelacionados(
       created_at,
       contenido,
       weapon_stats_id,
-      autor:perfiles!foro_hilos_autor_id_fkey ( id, username, avatar_url ),
+      autor:perfiles!foro_hilos_autor_id_fkey ( id, username, avatar_url, public_id ),
       weapon_stats_record:weapon_stats_records!weapon_stats_id ( id, weapon_name, stats, created_at, updated_at )
     `
     )
@@ -166,10 +171,7 @@ export async function getHilosRelacionados(
   const hilosConConteos = await Promise.all(
     (data || []).map(async (hilo: any) => {
       const [votosResult, respuestasResult] = await Promise.all([
-        supabase
-          .from("foro_votos")
-          .select("value")
-          .eq("hilo_id", hilo.id),
+        supabase.from("foro_votos").select("value").eq("hilo_id", hilo.id),
         supabase
           .from("foro_posts")
           .select("*", { count: "exact", head: true })
@@ -218,37 +220,45 @@ export async function getCategoriasForo(): Promise<ForoCategoria[]> {
  */
 export async function getCategoriasJerarquicas(): Promise<any[]> {
   try {
-    console.log("[getCategoriasJerarquicas] Cargando categorías desde Supabase");
+    console.log(
+      "[getCategoriasJerarquicas] Cargando categorías desde Supabase"
+    );
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from("foro_categorias")
       .select("*")
       .eq("es_activa", true)
       .order("orden", { ascending: true })
       .order("nombre", { ascending: true });
-    
+
     if (error) {
-      console.error("[getCategoriasJerarquicas] Error al cargar foro_categorias:", error);
+      console.error(
+        "[getCategoriasJerarquicas] Error al cargar foro_categorias:",
+        error
+      );
       return [];
     }
-    
+
     const categoriasPlanas = data || [];
-    console.log("[getCategoriasJerarquicas] Categorías planas recibidas:", categoriasPlanas.length);
-    
+    console.log(
+      "[getCategoriasJerarquicas] Categorías planas recibidas:",
+      categoriasPlanas.length
+    );
+
     // Organizar en estructura jerárquica
     const categoriasPrincipales: any[] = [];
     const categoriasMap = new Map<string, any>();
-    
+
     // Crear un mapa de todas las categorías
-    categoriasPlanas.forEach(cat => {
+    categoriasPlanas.forEach((cat) => {
       categoriasMap.set(cat.id, { ...cat, subcategorias: [] });
     });
-    
+
     // Organizar la jerarquía
-    categoriasPlanas.forEach(cat => {
+    categoriasPlanas.forEach((cat) => {
       const categoria = categoriasMap.get(cat.id)!;
-      
+
       if (!cat.parent_id) {
         // Es una categoría principal
         categoriasPrincipales.push(categoria);
@@ -263,9 +273,12 @@ export async function getCategoriasJerarquicas(): Promise<any[]> {
         }
       }
     });
-    
-    console.log("[getCategoriasJerarquicas] Árbol de categorías construido:", categoriasPrincipales.length);
-    
+
+    console.log(
+      "[getCategoriasJerarquicas] Árbol de categorías construido:",
+      categoriasPrincipales.length
+    );
+
     return categoriasPrincipales;
   } catch (err) {
     console.error("[getCategoriasJerarquicas] Error general:", err);

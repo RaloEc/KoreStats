@@ -15,10 +15,12 @@ import {
   ArrowUp,
   Clock,
   MessageCircle,
+  ThumbsUp,
 } from "lucide-react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { useRealtimeComments } from "@/hooks/useRealtimeComments";
 import { useRealtimeVotos } from "@/hooks/useRealtimeVotos";
+import { useUserTheme } from "@/hooks/useUserTheme";
 import { useAuth } from "@/context/AuthContext";
 
 interface HiloComentariosOptimizadoProps {
@@ -38,6 +40,7 @@ const HiloComentariosOptimizado: React.FC<HiloComentariosOptimizadoProps> = ({
 }) => {
   // Estado para el modal de autenticación
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { userColor } = useUserTheme();
 
   const { user: authUser, profile } = useAuth();
 
@@ -56,7 +59,7 @@ const HiloComentariosOptimizado: React.FC<HiloComentariosOptimizadoProps> = ({
   }, [authUser, profile]);
 
   // Estado para el ordenamiento (ANTES del hook que lo usa)
-  const [sortBy, setSortBy] = useState<"recent" | "replies">("recent");
+  const [sortBy, setSortBy] = useState<"recent" | "votes">("recent");
 
   // Usar el hook personalizado para gestionar comentarios
   const {
@@ -218,7 +221,7 @@ const HiloComentariosOptimizado: React.FC<HiloComentariosOptimizadoProps> = ({
   return (
     <div className="space-y-6">
       {/* Header de respuestas con selector de ordenamiento */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <MessageSquare size={24} />
           {total} {total === 1 ? "Respuesta" : "Respuestas"}
@@ -235,23 +238,31 @@ const HiloComentariosOptimizado: React.FC<HiloComentariosOptimizadoProps> = ({
                 onClick={() => setSortBy("recent")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   sortBy === "recent"
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "shadow-sm"
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
+                style={{
+                  backgroundColor: sortBy === "recent" ? userColor : undefined,
+                  color: sortBy === "recent" ? "white" : undefined,
+                }}
               >
                 <Clock className="h-4 w-4" />
                 Más recientes
               </button>
               <button
-                onClick={() => setSortBy("replies")}
+                onClick={() => setSortBy("votes")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  sortBy === "replies"
-                    ? "bg-indigo-600 text-white shadow-sm"
+                  sortBy === "votes"
+                    ? "shadow-sm"
                     : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
+                style={{
+                  backgroundColor: sortBy === "votes" ? userColor : undefined,
+                  color: sortBy === "votes" ? "white" : undefined,
+                }}
               >
-                <MessageCircle className="h-4 w-4" />
-                Más respuestas
+                <ThumbsUp className="h-4 w-4" />
+                Mejores votados
               </button>
             </div>
           </div>
@@ -355,17 +366,29 @@ const HiloComentariosOptimizado: React.FC<HiloComentariosOptimizadoProps> = ({
             })
           )}
 
-          {/* Elemento observador para carga infinita */}
+          {/* Botón para cargar más comentarios */}
           {hasNextPage && (
-            <div ref={ref} className="text-center pt-4">
-              {isFetchingNextPage && (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-                  <span className="text-sm text-muted-foreground">
-                    Cargando más respuestas...
-                  </span>
-                </div>
-              )}
+            <div className="text-center pt-8">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => loadMoreComentarios()}
+                disabled={isFetchingNextPage}
+                className="min-w-[200px] border-2 font-bold uppercase tracking-wider transition-all hover:scale-105"
+                style={{
+                  color: user?.color || "inherit",
+                  borderColor: user?.color || "currentColor",
+                }}
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                    Cargando...
+                  </>
+                ) : (
+                  "Mostrar más comentarios"
+                )}
+              </Button>
             </div>
           )}
         </div>

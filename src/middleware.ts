@@ -75,57 +75,39 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // ✅ OPTIMIZADO: Obtener sesión actual (sin refrescar innecesariamente)
+  // ✅ OPTIMIZADO: Usar getUser() para validar la sesión de forma segura
+  // Esto refresca el token automáticamente si es necesario y valida contra la BD
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  logger.info("Middleware", "Sesión obtenida", {
-    hasSession: !!session,
-    userId: session?.user?.id,
-    expiresAt: session?.expires_at,
-    error: sessionError?.message,
+  logger.info("Middleware", "Estado de autenticación verificado", {
+    hasUser: !!user,
+    userId: user?.id,
+    error: userError?.message,
   });
 
-  // ✅ OPTIMIZADO: Refrescar SOLO si el token está próximo a expirar (< 30 segundos)
-  if (session?.expires_at) {
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = session.expires_at;
-    const timeUntilExpiry = expiresAt - now;
+  // Nota: getUser() ya maneja la renovación del token si está expirado,
+  // disparando las cookies actualizadas a través del callback setAll definido arriba.
 
-    // Si expira en menos de 30 segundos, refrescar
-    if (timeUntilExpiry < 30) {
-      logger.info("Middleware", "Token próximo a expirar, refrescando...");
-      const { data: refreshed, error: refreshError } =
-        await supabase.auth.refreshSession();
-
-      if (refreshError || !refreshed.session) {
-        logger.warn(
-          "Middleware",
-          "No se pudo refrescar el token",
-          refreshError
-        );
-      } else {
-        logger.success("Middleware", "Token refrescado exitosamente");
-      }
-    }
-  }
-
-  // Si hay sesión, agregar header para indicar al cliente
-  if (session) {
+  // Si hay usuario autenticado, agregar header para indicar al cliente
+  if (user) {
     response.headers.set("X-Auth-Session", "true");
-    response.headers.set("X-User-Id", session.user.id);
-    logger.info("Middleware", "Sesión activa detectada");
+    response.headers.set("X-User-Id", user.id);
+    logger.info("Middleware", "Sesión activa detectada (user validado)");
   }
 
   // Verificar si la ruta es administrativa
   const isAdmin = isAdminRoute(pathname);
 
   if (isAdmin) {
-    // Si no hay sesión, redirigir al login con parámetro de redirección
-    if (!session) {
-      logger.warn("Middleware", "No hay sesión, redirigiendo a login");
+    // Si no hay usuario, redirigir al login con parámetro de redirección
+    if (!user) {
+      logger.warn(
+        "Middleware",
+        "No hay usuario autenticado, redirigiendo a login"
+      );
       const redirectUrl = new URL("/login", request.url);
       redirectUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(redirectUrl);
@@ -133,10 +115,10 @@ export async function middleware(request: NextRequest) {
 
     // ✅ OPTIMIZADO: Verificar role usando app_metadata (SIN consultar BD)
     // El role debe estar guardado en app_metadata durante el signup/update
-    const userRole = session.user?.app_metadata?.role as string | undefined;
+    const userRole = user.app_metadata?.role as string | undefined;
 
     logger.info("Middleware", "Verificación de role (app_metadata)", {
-      userId: session.user.id,
+      userId: user.id,
       role: userRole,
     });
 
@@ -151,7 +133,7 @@ export async function middleware(request: NextRequest) {
         const { data: profile, error: profileError } = await supabase
           .from("perfiles")
           .select("role")
-          .eq("id", session.user.id)
+          .eq("id", user.id)
           .single();
 
         if (profileError || !profile || profile.role !== "admin") {
@@ -190,8 +172,9 @@ export const config = {
      * - _next/static (archivos estáticos)
      * - _next/image (optimización de imágenes)
      * - favicon.ico (favicon)
+     * - sw.js, workbox-*.js (Service Worker PWA)
      * - Archivos públicos (imágenes, etc.)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|workbox-.*\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

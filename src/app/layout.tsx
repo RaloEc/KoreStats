@@ -97,7 +97,9 @@ const ThemeScript = () => {
     (function() {
       try {
         const storageKey = 'korestats-theme';
+        const colorKey = 'korestats-color';
         const savedTheme = localStorage.getItem(storageKey);
+        const savedColor = localStorage.getItem(colorKey);
         
         // Función para aplicar el tema
         function applyTheme(theme) {
@@ -108,6 +110,11 @@ const ThemeScript = () => {
             document.documentElement.classList.remove('dark');
             document.documentElement.style.colorScheme = 'light';
           }
+        }
+
+        // Función para aplicar color personalizado
+        if (savedColor && /^#[0-9A-F]{6}$/i.test(savedColor)) {
+          document.documentElement.style.setProperty('--primary', savedColor);
         }
         
         // Determinar el tema a aplicar

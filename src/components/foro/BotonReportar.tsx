@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,54 +10,56 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Flag } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Flag } from "lucide-react";
+import { toast } from "sonner";
 
 interface BotonReportarProps {
-  tipo_contenido: 'hilo' | 'post' | 'comentario';
+  tipo_contenido: "hilo" | "post" | "comentario";
   contenido_id: string;
-  variant?: 'default' | 'ghost' | 'outline';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
-  hideLabelBelow?: 'sm' | 'md' | 'lg' | 'xl';
+  variant?: "default" | "ghost" | "outline";
+  size?: "default" | "sm" | "lg" | "icon";
+  hideLabelBelow?: "sm" | "md" | "lg" | "xl";
 }
 
 const RAZONES_REPORTE = [
-  { value: 'spam', label: 'Spam o publicidad' },
-  { value: 'acoso', label: 'Acoso o intimidación' },
-  { value: 'contenido_inapropiado', label: 'Contenido inapropiado' },
-  { value: 'desinformacion', label: 'Desinformación' },
-  { value: 'lenguaje_ofensivo', label: 'Lenguaje ofensivo' },
-  { value: 'fuera_de_tema', label: 'Fuera de tema' },
-  { value: 'otro', label: 'Otro' },
+  { value: "spam", label: "Spam o publicidad" },
+  { value: "acoso", label: "Acoso o intimidación" },
+  { value: "contenido_inapropiado", label: "Contenido inapropiado" },
+  { value: "desinformacion", label: "Desinformación" },
+  { value: "lenguaje_ofensivo", label: "Lenguaje ofensivo" },
+  { value: "fuera_de_tema", label: "Fuera de tema" },
+  { value: "otro", label: "Otro" },
 ];
 
 export default function BotonReportar({
   tipo_contenido,
   contenido_id,
-  variant = 'ghost',
-  size = 'sm',
+  variant = "ghost",
+  size = "sm",
   hideLabelBelow,
 }: BotonReportarProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false);
-  const [razon, setRazon] = useState('');
-  const [descripcion, setDescripcion] = useState('');
+  const [razon, setRazon] = useState("");
+  const [descripcion, setDescripcion] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   const handleReportar = async () => {
     const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const accessToken = session?.access_token || null;
     if (!razon) {
-      toast.error('Selecciona una razón para el reporte');
+      toast.error("Selecciona una razón para el reporte");
       return;
     }
 
@@ -65,13 +67,14 @@ export default function BotonReportar({
 
     try {
       // Validar sesión antes de enviar
-      if (!session || !accessToken) throw new Error('Debes iniciar sesión para reportar contenido');
+      if (!session || !accessToken)
+        throw new Error("Debes iniciar sesión para reportar contenido");
 
-      const res = await fetch('/api/admin/foro/reportes', {
-        method: 'POST',
-        credentials: 'include',
+      const res = await fetch("/api/admin/foro/reportes", {
+        method: "POST",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
@@ -83,7 +86,7 @@ export default function BotonReportar({
       });
 
       if (!res.ok) {
-        let serverMsg = 'Error al enviar el reporte';
+        let serverMsg = "Error al enviar el reporte";
         try {
           const errJson = await res.json();
           if (errJson?.error) serverMsg = errJson.error;
@@ -91,13 +94,18 @@ export default function BotonReportar({
         throw new Error(serverMsg);
       }
 
-      toast.success('Reporte enviado correctamente. Será revisado por un moderador.');
+      toast.success(
+        "Reporte enviado correctamente. Será revisado por un moderador."
+      );
       setDialogAbierto(false);
-      setRazon('');
-      setDescripcion('');
+      setRazon("");
+      setDescripcion("");
     } catch (error) {
-      console.error('Error al reportar:', error);
-      const msg = error instanceof Error ? error.message : 'Error al enviar el reporte. Intenta nuevamente.';
+      console.error("Error al reportar:", error);
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "Error al enviar el reporte. Intenta nuevamente.";
       toast.error(msg);
     } finally {
       setEnviando(false);
@@ -107,15 +115,25 @@ export default function BotonReportar({
   return (
     <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
       <DialogTrigger asChild>
-        <Button
-          variant={variant}
-          size={size}
-          aria-label="Reportar"
-        >
+        <Button variant={variant} size={size} aria-label="Reportar">
           <Flag
-            className={`h-4 w-4 ${hideLabelBelow ? `${hideLabelBelow}:mr-2` : 'mr-2'}`}
+            className={`h-4 w-4 ${
+              size === "icon"
+                ? ""
+                : hideLabelBelow
+                ? `${hideLabelBelow}:mr-2`
+                : "mr-2"
+            }`}
           />
-          <span className={hideLabelBelow ? `hidden ${hideLabelBelow}:inline` : ''}>
+          <span
+            className={
+              size === "icon"
+                ? "sr-only"
+                : hideLabelBelow
+                ? `hidden ${hideLabelBelow}:inline`
+                : ""
+            }
+          >
             Reportar
           </span>
         </Button>
@@ -124,7 +142,8 @@ export default function BotonReportar({
         <DialogHeader>
           <DialogTitle>Reportar Contenido</DialogTitle>
           <DialogDescription>
-            Ayúdanos a mantener la comunidad segura reportando contenido inapropiado
+            Ayúdanos a mantener la comunidad segura reportando contenido
+            inapropiado
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -163,7 +182,7 @@ export default function BotonReportar({
               disabled={!razon || enviando}
               className="flex-1"
             >
-              {enviando ? 'Enviando...' : 'Enviar Reporte'}
+              {enviando ? "Enviando..." : "Enviar Reporte"}
             </Button>
             <Button
               variant="outline"

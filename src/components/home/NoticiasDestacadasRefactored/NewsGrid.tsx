@@ -23,7 +23,7 @@ export function NewsGrid({
 }: NewsGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {noticias.map((noticia) => (
+      {noticias.map((noticia, index) => (
         <div
           key={noticia.id}
           className="group flex flex-col h-full rounded-lg overflow-hidden"
@@ -45,7 +45,8 @@ export function NewsGrid({
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  loading="lazy"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  priority={index === 0}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
