@@ -9,10 +9,11 @@ import {
   SharedMatchCard,
   type SharedMatchData,
 } from "@/components/perfil/shared-match-card";
+import StatusCard from "@/components/social/StatusCard";
 import type { Noticia } from "@/types";
 import type { WeaponStats } from "@/types/weapon";
 
-type FeedFilter = "all" | "threads" | "news" | "lol";
+type FeedFilter = "all" | "threads" | "news" | "lol" | "social";
 
 type FeedAuthor = {
   id: string;
@@ -136,6 +137,29 @@ type FeedItem =
           team: "blue" | "red";
         }>;
       };
+    }
+  | {
+      type: "social_post";
+      id: string;
+      created_at: string;
+      content: string | null;
+      media_url: string | null;
+      media_type: "image" | "youtube" | null;
+      likes_count: number;
+      comments_count: number;
+      isLiked: boolean;
+      user: {
+        id: string;
+        username: string | null;
+        avatar_url: string | null;
+        color: string | null;
+        public_id: string | null;
+      };
+      target_user?: {
+        id: string;
+        username: string | null;
+        avatar_url: string | null;
+      } | null;
     };
 
 type FeedResponse = {
@@ -175,10 +199,60 @@ export default function FeedContainer() {
   const [hasMore, setHasMore] = useState(true);
   const cursorRef = useRef<string | null>(null);
 
+  const [socialPosts, setSocialPosts] = useState<any[]>([]);
+  const [socialSuggestion, setSocialSuggestion] = useState<string | null>(null);
+
   const loadPage = useCallback(
     async (nextPage: number, mode: "replace" | "append") => {
       setIsLoading(true);
       try {
+        // For social filter, use the social-specific endpoint
+        if (filter === "social") {
+          const res = await fetch(
+            `/api/feed/home/social?page=${nextPage}&limit=10`
+          );
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          if (data.error) {
+            // User not logged in - show empty state
+            setSocialPosts([]);
+            setSocialSuggestion(
+              "Inicia sesión para ver publicaciones de tus amigos"
+            );
+            setHasMore(false);
+          } else {
+            setHasMore(data.meta?.hasMore || false);
+            setSocialSuggestion(data.suggestion || null);
+
+            const transformedItems: FeedItem[] = (data.posts || []).map(
+              (post: any) => ({
+                type: "social_post" as const,
+                id: post.id,
+                created_at: post.created_at,
+                content: post.content,
+                media_url: post.media_url,
+                media_type: post.media_type,
+                likes_count: post.likes_count || 0,
+                comments_count: post.comments_count || 0,
+                isLiked: post.isLiked || false,
+                user: post.user,
+                target_user: post.target_user,
+              })
+            );
+
+            setItems((prev) =>
+              mode === "replace"
+                ? transformedItems
+                : [...prev, ...transformedItems]
+            );
+          }
+          setPage(nextPage);
+          setIsLoading(false);
+          return;
+        }
+
+        // For other filters, use the regular endpoint
         const cursorValue = mode === "append" ? cursorRef.current : null;
         const cursorQuery = cursorValue
           ? `&cursor=${encodeURIComponent(cursorValue)}`
@@ -213,12 +287,14 @@ export default function FeedContainer() {
   useEffect(() => {
     cursorRef.current = null;
     setPage(1);
+    setSocialSuggestion(null);
     void loadPage(1, "replace");
   }, [filter, loadPage]);
 
   const actions = useMemo(
     () => [
       { key: "all" as const, label: "Todo" },
+      { key: "social" as const, label: "Social" },
       { key: "threads" as const, label: "Hilos" },
       { key: "lol" as const, label: "LoL" },
       { key: "news" as const, label: "Noticias" },
@@ -228,18 +304,21 @@ export default function FeedContainer() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex flex-wrap gap-2 mb-6">
-        {actions.map((a) => (
-          <Button
-            key={a.key}
-            variant={filter === a.key ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter(a.key)}
-            disabled={isLoading && page === 1}
-          >
-            {a.label}
-          </Button>
-        ))}
+      {/* Sticky tabs container */}
+      <div className="sticky top-0 z-40 bg-white dark:bg-black py-3 -mx-4 px-4 mb-3 border-b border-gray-200 dark:border-white/5">
+        <div className="flex flex-wrap gap-2">
+          {actions.map((a) => (
+            <Button
+              key={a.key}
+              variant={filter === a.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter(a.key)}
+              disabled={isLoading && page === 1}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -386,12 +465,57 @@ export default function FeedContainer() {
             return out;
           }
 
+          if (item.type === "social_post") {
+            out.push(
+              <StatusCard
+                key={`social-${item.id}`}
+                post={{
+                  id: item.id,
+                  user_id: item.user.id,
+                  target_user_id: item.target_user?.id || null,
+                  content: item.content,
+                  media_url: item.media_url,
+                  media_type: item.media_type,
+                  created_at: item.created_at,
+                  likes_count: item.likes_count,
+                  comments_count: item.comments_count,
+                  user: {
+                    id: item.user.id,
+                    username: item.user.username || "Usuario",
+                    avatar_url: item.user.avatar_url,
+                    color: item.user.color,
+                    public_id: item.user.public_id,
+                  },
+                  target_user: item.target_user
+                    ? {
+                        id: item.target_user.id,
+                        username: item.target_user.username || "Usuario",
+                        avatar_url: item.target_user.avatar_url,
+                      }
+                    : undefined,
+                  isLiked: item.isLiked,
+                }}
+              />
+            );
+            return out;
+          }
+
           return out;
         })}
 
         {items.length === 0 && !isLoading && (
-          <div className="text-sm text-muted-foreground text-center py-10">
-            No hay contenido para mostrar.
+          <div className="text-center py-10 space-y-3">
+            <p className="text-muted-foreground">
+              {filter === "social" && socialSuggestion
+                ? socialSuggestion
+                : "No hay contenido para mostrar."}
+            </p>
+            {filter === "social" && (
+              <p className="text-sm text-gray-400">
+                Cuando sigas a otros usuarios o añadas amigos, sus publicaciones
+                aparecerán aquí.
+              </p>
+            )}
           </div>
         )}
 

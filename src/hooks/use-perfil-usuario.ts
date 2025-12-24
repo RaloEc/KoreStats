@@ -118,8 +118,8 @@ export const usePerfilUsuario = (
     queryFn: () => fetchPerfilUsuario(publicId),
     enabled: !!publicId,
     initialData: initialData || undefined,
-    staleTime: 30 * 60 * 1000, // 30 minutos
-    gcTime: 60 * 60 * 1000, // 60 minutos
+    staleTime: 1000 * 60 * 1, // 1 minuto
+    gcTime: 1000 * 60 * 5, // 5 minutos
     retry: 1,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

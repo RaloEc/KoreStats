@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, X } from "lucide-react";
 import { Button, Card, CardBody } from "@nextui-org/react";
-import UserActivityFeedContainer from "./UserActivityFeedContainer";
+// import UserActivityFeedContainer from "./UserActivityFeedContainer";
+import StatusFeed from "@/components/social/StatusFeed";
 import ProfileHeader from "./profile-header";
 import { FriendRequestsList } from "@/components/social/FriendRequestsList";
 import { FriendsListCompact } from "@/components/social/FriendsListCompact";
@@ -215,12 +216,10 @@ export default function MobileProfileLayout({
 
           {/* Feed de actividad con scroll infinit */}
           <div className="px-4 py-4 pb-20">
-            <UserActivityFeedContainer
-              fetchActivities={fetchActivities}
-              userColor={perfil.color}
-              initialPage={1}
-              itemsPerPage={10}
-              isAdmin={perfil.role.toLowerCase() === "admin"}
+            <StatusFeed
+              profileId={perfil.id}
+              profileUsername={perfil.username}
+              isOwnProfile={isOwnProfile || userId === perfil.id}
             />
           </div>
         </div>

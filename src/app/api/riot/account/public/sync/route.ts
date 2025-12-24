@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase/server";
 import { syncRiotStats, getRoutingRegionFromShard } from "@/lib/riot/sync";
-import { syncMatchHistory } from "@/lib/riot/matches";
+import { syncMatchHistory, syncMatchById } from "@/lib/riot/matches";
 
 const UNRANKED_RANK = {
   tier: "UNRANKED",
@@ -186,7 +186,69 @@ export async function POST(request: NextRequest) {
       updatedRecord: updateResult?.[0],
     });
 
-    // 4. Sincronizar historial de partidas
+    // 4. Sincronización Avanzada: Buscar "Partidas Perdidas"
+    // Intentamos recuperar ID de partida desde la DB o cola para forzar descarga directa
+    // Esto hace que la actualización sea "instantánea" si ya detectamos que estaba en juego
+    let instantMatchId: string | null = null;
+
+    // A) Revisar si la cuenta decía estar en juego pero ya no lo está
+    if (riotAccount.is_in_game && riotAccount.last_known_game_id) {
+      // Verificar si realmente terminó
+      const region = (riotAccount.active_shard || "la1").toLowerCase();
+      const spectatorUrl = `https://${region}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`;
+      try {
+        const specRes = await fetch(spectatorUrl, {
+          headers: { "X-Riot-Token": process.env.RIOT_API_KEY || "" },
+          cache: "no-store",
+        });
+        if (specRes.status === 404) {
+          // Ya no está en juego, ¡podemos usar este ID!
+          console.log(
+            `[Sync] Detectada partida terminada reciente: ${riotAccount.last_known_game_id}`
+          );
+          instantMatchId = String(riotAccount.last_known_game_id);
+        }
+      } catch (e) {
+        console.warn("[Sync] Error chequeando spectator:", e);
+      }
+    }
+
+    // B) Revisar si hay un trabajo pendiente en cola con ID
+    if (!instantMatchId) {
+      const { data: queueJob } = await supabase
+        .from("lp_tracking_queue")
+        .select("game_id")
+        .eq("user_id", userId)
+        .neq("status", "completed") // pending o processing
+        .not("game_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (queueJob?.game_id) {
+        console.log(
+          `[Sync] Encontrado ID en cola de trabajos: ${queueJob.game_id}`
+        );
+        instantMatchId = String(queueJob.game_id);
+      }
+    }
+
+    // C) Intentar descarga directa si tenemos ID
+    if (instantMatchId) {
+      console.log(`[Sync] 🚀 Intentando descarga directa de ${instantMatchId}`);
+      const directSync = await syncMatchById(
+        instantMatchId,
+        riotAccount.active_shard || "la1",
+        process.env.RIOT_API_KEY || ""
+      );
+      if (directSync.success && directSync.saved) {
+        console.log(
+          `[Sync] ✅ Partida ${instantMatchId} descargada al instante`
+        );
+      }
+    }
+
+    // 5. Sincronizar historial de partidas (Método estándar por lista)
     console.log(
       "[POST /api/riot/account/public/sync] Sincronizando historial de partidas..."
     );
@@ -213,6 +275,50 @@ export async function POST(request: NextRequest) {
         matchSyncResult.error
       );
       // No retornamos error aquí, la cuenta ya se actualizó
+    } else if (matchSyncResult.newMatches === 0) {
+      // Si no hubo partidas nuevas, puede ser lag de la API de Riot.
+      // Encolamos un reintento en background para que el cron lo recoja en 1-2 min
+      console.log(
+        "[POST /api/riot/account/public/sync] 0 nuevas partidas. Encolando reintento en background..."
+      );
+
+      // Verificar si ya hay uno pendiente para no duplicar
+      const { data: existingJob } = await supabase
+        .from("lp_tracking_queue")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("action", "sync_matches")
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (!existingJob) {
+        const { error: queueError } = await supabase
+          .from("lp_tracking_queue")
+          .insert({
+            user_id: userId,
+            puuid: puuid,
+            platform_region: (region || "la1").toLowerCase(),
+            priority: 2,
+            action: "sync_matches",
+            status: "pending",
+            retry_count: 0,
+          });
+
+        if (queueError) {
+          console.error(
+            "[POST /api/riot/account/public/sync] Error encolando reintento:",
+            queueError.message
+          );
+        } else {
+          console.log(
+            "[POST /api/riot/account/public/sync] Reintento encolado exitosamente"
+          );
+        }
+      } else {
+        console.log(
+          "[POST /api/riot/account/public/sync] Ya existe un job pendiente, saltando insert."
+        );
+      }
     }
 
     // 5. Limpiar cachés

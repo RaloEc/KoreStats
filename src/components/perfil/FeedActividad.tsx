@@ -293,397 +293,457 @@ export const FeedActividad = ({
     );
   }
 
+  const [filter, setFilter] = React.useState<
+    "all" | "hilo" | "post" | "lol_match"
+  >("all");
+
+  const filteredItems = React.useMemo(() => {
+    if (filter === "all") return feedItems;
+    return feedItems.filter((item) => item.type === filter);
+  }, [feedItems, filter]);
+
   return (
-    <div className="space-y-4">
-      {feedItems.map((item) => {
-        const isHidden = hiddenItems.has(item.id);
+    <div className="space-y-6">
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setFilter("all")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            filter === "all"
+              ? "bg-slate-900 text-white dark:bg-white dark:text-black"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          }`}
+        >
+          Todo
+        </button>
+        <button
+          onClick={() => setFilter("hilo")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filter === "hilo"
+              ? "bg-slate-900 text-white dark:bg-white dark:text-black"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          }`}
+        >
+          <Newspaper className="w-3.5 h-3.5" />
+          Hilos
+        </button>
+        <button
+          onClick={() => setFilter("post")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filter === "post"
+              ? "bg-slate-900 text-white dark:bg-white dark:text-black"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          Respuestas
+        </button>
+        <button
+          onClick={() => setFilter("lol_match")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+            filter === "lol_match"
+              ? "bg-slate-900 text-white dark:bg-white dark:text-black"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          }`}
+        >
+          <Trophy className="w-3.5 h-3.5" />
+          Partidas
+        </button>
+      </div>
 
-        if (item.type === "hilo") {
-          const hilo = item.data;
-          const contenidoPlano = hilo.contenido.replace(/<[^>]*>/g, "");
-          const indicators = getContentIndicators(hilo.contenido);
+      <div className="space-y-4">
+        {filteredItems.map((item) => {
+          const isHidden = hiddenItems.has(item.id);
 
-          return (
-            <Card
-              key={item.id}
-              className={`transition-shadow hover:shadow-lg dark:border-gray-800 overflow-hidden ${
-                isHidden ? "opacity-60" : ""
-              }`}
-            >
-              <CardContent className="p-4 sm:p-6 space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-grow min-w-0">
-                    <Link
-                      href={`/foro/hilos/${hilo.slug || hilo.id}`}
-                      className="group"
-                    >
-                      <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-2 text-foreground">
-                        {hilo.titulo}
-                      </h3>
-                    </Link>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span
-                        className="inline-block text-xs px-2 py-1 rounded-full text-foreground"
+          if (item.type === "hilo") {
+            const hilo = item.data;
+            const contenidoPlano = hilo.contenido.replace(/<[^>]*>/g, "");
+            const indicators = getContentIndicators(hilo.contenido);
+
+            return (
+              <Card
+                key={item.id}
+                className={`transition-shadow hover:shadow-lg dark:border-gray-800 overflow-hidden ${
+                  isHidden ? "opacity-60" : ""
+                }`}
+              >
+                <CardContent className="p-4 sm:p-6 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-grow min-w-0">
+                      <Link
+                        href={`/foro/hilos/${hilo.slug || hilo.id}`}
+                        className="group"
+                      >
+                        <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-2 text-foreground">
+                          {hilo.titulo}
+                        </h3>
+                      </Link>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <span
+                          className="inline-block text-xs px-2 py-1 rounded-full text-foreground"
+                          style={{
+                            backgroundColor: `color-mix(in srgb, var(--user-color) 15%, transparent)`,
+                            color: `var(--user-color)`,
+                            ...colorStyle,
+                          }}
+                        >
+                          {hilo.categoria_titulo}
+                        </span>
+                        <span
+                          className="text-xs text-muted-foreground flex items-center gap-1"
+                          suppressHydrationWarning
+                        >
+                          <Clock className="w-3 h-3" />
+                          {formatearFecha(hilo.created_at)}
+                        </span>
+                        {isHidden && renderHiddenBadge()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Newspaper
+                        className="w-5 h-5"
                         style={{
-                          backgroundColor: `color-mix(in srgb, var(--user-color) 15%, transparent)`,
+                          color: `var(--user-color)`,
+                          ...colorStyle,
+                        }}
+                      />
+                      <ActivityCardMenu
+                        activityType="forum_thread"
+                        activityId={hilo.id}
+                        isOwnProfile={isOwnProfile}
+                        isAdmin={isAdmin}
+                        onHide={() => {
+                          const newSet = new Set(hiddenItems);
+                          newSet.add(item.id);
+                          setHiddenItems(newSet);
+                        }}
+                        onUnhide={() => {
+                          const newSet = new Set(hiddenItems);
+                          newSet.delete(item.id);
+                          setHiddenItems(newSet);
+                        }}
+                        isHidden={isHidden}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contenido enriquecido con multimedia */}
+                  <div className="relative">
+                    <div className="prose prose-sm dark:prose-invert max-h-64 overflow-hidden prose-img:mx-auto prose-figure:mx-auto prose-iframe:mx-auto prose-video:mx-auto">
+                      <div
+                        className="text-sm leading-relaxed space-y-2"
+                        dangerouslySetInnerHTML={{ __html: hilo.contenido }}
+                        suppressHydrationWarning
+                      />
+                    </div>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent" />
+                  </div>
+
+                  {/* Indicadores de contenido */}
+                  {(indicators.hasAny || hilo.hasWeaponStats) && (
+                    <div className="flex flex-wrap gap-2">
+                      {indicators.hasCode && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Code className="w-3 h-3" />
+                          <span>Código</span>
+                        </div>
+                      )}
+                      {indicators.hasTweet && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Twitter className="w-3 h-3" />
+                          <span>Tweet</span>
+                        </div>
+                      )}
+                      {indicators.hasYoutube && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Youtube className="w-3 h-3" />
+                          <span>Video</span>
+                        </div>
+                      )}
+                      {indicators.hasImages && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ImageIcon className="w-3 h-3" />
+                          <span>Imágenes</span>
+                        </div>
+                      )}
+                      {indicators.hasMentions && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <AtSign className="w-3 h-3" />
+                          <span>Menciones</span>
+                        </div>
+                      )}
+                      {hilo.hasWeaponStats && (
+                        <div
+                          className="flex items-center gap-1 text-xs text-muted-foreground"
+                          style={{ color: `var(--user-color)`, ...colorStyle }}
+                        >
+                          <Crosshair className="w-3 h-3" />
+                          <span>Stats</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t dark:border-gray-700">
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                      <Eye className="w-3 h-3" />
+                      {hilo.vistas} vistas
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                      <MessageSquare className="w-3 h-3" />
+                      {hilo.respuestas} respuestas
+                    </span>
+                    {hilo.hasWeaponStats && (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"
+                        style={{
+                          backgroundColor: `color-mix(in srgb, var(--user-color) 12%, transparent)`,
                           color: `var(--user-color)`,
                           ...colorStyle,
                         }}
                       >
-                        {hilo.categoria_titulo}
-                      </span>
-                      <span
-                        className="text-xs text-muted-foreground flex items-center gap-1"
-                        suppressHydrationWarning
-                      >
-                        <Clock className="w-3 h-3" />
-                        {formatearFecha(hilo.created_at)}
-                      </span>
-                      {isHidden && renderHiddenBadge()}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Newspaper
-                      className="w-5 h-5"
-                      style={{
-                        color: `var(--user-color)`,
-                        ...colorStyle,
-                      }}
-                    />
-                    <ActivityCardMenu
-                      activityType="forum_thread"
-                      activityId={hilo.id}
-                      isOwnProfile={isOwnProfile}
-                      isAdmin={isAdmin}
-                      onHide={() => {
-                        const newSet = new Set(hiddenItems);
-                        newSet.add(item.id);
-                        setHiddenItems(newSet);
-                      }}
-                      onUnhide={() => {
-                        const newSet = new Set(hiddenItems);
-                        newSet.delete(item.id);
-                        setHiddenItems(newSet);
-                      }}
-                      isHidden={isHidden}
-                    />
-                  </div>
-                </div>
-
-                {/* Contenido enriquecido con multimedia */}
-                <div className="relative">
-                  <div className="prose prose-sm dark:prose-invert max-h-64 overflow-hidden prose-img:mx-auto prose-figure:mx-auto prose-iframe:mx-auto prose-video:mx-auto">
-                    <div
-                      className="text-sm leading-relaxed space-y-2"
-                      dangerouslySetInnerHTML={{ __html: hilo.contenido }}
-                      suppressHydrationWarning
-                    />
-                  </div>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent" />
-                </div>
-
-                {/* Indicadores de contenido */}
-                {(indicators.hasAny || hilo.hasWeaponStats) && (
-                  <div className="flex flex-wrap gap-2">
-                    {indicators.hasCode && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Code className="w-3 h-3" />
-                        <span>Código</span>
-                      </div>
-                    )}
-                    {indicators.hasTweet && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Twitter className="w-3 h-3" />
-                        <span>Tweet</span>
-                      </div>
-                    )}
-                    {indicators.hasYoutube && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Youtube className="w-3 h-3" />
-                        <span>Video</span>
-                      </div>
-                    )}
-                    {indicators.hasImages && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <ImageIcon className="w-3 h-3" />
-                        <span>Imágenes</span>
-                      </div>
-                    )}
-                    {indicators.hasMentions && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <AtSign className="w-3 h-3" />
-                        <span>Menciones</span>
-                      </div>
-                    )}
-                    {hilo.hasWeaponStats && (
-                      <div
-                        className="flex items-center gap-1 text-xs text-muted-foreground"
-                        style={{ color: `var(--user-color)`, ...colorStyle }}
-                      >
                         <Crosshair className="w-3 h-3" />
-                        <span>Stats</span>
-                      </div>
+                        Stats de armas
+                      </span>
                     )}
-                  </div>
-                )}
-
-                {/* Stats */}
-                <div className="flex flex-wrap items-center gap-3 pt-3 border-t dark:border-gray-700">
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                    <Eye className="w-3 h-3" />
-                    {hilo.vistas} vistas
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                    <MessageSquare className="w-3 h-3" />
-                    {hilo.respuestas} respuestas
-                  </span>
-                  {hilo.hasWeaponStats && (
-                    <span
-                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"
+                    <Link
+                      href={`/foro/hilos/${hilo.slug || hilo.id}`}
+                      className="ml-auto inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                       style={{
-                        backgroundColor: `color-mix(in srgb, var(--user-color) 12%, transparent)`,
                         color: `var(--user-color)`,
                         ...colorStyle,
                       }}
                     >
-                      <Crosshair className="w-3 h-3" />
-                      Stats de armas
-                    </span>
-                  )}
-                  <Link
-                    href={`/foro/hilos/${hilo.slug || hilo.id}`}
-                    className="ml-auto inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-                    style={{
-                      color: `var(--user-color)`,
-                      ...colorStyle,
-                    }}
-                  >
-                    Ver hilo
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        } else if (item.type === "post") {
-          const post = item.data;
-          const contenidoPlano =
-            typeof window === "undefined"
-              ? post.contenido
-              : (post.contenido || "").replace(/<[^>]*>/g, "");
+                      Ver hilo
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          } else if (item.type === "post") {
+            const post = item.data;
+            const contenidoPlano =
+              typeof window === "undefined"
+                ? post.contenido
+                : (post.contenido || "").replace(/<[^>]*>/g, "");
 
-          return (
-            <Card
-              key={item.id}
-              className={`transition-shadow hover:shadow-lg dark:border-gray-800 overflow-hidden ${
-                isHidden ? "opacity-60" : ""
-              }`}
-            >
-              <CardContent className="p-4 sm:p-6 space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-grow min-w-0">
+            return (
+              <Card
+                key={item.id}
+                className={`transition-shadow hover:shadow-lg dark:border-gray-800 overflow-hidden ${
+                  isHidden ? "opacity-60" : ""
+                }`}
+              >
+                <CardContent className="p-4 sm:p-6 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-grow min-w-0">
+                      <Link
+                        href={`/foro/hilos/${post.hilo_id}`}
+                        className="group"
+                      >
+                        <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-1 text-foreground">
+                          Respuesta en: {post.hilo_titulo}
+                        </h3>
+                      </Link>
+                      <span
+                        className="text-xs text-muted-foreground flex items-center gap-1 mt-1"
+                        suppressHydrationWarning
+                      >
+                        <Clock className="w-3 h-3" />
+                        {formatearFecha(post.created_at)}
+                      </span>
+                      {isHidden && renderHiddenBadge()}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <MessageCircle
+                        className="w-5 h-5"
+                        style={{
+                          color: `var(--user-color)`,
+                          ...colorStyle,
+                        }}
+                      />
+                      <ActivityCardMenu
+                        activityType="forum_post"
+                        activityId={post.id}
+                        isOwnProfile={isOwnProfile}
+                        isAdmin={isAdmin}
+                        onHide={() => {
+                          const newSet = new Set(hiddenItems);
+                          newSet.add(item.id);
+                          setHiddenItems(newSet);
+                        }}
+                        onUnhide={() => {
+                          const newSet = new Set(hiddenItems);
+                          newSet.delete(item.id);
+                          setHiddenItems(newSet);
+                        }}
+                        isHidden={isHidden}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contenido preview */}
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {contenidoPlano}
+                  </p>
+
+                  {/* GIF adjunto */}
+                  {post.gif_url && (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-black/5 dark:bg-white/5 p-2 flex justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.gif_url}
+                        alt="GIF adjunto"
+                        className="max-h-60 w-full h-auto object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+
+                  {/* Link */}
+                  <div className="pt-2 border-t dark:border-gray-700">
                     <Link
                       href={`/foro/hilos/${post.hilo_id}`}
-                      className="group"
-                    >
-                      <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-1 text-foreground">
-                        Respuesta en: {post.hilo_titulo}
-                      </h3>
-                    </Link>
-                    <span
-                      className="text-xs text-muted-foreground flex items-center gap-1 mt-1"
-                      suppressHydrationWarning
-                    >
-                      <Clock className="w-3 h-3" />
-                      {formatearFecha(post.created_at)}
-                    </span>
-                    {isHidden && renderHiddenBadge()}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <MessageCircle
-                      className="w-5 h-5"
+                      className="flex items-center gap-1 text-xs hover:underline"
                       style={{
                         color: `var(--user-color)`,
                         ...colorStyle,
                       }}
-                    />
-                    <ActivityCardMenu
-                      activityType="forum_post"
-                      activityId={post.id}
-                      isOwnProfile={isOwnProfile}
-                      isAdmin={isAdmin}
-                      onHide={() => {
-                        const newSet = new Set(hiddenItems);
-                        newSet.add(item.id);
-                        setHiddenItems(newSet);
-                      }}
-                      onUnhide={() => {
-                        const newSet = new Set(hiddenItems);
-                        newSet.delete(item.id);
-                        setHiddenItems(newSet);
-                      }}
-                      isHidden={isHidden}
-                    />
-                  </div>
-                </div>
-
-                {/* Contenido preview */}
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {contenidoPlano}
-                </p>
-
-                {/* GIF adjunto */}
-                {post.gif_url && (
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-black/5 dark:bg-white/5 p-2 flex justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={post.gif_url}
-                      alt="GIF adjunto"
-                      className="max-h-60 w-full h-auto object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-
-                {/* Link */}
-                <div className="pt-2 border-t dark:border-gray-700">
-                  <Link
-                    href={`/foro/hilos/${post.hilo_id}`}
-                    className="flex items-center gap-1 text-xs hover:underline"
-                    style={{
-                      color: `var(--user-color)`,
-                      ...colorStyle,
-                    }}
-                  >
-                    Ver respuesta
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        } else if (item.type === "weapon") {
-          const record = item.data;
-
-          return (
-            <Card
-              key={item.id}
-              className={`transition-shadow hover:shadow-lg dark:border-gray-800 overflow-hidden ${
-                isHidden ? "opacity-60" : ""
-              }`}
-            >
-              <CardContent className="p-4 sm:p-6 space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-grow min-w-0">
-                    <Link
-                      href={`/foro/hilos/${record.hilo.slug || record.hilo.id}`}
-                      className="group"
                     >
-                      <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-2 text-foreground">
-                        {record.hilo.titulo}
-                      </h3>
+                      Ver respuesta
+                      <ExternalLink className="w-3 h-3" />
                     </Link>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span
-                        className="text-xs text-muted-foreground flex items-center gap-1"
-                        suppressHydrationWarning
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          } else if (item.type === "weapon") {
+            const record = item.data;
+
+            return (
+              <Card
+                key={item.id}
+                className={`transition-shadow hover:shadow-lg dark:border-gray-800 overflow-hidden ${
+                  isHidden ? "opacity-60" : ""
+                }`}
+              >
+                <CardContent className="p-4 sm:p-6 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-grow min-w-0">
+                      <Link
+                        href={`/foro/hilos/${
+                          record.hilo.slug || record.hilo.id
+                        }`}
+                        className="group"
                       >
-                        <Clock className="w-3 h-3" />
-                        {formatearFecha(record.created_at)}
-                      </span>
-                      {isHidden && renderHiddenBadge()}
+                        <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-2 text-foreground">
+                          {record.hilo.titulo}
+                        </h3>
+                      </Link>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <span
+                          className="text-xs text-muted-foreground flex items-center gap-1"
+                          suppressHydrationWarning
+                        >
+                          <Clock className="w-3 h-3" />
+                          {formatearFecha(record.created_at)}
+                        </span>
+                        {isHidden && renderHiddenBadge()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Crosshair
+                        className="w-5 h-5"
+                        style={{
+                          color: `var(--user-color)`,
+                          ...colorStyle,
+                        }}
+                      />
+                      <ActivityCardMenu
+                        activityType="weapon_stats"
+                        activityId={record.id}
+                        isOwnProfile={isOwnProfile}
+                        isAdmin={isAdmin}
+                        onHide={() => {
+                          const newSet = new Set(hiddenItems);
+                          newSet.add(item.id);
+                          setHiddenItems(newSet);
+                        }}
+                        onUnhide={() => {
+                          const newSet = new Set(hiddenItems);
+                          newSet.delete(item.id);
+                          setHiddenItems(newSet);
+                        }}
+                        isHidden={isHidden}
+                      />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Crosshair
-                      className="w-5 h-5"
+
+                  {/* Weapon Stats Card */}
+                  {record.stats && (
+                    <div className="mt-2">
+                      <WeaponStatsCard
+                        stats={record.stats}
+                        className="max-w-full"
+                      />
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <div className="flex items-center gap-4 pt-2 border-t dark:border-gray-700">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Eye className="w-3 h-3" />
+                      <span>{record.hilo.vistas}</span>
+                    </div>
+                    <Link
+                      href={`/foro/hilos/${record.hilo.slug || record.hilo.id}`}
+                      className="ml-auto flex items-center gap-1 text-xs hover:underline"
                       style={{
                         color: `var(--user-color)`,
                         ...colorStyle,
                       }}
-                    />
-                    <ActivityCardMenu
-                      activityType="weapon_stats"
-                      activityId={record.id}
-                      isOwnProfile={isOwnProfile}
-                      isAdmin={isAdmin}
-                      onHide={() => {
-                        const newSet = new Set(hiddenItems);
-                        newSet.add(item.id);
-                        setHiddenItems(newSet);
-                      }}
-                      onUnhide={() => {
-                        const newSet = new Set(hiddenItems);
-                        newSet.delete(item.id);
-                        setHiddenItems(newSet);
-                      }}
-                      isHidden={isHidden}
-                    />
+                    >
+                      Ver más
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            );
+          } else if (item.type === "lol_match") {
+            const partida = item.data;
 
-                {/* Weapon Stats Card */}
-                {record.stats && (
-                  <div className="mt-2">
-                    <WeaponStatsCard
-                      stats={record.stats}
-                      className="max-w-full"
-                    />
-                  </div>
-                )}
-
-                {/* Stats */}
-                <div className="flex items-center gap-4 pt-2 border-t dark:border-gray-700">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Eye className="w-3 h-3" />
-                    <span>{record.hilo.vistas}</span>
-                  </div>
-                  <Link
-                    href={`/foro/hilos/${record.hilo.slug || record.hilo.id}`}
-                    className="ml-auto flex items-center gap-1 text-xs hover:underline"
-                    style={{
-                      color: `var(--user-color)`,
-                      ...colorStyle,
-                    }}
-                  >
-                    Ver más
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        } else if (item.type === "lol_match") {
-          const partida = item.data;
-
-          return (
-            <SharedMatchCard
-              key={item.id}
-              partida={partida}
-              userColor={userColor}
-              isOwnProfile={isOwnProfile}
-              isAdmin={isAdmin}
-              onDelete={handleDeleteMatch}
-              deletingId={deletingId}
-              isHidden={isHidden}
-              onHide={() => {
-                const newSet = new Set(hiddenItems);
-                newSet.add(item.id);
-                setHiddenItems(newSet);
-              }}
-              onUnhide={() => {
-                const newSet = new Set(hiddenItems);
-                newSet.delete(item.id);
-                setHiddenItems(newSet);
-              }}
-              userId={userId}
-            />
-          );
-        }
-      })}
+            return (
+              <SharedMatchCard
+                key={item.id}
+                partida={partida}
+                userColor={userColor}
+                isOwnProfile={isOwnProfile}
+                isAdmin={isAdmin}
+                onDelete={handleDeleteMatch}
+                deletingId={deletingId}
+                isHidden={isHidden}
+                onHide={() => {
+                  const newSet = new Set(hiddenItems);
+                  newSet.add(item.id);
+                  setHiddenItems(newSet);
+                }}
+                onUnhide={() => {
+                  const newSet = new Set(hiddenItems);
+                  newSet.delete(item.id);
+                  setHiddenItems(newSet);
+                }}
+                userId={userId}
+              />
+            );
+          }
+        })}
+      </div>
     </div>
   );
 };

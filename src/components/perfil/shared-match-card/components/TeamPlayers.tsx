@@ -245,10 +245,10 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = ({
         </div>
 
         {/* Divider Vertical */}
-        <div className="w-px h-8 bg-slate-300/30 dark:bg-slate-700/50 mx-1 shrink-0" />
+        <div className="hidden sm:block w-px h-8 bg-slate-300/30 dark:bg-slate-700/50 mx-1 shrink-0" />
 
         {/* Items */}
-        <div className="flex gap-0.5 shrink-0">
+        <div className="hidden sm:flex gap-0.5 shrink-0">
           {items.slice(0, 6).map((itemId, i) => (
             <div
               key={i}

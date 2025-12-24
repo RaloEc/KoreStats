@@ -125,6 +125,30 @@ export async function processLpQueue(
                   console.log(
                     `[QueueProcessor] Sync result: success=${syncRes.success}, new=${syncRes.newMatches}`
                   );
+
+                  if (syncRes.success && syncRes.newMatches === 0) {
+                    console.log(
+                      `[QueueProcessor] No new matches found immediately after game end. Queueing retry...`
+                    );
+                    const { error: queueError } = await supabase
+                      .from("lp_tracking_queue")
+                      .insert({
+                        user_id: job.user_id,
+                        puuid: job.puuid,
+                        platform_region: region,
+                        priority: 2,
+                        action: "sync_matches",
+                        status: "pending",
+                        retry_count: 0,
+                        game_id: job.game_id,
+                      });
+                    if (queueError) {
+                      console.error(
+                        "[QueueProcessor] Failed to queue sync retry:",
+                        queueError.message
+                      );
+                    }
+                  }
                 } catch (e) {
                   console.error("[QueueProcessor] Sync error (non-fatal):", e);
                 }
@@ -138,6 +162,51 @@ export async function processLpQueue(
           }
         } else {
           result = { error: `Riot API error: ${response.status}` };
+          success = false;
+        }
+      } else if (job.action === "sync_matches") {
+        const region = job.platform_region || "la1";
+        const syncRes = await syncMatchHistory(
+          job.puuid,
+          region,
+          riotApiKey,
+          10
+        );
+
+        if (syncRes.success) {
+          if (syncRes.newMatches > 0) {
+            result = { newMatches: syncRes.newMatches };
+            success = true;
+          } else {
+            const currentRetry = job.retry_count || 0;
+            if (currentRetry < 4) {
+              console.log(
+                `[QueueProcessor] Sync yielded 0 matches. Retrying later... (Attempt ${
+                  currentRetry + 1
+                })`
+              );
+              await supabase
+                .from("lp_tracking_queue")
+                .update({
+                  status: "pending",
+                  retry_count: currentRetry + 1,
+                })
+                .eq("id", job.id);
+
+              await new Promise((r) =>
+                setTimeout(r, DELAY_BETWEEN_REQUESTS_MS)
+              );
+              continue;
+            } else {
+              result = {
+                newMatches: 0,
+                warning: "Max retries reached with 0 matches",
+              };
+              success = true;
+            }
+          }
+        } else {
+          result = { error: syncRes.error };
           success = false;
         }
       }

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileData } from "@/hooks/use-perfil-usuario";
 import { LinkedAccountRiot } from "@/types/riot";
+import { processMatchesForProfile } from "./match-processor";
 
 export async function getProfileByUsername(username: string) {
   const supabase = await createClient();
@@ -138,6 +139,7 @@ export async function getFullProfileData(
 
   if (!baseData) return null;
   const { perfil, currentUser } = baseData;
+  const isOwner = currentUser?.id && perfil?.id && currentUser.id === perfil.id;
 
   let hiddenActivities: Set<string> = new Set();
   const { data: hidden } = await supabase
@@ -220,7 +222,10 @@ export async function getFullProfileData(
   let hilosTransformados: any[] = [];
   if (ultimosHilosData.data) {
     hilosTransformados = ultimosHilosData.data
-      .filter((hilo: any) => !hiddenActivities.has(`forum_thread:${hilo.id}`))
+      .filter(
+        (hilo: any) =>
+          isOwner || !hiddenActivities.has(`forum_thread:${hilo.id}`)
+      )
       .map((hilo: any) => {
         const respuestas = Array.isArray(hilo.respuestas_conteo)
           ? hilo.respuestas_conteo[0]?.count ?? 0
@@ -249,7 +254,9 @@ export async function getFullProfileData(
   let postsLimpios: any[] = [];
   if (ultimosPostsData.data) {
     postsLimpios = ultimosPostsData.data
-      .filter((post: any) => !hiddenActivities.has(`forum_post:${post.id}`))
+      .filter(
+        (post: any) => isOwner || !hiddenActivities.has(`forum_post:${post.id}`)
+      )
       .map((post: any) => {
         const hilo = Array.isArray(post.foro_hilos)
           ? post.foro_hilos[0]
@@ -314,6 +321,12 @@ export async function getFullProfileData(
     ultimosHilos: hilosTransformados,
     ultimosPosts: postsLimpios,
     weaponStatsRecords: weaponStatsTransformadas,
-    ultimasPartidas: [],
+    ultimasPartidas: await processMatchesForProfile(
+      supabase,
+      ultimasPartidasData.data || [],
+      riotAccountData.data?.puuid,
+      isOwner,
+      hiddenActivities
+    ),
   } as unknown as ProfileData;
 }

@@ -42,74 +42,47 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
-    // Obtener actividades del usuario
-    const [noticias, comentarios, hilos, respuestas, partidas] =
-      await Promise.all([
-        // Noticias creadas por el usuario
-        supabase
-          .from("noticias")
-          .select(
-            `
+    // Obtener actividades del usuario (sin comentarios ni respuestas)
+    const [noticias, hilos, partidas] = await Promise.all([
+      // Noticias creadas por el usuario
+      supabase
+        .from("noticias")
+        .select(
+          `
           id, titulo, contenido, created_at, estado, deleted_at,
           categorias:noticias_categorias(categoria:categorias(nombre))
         `
-          )
-          .eq("autor_id", userId)
-          .is("deleted_at", null)
-          .neq("estado", "borrador")
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1),
+        )
+        .eq("autor_id", userId)
+        .is("deleted_at", null)
+        .neq("estado", "borrador")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
 
-        // Comentarios realizados por el usuario
-        supabase
-          .from("comentarios")
-          .select(
-            `
-          id, contenido, created_at, 
-          noticia:noticias(titulo)
-        `
-          )
-          .eq("usuario_id", userId)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1),
-
-        // Hilos creados por el usuario
-        supabase
-          .from("foro_hilos")
-          .select(
-            `
+      // Hilos creados por el usuario
+      supabase
+        .from("foro_hilos")
+        .select(
+          `
           id, titulo, contenido, created_at, 
           categoria:foro_categorias(nombre)
         `
-          )
-          .eq("autor_id", userId)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1),
+        )
+        .eq("autor_id", userId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
 
-        // Respuestas en hilos
-        supabase
-          .from("foro_posts")
-          .select(
-            `
-          id, contenido, created_at, gif_url,
-          hilo:foro_hilos(titulo)
-        `
-          )
-          .eq("autor_id", userId)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1),
-
-        // Partidas compartidas
-        supabase
-          .from("user_activity_entries")
-          .select("id, match_id, metadata, created_at")
-          .eq("user_id", userId)
-          .eq("type", "lol_match")
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1),
-      ]);
+      // Partidas compartidas
+      supabase
+        .from("user_activity_entries")
+        .select("id, match_id, metadata, created_at")
+        .eq("user_id", userId)
+        .eq("type", "lol_match")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
+    ]);
 
     // Función auxiliar para extraer preview de contenido
     const getContentPreview = (
@@ -212,16 +185,9 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const actividadesComentarios = (
-      (comentarios.data as ComentarioItem[]) || []
-    ).map((comentario) => ({
-      id: `comentario-${comentario.id}`,
-      type: "comentario",
-      title: `Comentario en "${comentario.noticia?.titulo || "una noticia"}"`,
-      preview: getContentPreview(comentario.contenido),
-      timestamp: comentario.created_at,
-      category: "Comentarios",
-    }));
+    // Comentarios y respuestas eliminados para simplificar el feed
+    const actividadesComentarios: any[] = [];
+    const actividadesRespuestas: any[] = [];
 
     const actividadesHilos = ((hilos.data as HiloItem[]) || []).map((hilo) => ({
       id: `hilo-${hilo.id}`,
@@ -231,18 +197,6 @@ export async function GET(request: NextRequest) {
       content: hilo.contenido || "",
       timestamp: hilo.created_at,
       category: hilo.categoria?.nombre || "Foro",
-    }));
-
-    const actividadesRespuestas = (
-      (respuestas.data as RespuestaItem[]) || []
-    ).map((respuesta) => ({
-      id: `respuesta-${respuesta.id}`,
-      type: "respuesta" as const,
-      title: `Respuesta en "${respuesta.hilo?.titulo || "un hilo"}"`,
-      preview: getContentPreview(respuesta.contenido),
-      timestamp: respuesta.created_at,
-      gifUrl: respuesta.gif_url || undefined,
-      category: "Foro",
     }));
 
     const partidasData = (partidas.data as PartidaItem[]) || [];

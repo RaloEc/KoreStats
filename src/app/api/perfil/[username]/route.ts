@@ -51,6 +51,10 @@ export async function GET(
       perfil = perfilPorUsername;
     }
 
+    // Determinar si el usuario actual es el dueño del perfil
+    const isOwner =
+      currentUser?.id && perfil?.id && currentUser.id === perfil.id;
+
     // Obtener puuid del usuario una sola vez para reutilizarlo en consultas de partidas
     const { data: linkedAccountRiot, error: linkedAccountError } =
       await supabase
@@ -124,7 +128,10 @@ export async function GET(
     let hilosTransformados: any[] = [];
     if (ultimosHilos) {
       hilosTransformados = (ultimosHilos as any[])
-        .filter((hilo: any) => !hiddenActivities.has(`forum_thread:${hilo.id}`))
+        .filter(
+          (hilo: any) =>
+            isOwner || !hiddenActivities.has(`forum_thread:${hilo.id}`)
+        )
         .map((hilo: any) => {
           const respuestas = Array.isArray(hilo.respuestas_conteo)
             ? hilo.respuestas_conteo[0]?.count ?? 0
@@ -172,7 +179,10 @@ export async function GET(
       console.error("Error fetching posts:", postsError);
     } else if (ultimosPosts) {
       postsLimpios = ultimosPosts
-        .filter((post: any) => !hiddenActivities.has(`forum_post:${post.id}`))
+        .filter(
+          (post: any) =>
+            isOwner || !hiddenActivities.has(`forum_post:${post.id}`)
+        )
         .map((post) => {
           const hilo = Array.isArray(post.foro_hilos)
             ? post.foro_hilos[0]
@@ -357,12 +367,25 @@ export async function GET(
       }
     }
 
+    console.log(
+      "[Perfil API] Partidas fetch raw count:",
+      ultimasPartidas?.length
+    );
+
     // Mapear partidas compartidas - traer datos completos desde match_participants si es necesario
     let partidasTransformadas: any[] = [];
     if (ultimasPartidas) {
-      for (const entry of ultimasPartidas.filter(
-        (e: any) => !hiddenActivities.has(`lol_match:${e.match_id}`)
-      )) {
+      const filteredPartidas = ultimasPartidas.filter(
+        (e: any) => isOwner || !hiddenActivities.has(`lol_match:${e.match_id}`)
+      );
+      console.log(
+        "[Perfil API] Partidas filtered count:",
+        filteredPartidas.length,
+        "isOwner:",
+        isOwner
+      );
+
+      for (const entry of filteredPartidas) {
         const metadata = entry.metadata || {};
 
         let matchParticipant: any = null;

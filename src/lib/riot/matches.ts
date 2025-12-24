@@ -481,6 +481,40 @@ async function ensureHistoricalCoverage(
 }
 
 /**
+ * Intenta sincronizar una partida específica por su ID.
+ * Útil cuando sabemos el ID (ej: desde spectator) pero aún no sale en la lista de historial.
+ */
+export async function syncMatchById(
+  matchId: string,
+  platformRegion: string,
+  apiKey: string
+): Promise<{ success: boolean; saved: boolean; error?: string }> {
+  try {
+    const routingRegion = getRoutingRegion(platformRegion);
+    console.log(`[syncMatchById] Intentando sync directa de ${matchId}`);
+
+    // Verificar si ya existe primero para ahorrar requests
+    const exists = await matchExists(matchId);
+    if (exists) {
+      console.log(`[syncMatchById] La partida ${matchId} ya existe en BD.`);
+      return { success: true, saved: false };
+    }
+
+    const matchData = await getMatchDetails(matchId, routingRegion, apiKey);
+
+    if (!matchData) {
+      return { success: false, saved: false, error: "Match not found in API" };
+    }
+
+    const saved = await saveMatch(matchData);
+    return { success: true, saved };
+  } catch (error: any) {
+    console.error(`[syncMatchById] Error: ${error.message}`);
+    return { success: false, saved: false, error: error.message };
+  }
+}
+
+/**
  * Obtiene los detalles completos de una partida desde Riot API
  */
 async function getMatchDetails(

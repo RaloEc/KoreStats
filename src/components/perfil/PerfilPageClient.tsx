@@ -11,8 +11,10 @@ import ImageUploader from "@/components/ImageUploader";
 import ProfileHeader from "@/components/perfil/profile-header";
 import { BannerUploader } from "@/components/perfil/BannerUploader";
 import ProfileStats from "@/components/perfil/profile-stats";
-import UserActivityFeed from "@/components/perfil/UserActivityFeed";
-import UserActivityFeedContainer from "@/components/perfil/UserActivityFeedContainer";
+import Link from "next/link";
+// import UserActivityFeed from "@/components/perfil/UserActivityFeed";
+// import UserActivityFeedContainer from "@/components/perfil/UserActivityFeedContainer";
+import StatusFeed from "@/components/social/StatusFeed";
 import MembershipInfo from "@/components/perfil/membership-info";
 import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
 import { FriendRequestsList } from "@/components/social/FriendRequestsList";
@@ -772,16 +774,10 @@ export default function PerfilPageClient({
                 Aseguramos detectar el rol admin aunque venga en mayúsculas/minúsculas mezcladas.
                 Esto permite que el menú muestre la opción de eliminar cuando el usuario es admin.
               */}
-              <UserActivityFeedContainer
-                fetchActivities={fetchActividades}
-                userColor={perfil.color}
-                isAdmin={Boolean(
-                  (perfil?.role ?? profile?.role)
-                    ?.toString()
-                    .trim()
-                    .toLowerCase() === "admin"
-                )}
-                userId={perfil.id}
+              <StatusFeed
+                profileId={perfil.id}
+                profileUsername={perfil.username}
+                isOwnProfile={true}
               />
             </div>
 

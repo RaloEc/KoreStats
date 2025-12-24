@@ -6,7 +6,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePerfilUsuario } from "@/hooks/use-perfil-usuario";
 import { PerfilHeader } from "@/components/perfil/PerfilHeader";
 import { EstadisticasUnificadas } from "@/components/perfil/EstadisticasUnificadas";
-import { FeedActividad } from "@/components/perfil/FeedActividad";
+import StatusFeed from "@/components/social/StatusFeed";
+// import { FeedActividad } from "@/components/perfil/FeedActividad"; // Deprecated
 import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import MobileUserProfileLayout from "@/components/perfil/MobileUserProfileLayout";
 import { PerfilSkeleton } from "@/components/perfil/PerfilSkeleton";
@@ -273,18 +274,11 @@ export default function UserProfileClient({
             {/* Columna única - Feed de actividad (antes ocupaba 2 col, ahora 3) */}
             <div className="lg:col-span-3 space-y-6 sm:space-y-8">
               {/* Feed unificado de hilos, respuestas y partidas */}
-              <FeedActividad
-                ultimosHilos={profile.ultimosHilos}
-                ultimosPosts={profile.ultimosPosts}
-                weaponStatsRecords={profile.weaponStatsRecords}
-                ultimasPartidas={profile.ultimasPartidas}
-                userColor={profile.color}
-                isOwnProfile={Boolean(
-                  user && profile && user.id === profile.id
-                )}
-                isAdmin={isCurrentUserAdmin}
-                onMatchDeleted={() => refetch()}
-                userId={profile.id}
+              {/* Feed de estado social */}
+              <StatusFeed
+                profileId={profile.id}
+                profileUsername={profile.username}
+                isOwnProfile={isOwnProfile}
               />
             </div>
 
