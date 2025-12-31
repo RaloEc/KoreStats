@@ -211,7 +211,7 @@ function AdminNoticiasContent() {
       </div>
 
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <EstadisticaCard
           icon={Newspaper}
           title="Total Noticias"
@@ -286,7 +286,7 @@ function AdminNoticiasContent() {
         {/* Sección de Accesos Rápidos */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Accesos Rápidos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <NavCard
               href="/admin/noticias/listado"
               icon={ListFilter}

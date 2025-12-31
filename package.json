@@ -8,10 +8,14 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
+    "build:mobile": "node scripts/build-mobile.js",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
@@ -90,6 +94,7 @@
     "@tiptap/react": "^2.11.7",
     "@tiptap/starter-kit": "^2.11.7",
     "@tiptap/suggestion": "^2.11.7",
+    "@types/crypto-js": "^4.2.2",
     "@types/highlight.js": "^9.12.4",
     "@types/react-dnd": "^2.0.36",
     "@types/react-dnd-html5-backend": "^3.0.2",
@@ -101,6 +106,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "draft-js": "^0.11.7",
     "embla-carousel-react": "^8.6.0",
@@ -108,6 +114,7 @@
     "emoji-mart": "^5.6.0",
     "framer-motion": "^12.23.24",
     "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.487.0",

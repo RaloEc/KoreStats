@@ -103,19 +103,19 @@ export const MatchStats: React.FC<MatchStatsProps> = ({
 
             <div className="flex items-center justify-between mb-1">
               {/* Label */}
-              <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-400 font-extrabold op-75">
+              <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-slate-700 dark:text-slate-400 font-extrabold op-75">
                 {stat.label}
               </div>
               {/* Icon */}
-              <div className="text-slate-500 dark:text-slate-400 opacity-60 group-hover/stat:opacity-100 group-hover/stat:scale-110 transition-all duration-300">
+              <div className="text-slate-600 dark:text-slate-400 opacity-60 group-hover/stat:opacity-100 group-hover/stat:scale-110 transition-all duration-300">
                 {stat.icon}
               </div>
             </div>
 
             {/* Valor principal */}
             <div
-              className={`text-xs sm:text-sm font-black leading-tight ${
-                stat.accentClass ?? "text-slate-900 dark:text-slate-50"
+              className={`text-lg sm:text-xl font-black tracking-tight leading-none ${
+                stat.accentClass ?? "text-slate-950 dark:text-slate-50"
               }`}
             >
               {stat.value}
@@ -123,7 +123,7 @@ export const MatchStats: React.FC<MatchStatsProps> = ({
 
             {/* Subtexto */}
             {stat.sub && (
-              <div className="text-[7px] sm:text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide mt-0.5 opacity-80">
+              <div className="text-[7px] sm:text-[8px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide mt-0.5 opacity-80">
                 {stat.sub}
               </div>
             )}

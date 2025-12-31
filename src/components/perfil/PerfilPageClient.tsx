@@ -14,7 +14,44 @@ import ProfileStats from "@/components/perfil/profile-stats";
 import Link from "next/link";
 // import UserActivityFeed from "@/components/perfil/UserActivityFeed";
 // import UserActivityFeedContainer from "@/components/perfil/UserActivityFeedContainer";
-import StatusFeed from "@/components/social/StatusFeed";
+// Dynamic imports for heavy tab components
+import dynamic from "next/dynamic";
+import { Skeleton } from "@nextui-org/react";
+
+const StatusFeed = dynamic(() => import("@/components/social/StatusFeed"), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="bg-white dark:bg-[#1a1b1e] border border-gray-200 dark:border-white/5 rounded-xl p-4 h-40 animate-pulse"
+        />
+      ))}
+    </div>
+  ),
+});
+
+const MatchHistoryList = dynamic(
+  () =>
+    import("@/components/riot/MatchHistoryList").then(
+      (mod) => mod.MatchHistoryList
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="h-32 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"
+          />
+        ))}
+      </div>
+    ),
+  }
+);
+
 import MembershipInfo from "@/components/perfil/membership-info";
 import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
 import { FriendRequestsList } from "@/components/social/FriendRequestsList";
@@ -23,7 +60,6 @@ import { ConnectedAccountsModal } from "@/components/perfil/ConnectedAccountsMod
 import { ConnectedAccountsForm } from "@/components/perfil/ConnectedAccountsForm";
 import { ProfileTabs } from "@/components/perfil/ProfileTabs";
 import { RiotAccountCard } from "@/components/riot/RiotAccountCard";
-import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
 import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
 import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
 import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
@@ -437,26 +473,27 @@ export default function PerfilPageClient({
           onInvalidateCache={invalidateAndRefetchStatic}
         />
 
-        {/* Modal de edición - Renderizado fuera del layout móvil para evitar z-index issues */}
+        {/* Modal de edición - Centrado para mejor visibilidad */}
         <Modal
           isOpen={isOpen}
           onClose={onClose}
           size="2xl"
-          scrollBehavior="inside"
-          className="max-h-[90vh] z-50"
+          scrollBehavior="outside"
+          placement="center"
+          className="mx-4"
           backdrop="blur"
           classNames={{
-            base: "bg-white dark:bg-black amoled:bg-black z-50",
+            base: "bg-white dark:bg-black amoled:bg-black",
             header:
               "border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800",
-            body: "bg-white dark:bg-black amoled:bg-black",
+            body: "bg-white dark:bg-black amoled:bg-black py-6",
             footer:
               "bg-white dark:bg-black amoled:bg-black border-t border-gray-200 dark:border-gray-800 amoled:border-gray-800",
-            backdrop: "backdrop-blur-sm bg-black/10 z-40",
+            backdrop: "backdrop-blur-sm bg-black/10",
           }}
         >
           <ModalContent>
-            <ModalHeader className="sticky top-0 z-10 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 flex justify-between items-center">
+            <ModalHeader className="bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
                 Editar Perfil
               </h2>
@@ -470,7 +507,7 @@ export default function PerfilPageClient({
                 <X size={20} />
               </Button>
             </ModalHeader>
-            <ModalBody className="overflow-y-auto max-h-[60vh] bg-white dark:bg-black amoled:bg-black">
+            <ModalBody className="bg-white dark:bg-black amoled:bg-black">
               {error && (
                 <div className="p-3 bg-red-100 dark:bg-red-900/20 amoled:bg-red-900/20 border border-red-300 dark:border-red-800 amoled:border-red-800 text-red-700 dark:text-red-300 amoled:text-red-300 rounded-lg">
                   {error}

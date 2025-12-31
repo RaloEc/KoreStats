@@ -132,7 +132,7 @@ const TiptapEditorBase = ({
         {/* Contenido del editor */}
         <EditorContent
           editor={editor}
-          className={`w-full border border-neutral-800/60 rounded-lg px-4 py-3 text-slate-100 bg-transparent ${
+          className={`w-full border border-neutral-800/60 rounded-lg px-4 py-3 text-gray-900 dark:text-white bg-transparent ${
             className ?? ""
           }`}
         />

@@ -213,3 +213,75 @@ export const PLATFORM_TO_ROUTING_REGION: Record<RiotRegion, string> = {
   sg2: "sea",
   th2: "sea",
 };
+
+/**
+ * Información de una skin de campeón
+ */
+export interface ChampionSkin {
+  id: string;
+  num: number;
+  name: string;
+  chromas: boolean;
+}
+
+/**
+ * Información completa de un campeón (Data Dragon championFull.json)
+ */
+export interface ChampionFullData {
+  id: string; // "Aatrox"
+  key: string; // "266"
+  name: string;
+  title: string;
+  image: {
+    full: string;
+    sprite: string;
+    group: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+  skins: ChampionSkin[];
+  lore: string;
+  blurb: string;
+  allytips: string[];
+  enemytips: string[];
+  tags: string[];
+  partype: string;
+  info: {
+    attack: number;
+    defense: number;
+    magic: number;
+    difficulty: number;
+  };
+  stats: Record<string, number>;
+  spells: any[]; // Se puede detallar más si es necesario
+  passive: {
+    name: string;
+    description: string;
+    image: {
+      full: string;
+      sprite: string;
+      group: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+    };
+  };
+  recommended: any[];
+}
+
+/**
+ * Estructura de la tabla lol_champions en DB
+ */
+export interface ChampionDB {
+  id: string; // "Aatrox"
+  key: number; // 266
+  name: string;
+  title: string | null;
+  skins: ChampionSkin[];
+  full_data: ChampionFullData;
+  version: string | null;
+  updated_at: string;
+}

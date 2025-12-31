@@ -24,8 +24,8 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 0 0% 95%;
+    --input: 0 0% 95%;
     --ring: 217 91% 60%;
     --radius: 0.5rem;
 
@@ -55,8 +55,8 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 63%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 12%;
-    --input: 0 0% 12%;
+    --border: 0 0% 5%;
+    --input: 0 0% 5%;
     --ring: 217 91% 65%;
 
     /* Legacy overrides */
@@ -165,10 +165,12 @@
   }
 
   .tiptap {
-    @apply bg-background text-foreground border-none rounded-b-xl min-h-[300px] max-h-[70vh] overflow-y-auto p-4 text-[1.05rem] leading-relaxed outline-none transition-colors;
+    @apply bg-background border-none rounded-b-xl min-h-[300px] max-h-[70vh] overflow-y-auto p-4 text-[1.05rem] leading-relaxed outline-none transition-colors;
+    color: #1a1a1a; /* Texto oscuro para modo claro */
   }
   .dark .tiptap {
-    @apply bg-black text-white border-slate-800;
+    @apply bg-black border-slate-800;
+    color: #ffffff; /* Texto blanco para modo oscuro */
   }
 
   /* Tiptap Typography */
@@ -394,4 +396,84 @@ body.menu-open {
 body.menu-open::after {
   content: "";
   @apply fixed inset-x-0 bottom-0 top-16 bg-black/10 backdrop-blur-sm z-40 pointer-events-auto;
+}
+
+/* ============================================
+   VIEW TRANSITIONS API - Theme Toggle Effect
+   ============================================ */
+
+/* Timing functions para animaciones suaves */
+:root {
+  --expo-in: linear(
+    0 0%,
+    0.0085 31.26%,
+    0.0167 40.94%,
+    0.0289 48.86%,
+    0.0471 55.92%,
+    0.0717 61.99%,
+    0.1038 67.32%,
+    0.1443 72.07%,
+    0.1989 76.7%,
+    0.2659 80.89%,
+    0.3465 84.71%,
+    0.4419 88.22%,
+    0.554 91.48%,
+    0.6835 94.51%,
+    0.8316 97.34%,
+    1 100%
+  );
+  --expo-out: linear(
+    0 0%,
+    0.1684 2.66%,
+    0.3165 5.49%,
+    0.446 8.52%,
+    0.5581 11.78%,
+    0.6535 15.29%,
+    0.7341 19.11%,
+    0.8011 23.3%,
+    0.8557 27.93%,
+    0.8962 32.68%,
+    0.9283 38.01%,
+    0.9529 44.08%,
+    0.9711 51.14%,
+    0.9833 59.06%,
+    0.9915 68.74%,
+    1 100%
+  );
+}
+
+/* Circular Reveal Effect (From Cursor) */
+::view-transition-group(root) {
+  animation-duration: 1.5s; /* Más lento para disfrutar el efecto */
+  animation-timing-function: cubic-bezier(
+    0.25,
+    1,
+    0.5,
+    1
+  ); /* Curva suave y elegante */
+}
+
+::view-transition-new(root) {
+  animation: expand 1.5s;
+  animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  animation-fill-mode: both;
+  clip-path: circle(0px at var(--x) var(--y));
+  z-index: 9999;
+}
+
+::view-transition-old(root) {
+  animation: none;
+  z-index: -1;
+}
+
+/* Eliminamos bloque redundante de .dark ya que la regla de arriba aplica a ambos */
+
+@keyframes expand {
+  0% {
+    clip-path: circle(0px at var(--x) var(--y));
+  }
+  100% {
+    /* Multiplicamos por 1.2 para asegurar cobertura total y evitar bordes sin cubrir */
+    clip-path: circle(calc(var(--r) * 1.2) at var(--x) var(--y));
+  }
 }

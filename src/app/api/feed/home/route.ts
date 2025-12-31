@@ -420,36 +420,69 @@ export async function GET(request: NextRequest) {
 
     const supabase = getServiceClient();
 
+    // Verificar si el usuario tiene cuenta de LoL enlazada
+    let hasLolAccount = false;
+    try {
+      const authHeader = request.headers.get("authorization");
+      if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.substring(7);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser(token);
+
+        if (user) {
+          const { data: riotUser } = await supabase
+            .from("riot_users")
+            .select("puuid")
+            .eq("user_id", user.id)
+            .single();
+
+          hasLolAccount = !!riotUser?.puuid;
+        }
+      }
+    } catch (e) {
+      // Si falla, continuar sin ajustar porcentajes
+      console.log("[feed/home] Could not check LoL account status");
+    }
+
     const wantThreads = filter === "all" || filter === "threads";
     const wantNews = filter === "all" || filter === "news";
     const wantLol = filter === "all" || filter === "lol";
 
     const isSingleTypeFeed = filter !== "all";
 
+    // Ajustar porcentajes basados en si tiene cuenta de LoL
+    // Sin cuenta: threads 40%, discover 20%, news 20%, lol 20%
+    // Con cuenta: threads 30%, discover 15%, news 20%, lol 35%
+    const lolPercentage = hasLolAccount ? 0.35 : 0.2;
+    const threadsRecentPercentage = hasLolAccount ? 0.3 : 0.4;
+    const threadsDiscoverPercentage = hasLolAccount ? 0.15 : 0.2;
+    const newsPercentage = 0.2; // Siempre 20%
+
     const perType = {
       threadsRecent:
         wantThreads && isSingleTypeFeed
           ? limit
           : wantThreads
-          ? Math.ceil(limit * 0.4)
+          ? Math.ceil(limit * threadsRecentPercentage)
           : 0,
       threadsDiscover:
         wantThreads && isSingleTypeFeed
           ? 0
           : wantThreads
-          ? Math.ceil(limit * 0.2)
+          ? Math.ceil(limit * threadsDiscoverPercentage)
           : 0,
       news:
         wantNews && isSingleTypeFeed
           ? limit
           : wantNews
-          ? Math.ceil(limit * 0.2)
+          ? Math.ceil(limit * newsPercentage)
           : 0,
       lol:
         wantLol && isSingleTypeFeed
           ? limit
           : wantLol
-          ? Math.ceil(limit * 0.2)
+          ? Math.ceil(limit * lolPercentage)
           : 0,
     };
 

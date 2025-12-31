@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -300,6 +301,44 @@ export async function GET(request: NextRequest) {
         });
       }
     }
+
+    // Obtener skins de campeones para asignación determinista
+    const { data: championsData } = await supabase
+      .from("lol_champions")
+      .select("id, key, name, skins");
+
+    const championSkinsMap = new Map<string, number[]>();
+    championsData?.forEach((champ: any) => {
+      if (champ.skins && Array.isArray(champ.skins)) {
+        // Guardar por ID (Aatrox) y por Key (266) para asegurar match
+        const skinNums = champ.skins
+          .map((s: any) => s.num)
+          .filter((n: any) => typeof n === "number");
+
+        championSkinsMap.set(champ.id, skinNums);
+        championSkinsMap.set(String(champ.key), skinNums);
+
+        // Normalizaciones comunes
+        if (champ.id === "Fiddlesticks")
+          championSkinsMap.set("FiddleSticks", skinNums);
+        if (champ.id === "MonkeyKing") championSkinsMap.set("Wukong", skinNums);
+      }
+    });
+
+    const getDeterministicSkinId = (
+      matchId: string,
+      championName: string | number
+    ): number => {
+      const skins = championSkinsMap.get(String(championName));
+      if (!skins || skins.length === 0) return 0;
+
+      // Hash simple del matchId para obtener un índice consistente
+      const hash = crypto.createHash("md5").update(matchId).digest("hex");
+      const hashNum = parseInt(hash.substring(0, 8), 16);
+
+      const index = hashNum % skins.length;
+      return skins[index];
+    };
 
     const actividadesPartidas = partidasData.map((partida) => {
       const metadata = parseMetadata(partida.metadata);
@@ -606,6 +645,7 @@ export async function GET(request: NextRequest) {
         matchId: partida.match_id,
         championId,
         championName,
+        skinId: getDeterministicSkinId(partida.match_id, championName),
         role,
         lane,
         win: resultWin,

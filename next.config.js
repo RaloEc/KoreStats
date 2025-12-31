@@ -1,3 +1,5 @@
+const isMobile = process.env.IS_MOBILE === 'true';
+
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
@@ -57,6 +59,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: isMobile ? 'export' : undefined,
   reactStrictMode: false, // Desactivar modo estricto para evitar problemas de hidratación
   // Aumentar el timeout para la carga de chunks
   experimental: {
@@ -85,6 +88,7 @@ const nextConfig = {
   // Optimizar CSS y reducir render-blocking resources
   productionBrowserSourceMaps: false,
   images: {
+    unoptimized: isMobile,
     // Aumentar el TTL del caché de imágenes optimizadas (default es 60 seg)
     minimumCacheTTL: 31536000,
     // Limitar tamaños de dispositivos para evitar generar demasiadas variantes

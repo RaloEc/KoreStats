@@ -1,12 +1,17 @@
-"use client";
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ChampionCenteredSplash } from "@/components/riot/ChampionCenteredSplash";
 import { analyzeMatchTags, type MatchTag } from "@/lib/riot/match-analyzer";
 import { getSummonerSpellUrl } from "@/components/riot/match-card/helpers";
+import { getTagInfo } from "./helpers";
+import { getDeterministicSkinId } from "@/lib/riot/skinHelpers";
 
 // Import types and helpers from the modular structure
 import type { SharedMatchCardProps } from "./types";
@@ -29,6 +34,7 @@ import { MatchFooter } from "./components/MatchFooter";
 import { MatchComment } from "./components/MatchComment";
 import { CarouselDots } from "./components/CarouselDots";
 import { MatchDetailsCollapsible } from "./components/MatchDetailsCollapsible";
+import { ActivityCardMenu } from "@/components/perfil/ActivityCardMenu";
 
 export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
   partida,
@@ -44,6 +50,30 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
   userId,
   priority = false,
 }) => {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [realSkinId, setRealSkinId] = useState<number | null>(null);
+
+  // Cargar skin real desde la API
+  useEffect(() => {
+    const loadRealSkin = async () => {
+      try {
+        const skinId = await getDeterministicSkinId(
+          partida.matchId,
+          partida.championName
+        );
+        setRealSkinId(skinId);
+      } catch (error) {
+        console.error("Error loading real skin:", error);
+        // Mantener el skinId inicial si falla
+      }
+    };
+
+    // Solo cargar si no tenemos un skinId específico ya
+    if (!partida.skinId || partida.skinId < 11) {
+      loadRealSkin();
+    }
+  }, [partida.matchId, partida.championName, partida.skinId]);
+
   // Extraer estilos de runas
   const runeStyles = partida.perks?.styles ?? [];
   const primaryStyle =
@@ -135,9 +165,8 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
   const displayTags: MatchTag[] =
     matchTags.length > 0 ? matchTags : (["MVP"] as MatchTag[]);
 
-  // TODO: Implementar skins personalizadas como feature premium
-  // Por ahora usamos skin base (0) para evitar errores con IDs no consecutivos
-  const skinId = 0; // En el futuro: getSkinIdForMatch(displayTags, partida.matchId, userPreference)
+  // Usar realSkinId si está disponible, sino el skinId de partida, sino 0
+  const skinId = realSkinId ?? partida.skinId ?? 0;
 
   // Componente de runas
   const runesOnly = (
@@ -194,11 +223,12 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
         className={`group relative transition-all duration-500 border-none overflow-hidden ${
           isHidden ? "opacity-60" : ""
         }`}
+        style={{ willChange: "transform" }}
       >
         {/* Borde con gradiente dinámico (estático ahora) */}
         <div className="absolute inset-0 rounded-lg p-[1px] bg-gradient-to-br from-white/40 via-white/10 to-white/40 dark:from-white/20 dark:via-white/5 dark:to-white/20 pointer-events-none" />
 
-        <div className="relative min-h-[22rem] rounded-lg overflow-hidden backdrop-blur-[1px]">
+        <div className="relative min-h-[22rem] rounded-lg overflow-hidden">
           {/* Splash art base con tratamiento premium */}
           <div className="absolute inset-0 overflow-hidden">
             <ChampionCenteredSplash
@@ -207,22 +237,20 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
               className="h-full w-full object-cover scale-105"
               priority={priority}
             />
-            {/* Vignette dinámico según resultado - MEJORADO */}
+            {/* Vignette dinámico según resultado - OPTIMIZADO para mejor contraste */}
             <div
               className={`absolute inset-0 ${
                 isWin
-                  ? "bg-gradient-to-b from-emerald-900/15 via-white/35 to-emerald-50/95 dark:from-emerald-950/40 dark:via-black/55 dark:to-emerald-950/85"
-                  : "bg-gradient-to-b from-rose-900/15 via-white/35 to-rose-50/95 dark:from-rose-950/40 dark:via-black/55 dark:to-rose-950/85"
+                  ? "bg-gradient-to-b from-emerald-900/20 via-slate-100/50 to-emerald-50/98 dark:from-emerald-950/40 dark:via-black/55 dark:to-emerald-950/85"
+                  : "bg-gradient-to-b from-rose-900/20 via-slate-100/50 to-rose-50/98 dark:from-rose-950/40 dark:via-black/55 dark:to-rose-950/85"
               }`}
             />
-            {/* Gradiente radial para profundidad - MEJORADO */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,transparent_0%,rgba(0,0,0,0.08)_100%)] dark:bg-[radial-gradient(ellipse_at_top,transparent_0%,rgba(0,0,0,0.6)_100%)]" />
-            {/* Overlay de glassmorphism - MEJORADO */}
-            <div className="absolute inset-0 backdrop-blur-[0.8px] bg-white/8 dark:bg-black/25" />
+            {/* Gradiente radial para profundidad - OPTIMIZADO */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,transparent_0%,rgba(0,0,0,0.12)_100%)] dark:bg-[radial-gradient(ellipse_at_top,transparent_0%,rgba(0,0,0,0.6)_100%)]" />
           </div>
 
-          {/* Contenido superpuesto con glassmorphism */}
-          <div className="relative z-10 flex flex-col gap-4 p-4 sm:p-6 text-slate-900 dark:text-white backdrop-blur-sm">
+          {/* Contenido superpuesto - OPTIMIZADO sin backdrop-blur */}
+          <div className="relative z-10 flex flex-col gap-4 p-4 sm:p-6 text-slate-950 dark:text-white">
             {/* Header */}
             <MatchHeader
               isVictory={isWin}
@@ -256,8 +284,65 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
               runesComponent={runesComponent}
             />
 
+            {/* KDA Summary - Visible solo cuando está colapsado */}
+            {!isDetailsOpen && (
+              <div className="flex flex-col items-center justify-center py-2 -mt-2 animate-in fade-in zoom-in duration-300">
+                {/* KDA con glassmorphism para mejor legibilidad */}
+                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-xl px-4 py-3 border border-white/40 dark:border-white/10 shadow-lg">
+                  <div className="flex items-center gap-1.5 mb-1 text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight justify-center">
+                    <span>{partida.kills}</span>
+                    <span className="text-slate-400 dark:text-slate-500 font-normal">
+                      /
+                    </span>
+                    <span>{partida.deaths}</span>
+                    <span className="text-slate-400 dark:text-slate-500 font-normal">
+                      /
+                    </span>
+                    <span>{partida.assists}</span>
+                  </div>
+                  <div className="flex items-center gap-2 justify-center">
+                    <span
+                      className={`text-sm font-bold uppercase tracking-wider ${
+                        partida.kda >= 3
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      {partida.kda.toFixed(2)} KDA
+                    </span>
+                  </div>
+                </div>
+
+                {displayTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 justify-center mt-3">
+                    {displayTags.map((tag) => {
+                      const tagInfo = getTagInfo(tag);
+                      return (
+                        <Tooltip key={tag}>
+                          <TooltipTrigger asChild>
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-bold text-[9px] ${tagInfo.color} cursor-help border border-white/20 shadow-sm transition-transform hover:scale-105`}
+                            >
+                              {tagInfo.label}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs font-semibold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+                            <p>{tagInfo.label}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Zona de comparativa + estadísticas + jugadores - DESPLEGABLE */}
-            <MatchDetailsCollapsible defaultOpen={false}>
+            <MatchDetailsCollapsible
+              defaultOpen={false}
+              isOpen={isDetailsOpen}
+              onToggle={() => setIsDetailsOpen(!isDetailsOpen)}
+            >
               {/* Vista móvil - Carrusel */}
               <div className="sm:hidden">
                 <div className="relative">
@@ -407,11 +492,27 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = ({
             </MatchDetailsCollapsible>
 
             {/* Comentario */}
+
             <MatchComment comment={partida.comment} />
 
             {/* Footer acciones */}
             <MatchFooter matchId={partida.matchId} />
           </div>
+
+          {/* Botón de opciones en esquina inferior derecha */}
+          {(isOwnProfile || isAdmin) && (
+            <div className="absolute bottom-4 right-4 z-20">
+              <ActivityCardMenu
+                activityType="lol_match"
+                activityId={partida.matchId}
+                isOwnProfile={isOwnProfile}
+                isAdmin={isAdmin}
+                onHide={onHide}
+                onUnhide={onUnhide}
+                isHidden={isHidden}
+              />
+            </div>
+          )}
         </div>
       </Card>
     </TooltipProvider>

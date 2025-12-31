@@ -85,80 +85,97 @@ export async function processLpQueue(
 
         if (response.ok) {
           const rankings = await response.json();
-          const soloQ = rankings.find(
-            (r: any) => r.queueType === "RANKED_SOLO_5x5"
-          );
-          if (soloQ) {
-            const { error: snapshotError } = await supabase
-              .from("lp_snapshots")
-              .insert({
-                user_id: job.user_id,
-                puuid: job.puuid,
-                game_id: job.game_id,
-                snapshot_type:
-                  job.action === "snapshot_lp_start" ? "pre_game" : "post_game",
-                tier: soloQ.tier,
-                rank: soloQ.rank,
-                league_points: soloQ.leaguePoints,
-                wins: soloQ.wins,
-                losses: soloQ.losses,
-                queue_type: "RANKED_SOLO_5x5",
-              });
+          // Process both queues
+          const queuesToSnapshot = ["RANKED_SOLO_5x5", "RANKED_FLEX_SR"];
+          let snapshotsInserted = 0;
 
-            if (snapshotError) {
-              result = { error: snapshotError.message };
-              success = false;
-            } else {
-              success = true;
-              // Trigger sync if end match
-              if (job.action === "snapshot_lp_end") {
-                console.log(
-                  `[QueueProcessor] Syncing matches for job ${job.id}...`
+          for (const queueType of queuesToSnapshot) {
+            const rankEntry = rankings.find(
+              (r: any) => r.queueType === queueType
+            );
+
+            if (rankEntry) {
+              const { error: snapshotError } = await supabase
+                .from("lp_snapshots")
+                .insert({
+                  user_id: job.user_id,
+                  puuid: job.puuid,
+                  game_id: job.game_id,
+                  snapshot_type:
+                    job.action === "snapshot_lp_start"
+                      ? "pre_game"
+                      : "post_game",
+                  tier: rankEntry.tier,
+                  rank: rankEntry.rank,
+                  league_points: rankEntry.leaguePoints,
+                  wins: rankEntry.wins,
+                  losses: rankEntry.losses,
+                  queue_type: queueType,
+                });
+
+              if (snapshotError) {
+                console.error(
+                  `[QueueProcessor] Error inserting ${queueType} snapshot:`,
+                  snapshotError
                 );
-                try {
-                  const syncRes = await syncMatchHistory(
-                    job.puuid,
-                    region,
-                    riotApiKey,
-                    20
-                  );
-                  console.log(
-                    `[QueueProcessor] Sync result: success=${syncRes.success}, new=${syncRes.newMatches}`
-                  );
-
-                  if (syncRes.success && syncRes.newMatches === 0) {
-                    console.log(
-                      `[QueueProcessor] No new matches found immediately after game end. Queueing retry...`
-                    );
-                    const { error: queueError } = await supabase
-                      .from("lp_tracking_queue")
-                      .insert({
-                        user_id: job.user_id,
-                        puuid: job.puuid,
-                        platform_region: region,
-                        priority: 2,
-                        action: "sync_matches",
-                        status: "pending",
-                        retry_count: 0,
-                        game_id: job.game_id,
-                      });
-                    if (queueError) {
-                      console.error(
-                        "[QueueProcessor] Failed to queue sync retry:",
-                        queueError.message
-                      );
-                    }
-                  }
-                } catch (e) {
-                  console.error("[QueueProcessor] Sync error (non-fatal):", e);
-                }
+              } else {
+                snapshotsInserted++;
               }
             }
+          }
+
+          if (snapshotsInserted > 0) {
+            success = true;
           } else {
-            result = { error: "No SoloQ ranking found" };
-            // Consider success false but maybe we should mark as completed to avoid loop?
-            // Marking as failed for now so we can inspect
-            success = false;
+            // If no rankings found (unranked), we still consider it a "success" for the job execution
+            // (we processed the API response), but recorded no data.
+            // We don't want to retry endlessly if the user is unranked.
+            success = true;
+            result = { message: "No ranked entries found for user" };
+          }
+
+          // Trigger sync if end match, REGARDLESS of ranking status
+          if (job.action === "snapshot_lp_end") {
+            console.log(
+              `[QueueProcessor] Syncing matches for job ${job.id}...`
+            );
+            try {
+              const syncRes = await syncMatchHistory(
+                job.puuid,
+                region,
+                riotApiKey,
+                20
+              );
+              console.log(
+                `[QueueProcessor] Sync result: success=${syncRes.success}, new=${syncRes.newMatches}`
+              );
+
+              if (syncRes.success && syncRes.newMatches === 0) {
+                console.log(
+                  `[QueueProcessor] No new matches found immediately after game end. Queueing retry...`
+                );
+                const { error: queueError } = await supabase
+                  .from("lp_tracking_queue")
+                  .insert({
+                    user_id: job.user_id,
+                    puuid: job.puuid,
+                    platform_region: region,
+                    priority: 2,
+                    action: "sync_matches",
+                    status: "pending",
+                    retry_count: 0,
+                    game_id: job.game_id,
+                  });
+                if (queueError) {
+                  console.error(
+                    "[QueueProcessor] Failed to queue sync retry:",
+                    queueError.message
+                  );
+                }
+              }
+            } catch (e) {
+              console.error("[QueueProcessor] Sync error (non-fatal):", e);
+            }
           }
         } else {
           result = { error: `Riot API error: ${response.status}` };

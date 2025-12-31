@@ -246,15 +246,6 @@ export default function DashboardContent() {
           )}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Link href="/admin/noticias/crear" className="w-full sm:w-auto">
-            <Button
-              size="sm"
-              className="w-full sm:w-auto dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva noticia
-            </Button>
-          </Link>
           <Button
             onClick={() => fetchStats(true)}
             disabled={isRefreshing}
@@ -270,7 +261,7 @@ export default function DashboardContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (

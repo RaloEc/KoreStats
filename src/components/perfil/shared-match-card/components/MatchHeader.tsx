@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Clock, EyeOff } from "lucide-react";
 import {
   getSummonerSpellUrl,
@@ -121,25 +122,14 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end gap-0.5">
-            <div className="flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm border border-white/20">
-              <Clock className="w-3 h-3" />
-              <span>{relativeTime}</span>
-            </div>
-            <div className="flex items-center gap-1 text-[10px] font-medium text-slate-600 dark:text-slate-300 bg-white/40 dark:bg-black/15 px-2 py-0.5 rounded backdrop-blur-sm border border-white/10">
-              <span>{durationLabel}</span>
-            </div>
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-1 text-xs font-medium text-slate-800 dark:text-slate-200 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm border border-white/20">
+            <Clock className="w-3 h-3" />
+            <span>{relativeTime}</span>
           </div>
-          <ActivityCardMenu
-            activityType="lol_match"
-            activityId={matchId}
-            isOwnProfile={isOwnProfile}
-            isAdmin={isAdmin}
-            onHide={onHide}
-            onUnhide={onUnhide}
-            isHidden={isHidden}
-          />
+          <div className="flex items-center gap-1 text-[10px] font-medium text-slate-700 dark:text-slate-300 bg-white/40 dark:bg-black/15 px-2 py-0.5 rounded backdrop-blur-sm border border-white/10">
+            <span>{durationLabel}</span>
+          </div>
         </div>
       </div>
 
@@ -163,16 +153,22 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
 
           {/* Nombre del campeón + Queue */}
           <div className="flex flex-col gap-1 min-w-0 flex-1">
-            {sharedBy && (sharedBy.username || sharedBy.public_id) && (
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/70 dark:text-white/60 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] truncate">
-                {sharedBy.username ?? sharedBy.public_id}
-              </span>
-            )}
+            {sharedBy &&
+              (sharedBy.username || sharedBy.public_id) &&
+              sharedBy.public_id && (
+                <Link
+                  href={`/perfil/${sharedBy.public_id}`}
+                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/70 dark:text-white/60 hover:text-white dark:hover:text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] truncate transition-colors cursor-pointer w-fit"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {sharedBy.username ?? sharedBy.public_id}
+                </Link>
+              )}
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-none bg-gradient-to-br from-white via-white to-white/90 dark:from-white dark:via-white dark:to-white/80 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)]">
                 {championName}
               </h3>
-              <span className="inline-flex items-center font-medium text-[10px] sm:text-xs text-slate-700 dark:text-white/85 bg-white/30 dark:bg-black/20 px-2 py-0.5 rounded backdrop-blur-sm border border-white/10">
+              <span className="inline-flex items-center font-medium text-[10px] sm:text-xs text-slate-800 dark:text-white/85 bg-white/30 dark:bg-black/20 px-2 py-0.5 rounded backdrop-blur-sm border border-white/10">
                 {queueName}
               </span>
               {isHidden && (

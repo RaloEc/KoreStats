@@ -6,6 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { InfiniteData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -36,6 +37,10 @@ import {
 } from "./match-card/MatchHistoryAdBanner";
 import { useAuth } from "@/context/AuthContext";
 import { ScoreboardModal } from "./ScoreboardModal";
+
+// Memoize Match Cards for performance in virtual lists
+const MemoizedMatchCard = React.memo(MatchCard);
+const MemoizedMobileMatchCard = React.memo(MobileMatchCard);
 
 interface MatchHistoryListProps {
   userId?: string;
@@ -483,31 +488,6 @@ export function MatchHistoryList({
     return filtered;
   }, [pages]);
 
-  // Infinite scroll mejorado: cargar más partidas antes de llegar al final
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      if (!hasNextPage || isFetchingNextPage) return;
-
-      // Umbral aumentado a 800px para que la carga sea imperceptible
-      const threshold = 800;
-      const position = container.scrollTop + container.clientHeight;
-      const triggerPoint = container.scrollHeight - threshold;
-
-      if (position >= triggerPoint) {
-        console.log(
-          "[MatchHistoryList] 🚀 Pre-fetching next page (scroll threshold hit)"
-        );
-        fetchNextPage();
-      }
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
   // Observer adicional para disparar carga apenas se asoma el final
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -567,6 +547,29 @@ export function MatchHistoryList({
       : hasCachedMatches
       ? cachedMatches
       : lastStableMatches;
+
+  const [listOffset, setListOffset] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      if (scrollContainerRef.current) {
+        const rect = scrollContainerRef.current.getBoundingClientRect();
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        setListOffset(rect.top + scrollTop);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [matchesToRender.length]);
+
+  // Initialize Virtualizer for Window Scroll
+  const rowVirtualizer = useWindowVirtualizer({
+    count: matchesToRender.length,
+    estimateSize: (index) => (isMobile ? 320 : 160),
+    overscan: 5,
+    scrollMargin: listOffset,
+  });
 
   // Reintentar automáticamente cuando haya partidas en estado "processing"
   useEffect(() => {
@@ -795,7 +798,7 @@ export function MatchHistoryList({
   }
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
+    <div className="space-y-4">
       <ActiveMatchCard userId={userId || undefined} />
       {isOwnProfile && endedSnapshot ? (
         <EndedMatchPreviewCard snapshot={endedSnapshot} />
@@ -877,81 +880,92 @@ export function MatchHistoryList({
       </div>
 
       {/* Lista de Partidas */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto space-y-2 min-h-0 custom-scrollbar"
-      >
+      {/* Lista de Partidas Virtualizada */}
+      <div ref={scrollContainerRef} className="w-full relative min-h-[100px]">
         {matchesToRender.length === 0 ? (
           <div className="p-4 text-center text-slate-400">
             No hay partidas registradas
           </div>
         ) : (
-          <div className="space-y-4">
-            {matchesToRender.map((match: Match, idx) => (
-              <div
-                key={match.match_id ?? match.id ?? `match-${idx}`}
-                className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards"
-                style={{ animationDelay: `${idx < 5 ? idx * 50 : 0}ms` }}
-              >
-                {/* Publicidad móvil cada 4 partidas */}
-                {isMobile && idx > 0 && idx % 4 === 0 && (
-                  <div className="mb-2">
-                    <MobileMatchHistoryAdBanner />
-                  </div>
-                )}
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const match = matchesToRender[virtualRow.index];
+              const idx = virtualRow.index;
 
-                {/* Match Card */}
-                {isMobile ? (
-                  <MobileMatchCard
-                    match={match}
-                    version={ddragonVersion}
-                    recentMatches={matchesToRender}
-                    hideShareButton={hideShareButton}
-                    userId={userId}
-                    isOwnProfile={isOwnProfile}
-                    priority={idx < 2}
-                    onSelectMatch={() =>
-                      handleSelectMatch(match.match_id || match.id)
-                    }
-                  />
-                ) : (
-                  <>
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className="absolute top-0 left-0 w-full"
+                  style={{
+                    transform: `translateY(${virtualRow.start - listOffset}px)`,
+                  }}
+                >
+                  <div className="pb-2">
+                    {" "}
+                    {/* Spacing wrapper */}
+                    {/* Publicidad móvil cada 4 partidas */}
+                    {isMobile && idx > 0 && idx % 4 === 0 && (
+                      <div className="mb-2">
+                        <MobileMatchHistoryAdBanner />
+                      </div>
+                    )}
                     {/* Publicidad desktop cada 6 partidas */}
                     {!isMobile && idx > 0 && idx % 6 === 0 && (
                       <div className="mb-2">
                         <MatchHistoryAdBanner />
                       </div>
                     )}
-                    <MatchCard
-                      match={match}
-                      version={ddragonVersion}
-                      linkedAccountsMap={linkedAccountsMap}
-                      recentMatches={matchesToRender}
-                      hideShareButton={hideShareButton}
-                      userId={userId}
-                      isOwnProfile={isOwnProfile}
-                      priority={idx < 3}
-                      onSelectMatch={() =>
-                        handleSelectMatch(match.match_id || match.id)
-                      }
-                    />
-                  </>
-                )}
-              </div>
-            ))}
-            {hasNextPage && (
-              <div
-                id="match-list-sentinel"
-                className="h-10 w-full flex items-center justify-center py-8"
-              >
-                {isFetchingNextPage && (
-                  <div className="flex items-center gap-2 text-slate-400 animate-pulse">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="text-xs uppercase tracking-widest font-bold">
-                      Cargando más partidas...
-                    </span>
+                    {/* Match Card */}
+                    {isMobile ? (
+                      <MemoizedMobileMatchCard
+                        match={match}
+                        version={ddragonVersion}
+                        recentMatches={matchesToRender}
+                        hideShareButton={hideShareButton}
+                        userId={userId}
+                        isOwnProfile={isOwnProfile}
+                        priority={idx < 2}
+                        onSelectMatch={handleSelectMatch}
+                      />
+                    ) : (
+                      <MemoizedMatchCard
+                        match={match}
+                        version={ddragonVersion}
+                        linkedAccountsMap={linkedAccountsMap}
+                        recentMatches={matchesToRender}
+                        hideShareButton={hideShareButton}
+                        userId={userId}
+                        isOwnProfile={isOwnProfile}
+                        priority={idx < 3}
+                        onSelectMatch={handleSelectMatch}
+                      />
+                    )}
                   </div>
-                )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {hasNextPage && (
+          <div
+            id="match-list-sentinel"
+            className="h-10 w-full flex items-center justify-center py-8 bg-transparent"
+          >
+            {isFetchingNextPage && (
+              <div className="flex items-center gap-2 text-slate-400 animate-pulse">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-xs uppercase tracking-widest font-bold">
+                  Cargando más...
+                </span>
               </div>
             )}
           </div>

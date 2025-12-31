@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { Button } from "@/components/ui/button";
 import HiloCard from "@/components/foro/HiloCard";
 import NoticiaCard from "@/components/noticias/NoticiaCard";
@@ -12,6 +12,14 @@ import {
 import StatusCard from "@/components/social/StatusCard";
 import type { Noticia } from "@/types";
 import type { WeaponStats } from "@/types/weapon";
+import { getDeterministicSkinIdSync } from "@/lib/riot/skinHelpers";
+
+// Memoize components for better performance
+const MemoizedHiloCard = memo(HiloCard);
+const MemoizedNoticiaCard = memo(NoticiaCard);
+const MemoizedSharedMatchCard = memo(SharedMatchCard);
+const MemoizedStatusCard = memo(StatusCard);
+const MemoizedBannerPublicitario = memo(BannerPublicitario);
 
 type FeedFilter = "all" | "threads" | "news" | "lol" | "social";
 
@@ -302,10 +310,45 @@ export default function FeedContainer() {
     []
   );
 
+  // Precalculate items with ads to avoid expensive flatMap on every render
+  const itemsWithAds = useMemo(() => {
+    const result: Array<{
+      type: "item" | "ad";
+      data: FeedItem | null;
+      key: string;
+      index: number;
+    }> = [];
+
+    items.forEach((item, index) => {
+      // Insert ad before this item if needed
+      if (index > 0 && index % ADS_EVERY === 0) {
+        result.push({
+          type: "ad",
+          data: null,
+          key: `ad-infeed-${page}-${index}`,
+          index,
+        });
+      }
+
+      // Add the actual item
+      result.push({
+        type: "item",
+        data: item,
+        key: `${item.type}-${item.id}`,
+        index,
+      });
+    });
+
+    return result;
+  }, [items, page]);
+
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Sticky tabs container */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-black py-3 -mx-4 px-4 mb-3 border-b border-gray-200 dark:border-white/5">
+      {/* Sticky tabs container - Optimized for performance */}
+      <div
+        className="sticky top-0 z-40 bg-white dark:bg-black py-3 -mx-4 px-4 mb-3 border-b border-gray-200 dark:border-white/5"
+        style={{ willChange: "transform" }}
+      >
         <div className="flex flex-wrap gap-2">
           {actions.map((a) => (
             <Button
@@ -322,13 +365,12 @@ export default function FeedContainer() {
       </div>
 
       <div className="space-y-4">
-        {items.flatMap((item, index) => {
-          const out: JSX.Element[] = [];
-
-          if (index > 0 && index % ADS_EVERY === 0) {
-            out.push(
-              <BannerPublicitario
-                key={`ad-infeed-${page}-${index}`}
+        {itemsWithAds.map((entry) => {
+          // Render ad
+          if (entry.type === "ad") {
+            return (
+              <MemoizedBannerPublicitario
+                key={entry.key}
                 variant="in-feed"
                 className="w-full"
                 closeable={false}
@@ -336,14 +378,17 @@ export default function FeedContainer() {
             );
           }
 
+          // Render item
+          const item = entry.data!;
+
           if (item.type === "thread") {
             const href = item.thread.slug
               ? `/foro/hilos/${item.thread.slug}`
               : `/foro/hilos/${item.thread.id}`;
 
-            out.push(
-              <HiloCard
-                key={`thread-${item.thread.id}`}
+            return (
+              <MemoizedHiloCard
+                key={entry.key}
                 id={item.thread.id}
                 href={href}
                 titulo={item.thread.titulo}
@@ -362,16 +407,17 @@ export default function FeedContainer() {
                 weaponStats={item.thread.weapon_stats_record?.stats ?? null}
               />
             );
-            return out;
           }
 
           if (item.type === "news") {
-            out.push(
-              <div key={`news-${item.news.id}`}>
-                <NoticiaCard noticia={item.news} mostrarResumen={true} />
+            return (
+              <div key={entry.key}>
+                <MemoizedNoticiaCard
+                  noticia={item.news}
+                  mostrarResumen={true}
+                />
               </div>
             );
-            return out;
           }
 
           if (item.type === "lol_match") {
@@ -386,6 +432,7 @@ export default function FeedContainer() {
             const partida: SharedMatchData = {
               entryId: item.entry.entryId,
               matchId,
+              skinId: getDeterministicSkinIdSync(matchId),
               championId: p?.champion_id ?? toNumber(meta.championId),
               championName:
                 p?.champion_name ??
@@ -453,22 +500,21 @@ export default function FeedContainer() {
               allPlayers: enriched?.allPlayers,
             };
 
-            out.push(
-              <SharedMatchCard
-                key={`lol-${item.entry.entryId}`}
+            return (
+              <MemoizedSharedMatchCard
+                key={entry.key}
                 partida={partida}
                 sharedBy={sharedBy ?? undefined}
                 isOwnProfile={false}
                 isAdmin={false}
               />
             );
-            return out;
           }
 
           if (item.type === "social_post") {
-            out.push(
-              <StatusCard
-                key={`social-${item.id}`}
+            return (
+              <MemoizedStatusCard
+                key={entry.key}
                 post={{
                   id: item.id,
                   user_id: item.user.id,
@@ -497,10 +543,9 @@ export default function FeedContainer() {
                 }}
               />
             );
-            return out;
           }
 
-          return out;
+          return null;
         })}
 
         {items.length === 0 && !isLoading && (

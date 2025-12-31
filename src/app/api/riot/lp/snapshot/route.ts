@@ -208,6 +208,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const gameId = searchParams.get("gameId");
     const targetUserId = searchParams.get("userId");
+    const queueIdParam = searchParams.get("queueId");
 
     if (!gameId) {
       return NextResponse.json(
@@ -246,6 +247,7 @@ export async function GET(request: NextRequest) {
     console.log(`[GET /api/riot/lp/snapshot] Querying DB:`, {
       userIdToQuery,
       gameId: parseInt(gameId),
+      queueId: queueIdParam,
     });
 
     const { data: snapshots, error: snapshotsError } = await clientToUse
@@ -271,8 +273,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const preGame = snapshots?.find((s) => s.snapshot_type === "pre_game");
-    const postGame = snapshots?.find((s) => s.snapshot_type === "post_game");
+    // Filter by queue type if queueId is provided
+    let targetQueueType: string | null = null;
+    if (queueIdParam) {
+      const qId = parseInt(queueIdParam);
+      if (qId === 420) targetQueueType = "RANKED_SOLO_5x5";
+      else if (qId === 440) targetQueueType = "RANKED_FLEX_SR";
+    }
+
+    const filteredSnapshots =
+      targetQueueType && snapshots
+        ? snapshots.filter((s) => s.queue_type === targetQueueType)
+        : snapshots || [];
+
+    // Fallback: If filteredSnapshots is empty but we have snapshots, maybe the queueId map is wrong or legacy data
+    // Try to use all snapshots if we didn't find specific ones, OR if we didn't look for specific ones
+    const workingSnapshots =
+      filteredSnapshots.length > 0 ? filteredSnapshots : snapshots || [];
+
+    const preGame = workingSnapshots.find(
+      (s) => s.snapshot_type === "pre_game"
+    );
+    const postGame = workingSnapshots.find(
+      (s) => s.snapshot_type === "post_game"
+    );
 
     // Calcular LP change si tenemos ambos snapshots
     let lpChange = null;

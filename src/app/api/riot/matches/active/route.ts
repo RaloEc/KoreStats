@@ -15,6 +15,7 @@ type ActiveParticipant = {
   teamId: 100 | 200;
   position: string | null;
   summonerName: string;
+  puuid: string | null;
   championId: number;
   championName: string | null;
   spell1Id: number;
@@ -575,6 +576,7 @@ export async function GET(request: NextRequest) {
           teamId: p.teamId,
           position: p.position,
           summonerName: resolvedNames[idx] ?? p.summonerName,
+          puuid: p.puuid,
           championId: p.championId,
           championName: championNames[idx] ?? null,
           spell1Id: p.spell1Id,

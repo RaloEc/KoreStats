@@ -6,14 +6,25 @@ export const metadata = {
   description: "Descubre los mejores mods para mejorar tu experiencia de juego",
 };
 
-export const dynamic = "force-dynamic";
+export const dynamic =
+  process.env.IS_MOBILE === "true" ? "auto" : "force-dynamic";
 
 export default async function ModsPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const mods = await getMods();
+  const isMobile = process.env.IS_MOBILE === "true";
+  const resolvedSearchParams = isMobile ? {} : searchParams;
 
-  return <ModsPageClient initialMods={mods} searchParams={searchParams} />;
+  let mods: any[] = [];
+  try {
+    mods = await getMods();
+  } catch (e) {
+    console.error("Error fetching mods", e);
+  }
+
+  return (
+    <ModsPageClient initialMods={mods} searchParams={resolvedSearchParams} />
+  );
 }

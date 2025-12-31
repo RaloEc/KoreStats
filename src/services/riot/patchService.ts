@@ -189,6 +189,7 @@ interface PatchData {
 }
 
 import { getPatchContext } from "./scrapingService";
+import { championService } from "./championService";
 
 export const patchService = {
   async checkForNewPatch(force: boolean = false) {
@@ -334,15 +335,27 @@ export const patchService = {
         .from("lol_versions")
         .upsert({ version: latestVersion }, { onConflict: "version" });
 
+      // 9. Sincronizar Campeones y Skins (CRON AUTOMATION)
+      console.log("Syncing champion data...");
+      let championSyncResult = null;
+      try {
+        championSyncResult = await championService.fetchAndSyncChampions(
+          latestVersion
+        );
+      } catch (champError) {
+        console.error("Error syncing champions:", champError);
+      }
+
       return {
         status: "processed",
         version: latestVersion,
-        counts: {
+        patchChanges: {
           champions: championChanges.length,
           items: itemChanges.length,
           runes: runeChanges.length,
           summoners: summonerChanges.length,
         },
+        championDatabase: championSyncResult,
       };
     } catch (error) {
       console.error("Error in patchService:", error);

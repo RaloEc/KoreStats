@@ -250,9 +250,8 @@ export function RankSyncPanel() {
           <Button
             onClick={() => handleSync(true)}
             disabled={syncing}
-            variant="default"
             size="sm"
-            className="gap-2"
+            className="gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 border border-transparent"
           >
             {syncing ? (
               <RefreshCw className="h-4 w-4 animate-spin" />

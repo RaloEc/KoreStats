@@ -18,6 +18,21 @@ import NoticiaScrollbarStyles from "@/components/noticias/NoticiaScrollbarStyles
 
 export const revalidate = 60; // Revalidar cada minuto
 
+import { getServiceClient } from "@/lib/supabase/server";
+
+export async function generateStaticParams() {
+  if (process.env.IS_MOBILE !== "true") {
+    return [];
+  }
+
+  const supabase = getServiceClient();
+  const { data: noticias } = await supabase.from("noticias").select("id");
+
+  return (noticias || []).map((noticia) => ({
+    id: noticia.id.toString(),
+  }));
+}
+
 export default async function NoticiaDetalle({
   params,
 }: {

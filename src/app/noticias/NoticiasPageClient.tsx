@@ -11,7 +11,7 @@ import NoticiaCard from "@/components/noticias/NoticiaCard";
 import { useNoticias } from "@/components/noticias/hooks/useNoticias";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/context/AuthContext";
-import BtnFlotanteUnificado from "@/components/BtnFlotanteUnificado";
+import BtnFlotanteInteligente from "@/components/BtnFlotanteInteligente";
 import { Loader2 } from "lucide-react";
 
 export default function NoticiasPageClient() {
@@ -264,19 +264,16 @@ export default function NoticiasPageClient() {
           </>
         )}
 
-        <BtnFlotanteUnificado
-          tipo="noticias"
-          usuarioAutenticado={!!user}
-          usuarioRol={profile?.role}
-          filtroActivo={filtroRapido}
-          categoriaActiva={categoria}
-          onCambiarFiltro={(filtro) => {
+        <BtnFlotanteInteligente
+          filtroNoticiasActivo={filtroRapido}
+          categoriaNoticiasActiva={categoria}
+          onCambiarFiltroNoticias={(filtro) => {
             setFiltroRapido(filtro as any);
           }}
-          onCambiarCategoria={(categoriaId) => {
+          onCambiarCategoriaNoticias={(categoriaId) => {
             setCategoria(categoriaId);
           }}
-          categorias={(categoriasData || []).map((cat) => ({
+          categoriasNoticias={(categoriasData || []).map((cat) => ({
             id: String(cat.id),
             nombre: cat.nombre,
             color: cat.color || undefined,

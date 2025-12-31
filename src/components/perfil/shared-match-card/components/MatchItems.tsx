@@ -29,7 +29,7 @@ export const MatchItems: React.FC<MatchItemsProps> = ({
       {items.slice(0, 6).map((itemId, idx) => (
         <div
           key={idx}
-          className="relative w-10 h-10 rounded border border-slate-200/80 overflow-hidden bg-white/95 shadow-sm dark:border-white/20 dark:bg-white/10"
+          className="relative w-10 h-10 rounded border border-slate-300/60 overflow-hidden bg-white/30 backdrop-blur-sm shadow-sm dark:border-white/20 dark:bg-white/10"
         >
           {itemId > 0 && (
             <Image

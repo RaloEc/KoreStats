@@ -5,10 +5,15 @@ import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye } from "lucide-react";
-import { MatchDeathMap } from "@/components/riot/MatchDeathMap";
+import { MatchMapAnalysis } from "@/components/riot/MatchDeathMap";
 import { MatchAnalysis } from "@/components/riot/analysis/MatchAnalysis";
 import { ScoreboardTable } from "@/components/riot/ScoreboardTable";
+import { MatchShareCard } from "@/components/riot/MatchShareCard";
 import { createClient } from "@/lib/supabase/client";
+import { toPng } from "html-to-image";
+import { Share2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRef } from "react";
 
 interface MatchDetailContentProps {
   matchId: string;
@@ -45,6 +50,26 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
   const [currentUserPuuid, setCurrentUserPuuid] = useState<
     string | undefined
   >();
+  const shareRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = async () => {
+    if (shareRef.current === null) {
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(shareRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+      const link = document.createElement("a");
+      link.download = `korestats-match-${matchId}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Error al generar la imagen:", err);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -187,24 +212,48 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          {match.game_mode}
-          <span className="text-slate-500 text-base font-normal">
-            • {formatDuration(match.game_duration)}
-          </span>
-        </h2>
-        <p className="text-slate-400 text-sm mt-2">
-          {formatTimeAgo(match.game_creation)} • ID: {matchId}
-        </p>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2 flex-wrap">
+            {match.game_mode}
+            <span className="text-slate-500 text-base font-normal whitespace-nowrap">
+              • {formatDuration(match.game_duration)}
+            </span>
+          </h2>
+          <p className="text-slate-400 text-sm mt-2">
+            {formatTimeAgo(match.game_creation)} • ID: {matchId}
+          </p>
+        </div>
+
+        <Button
+          onClick={handleShare}
+          variant="outline"
+          size="sm"
+          className="gap-2 ml-4 shrink-0 bg-slate-800 border-slate-700 hover:bg-slate-700"
+        >
+          <Share2 className="h-4 w-4" />
+          <span>Compartir Stats</span>
+        </Button>
+      </div>
+
+      {/* Hidden Share Card */}
+      <div className="fixed left-[-9999px] top-0">
+        <div ref={shareRef}>
+          {focusParticipant ? (
+            <MatchShareCard
+              participant={focusParticipant}
+              match={match}
+              gameVersion={gameVersion}
+            />
+          ) : null}
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="scoreboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-slate-900/50">
+        <TabsList className="grid w-full grid-cols-2 bg-slate-900/50">
           <TabsTrigger value="scoreboard">Scoreboard</TabsTrigger>
           <TabsTrigger value="analysis">Análisis</TabsTrigger>
-          <TabsTrigger value="map">Mapa</TabsTrigger>
         </TabsList>
 
         {/* Scoreboard Tab */}
@@ -233,30 +282,6 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
         </TabsContent>
 
         {/* Map Tab */}
-        <TabsContent value="map" className="mt-6 space-y-4">
-          {timelineLoading && (
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando timeline...
-            </div>
-          )}
-          <Card className="bg-slate-900/30 border-slate-800">
-            <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
-                <Eye className="w-5 h-5 text-red-500" />
-                Mapa de Muertes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex justify-center pb-8">
-              <MatchDeathMap
-                timeline={timeline}
-                participants={mapParticipants}
-                focusTeamId={focusTeamId}
-                highlightParticipantId={highlightParticipantId}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -25,8 +25,15 @@ export default function ActivityItem({
           created_at: activity.timestamp,
         }}
         userColor="#64748B"
-        isOwnProfile={false}
+        isOwnProfile={true}
         isAdmin={false}
+        onDelete={
+          onDelete
+            ? async (entryId: string) => {
+                onDelete(activity.id);
+              }
+            : undefined
+        }
       />
     );
   }

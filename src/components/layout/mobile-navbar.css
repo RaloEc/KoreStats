@@ -93,3 +93,14 @@
     display: block !important;
   }
 }
+
+/* 
+   PWA Hidden Utility
+   Oculta elementos cuando la app está en modo standalone (PWA).
+   A diferencia de hide-on-mobile-pwa, esto NO se fuerza visible en escritorio.
+*/
+@media all and (display-mode: standalone) {
+  .pwa-hidden {
+    display: none !important;
+  }
+}

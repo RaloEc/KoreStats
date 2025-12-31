@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 interface LPBadgeProps {
   gameId: string | number;
   userId?: string; // Optional: target user ID for public profiles
+  queueId?: number; // Optional: to distinguish Solo vs Flex
   className?: string;
   isOwnProfile?: boolean;
 }
@@ -13,19 +14,23 @@ interface LPBadgeProps {
 export function LPBadge({
   gameId,
   userId,
+  queueId,
   className,
   isOwnProfile,
 }: LPBadgeProps) {
   const { session } = useAuth();
 
   const { data: lpData, isLoading } = useQuery({
-    queryKey: ["lp-snapshot", gameId, userId],
+    queryKey: ["lp-snapshot", gameId, userId, queueId],
     queryFn: async () => {
       // If we have a target userId, we pass it. If not, API defaults to logged in user.
       const url = new URL("/api/riot/lp/snapshot", window.location.origin);
       url.searchParams.set("gameId", gameId.toString());
       if (userId) {
         url.searchParams.set("userId", userId);
+      }
+      if (queueId) {
+        url.searchParams.set("queueId", queueId.toString());
       }
 
       const headers: HeadersInit = {};

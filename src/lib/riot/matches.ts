@@ -1410,8 +1410,21 @@ export async function getMatchById(matchId: string): Promise<{
       (rankings || []).map((r: any) => [r.summoner_id, r])
     );
 
+    // Obtener colores de perfiles si existen
+    const puuids = participants.map((p: any) => p.puuid).filter(Boolean);
+    const { data: profileColors } = await supabase
+      .from("linked_accounts_riot")
+      .select("puuid, perfiles(color)")
+      .in("puuid", puuids);
+
+    const colorMap = new Map(
+      (profileColors || []).map((pc: any) => [pc.puuid, pc.perfiles?.color])
+    );
+
     const participantsWithRanks = (participants || []).map((p: any) => {
       const rankData = rankingMap.get(p.summoner_id) as any;
+      const profileColor = colorMap.get(p.puuid);
+
       return {
         ...p,
         tier: rankData?.tier || null,
@@ -1419,6 +1432,7 @@ export async function getMatchById(matchId: string): Promise<{
         league_points: rankData?.league_points || 0,
         wins: rankData?.wins || 0,
         losses: rankData?.losses || 0,
+        profile_color: profileColor || null,
       };
     });
 

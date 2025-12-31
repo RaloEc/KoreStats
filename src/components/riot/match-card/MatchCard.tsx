@@ -434,7 +434,7 @@ interface MatchCardProps {
   userId?: string;
   isOwnProfile?: boolean;
   priority?: boolean;
-  onSelectMatch?: () => void;
+  onSelectMatch?: (matchId: string) => void;
 }
 
 export type { MatchCardProps };
@@ -662,10 +662,10 @@ export function MatchCard({
       <div
         role="button"
         tabIndex={0}
-        onClick={onSelectMatch}
+        onClick={() => onSelectMatch?.(match.match_id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
-            onSelectMatch?.();
+            onSelectMatch?.(match.match_id);
           }
         }}
         className={`
@@ -691,6 +691,7 @@ export function MatchCard({
               return gameIdStr;
             })()}
             userId={userId}
+            queueId={match.matches.queue_id}
             isOwnProfile={isOwnProfile}
           />
           <span className="text-sm font-bold text-slate-600 dark:text-white leading-tight">

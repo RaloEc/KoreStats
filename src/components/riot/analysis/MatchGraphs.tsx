@@ -60,17 +60,17 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
       const value = payload[0].value;
       const isFocusLead = value > 0;
       return (
-        <div className="bg-slate-900/95 border border-slate-700 p-2 rounded shadow-xl text-xs">
-          <p className="text-slate-400 mb-1">{label} min</p>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2 rounded shadow-xl text-xs">
+          <p className="text-slate-500 dark:text-slate-400 mb-1">{label} min</p>
           <p
             className={`font-bold ${
               isFocusLead
                 ? isFocusTeamBlue
-                  ? "text-cyan-400"
-                  : "text-rose-400"
+                  ? "text-cyan-600 dark:text-cyan-400"
+                  : "text-rose-600 dark:text-rose-400"
                 : isFocusTeamBlue
-                ? "text-rose-400"
-                : "text-cyan-400"
+                ? "text-rose-600 dark:text-rose-400"
+                : "text-cyan-600 dark:text-cyan-400"
             }`}
           >
             {isFocusLead ? "Ventaja tu equipo" : "Ventaja enemigo"}:{" "}
@@ -97,15 +97,15 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
       {/* Gold Graph */}
-      <Card className="bg-slate-900/30 border-slate-800 min-w-0">
+      <Card className="bg-white/30 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 min-w-0">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-slate-900 dark:text-white flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-yellow-500" />
             Ventaja de Oro
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[300px] p-0 min-w-0">
-          <div className="w-full h-full min-w-0">
+          <div className="w-full h-full min-h-[200px] min-w-0">
             <ResponsiveContainer
               width="100%"
               height="100%"
@@ -132,27 +132,38 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#334155"
+                  stroke="currentColor"
+                  className="text-slate-200 dark:text-slate-800"
                   opacity={0.5}
                 />
                 <XAxis
                   dataKey="minute"
-                  stroke="#94a3b8"
+                  stroke="currentColor"
+                  className="text-slate-400 dark:text-slate-500"
                   fontSize={12}
                   tickLine={false}
                 />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke="currentColor"
+                  className="text-slate-400 dark:text-slate-500"
                   fontSize={12}
                   tickLine={false}
                   tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
                 />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ zIndex: 1000 }}
+                />
+                <ReferenceLine
+                  y={0}
+                  stroke="currentColor"
+                  className="text-slate-300 dark:text-slate-700"
+                  strokeDasharray="3 3"
+                />
                 <Area
                   type="monotone"
                   dataKey="goldDiff"
-                  stroke="#cbd5e1"
+                  stroke={focusColorHex}
                   strokeWidth={2}
                   fill="url(#splitColor)"
                 />
@@ -163,15 +174,15 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
       </Card>
 
       {/* XP Graph */}
-      <Card className="bg-slate-900/30 border-slate-800 min-w-0">
+      <Card className="bg-white/30 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 min-w-0">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-slate-900 dark:text-white flex items-center gap-2">
             <Zap className="w-5 h-5 text-purple-500" />
             Ventaja de Experiencia
           </CardTitle>
         </CardHeader>
         <CardContent className="h-[300px] p-0 min-w-0">
-          <div className="w-full h-full min-w-0">
+          <div className="w-full h-full min-h-[200px] min-w-0">
             <ResponsiveContainer
               width="100%"
               height="100%"
@@ -198,27 +209,38 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#334155"
+                  stroke="currentColor"
+                  className="text-slate-200 dark:text-slate-800"
                   opacity={0.5}
                 />
                 <XAxis
                   dataKey="minute"
-                  stroke="#94a3b8"
+                  stroke="currentColor"
+                  className="text-slate-400 dark:text-slate-500"
                   fontSize={12}
                   tickLine={false}
                 />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke="currentColor"
+                  className="text-slate-400 dark:text-slate-500"
                   fontSize={12}
                   tickLine={false}
                   tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
                 />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ zIndex: 1000 }}
+                />
+                <ReferenceLine
+                  y={0}
+                  stroke="currentColor"
+                  className="text-slate-300 dark:text-slate-700"
+                  strokeDasharray="3 3"
+                />
                 <Area
                   type="monotone"
                   dataKey="xpDiff"
-                  stroke="#cbd5e1"
+                  stroke={focusColorHex}
                   strokeWidth={2}
                   fill="url(#splitColorXp)"
                 />

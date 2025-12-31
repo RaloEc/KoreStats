@@ -6,6 +6,14 @@ import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useRef, useEffect } from "react";
+import { usePlayerNotes, type PlayerNote } from "@/hooks/use-player-notes";
+import { StickyNote } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   getChampionImg,
   getSpellImg,
@@ -30,6 +38,7 @@ type ActiveParticipant = {
   teamId: 100 | 200;
   position: string | null;
   summonerName: string;
+  puuid: string | null;
   championId: number;
   championName: string | null;
   spell1Id: number;
@@ -119,10 +128,12 @@ function ParticipantRow({
   participant,
   side,
   perkIconById,
+  note,
 }: {
   participant: ActiveParticipant | null;
   side: "blue" | "red";
   perkIconById: Record<number, string>;
+  note?: PlayerNote;
 }) {
   if (!participant) {
     return (
@@ -173,6 +184,40 @@ function ParticipantRow({
           {championName ?? `Champ ${participant.championId}`}
         </div>
       </div>
+
+      {note && (
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex h-6 w-6 items-center justify-center rounded bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                <StickyNote size={14} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[200px] p-3">
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  Nota personal
+                </div>
+                <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                  {note.note}
+                </p>
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {note.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[10px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
       {/* Spells & Runes */}
       <div className="flex items-center gap-1.5">
@@ -234,6 +279,7 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
   const wasInGameRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
   const [emblaRef] = useEmblaCarousel({ active: isMobile, align: "start" });
+  const { getNote } = usePlayerNotes();
 
   // Mutación para sincronizar historial
   const syncMutation = useMutation({
@@ -408,6 +454,11 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
                 participant={team100ByPos.get(role.key) ?? null}
                 side="blue"
                 perkIconById={perkIconById}
+                note={
+                  team100ByPos.get(role.key)?.puuid
+                    ? getNote(team100ByPos.get(role.key)!.puuid!)
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -423,6 +474,11 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
                 participant={team200ByPos.get(role.key) ?? null}
                 side="red"
                 perkIconById={perkIconById}
+                note={
+                  team200ByPos.get(role.key)?.puuid
+                    ? getNote(team200ByPos.get(role.key)!.puuid!)
+                    : undefined
+                }
               />
             ))}
           </div>

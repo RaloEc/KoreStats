@@ -28,6 +28,21 @@ const HiloComentariosOptimizado = dynamic(
   }
 );
 
+import { getServiceClient } from "@/lib/supabase/server";
+
+export async function generateStaticParams() {
+  if (process.env.IS_MOBILE !== "true") {
+    return [];
+  }
+
+  const supabase = getServiceClient();
+  const { data: hilos } = await supabase.from("hilos").select("id");
+
+  return (hilos || []).map((hilo) => ({
+    id: hilo.id,
+  }));
+}
+
 interface PageProps {
   params: {
     id: string;

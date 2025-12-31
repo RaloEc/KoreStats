@@ -125,7 +125,7 @@ interface MobileMatchCardProps {
   userId?: string;
   isOwnProfile?: boolean;
   priority?: boolean;
-  onSelectMatch?: () => void;
+  onSelectMatch?: (matchId: string) => void;
 }
 
 export type { MobileMatchCardProps };
@@ -374,7 +374,7 @@ export function MobileMatchCard({
   return (
     <>
       <div
-        onClick={onSelectMatch}
+        onClick={() => onSelectMatch?.(match.match_id)}
         className={`
           md:hidden w-full text-left rounded-xl p-4 border transition-all cursor-pointer shadow-sm
           ${

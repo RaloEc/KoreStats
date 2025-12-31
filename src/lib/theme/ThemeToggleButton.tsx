@@ -42,16 +42,39 @@ export function ThemeTogglerButton({
     setMounted(true);
   }, []);
 
-  const handleToggle = () => {
+  const handleToggle = async (e?: React.MouseEvent) => {
     const currentIndex = modes.indexOf(theme as any);
     const nextIndex = (currentIndex + 1) % modes.length;
     const nextTheme = modes[nextIndex];
 
-    setTheme(nextTheme);
-
-    if (onImmediateChange) {
-      onImmediateChange(nextTheme);
+    // Verificar si el navegador soporta View Transitions API
+    if (!(document as any).startViewTransition) {
+      setTheme(nextTheme);
+      if (onImmediateChange) onImmediateChange(nextTheme);
+      return;
     }
+
+    // Configurar coordenadas para la animación circular
+    if (e) {
+      const x = e.clientX;
+      const y = e.clientY;
+
+      // Calcular la distancia a la esquina más lejana
+      const right = window.innerWidth - x;
+      const bottom = window.innerHeight - y;
+      const maxRadius = Math.hypot(Math.max(x, right), Math.max(y, bottom));
+
+      document.documentElement.style.setProperty("--x", `${x}px`);
+      document.documentElement.style.setProperty("--y", `${y}px`);
+      document.documentElement.style.setProperty("--r", `${maxRadius}px`);
+    }
+
+    // Iniciar transición
+    (document as any).startViewTransition(() => {
+      setTheme(nextTheme);
+    });
+
+    if (onImmediateChange) onImmediateChange(nextTheme);
   };
 
   // Placeholder mientras se monta

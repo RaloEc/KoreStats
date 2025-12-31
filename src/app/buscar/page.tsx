@@ -1,6 +1,7 @@
-import BuscarPageClient from './BuscarPageClient';
+import BuscarPageClient from "./BuscarPageClient";
 
-export const dynamic = 'force-dynamic';
+export const dynamic =
+  process.env.IS_MOBILE === "true" ? "auto" : "force-dynamic";
 export const revalidate = 0;
 
 // Force rebuild v3

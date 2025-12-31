@@ -5,6 +5,8 @@ import { LaneDuel } from "./LaneDuel";
 import { MatchGraphs } from "./MatchGraphs";
 import { BuildTimeline } from "./BuildTimeline";
 import { DamageChart } from "./DamageChart";
+import { MatchMapAnalysis } from "@/components/riot/MatchDeathMap";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -14,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import Image from "next/image";
 import { getChampionImg } from "@/lib/riot/helpers";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, Eye } from "lucide-react";
 
 interface MatchAnalysisProps {
   match: any;
@@ -142,12 +144,14 @@ export function MatchAnalysis({
       {/* Player Selectors */}
       <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-400">Analizar a:</span>
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            Analizar a:
+          </span>
           <Select
             value={focusParticipantId.toString()}
             onValueChange={(val) => setFocusParticipantId(parseInt(val))}
           >
-            <SelectTrigger className="w-[240px] bg-slate-900/50 border-slate-800">
+            <SelectTrigger className="w-[240px] bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
               <SelectValue placeholder="Seleccionar Jugador" />
             </SelectTrigger>
             <SelectContent>
@@ -157,7 +161,7 @@ export function MatchAnalysis({
                   value={p.participantId.toString()}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-700">
+                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
                       <Image
                         src={getChampionImg(p.championName, gameVersion)}
                         alt={p.championName}
@@ -174,15 +178,17 @@ export function MatchAnalysis({
           </Select>
         </div>
 
-        <ArrowRightLeft className="w-4 h-4 text-slate-600 hidden sm:block" />
+        <ArrowRightLeft className="w-4 h-4 text-slate-400 dark:text-slate-600 hidden sm:block" />
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-400">vs</span>
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            vs
+          </span>
           <Select
             value={opponentParticipantId?.toString() || ""}
             onValueChange={(val) => setOpponentParticipantId(parseInt(val))}
           >
-            <SelectTrigger className="w-[240px] bg-slate-900/50 border-slate-800">
+            <SelectTrigger className="w-[240px] bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
               <SelectValue placeholder="Seleccionar Oponente" />
             </SelectTrigger>
             <SelectContent>
@@ -193,7 +199,7 @@ export function MatchAnalysis({
                   disabled={p.participantId === focusParticipantId}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-700">
+                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
                       <Image
                         src={getChampionImg(p.championName, gameVersion)}
                         alt={p.championName}
@@ -236,6 +242,24 @@ export function MatchAnalysis({
           teamId={focusPlayer?.teamId || 100}
         />
       </div>
+
+      {/* Map Analysis */}
+      <Card className="bg-white/40 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <Eye className="w-5 h-5 text-indigo-500" />
+            Análisis Táctico del Mapa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center pb-8">
+          <MatchMapAnalysis
+            timeline={timeline}
+            participants={participants}
+            focusTeamId={focusTeamId}
+            highlightParticipantId={focusParticipantId}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

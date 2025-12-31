@@ -21,6 +21,13 @@ const PWAManager = dynamic(() => import("@/components/pwa/PWAManager"), {
   ssr: false,
 });
 
+const BtnFlotanteInteligente = dynamic(
+  () => import("@/components/BtnFlotanteInteligente"),
+  {
+    ssr: false,
+  }
+);
+
 // Optimizar carga de fuentes con font-display: swap para evitar bloqueo de renderizado
 // Solo cargar los weights necesarios para reducir tamaño de descarga
 const nunito = Nunito({
@@ -274,6 +281,7 @@ export default async function RootLayout({
             <div className="container mx-auto px-0">{children}</div>
           </main>
 
+          <BtnFlotanteInteligente />
           <MobileNavbarWrapper />
           <PWAManager />
         </Providers>

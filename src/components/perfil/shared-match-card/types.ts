@@ -1,6 +1,7 @@
 export interface SharedMatchData {
   entryId: string;
   matchId: string;
+  skinId?: number; // Skin ID determinístico para splash art
   championId: number;
   championName: string;
   role: string;

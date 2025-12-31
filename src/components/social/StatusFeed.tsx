@@ -1,7 +1,11 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef, memo } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import CreateStatus from "./CreateStatus";
 import ActivityItem from "./ActivityItem";
 import { Loader2 } from "lucide-react";
+
+// Memoize item
+const MemoizedActivityItem = memo(ActivityItem);
 import { toast } from "sonner";
 import { feedCacheManager } from "@/lib/cache/feedCache";
 
@@ -38,8 +42,10 @@ export default function StatusFeed({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const initialLoadDone = useRef(false);
-  const lastProfileId = useRef(profileId);
+
+  // Virtualization state
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [listOffset, setListOffset] = useState(0);
 
   const fetchPosts = useCallback(
     async (
@@ -131,20 +137,25 @@ export default function StatusFeed({
   );
 
   useEffect(() => {
-    // Check if profileId changed
-    if (lastProfileId.current !== profileId) {
-      lastProfileId.current = profileId;
-      initialLoadDone.current = false;
-      setLoading(true);
-      setPage(1);
-    }
-
-    // Only load on mount or when profileId actually changes
-    if (!initialLoadDone.current) {
-      fetchPosts(1);
-      initialLoadDone.current = true;
-    }
+    setPosts([]);
+    setLoading(true);
+    setPage(1);
+    fetchPosts(1);
   }, [profileId, fetchPosts]);
+
+  // Measure offset for virtualization
+  useEffect(() => {
+    const measure = () => {
+      if (parentRef.current) {
+        const rect = parentRef.current.getBoundingClientRect();
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        setListOffset(rect.top + scrollTop);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [posts.length]);
 
   const handlePostCreated = useCallback(() => {
     // Invalidate cache and refresh
@@ -174,18 +185,12 @@ export default function StatusFeed({
     [profileId, page]
   );
 
-  // Memoize activity items to prevent unnecessary re-renders
-  const activityItems = useMemo(
-    () =>
-      posts.map((activity) => (
-        <ActivityItem
-          key={activity.id}
-          activity={activity}
-          onDelete={handleDeletePost}
-        />
-      )),
-    [posts, handleDeletePost]
-  );
+  const rowVirtualizer = useWindowVirtualizer({
+    count: posts.length,
+    estimateSize: () => 150,
+    overscan: 10,
+    scrollMargin: listOffset,
+  });
 
   if (loading) {
     return (
@@ -213,8 +218,38 @@ export default function StatusFeed({
         onPostCreated={handlePostCreated}
       />
 
-      <div className="space-y-4">
-        {activityItems}
+      <div ref={parentRef} className="w-full relative min-h-[100px]">
+        {posts.length > 0 && (
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const activity = posts[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className="absolute top-0 left-0 w-full"
+                  style={{
+                    transform: `translateY(${virtualRow.start - listOffset}px)`,
+                  }}
+                >
+                  <div className="pb-4">
+                    <MemoizedActivityItem
+                      activity={activity}
+                      onDelete={handleDeletePost}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {posts.length === 0 && (
           <div className="text-center py-10 text-gray-500 dark:text-gray-400">
