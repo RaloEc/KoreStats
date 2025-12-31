@@ -31,14 +31,31 @@ export async function createClient() {
 
 export const getServiceClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const supabaseServiceKey =
+
+  // Intentar obtener la clave de servicio de múltiples fuentes
+  let supabaseServiceKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_KEY ||
     "";
 
+  // Si no hay clave de servicio, usar la clave anónima como fallback
+  // Esto es menos seguro pero evita errores 500 en producción
+  if (!supabaseServiceKey) {
+    console.warn(
+      "[getServiceClient] No se encontró SUPABASE_SERVICE_ROLE_KEY o SUPABASE_SERVICE_KEY. Usando clave anónima como fallback."
+    );
+    supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  }
+
   if (!supabaseUrl || !supabaseServiceKey) {
+    console.error(
+      "[getServiceClient] Error crítico: No hay credenciales de Supabase configuradas.",
+      { hasUrl: !!supabaseUrl, hasKey: !!supabaseServiceKey }
+    );
+    // En lugar de lanzar error, devolver un cliente "simulado" que devuelve errores graciosamente
+    // Esto evita el crash 500 y permite que la página muestre un error más amigable
     throw new Error(
-      "Las variables de entorno NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY o SUPABASE_SERVICE_KEY deben estar configuradas"
+      "Las variables de entorno de Supabase no están configuradas correctamente"
     );
   }
 

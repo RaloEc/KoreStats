@@ -6,17 +6,34 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getServiceClient } from "@/lib/supabase/server";
 
+// Forzar renderizado dinámico para evitar errores 500
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
 export async function generateStaticParams() {
+  // Solo generar params estáticos para mobile build
   if (process.env.IS_MOBILE !== "true") {
     return [];
   }
 
-  const supabase = getServiceClient();
-  const { data: perfiles } = await supabase.from("perfiles").select("username");
+  try {
+    const supabase = getServiceClient();
+    const { data: perfiles, error } = await supabase
+      .from("perfiles")
+      .select("username");
 
-  return (perfiles || []).map((perfil) => ({
-    username: perfil.username,
-  }));
+    if (error) {
+      console.error("[generateStaticParams] Error fetching perfiles:", error);
+      return [];
+    }
+
+    return (perfiles || []).map((perfil) => ({
+      username: perfil.username,
+    }));
+  } catch (error) {
+    console.error("[generateStaticParams] Error:", error);
+    return [];
+  }
 }
 
 export async function generateMetadata({
@@ -24,22 +41,29 @@ export async function generateMetadata({
 }: {
   params: { username: string };
 }): Promise<Metadata> {
-  const { profile } = await getProfileInitialData(params.username);
+  try {
+    const { profile } = await getProfileInitialData(params.username);
 
-  if (!profile) {
+    if (!profile) {
+      return {
+        title: "Perfil no encontrado - BitArena",
+      };
+    }
+
     return {
-      title: "Perfil no encontrado - BitArena",
+      title: `Perfil de ${profile.username} - BitArena`,
+      description:
+        profile.bio || `Perfil de usuario de ${profile.username} en BitArena`,
+      openGraph: {
+        images: [profile.avatar_url || "/images/default-avatar.png"],
+      },
+    };
+  } catch (error) {
+    console.error("[generateMetadata] Error:", error);
+    return {
+      title: "Perfil - BitArena",
     };
   }
-
-  return {
-    title: `Perfil de ${profile.username} - BitArena`,
-    description:
-      profile.bio || `Perfil de usuario de ${profile.username} en BitArena`,
-    openGraph: {
-      images: [profile.avatar_url || "/images/default-avatar.png"],
-    },
-  };
 }
 
 export default async function UserProfilePage({
@@ -47,18 +71,25 @@ export default async function UserProfilePage({
 }: {
   params: { username: string };
 }) {
-  const { profile, riotAccount } = await getProfileInitialData(params.username);
+  try {
+    const { profile, riotAccount } = await getProfileInitialData(
+      params.username
+    );
 
-  if (!profile) {
+    if (!profile) {
+      return notFound();
+    }
+
+    return (
+      <Suspense fallback={<PerfilSkeleton />}>
+        <UserProfileClient
+          initialProfile={profile}
+          initialRiotAccount={riotAccount}
+        />
+      </Suspense>
+    );
+  } catch (error) {
+    console.error("[UserProfilePage] Error crítico:", error);
     return notFound();
   }
-
-  return (
-    <Suspense fallback={<PerfilSkeleton />}>
-      <UserProfileClient
-        initialProfile={profile}
-        initialRiotAccount={riotAccount}
-      />
-    </Suspense>
-  );
 }
