@@ -832,32 +832,6 @@ export default function PerfilPageClient({
 
               {/* Estadísticas */}
               <ProfileStats estadisticas={estadisticas} />
-
-              <MembershipInfo
-                perfil={{
-                  created_at: perfil.created_at,
-                  ultimo_acceso: perfil.ultimo_acceso,
-                  activo: perfil.activo,
-                  role: perfil.role,
-                }}
-              />
-
-              {/* Botón de cerrar sesión */}
-              <Card className="bg-white dark:bg-black amoled:bg-black">
-                <CardBody>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    startContent={<LogOut className="w-4 h-4" />}
-                    onPress={handleSignOut}
-                    isLoading={isSigningOut}
-                    isDisabled={isSigningOut}
-                    className="w-full"
-                  >
-                    {isSigningOut ? "Cerrando sesión..." : "Cerrar Sesión"}
-                  </Button>
-                </CardBody>
-              </Card>
             </div>
           </div>
         </div>
@@ -873,14 +847,6 @@ export default function PerfilPageClient({
           >
             {riotAccount ? (
               <>
-                {/* Botón unificado de sincronización - solo visible en desktop */}
-                <div className="hidden lg:flex justify-end">
-                  <UnifiedRiotSyncButton
-                    userColor={perfil?.color}
-                    showLabel={true}
-                  />
-                </div>
-
                 {/* Tarjeta de cuenta de Riot */}
                 <RiotAccountCard
                   useVisualDesign={true}

@@ -104,3 +104,30 @@
     display: none !important;
   }
 }
+
+/*
+   PWA Navbar Persistence
+   Evita que el navbar inferior parpadee durante las navegaciones.
+   Mantiene el navbar visible y optimiza la renderización.
+*/
+@media all and (display-mode: standalone) {
+  /* El navbar inferior debe permanecer siempre visible en PWA */
+  .pwa-bottom-nav {
+    /* Optimiza la renderización del navbar */
+    will-change: auto;
+    contain: layout style;
+    /* Evita que se oculte durante la hidratación */
+    visibility: visible !important;
+    opacity: 1 !important;
+    /* Transición suave para cualquier cambio de estado */
+    transition: opacity 0.1s ease-out;
+  }
+
+  /* El header superior de PWA también debe ser permanente */
+  .pwa-top-header {
+    will-change: auto;
+    contain: layout style;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import Image from "next/image";
 
 interface ChampionCenteredSplashProps {
@@ -41,7 +41,7 @@ function normalizeChampionName(champion: string | number | null): string {
 /**
  * Componente para mostrar el splash art de un campeón
  */
-export function ChampionCenteredSplash({
+export const ChampionCenteredSplash = memo(function ChampionCenteredSplash({
   champion,
   skinId = 0,
   className = "",
@@ -59,15 +59,11 @@ export function ChampionCenteredSplash({
   const imageUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${normalizedChampion}_${skinId}.jpg`;
 
   const handleLoad = () => {
-    console.log(`✅ Splash art loaded: ${normalizedChampion}`);
     setIsLoading(false);
     setHasError(false);
   };
 
   const handleError = () => {
-    console.error(
-      `❌ Failed to load splash art for ${normalizedChampion} from ${imageUrl}`
-    );
     setIsLoading(false);
     setHasError(true);
   };
@@ -176,4 +172,4 @@ export function ChampionCenteredSplash({
       )}
     </div>
   );
-}
+});

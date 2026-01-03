@@ -21,7 +21,12 @@ export async function GET(
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    // Las partidas terminadas son inmutables, cachear agresivamente
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+      },
+    });
   } catch (error) {
     console.error("[GET /api/riot/matches/[matchId]] Error:", error);
     return NextResponse.json(

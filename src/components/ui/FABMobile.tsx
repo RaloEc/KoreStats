@@ -1,8 +1,9 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import Link from "next/link";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import "@/components/layout/mobile-navbar.css";
 
 /**
  * Botón flotante móvil global (solo visible en < md)
@@ -13,10 +14,10 @@ import { cn } from '@/lib/utils'
  * Ajusta las rutas si tu app usa otras.
  */
 export default function FABMobile() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="md:hidden fixed z-50 bottom-5 right-5 select-none">
+    <div className="md:hidden pwa-hidden fixed z-50 bottom-5 right-5 select-none">
       {/* Backdrop para cerrar al tocar fuera */}
       {open && (
         <div
@@ -30,8 +31,10 @@ export default function FABMobile() {
       <div className="relative">
         <div
           className={cn(
-            'absolute bottom-20 right-0 flex flex-col gap-3 transition-opacity',
-            open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            "absolute bottom-20 right-0 flex flex-col gap-3 transition-opacity",
+            open
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none"
           )}
         >
           <Link
@@ -56,24 +59,26 @@ export default function FABMobile() {
         {/* Botón principal */}
         <button
           type="button"
-          onClick={() => setOpen(v => !v)}
+          onClick={() => setOpen((v) => !v)}
           aria-label="Acciones rápidas"
           className={cn(
-            'h-16 w-16 rounded-full shadow-2xl border flex items-center justify-center',
+            "h-16 w-16 rounded-full shadow-2xl border flex items-center justify-center",
             // Modo claro: botón oscuro
-            'text-white bg-gradient-to-b from-zinc-800 to-zinc-900 border-zinc-700',
+            "text-white bg-gradient-to-b from-zinc-800 to-zinc-900 border-zinc-700",
             // Modo AMOLED (usando clases dark): degradado oscuro
-            'dark:text-zinc-100 dark:bg-gradient-to-b dark:from-zinc-800 dark:to-zinc-900 dark:border-zinc-800',
+            "dark:text-zinc-100 dark:bg-gradient-to-b dark:from-zinc-800 dark:to-zinc-900 dark:border-zinc-800",
             // Modo AMOLED: botón clarito
-            'amoled:text-zinc-900 amoled:bg-white amoled:border-gray-300 amoled:hover:bg-gray-50',
+            "amoled:text-zinc-900 amoled:bg-white amoled:border-gray-300 amoled:hover:bg-gray-50",
             // Sutilezas de interacción
-            open ? 'ring-4 ring-emerald-500/30 dark:ring-emerald-500/20 amoled:ring-emerald-500/15' : ''
+            open
+              ? "ring-4 ring-emerald-500/30 dark:ring-emerald-500/20 amoled:ring-emerald-500/15"
+              : ""
           )}
         >
           <span
             className={cn(
-              'text-3xl transition-transform',
-              open ? 'rotate-45' : 'rotate-0'
+              "text-3xl transition-transform",
+              open ? "rotate-45" : "rotate-0"
             )}
           >
             +
@@ -81,5 +86,5 @@ export default function FABMobile() {
         </button>
       </div>
     </div>
-  )
+  );
 }

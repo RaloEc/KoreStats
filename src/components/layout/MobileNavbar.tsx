@@ -59,15 +59,11 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [mounted, setMounted] = useState(false);
+  // mounted es true por defecto ya que este componente solo se renderiza en el cliente (ssr: false)
+  const mounted = true;
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } =
     useNotifications();
   const { theme, setTheme } = useTheme();
-
-  // Manejar SSR - solo renderizar portales en el cliente
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Búsqueda en tiempo real
   useEffect(() => {
@@ -282,7 +278,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   return (
     <>
       {/* Header móvil con logo - Solo visible en móviles */}
-      <header className="fixed top-0 left-0 right-0 z-[9999] lg:hidden pwa-only-nav bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200/80 dark:border-gray-700/50">
+      <header className="fixed top-0 left-0 right-0 z-[9999] lg:hidden pwa-only-nav pwa-top-header bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200/80 dark:border-gray-700/50">
         <div className="flex items-center justify-between h-14 px-4">
           <Link
             href="/"
@@ -309,7 +305,39 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           <div className="flex items-center gap-2">
             {/* Botón de cambio de tema */}
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={(e) => {
+                const nextTheme = theme === "dark" ? "light" : "dark";
+
+                // Verificar si el navegador soporta View Transitions API
+                if (!(document as any).startViewTransition) {
+                  setTheme(nextTheme);
+                  return;
+                }
+
+                // Configurar coordenadas para la animación circular
+                const x = e.clientX;
+                const y = e.clientY;
+
+                // Calcular la distancia a la esquina más lejana
+                const right = window.innerWidth - x;
+                const bottom = window.innerHeight - y;
+                const maxRadius = Math.hypot(
+                  Math.max(x, right),
+                  Math.max(y, bottom)
+                );
+
+                document.documentElement.style.setProperty("--x", `${x}px`);
+                document.documentElement.style.setProperty("--y", `${y}px`);
+                document.documentElement.style.setProperty(
+                  "--r",
+                  `${maxRadius}px`
+                );
+
+                // Iniciar transición
+                (document as any).startViewTransition(() => {
+                  setTheme(nextTheme);
+                });
+              }}
               className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label={
                 theme === "dark"
@@ -508,9 +536,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           </div>
         </div>
       )}
-
-      {/* Modal de Filtros del Foro */}
-      {/* Modal de Filtros del Foro */}
       {/* Modal de Filtros del Foro */}
       {mounted &&
         createPortal(
@@ -696,7 +721,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         )}
 
       {/* Menú de Perfil */}
-      {/* Menú de Perfil */}
       {mounted &&
         createPortal(
           <div className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden">
@@ -795,7 +819,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           document.body
         )}
 
-      {/* Modal de Crear */}
       {/* Modal de Crear */}
       {mounted &&
         createPortal(
@@ -991,7 +1014,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         )}
 
       {/* Menú para usuarios no autenticados */}
-      {/* Menú para usuarios no autenticados */}
       {mounted &&
         createPortal(
           <div className="fixed bottom-[64px] left-0 right-0 z-[9999] lg:hidden">
@@ -1064,7 +1086,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         )}
 
       {/* Navbar principal */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[10000] lg:hidden pwa-only-nav">
+      <nav className="fixed bottom-0 left-0 right-0 z-[10000] lg:hidden pwa-only-nav pwa-bottom-nav">
         <div className="mx-auto max-w-md px-4 overflow-visible">
           <div
             className={cn(

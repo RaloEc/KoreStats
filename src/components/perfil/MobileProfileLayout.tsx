@@ -342,31 +342,6 @@ export default function MobileProfileLayout({
 
           {/* Estadísticas */}
           <ProfileStats estadisticas={estadisticas} />
-
-          {/* Información de membresía */}
-          <MembershipInfo
-            perfil={{
-              created_at: perfil.created_at,
-              ultimo_acceso: perfil.ultimo_acceso,
-              activo: perfil.activo,
-              role: perfil.role,
-            }}
-          />
-
-          {/* Botón de cerrar sesión */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-800 amoled:border-gray-800">
-            <Button
-              color="danger"
-              variant="light"
-              startContent={<LogOut className="w-4 h-4" />}
-              onPress={onSignOut}
-              isLoading={isSigningOut}
-              isDisabled={isSigningOut}
-              className="w-full"
-            >
-              {isSigningOut ? "Cerrando sesión..." : "Cerrar Sesión"}
-            </Button>
-          </div>
         </div>
       </div>
     </div>

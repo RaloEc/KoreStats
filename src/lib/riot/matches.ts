@@ -1349,6 +1349,7 @@ export async function getPlayerStats(
 
 /**
  * Obtiene los detalles completos de una partida incluyendo participantes desde la BD
+ * OPTIMIZADO: Ejecuta queries en paralelo para reducir latencia
  *
  * @param matchId - ID de la partida (ej: LA1_12345)
  * @returns Datos de la partida y participantes
@@ -1360,12 +1361,19 @@ export async function getMatchById(matchId: string): Promise<{
   try {
     const supabase = getServiceClient();
 
-    // Obtener datos de la partida
-    const { data: match, error: matchError } = await supabase
-      .from("matches")
-      .select("*")
-      .eq("match_id", matchId)
-      .single();
+    // FASE 1: Obtener match y participantes en paralelo (son independientes)
+    const [matchResult, participantsResult] = await Promise.all([
+      supabase.from("matches").select("*").eq("match_id", matchId).single(),
+      supabase
+        .from("match_participants")
+        .select("*")
+        .eq("match_id", matchId)
+        .order("win", { ascending: false })
+        .order("role", { ascending: true }),
+    ]);
+
+    const { data: match, error: matchError } = matchResult;
+    const { data: participants, error: participantsError } = participantsResult;
 
     if (matchError || !match) {
       console.error(
@@ -1375,15 +1383,6 @@ export async function getMatchById(matchId: string): Promise<{
       return null;
     }
 
-    // Obtener participantes
-    const { data: participants, error: participantsError } = await supabase
-      .from("match_participants")
-      .select("*")
-      .eq("match_id", matchId)
-      // Ordenar por victoria (agrupa equipos) y luego por rol
-      .order("win", { ascending: false })
-      .order("role", { ascending: true });
-
     if (participantsError) {
       console.error(
         "[getMatchById] Error al obtener participantes:",
@@ -1392,11 +1391,26 @@ export async function getMatchById(matchId: string): Promise<{
       return { match, participants: [] };
     }
 
-    // Obtener rankings por separado (si existen)
-    const { data: rankings, error: rankingsError } = await supabase
-      .from("match_participant_ranks")
-      .select("summoner_id, tier, rank, league_points, wins, losses")
-      .eq("match_id", matchId);
+    // FASE 2: Obtener rankings y colores en paralelo (dependen de participantes)
+    const puuids = (participants || [])
+      .map((p: any) => p.puuid)
+      .filter(Boolean);
+
+    const [rankingsResult, profileColorsResult] = await Promise.all([
+      supabase
+        .from("match_participant_ranks")
+        .select("summoner_id, tier, rank, league_points, wins, losses")
+        .eq("match_id", matchId),
+      puuids.length > 0
+        ? supabase
+            .from("linked_accounts_riot")
+            .select("puuid, perfiles(color)")
+            .in("puuid", puuids)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    const { data: rankings, error: rankingsError } = rankingsResult;
+    const { data: profileColors } = profileColorsResult;
 
     if (rankingsError) {
       console.warn(
@@ -1409,13 +1423,6 @@ export async function getMatchById(matchId: string): Promise<{
     const rankingMap = new Map(
       (rankings || []).map((r: any) => [r.summoner_id, r])
     );
-
-    // Obtener colores de perfiles si existen
-    const puuids = participants.map((p: any) => p.puuid).filter(Boolean);
-    const { data: profileColors } = await supabase
-      .from("linked_accounts_riot")
-      .select("puuid, perfiles(color)")
-      .in("puuid", puuids);
 
     const colorMap = new Map(
       (profileColors || []).map((pc: any) => [pc.puuid, pc.perfiles?.color])

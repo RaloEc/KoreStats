@@ -1,6 +1,11 @@
 import React from "react";
 import type { RuneStyle } from "../types";
-import { toSafeNumber, isPerkJsonEntry, iconPathToUrl } from "../helpers";
+import { toSafeNumber } from "../helpers";
+import {
+  getPerkDataBatch,
+  getPerkFromCacheSync,
+  isPerksLoaded,
+} from "@/lib/riot/perksCache";
 
 export const useRuneIcons = (
   primaryStyle?: RuneStyle,
@@ -18,6 +23,7 @@ export const useRuneIcons = (
     Record<number, string>
   >({});
 
+  // Memoizar los IDs necesarios para evitar recálculos
   const perkIdsNeeded = React.useMemo(() => {
     const ids = new Set<number>();
     for (const selection of primaryStyle?.selections ?? []) {
@@ -46,36 +52,41 @@ export const useRuneIcons = (
 
     const loadPerkIcons = async () => {
       if (perkIdsNeeded.length === 0) return;
-      const missing = perkIdsNeeded.some((id) => !perkIconById[id]);
-      if (!missing) return;
 
-      try {
-        const response = await fetch(
-          "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perks.json"
-        );
-        if (!response.ok) return;
+      // Verificar si ya tenemos todos los datos del cache sincrónico
+      if (isPerksLoaded()) {
+        const newIcons: Record<number, string> = {};
+        const newNames: Record<number, string> = {};
+        let needsUpdate = false;
 
-        const raw: unknown = await response.json();
-        if (!Array.isArray(raw)) return;
-
-        const neededSet = new Set(perkIdsNeeded);
-        const nextIcons: Record<number, string> = {};
-        const nextNames: Record<number, string> = {};
-
-        for (const entry of raw) {
-          if (!isPerkJsonEntry(entry)) continue;
-          if (!neededSet.has(entry.id)) continue;
-          const url = iconPathToUrl(entry.iconPath);
-          if (!url) continue;
-          nextIcons[entry.id] = url;
-          nextNames[entry.id] = entry.name;
+        for (const id of perkIdsNeeded) {
+          if (!perkIconById[id]) {
+            const cached = getPerkFromCacheSync(id);
+            if (cached) {
+              newIcons[id] = cached.icon;
+              newNames[id] = cached.name;
+              needsUpdate = true;
+            }
+          }
         }
 
+        if (needsUpdate && !cancelled) {
+          setPerkIconById((prev) => ({ ...prev, ...newIcons }));
+          setPerkNameById((prev) => ({ ...prev, ...newNames }));
+        }
+        return;
+      }
+
+      // Cache no está cargado, usar la función async
+      try {
+        const { icons, names } = await getPerkDataBatch(perkIdsNeeded);
+
         if (cancelled) return;
-        setPerkIconById((prev) => ({ ...prev, ...nextIcons }));
-        setPerkNameById((prev) => ({ ...prev, ...nextNames }));
+
+        setPerkIconById((prev) => ({ ...prev, ...icons }));
+        setPerkNameById((prev) => ({ ...prev, ...names }));
       } catch {
-        // Silencioso: si falla, solo no mostramos iconos.
+        // Silencioso: si falla, solo no mostramos iconos
       }
     };
 
@@ -84,7 +95,7 @@ export const useRuneIcons = (
     return () => {
       cancelled = true;
     };
-  }, [perkIdsNeeded, perkIconById]);
+  }, [perkIdsNeeded]); // Removido perkIconById de las dependencias para evitar loops
 
   return { perkIconById, perkNameById };
 };

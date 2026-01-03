@@ -16,9 +16,11 @@ import { LinkedAccountRiot } from "@/types/riot";
 import { useState, useEffect } from "react";
 import { RiotAccountCardVisual } from "./RiotAccountCardVisual";
 import { RiotAccountCardSkeleton } from "./RiotAccountCardSkeleton";
+import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
 
 interface RiotAccountCardProps {
   onUnlink?: () => void;
+  onSync?: () => void;
   useVisualDesign?: boolean;
   externalSyncPending?: boolean;
   externalCooldownSeconds?: number;
@@ -29,6 +31,7 @@ interface RiotAccountCardProps {
  */
 export function RiotAccountCard({
   onUnlink,
+  onSync: propOnSync,
   useVisualDesign = true,
   externalSyncPending = false,
   externalCooldownSeconds = 0,
@@ -36,7 +39,21 @@ export function RiotAccountCard({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  // Hook para sincronización unificada (si no se pasa uno externo)
+  const {
+    sync: unifiedSync,
+    isPending: unifiedSyncPending,
+    cooldownSeconds: unifiedSyncCooldown,
+  } = useUnifiedRiotSync();
+
+  const isSyncing =
+    externalSyncPending || (propOnSync ? false : unifiedSyncPending);
+  const currentCooldown = Math.max(
+    externalCooldownSeconds,
+    propOnSync ? 0 : unifiedSyncCooldown
+  );
+  const handleSync = propOnSync || unifiedSync;
 
   // Obtener información de la cuenta de Riot vinculada
   const {
@@ -77,48 +94,8 @@ export function RiotAccountCard({
     gcTime: 60 * 60 * 1000, // 1 hora - mantener en memoria más tiempo
   });
 
-  // Mutación para sincronizar estadísticas
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      console.log("[RiotAccountCard] Manual sync requested");
-      const response = await fetch("/api/riot/sync", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("[RiotAccountCard] Sync error response", error);
-        throw new Error(error.error || "Error al sincronizar");
-      }
-
-      const json = await response.json();
-      console.log("[RiotAccountCard] Sync success payload", json);
-      return json;
-    },
-    onSuccess: () => {
-      setSyncError(null);
-      // Iniciar cooldown de 60 segundos
-      setCooldownSeconds(60);
-      // Invalidar y recargar datos
-      queryClient.invalidateQueries({ queryKey: ["riot-account", user?.id] });
-      console.log("[RiotAccountCard] Sync success, cache invalidated");
-    },
-    onError: (error: any) => {
-      setSyncError(error.message);
-      console.error("[RiotAccountCard] Sync mutation failed", error);
-    },
-  });
-
-  // Efecto para decrementar el cooldown cada segundo
-  useEffect(() => {
-    if (cooldownSeconds <= 0) return;
-
-    const timer = setTimeout(() => {
-      setCooldownSeconds((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [cooldownSeconds]);
+  // NOTA: Se ha reemplazado la mutación local por useUnifiedRiotSync
+  // para asegurar que siempre se actualice tanto la cuenta como el historial.
 
   if (isLoading) {
     return useVisualDesign ? (
@@ -179,11 +156,11 @@ export function RiotAccountCard({
       <RiotAccountCardVisual
         account={riotAccount}
         isLoading={isLoading}
-        isSyncing={syncMutation.isPending || externalSyncPending}
+        isSyncing={isSyncing}
         syncError={syncError}
-        onSync={() => syncMutation.mutate()}
+        onSync={handleSync}
         onUnlink={onUnlink}
-        cooldownSeconds={Math.max(cooldownSeconds, externalCooldownSeconds)}
+        cooldownSeconds={currentCooldown}
         hideSync={false}
       />
     );
@@ -328,18 +305,23 @@ export function RiotAccountCard({
             variant="outline"
             size="sm"
             className="flex-1"
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
+            onClick={handleSync}
+            disabled={isSyncing || currentCooldown > 0}
           >
-            {syncMutation.isPending ? (
+            {isSyncing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Sincronizando...
               </>
+            ) : currentCooldown > 0 ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {currentCooldown}s
+              </>
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Actualizar
+                Actualizar Todo
               </>
             )}
           </Button>

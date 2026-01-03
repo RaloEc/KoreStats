@@ -9,7 +9,7 @@ import {
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { InfiniteData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, LayoutGrid, LayoutList } from "lucide-react";
 import React, {
   useState,
   useEffect,
@@ -26,6 +26,7 @@ import { EndedMatchPreviewCard } from "./EndedMatchPreviewCard";
 import {
   MatchCard,
   MobileMatchCard,
+  CompactMobileMatchCard,
   getLatestDDragonVersion,
   FALLBACK_VERSION,
   type MatchCardProps,
@@ -37,10 +38,15 @@ import {
 } from "./match-card/MatchHistoryAdBanner";
 import { useAuth } from "@/context/AuthContext";
 import { ScoreboardModal } from "./ScoreboardModal";
+import { prefetchMatchDetails } from "@/hooks/useMatchDetails";
 
 // Memoize Match Cards for performance in virtual lists
 const MemoizedMatchCard = React.memo(MatchCard);
 const MemoizedMobileMatchCard = React.memo(MobileMatchCard);
+const MemoizedCompactMobileMatchCard = React.memo(CompactMobileMatchCard);
+
+// Tipo para el modo de vista móvil
+type MobileViewMode = "full" | "compact";
 
 interface MatchHistoryListProps {
   userId?: string;
@@ -158,12 +164,37 @@ export function MatchHistoryList({
   const [endedSnapshot, setEndedSnapshot] =
     useState<ActiveMatchSnapshot | null>(null);
 
+  // Estado para el modo de vista móvil (full o compact)
+  // Leer preferencia guardada del localStorage
+  const [mobileViewMode, setMobileViewMode] = useState<MobileViewMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("match-history-view-mode");
+      if (saved === "compact" || saved === "full") {
+        return saved;
+      }
+    }
+    return "full";
+  });
+
+  // Guardar preferencia cuando cambie
+  useEffect(() => {
+    localStorage.setItem("match-history-view-mode", mobileViewMode);
+  }, [mobileViewMode]);
+
   // Estado para controlar el modal de scoreboard centralizado
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const handleSelectMatch = useCallback((matchId: string) => {
     setSelectedMatchId(matchId);
   }, []);
+
+  // Prefetch al hover para cargar datos antes del clic
+  const handlePrefetchMatch = useCallback(
+    (matchId: string) => {
+      prefetchMatchDetails(queryClient, matchId);
+    },
+    [queryClient]
+  );
 
   // Obtener user_id del contexto o localStorage si no se pasa por props
   useEffect(() => {
@@ -564,12 +595,22 @@ export function MatchHistoryList({
   }, [matchesToRender.length]);
 
   // Initialize Virtualizer for Window Scroll
+  // La altura estimada varía según el modo de vista móvil
+  const mobileRowHeight = mobileViewMode === "compact" ? 80 : 320;
   const rowVirtualizer = useWindowVirtualizer({
     count: matchesToRender.length,
-    estimateSize: (index) => (isMobile ? 320 : 160),
+    estimateSize: (index) => (isMobile ? mobileRowHeight : 160),
     overscan: 5,
     scrollMargin: listOffset,
   });
+
+  // Forzar re-medición cuando cambia el modo de vista móvil
+  useEffect(() => {
+    if (isMobile) {
+      // Forzar re-cálculo de tamaños cuando cambia el modo
+      rowVirtualizer.measure();
+    }
+  }, [mobileViewMode, isMobile, rowVirtualizer]);
 
   // Reintentar automáticamente cuando haya partidas en estado "processing"
   useEffect(() => {
@@ -799,7 +840,11 @@ export function MatchHistoryList({
 
   return (
     <div className="space-y-4">
-      <ActiveMatchCard userId={userId || undefined} />
+      <ActiveMatchCard
+        userId={userId || undefined}
+        recentMatches={matchesToRender}
+        puuid={puuid}
+      />
       {isOwnProfile && endedSnapshot ? (
         <EndedMatchPreviewCard snapshot={endedSnapshot} />
       ) : null}
@@ -812,13 +857,13 @@ export function MatchHistoryList({
             </h3>
             {isOwnProfile && sessionStats?.success ? (
               <div
-                className={`mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed shadow-sm backdrop-blur
+                className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-sm
                   ${
                     streakTone === "loss"
-                      ? "border-rose-500/20 bg-gradient-to-r from-slate-900/40 via-slate-900/25 to-rose-500/10 text-slate-100"
+                      ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100"
                       : streakTone === "win"
-                      ? "border-emerald-500/20 bg-gradient-to-r from-slate-900/40 via-slate-900/25 to-emerald-500/10 text-slate-100"
-                      : "border-slate-700/50 bg-gradient-to-r from-slate-900/35 via-slate-900/25 to-slate-800/20 text-slate-100"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
+                      : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
                   }
                 `}
               >
@@ -828,8 +873,8 @@ export function MatchHistoryList({
                       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide
                         ${
                           streakTone === "loss"
-                            ? "border-rose-500/25 bg-rose-500/10 text-rose-200"
-                            : "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                            ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-200"
+                            : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
                         }
                       `}
                     >
@@ -837,18 +882,55 @@ export function MatchHistoryList({
                     </span>
                   ) : null}
 
-                  <div className="font-medium text-slate-100/95">
-                    {todayMessage}
-                  </div>
+                  <div className="font-medium opacity-90">{todayMessage}</div>
                 </div>
 
                 {streakMessage ? (
-                  <div className="mt-1 text-slate-200/85">{streakMessage}</div>
+                  <div className="mt-1 opacity-80">{streakMessage}</div>
                 ) : null}
               </div>
             ) : null}
           </div>
         </div>
+
+        {/* Toggle de vista para móvil */}
+        {isMobile && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Vista:
+            </span>
+            <button
+              onClick={() =>
+                setMobileViewMode(
+                  mobileViewMode === "full" ? "compact" : "full"
+                )
+              }
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                border border-slate-300 dark:border-slate-600
+                bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700
+                text-slate-700 dark:text-slate-200
+              `}
+              title={
+                mobileViewMode === "full"
+                  ? "Cambiar a vista compacta"
+                  : "Cambiar a vista completa"
+              }
+            >
+              {mobileViewMode === "full" ? (
+                <>
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span>Compacta</span>
+                </>
+              ) : (
+                <>
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Completa</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {QUEUE_FILTERS.map((filter) => (
@@ -925,16 +1007,29 @@ export function MatchHistoryList({
                     )}
                     {/* Match Card */}
                     {isMobile ? (
-                      <MemoizedMobileMatchCard
-                        match={match}
-                        version={ddragonVersion}
-                        recentMatches={matchesToRender}
-                        hideShareButton={hideShareButton}
-                        userId={userId}
-                        isOwnProfile={isOwnProfile}
-                        priority={idx < 2}
-                        onSelectMatch={handleSelectMatch}
-                      />
+                      mobileViewMode === "compact" ? (
+                        <MemoizedCompactMobileMatchCard
+                          match={match}
+                          version={ddragonVersion}
+                          userId={userId}
+                          isOwnProfile={isOwnProfile}
+                          priority={idx < 3}
+                          onSelectMatch={handleSelectMatch}
+                          onHoverMatch={handlePrefetchMatch}
+                        />
+                      ) : (
+                        <MemoizedMobileMatchCard
+                          match={match}
+                          version={ddragonVersion}
+                          recentMatches={matchesToRender}
+                          hideShareButton={hideShareButton}
+                          userId={userId}
+                          isOwnProfile={isOwnProfile}
+                          priority={idx < 2}
+                          onSelectMatch={handleSelectMatch}
+                          onHoverMatch={handlePrefetchMatch}
+                        />
+                      )
                     ) : (
                       <MemoizedMatchCard
                         match={match}
@@ -946,6 +1041,7 @@ export function MatchHistoryList({
                         isOwnProfile={isOwnProfile}
                         priority={idx < 3}
                         onSelectMatch={handleSelectMatch}
+                        onHoverMatch={handlePrefetchMatch}
                       />
                     )}
                   </div>
@@ -980,6 +1076,7 @@ export function MatchHistoryList({
           onOpenChange={(open) => {
             if (!open) setSelectedMatchId(null);
           }}
+          linkedAccountsMap={linkedAccountsMap}
         />
       )}
     </div>

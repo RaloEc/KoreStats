@@ -13,13 +13,24 @@ import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
 const MobileNavbarWrapper = dynamic(
   () => import("@/components/layout/MobileNavbarWrapper"),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      // Placeholder que mantiene el espacio del navbar durante la carga
+      <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-gray-950/95 border-t border-gray-200/80 dark:border-gray-700/50 lg:hidden z-[9990]" />
+    ),
+  }
 );
 
 // Lazy load PWAManager
 const PWAManager = dynamic(() => import("@/components/pwa/PWAManager"), {
   ssr: false,
 });
+
+const DynamicThemeColor = dynamic(
+  () => import("@/components/pwa/DynamicThemeColor"),
+  { ssr: false }
+);
 
 const BtnFlotanteInteligente = dynamic(
   () => import("@/components/BtnFlotanteInteligente"),
@@ -284,6 +295,7 @@ export default async function RootLayout({
           <BtnFlotanteInteligente />
           <MobileNavbarWrapper />
           <PWAManager />
+          <DynamicThemeColor />
         </Providers>
       </body>
     </html>

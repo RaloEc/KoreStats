@@ -222,24 +222,6 @@ export function RiotAccountCardVisual({
         <RankAnimatedBackground tier={soloTier} />
 
         <div className="relative z-10 p-4 md:p-5 flex flex-col gap-4">
-          {/* Botón de sincronización móvil - esquina superior derecha */}
-          {!hideSync && onSync && (
-            <button
-              onClick={onSync}
-              disabled={isSyncing || cooldownSeconds > 0}
-              className="lg:hidden absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title={
-                cooldownSeconds > 0
-                  ? `Espera ${cooldownSeconds}s`
-                  : "Actualizar"
-              }
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
-              />
-            </button>
-          )}
-
           <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full md:items-center">
             <div className="flex flex-col md:flex-row items-center md:items-center gap-4 md:gap-6 flex-1 min-h-[180px]">
               {/* Left: Profile Icon */}
@@ -384,55 +366,47 @@ export function RiotAccountCardVisual({
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
-        <div className="text-xs text-gray-400">
-          {syncError ? (
-            <span className="text-red-500 flex items-center gap-1">
-              <Loader2 className="w-3 h-3" /> {syncError}
-            </span>
-          ) : (
-            <span>
-              Actualizado:{" "}
-              {account.last_updated
-                ? new Date(account.last_updated).toLocaleDateString("es-ES", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "Nunca"}
-            </span>
-          )}
+      {/* Indicador de última actualización sutil fuera pero cerca */}
+      <div className="mt-4 px-1 flex items-center justify-between gap-2">
+        <div className="text-[10px] text-gray-500 font-medium opacity-70">
+          {account.last_updated
+            ? new Date(account.last_updated).toLocaleDateString("es-ES", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Pendiente"}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {onSync && !hideSync && (
             <button
               onClick={onSync}
               disabled={isSyncing || cooldownSeconds > 0}
-              className="text-xs font-medium text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 py-1.5 px-3 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
             >
-              {isSyncing ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3 h-3" />
-              )}
-              {isSyncing
-                ? "Sincronizando..."
-                : cooldownSeconds > 0
-                ? `Espera ${cooldownSeconds}s`
-                : "Actualizar Datos"}
+              <RefreshCw
+                size={12}
+                className={isSyncing ? "animate-spin" : ""}
+              />
+              <span className="text-[11px] font-bold">
+                {isSyncing
+                  ? "..."
+                  : cooldownSeconds > 0
+                  ? `${cooldownSeconds}s`
+                  : "Actualizar"}
+              </span>
             </button>
           )}
 
           {onUnlink && (
             <button
               onClick={onUnlink}
-              className="text-xs font-medium text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors flex items-center gap-1.5"
+              className="flex items-center gap-1 py-1.5 px-2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
             >
-              <Unlink className="w-3 h-3" />
-              Desvincular
+              <Unlink size={12} />
+              <span className="text-[11px] font-bold">Desvincular</span>
             </button>
           )}
         </div>

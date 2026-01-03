@@ -435,6 +435,8 @@ interface MatchCardProps {
   isOwnProfile?: boolean;
   priority?: boolean;
   onSelectMatch?: (matchId: string) => void;
+  /** Callback para prefetch al hover */
+  onHoverMatch?: (matchId: string) => void;
 }
 
 export type { MatchCardProps };
@@ -449,6 +451,7 @@ export function MatchCard({
   isOwnProfile = false,
   priority = false,
   onSelectMatch,
+  onHoverMatch,
 }: MatchCardProps) {
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
 
@@ -668,6 +671,7 @@ export function MatchCard({
             onSelectMatch?.(match.match_id);
           }
         }}
+        onMouseEnter={() => onHoverMatch?.(match.match_id)}
         className={`
           hidden md:grid grid-cols-[60px,auto,180px,90px,200px] items-center gap-3 p-3 rounded-lg border-l-4 transition-all hover:shadow-lg hover:border-l-8 cursor-pointer
           ${isProcessing ? "opacity-70" : ""} ${

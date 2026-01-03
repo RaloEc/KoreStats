@@ -5,9 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { usePlayerNotes, type PlayerNote } from "@/hooks/use-player-notes";
-import { StickyNote } from "lucide-react";
+import { StickyNote, ChevronDown, ChevronUp, Users } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -27,6 +27,8 @@ import { usePerkAssets } from "@/components/riot/match-card/RunesTooltip";
 import useEmblaCarousel from "embla-carousel-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { getFrequentTeammates, type FrequentTeammate } from "./TeammateTracker";
+import { type Match } from "./match-card/MatchCard";
 
 type SpectatorPerks = {
   perkIds: number[];
@@ -129,11 +131,13 @@ function ParticipantRow({
   side,
   perkIconById,
   note,
+  isFrequent,
 }: {
   participant: ActiveParticipant | null;
   side: "blue" | "red";
   perkIconById: Record<number, string>;
   note?: PlayerNote;
+  isFrequent?: boolean;
 }) {
   if (!participant) {
     return (
@@ -159,7 +163,14 @@ function ParticipantRow({
       : "text-rose-700 dark:text-rose-200";
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-800/60 dark:bg-slate-900/30">
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg border p-2 transition-all",
+        isFrequent
+          ? "border-emerald-500/30 bg-emerald-50/30 dark:border-emerald-500/30 dark:bg-emerald-500/5 ring-1 ring-emerald-500/10"
+          : "border-slate-200 bg-white dark:border-slate-800/60 dark:bg-slate-900/30"
+      )}
+    >
       {/* Champion Image */}
       <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded">
         {championImg ? (
@@ -175,10 +186,19 @@ function ParticipantRow({
         )}
       </div>
 
-      {/* Summoner Name & Champion */}
       <div className="min-w-0 flex-1">
-        <div className={`truncate text-xs font-semibold ${nameColor}`}>
-          {participant.summonerName}
+        <div className="flex items-center gap-1.5">
+          <div className={`truncate text-xs font-semibold ${nameColor}`}>
+            {participant.summonerName}
+          </div>
+          {isFrequent && (
+            <div className="flex-shrink-0">
+              <Users
+                size={12}
+                className="text-emerald-500 dark:text-emerald-400 opacity-80"
+              />
+            </div>
+          )}
         </div>
         <div className="truncate text-[11px] text-slate-600 dark:text-slate-400">
           {championName ?? `Champ ${participant.championId}`}
@@ -273,13 +293,32 @@ function ParticipantRow({
   );
 }
 
-export function ActiveMatchCard({ userId }: { userId?: string }) {
+export function ActiveMatchCard({
+  userId,
+  recentMatches = [],
+  puuid: currentPuuid,
+}: {
+  userId?: string;
+  recentMatches?: Match[];
+  puuid?: string | null;
+}) {
   const { supabase } = useAuth();
   const queryClient = useQueryClient();
   const wasInGameRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
   const [emblaRef] = useEmblaCarousel({ active: isMobile, align: "start" });
   const { getNote } = usePlayerNotes();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Calcular compañeros frecuentes si tenemos historial y puuid
+  const frequentTeammatePuuids = useMemo(() => {
+    if (!recentMatches.length || !currentPuuid) return new Set<string>();
+    const frequent = getFrequentTeammates(recentMatches, currentPuuid);
+    // Consideramos frecuente si ha jugado al menos 2 partidas juntos (mismo default que TeammateTracker)
+    return new Set(
+      frequent.filter((t) => t.gamesTogether >= 2).map((t) => t.puuid)
+    );
+  }, [recentMatches, currentPuuid]);
 
   // Mutación para sincronizar historial
   const syncMutation = useMutation({
@@ -419,71 +458,102 @@ export function ActiveMatchCard({ userId }: { userId?: string }) {
   const timer = formatElapsed(data.elapsedSeconds);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/40 dark:shadow-none">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Partida en vivo
-          </div>
-          <div className="text-xs text-slate-600 dark:text-slate-400">
-            {queueLabel}
-            {timer ? ` • ${timer}` : ""}
-          </div>
-        </div>
-        <div className="text-[11px] text-slate-500 dark:text-slate-500">
-          {data.platformId ?? ""}
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          "mt-3",
-          isMobile ? "overflow-hidden" : "grid gap-3 md:grid-cols-2"
-        )}
-        ref={emblaRef}
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/70 dark:bg-slate-950/40 dark:shadow-none transition-all">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex w-full items-center justify-between gap-2 p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors rounded-t-xl"
       >
-        <div className={cn(isMobile ? "flex touch-pan-y" : "contents")}>
-          {/* Slide/Column 1: Blue Team */}
-          <div className={cn("space-y-1", isMobile && "min-w-full pl-1 pr-4")}>
-            <div className="text-xs font-semibold text-sky-700 dark:text-sky-300 mb-2 px-1">
-              Equipo azul
-            </div>
-            {ROLE_ORDER.map((role) => (
-              <ParticipantRow
-                key={`blue-${role.key}`}
-                participant={team100ByPos.get(role.key) ?? null}
-                side="blue"
-                perkIconById={perkIconById}
-                note={
-                  team100ByPos.get(role.key)?.puuid
-                    ? getNote(team100ByPos.get(role.key)!.puuid!)
-                    : undefined
-                }
-              />
-            ))}
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
           </div>
-
-          {/* Slide/Column 2: Red Team */}
-          <div className={cn("space-y-1", isMobile && "min-w-full pl-4 pr-1")}>
-            <div className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-2 px-1">
-              Equipo rojo
+          <div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              Partida en vivo
+              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                LIVE
+              </span>
             </div>
-            {ROLE_ORDER.map((role) => (
-              <ParticipantRow
-                key={`red-${role.key}`}
-                participant={team200ByPos.get(role.key) ?? null}
-                side="red"
-                perkIconById={perkIconById}
-                note={
-                  team200ByPos.get(role.key)?.puuid
-                    ? getNote(team200ByPos.get(role.key)!.puuid!)
-                    : undefined
-                }
-              />
-            ))}
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              {queueLabel}
+              {timer ? ` • ${timer}` : ""}
+            </div>
           </div>
         </div>
-      </div>
+        <div className="flex items-center gap-3">
+          <div className="text-[11px] text-slate-500 hidden sm:block">
+            {data.platformId ?? ""}
+          </div>
+          {isExpanded ? (
+            <ChevronUp size={20} className="text-slate-400" />
+          ) : (
+            <ChevronDown size={20} className="text-slate-400" />
+          )}
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/40">
+          <div
+            className={cn(
+              "mt-3",
+              isMobile ? "overflow-hidden" : "grid gap-3 md:grid-cols-2"
+            )}
+            ref={emblaRef}
+          >
+            <div className={cn(isMobile ? "flex touch-pan-y" : "contents")}>
+              {/* Slide/Column 1: Blue Team */}
+              <div
+                className={cn("space-y-1", isMobile && "min-w-full pl-1 pr-4")}
+              >
+                <div className="text-xs font-semibold text-sky-700 dark:text-sky-300 mb-2 px-1">
+                  Equipo azul
+                </div>
+                {ROLE_ORDER.map((role) => {
+                  const p = team100ByPos.get(role.key) ?? null;
+                  return (
+                    <ParticipantRow
+                      key={`blue-${role.key}`}
+                      participant={p}
+                      side="blue"
+                      perkIconById={perkIconById}
+                      isFrequent={
+                        p?.puuid ? frequentTeammatePuuids.has(p.puuid) : false
+                      }
+                      note={p?.puuid ? getNote(p.puuid) : undefined}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Slide/Column 2: Red Team */}
+              <div
+                className={cn("space-y-1", isMobile && "min-w-full pl-4 pr-1")}
+              >
+                <div className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-2 px-1">
+                  Equipo rojo
+                </div>
+                {ROLE_ORDER.map((role) => {
+                  const p = team200ByPos.get(role.key) ?? null;
+                  return (
+                    <ParticipantRow
+                      key={`red-${role.key}`}
+                      participant={p}
+                      side="red"
+                      perkIconById={perkIconById}
+                      isFrequent={
+                        p?.puuid ? frequentTeammatePuuids.has(p.puuid) : false
+                      }
+                      note={p?.puuid ? getNote(p.puuid) : undefined}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import {
@@ -16,132 +16,39 @@ import {
   formatDuration,
   getRelativeTime,
 } from "@/components/riot/match-card/helpers";
-import { createClient } from "@/lib/supabase/client";
+import { useMatchDetails } from "@/hooks/useMatchDetails";
 
 interface ScoreboardModalProps {
   matchId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface LinkedAccountEntry {
-  puuid: string;
-  publicId: string | null;
-}
-
-interface LinkedAccountsResponse {
-  accounts: LinkedAccountEntry[];
+  /** Mapa de PUUID a publicId para evitar fetch duplicado */
+  linkedAccountsMap?: Record<string, string>;
+  /** PUUID del usuario actual para evitar fetch de auth */
+  currentUserPuuid?: string;
 }
 
 /**
  * Modal que muestra únicamente el scoreboard de una partida
- * Con botones para ver análisis completo o cerrar
+ * OPTIMIZADO: Usa React Query para cachear datos y acepta props pre-cargadas
  */
 export function ScoreboardModal({
   matchId,
   open,
   onOpenChange,
+  linkedAccountsMap = {},
+  currentUserPuuid,
 }: ScoreboardModalProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [matchData, setMatchData] = useState<any>(null);
-  const [currentUserPuuid, setCurrentUserPuuid] = useState<
-    string | undefined
-  >();
-  const [linkedAccountsMap, setLinkedAccountsMap] = useState<
-    Record<string, string>
-  >({});
 
-  useEffect(() => {
-    if (!open) return;
-
-    const loadMatchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Obtener datos de la partida desde la API
-        const response = await fetch(`/api/riot/matches/${matchId}`);
-        if (!response.ok) {
-          setError("Partida no encontrada");
-          return;
-        }
-
-        const data = await response.json();
-        setMatchData(data);
-
-        // Obtener PUUID del usuario actual
-        const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session?.user) {
-          const { data: riotAccount } = await supabase
-            .from("linked_accounts_riot")
-            .select("puuid")
-            .eq("user_id", session.user.id)
-            .single();
-
-          if (riotAccount) {
-            setCurrentUserPuuid(riotAccount.puuid);
-          }
-        }
-      } catch (err) {
-        console.error("[ScoreboardModal] Error loading match:", err);
-        setError("Error al cargar los detalles de la partida");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMatchData();
-  }, [matchId, open]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchLinkedAccounts = async () => {
-      try {
-        const response = await fetch("/api/riot/linked-accounts");
-        if (!response.ok) {
-          return;
-        }
-        const data = (await response.json()) as LinkedAccountsResponse;
-        if (!isMounted) {
-          return;
-        }
-
-        const map = data.accounts.reduce<Record<string, string>>(
-          (acc, account) => {
-            if (account.publicId) {
-              acc[account.puuid] = account.publicId;
-            }
-            return acc;
-          },
-          {}
-        );
-
-        setLinkedAccountsMap(map);
-      } catch (linkedAccountsError) {
-        console.error(
-          "[ScoreboardModal] Error fetching linked accounts:",
-          linkedAccountsError
-        );
-      }
-    };
-
-    fetchLinkedAccounts();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open]);
+  // Usar React Query con caché automático - solo fetch cuando está abierto
+  const {
+    data: matchData,
+    isLoading: loading,
+    error,
+  } = useMatchDetails(matchId, {
+    enabled: open && Boolean(matchId),
+  });
 
   const handleViewAnalysis = () => {
     onOpenChange(false);
@@ -153,45 +60,61 @@ export function ScoreboardModal({
     onOpenChange(false);
   };
 
-  // Removed conditional null return to allow immediate rendering of the dialog
-  // This ensures the modal opens immediately with a spinner instead of waiting for data fetch
-  // if (!matchData && !loading && !error) {
-  //   return null;
-  // }
+  // Memoizar datos derivados para evitar recálculos
+  const { match, participants, headerInfo } = useMemo(() => {
+    if (!matchData) {
+      return { match: null, participants: [], headerInfo: null };
+    }
 
-  const { match, participants } = matchData || {};
-  const gameVersion =
-    match?.full_json?.info?.gameVersion || match?.game_version;
+    const m = matchData.match as any;
+    const p = matchData.participants as any[];
 
-  const queueId =
-    match?.queue_id ||
-    match?.full_json?.queueId ||
-    match?.matches?.queue_id ||
-    match?.matches?.queueId ||
-    match?.queueId ||
-    match?.matches?.queue_id;
+    const gameVersion = m?.full_json?.info?.gameVersion || m?.game_version;
 
-  const durationSeconds =
-    match?.game_duration ||
-    match?.matches?.game_duration ||
-    match?.full_json?.info?.gameDuration ||
-    0;
+    const queueId =
+      m?.queue_id ||
+      m?.full_json?.queueId ||
+      m?.matches?.queue_id ||
+      m?.matches?.queueId ||
+      m?.queueId;
 
-  const createdAtRaw =
-    match?.created_at || match?.full_json?.info?.gameCreation || null;
-  const createdAtIso = createdAtRaw
-    ? typeof createdAtRaw === "number"
-      ? new Date(createdAtRaw).toISOString()
-      : createdAtRaw
-    : null;
+    const durationSeconds =
+      m?.game_duration ||
+      m?.matches?.game_duration ||
+      m?.full_json?.info?.gameDuration ||
+      0;
 
-  const headerQueueLabel = queueId ? getQueueName(queueId) : "";
-  const headerTitle = match?.game_mode || headerQueueLabel || "Partida";
-  const headerDuration = formatDuration(durationSeconds);
-  const headerRelativeTime = createdAtIso
-    ? getRelativeTime(createdAtIso)
-    : undefined;
-  const headerMatchId = match?.match_id || match?.matches?.match_id || matchId;
+    const createdAtRaw =
+      m?.created_at || m?.full_json?.info?.gameCreation || null;
+    const createdAtIso = createdAtRaw
+      ? typeof createdAtRaw === "number"
+        ? new Date(createdAtRaw).toISOString()
+        : createdAtRaw
+      : null;
+
+    const headerQueueLabel = queueId ? getQueueName(queueId) : "";
+    const headerTitle = m?.game_mode || headerQueueLabel || "Partida";
+    const headerDuration = formatDuration(durationSeconds);
+    const headerRelativeTime = createdAtIso
+      ? getRelativeTime(createdAtIso)
+      : undefined;
+    const headerMatchId = m?.match_id || m?.matches?.match_id || matchId;
+
+    return {
+      match: m,
+      participants: p,
+      headerInfo: {
+        gameVersion,
+        durationSeconds,
+        headerTitle,
+        headerDuration,
+        headerRelativeTime,
+        headerMatchId,
+      },
+    };
+  }, [matchData, matchId]);
+
+  const errorMessage = error?.message || null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,19 +130,19 @@ export function ScoreboardModal({
         </div>
         <div className="flex flex-1 flex-col">
           <div className="flex flex-col gap-4 px-2 py-0 sm:px-6 overflow-hidden">
-            {!loading && !error && match && (
+            {!loading && !errorMessage && match && headerInfo && (
               <div className="flex flex-col gap-2 border-b border-slate-200 dark:border-slate-800 py-4">
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
-                  {headerTitle}
+                  {headerInfo.headerTitle}
                   <span className="text-slate-500 text-sm font-normal">
-                    • {headerDuration}
+                    • {headerInfo.headerDuration}
                   </span>
                 </h2>
                 <p className="text-slate-500 dark:text-slate-400 text-sm flex flex-wrap items-center gap-2">
-                  {headerRelativeTime}
+                  {headerInfo.headerRelativeTime}
                   <span className="text-slate-700 dark:text-slate-600">|</span>
                   <span className="text-slate-600 dark:text-slate-300">
-                    ID: {headerMatchId}
+                    ID: {headerInfo.headerMatchId}
                   </span>
                 </p>
               </div>
@@ -230,26 +153,26 @@ export function ScoreboardModal({
               </div>
             )}
 
-            {error && (
+            {errorMessage && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
-                {error}
+                {errorMessage}
               </div>
             )}
 
-            {!loading && !error && matchData && (
+            {!loading && !errorMessage && matchData && headerInfo && (
               <ScoreboardModalTable
                 matchId={matchId}
                 participants={participants}
                 currentUserPuuid={currentUserPuuid}
-                gameVersion={gameVersion}
-                gameDuration={durationSeconds}
+                gameVersion={headerInfo.gameVersion}
+                gameDuration={headerInfo.durationSeconds}
                 matchInfo={match?.full_json?.info}
                 linkedAccountsMap={linkedAccountsMap}
               />
             )}
           </div>
 
-          {!loading && !error && matchData && (
+          {!loading && !errorMessage && matchData && (
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-center justify-end border-slate-200 dark:border-slate-800 px-4 mb-2 sm:px-6 bg-white dark:bg-black w-full">
               <Button
                 variant="outline"

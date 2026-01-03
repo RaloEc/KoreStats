@@ -126,6 +126,8 @@ interface MobileMatchCardProps {
   isOwnProfile?: boolean;
   priority?: boolean;
   onSelectMatch?: (matchId: string) => void;
+  /** Callback para prefetch al tocar (móvil) */
+  onHoverMatch?: (matchId: string) => void;
 }
 
 export type { MobileMatchCardProps };
@@ -139,6 +141,7 @@ export function MobileMatchCard({
   isOwnProfile = false,
   priority = false,
   onSelectMatch,
+  onHoverMatch,
 }: MobileMatchCardProps) {
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
 
@@ -375,6 +378,7 @@ export function MobileMatchCard({
     <>
       <div
         onClick={() => onSelectMatch?.(match.match_id)}
+        onTouchStart={() => onHoverMatch?.(match.match_id)}
         className={`
           md:hidden w-full text-left rounded-xl p-4 border transition-all cursor-pointer shadow-sm
           ${
