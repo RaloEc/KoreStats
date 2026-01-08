@@ -50,7 +50,7 @@ export const FilaNoticiaTabla = React.memo(
     };
 
     return (
-      <TableRow>
+      <TableRow className="hover:bg-zinc-100 dark:hover:bg-zinc-900/50">
         <TableCell>
           <Checkbox
             checked={seleccionada}

@@ -97,14 +97,30 @@ export function MatchAnalysis({
   const matchData = match.full_json || match;
   const gameVersion = matchData?.info?.gameVersion;
 
-  // Set initial focus player based on logged-in user
+  // Set initial focus player based on logged-in user or performance
   useEffect(() => {
-    if (currentUserPuuid && matchData.info && matchData.info.participants) {
-      const participant = matchData.info.participants.find(
-        (p: any) => p.puuid === currentUserPuuid
-      );
-      if (participant) {
-        setFocusParticipantId(participant.participantId);
+    if (matchData.info && matchData.info.participants) {
+      const participants = matchData.info.participants;
+
+      if (currentUserPuuid) {
+        const participant = participants.find(
+          (p: any) => p.puuid === currentUserPuuid
+        );
+        if (participant) {
+          setFocusParticipantId(participant.participantId);
+          return;
+        }
+      }
+
+      // If no user linked or found, select the MVP (Best KDA)
+      const bestPlayer = [...participants].sort((a: any, b: any) => {
+        const kdaA = (a.kills + a.assists) / Math.max(1, a.deaths);
+        const kdaB = (b.kills + b.assists) / Math.max(1, b.deaths);
+        return kdaB - kdaA;
+      })[0];
+
+      if (bestPlayer) {
+        setFocusParticipantId(bestPlayer.participantId);
       }
     }
   }, [currentUserPuuid, matchData]);
@@ -225,10 +241,19 @@ export function MatchAnalysis({
         opponentParticipantId={opponentParticipantId || undefined}
       />
 
+      {/* Global Analysis Separator */}
+      <div className="flex items-center gap-4 py-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent flex-1" />
+        <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest shrink-0">
+          Panorama Global
+        </h3>
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent flex-1" />
+      </div>
+
       {/* Graphs */}
       <MatchGraphs timeline={timeline} focusTeamId={focusTeamId} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex flex-col gap-6">
         {/* Build Timeline */}
         <BuildTimeline
           timeline={timeline}
@@ -237,10 +262,7 @@ export function MatchAnalysis({
         />
 
         {/* Damage Chart */}
-        <DamageChart
-          participants={participants}
-          teamId={focusPlayer?.teamId || 100}
-        />
+        <DamageChart participants={participants} gameVersion={gameVersion} />
       </div>
 
       {/* Map Analysis */}
@@ -249,6 +271,9 @@ export function MatchAnalysis({
           <CardTitle className="text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Eye className="w-5 h-5 text-indigo-500" />
             Análisis Táctico del Mapa
+            <span className="text-xs font-normal text-slate-500 ml-auto">
+              Vista centrada en: {focusPlayer?.championName}
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="flex justify-center pb-8">

@@ -210,7 +210,6 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
                 alt="Hechizo 1"
                 fill
                 className="object-cover"
-                unoptimized
               />
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
             </div>
@@ -223,7 +222,6 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
                 alt="Hechizo 2"
                 fill
                 className="object-cover"
-                unoptimized
               />
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
             </div>

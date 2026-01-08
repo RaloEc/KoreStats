@@ -88,7 +88,6 @@ const nextConfig = {
   // Optimizar CSS y reducir render-blocking resources
   productionBrowserSourceMaps: false,
   images: {
-    unoptimized: isMobile,
     // Aumentar el TTL del caché de imágenes optimizadas (default es 60 seg)
     minimumCacheTTL: 31536000,
     // Limitar tamaños de dispositivos para evitar generar demasiadas variantes

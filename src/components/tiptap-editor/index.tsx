@@ -140,7 +140,10 @@ const TiptapEditorBase = ({
 
       {/* Menú flotante (aparece al inicio de una línea vacía) */}
       {editor && (
-        <FloatingMenu editor={editor} tippyOptions={{ duration: 100 }}>
+        <FloatingMenu
+          editor={editor}
+          tippyOptions={{ duration: 100, zIndex: 40 }}
+        >
           <FloatingToolbar editor={editor} />
         </FloatingMenu>
       )}
@@ -149,7 +152,7 @@ const TiptapEditorBase = ({
       {state.selectedImagePos !== null && (
         <div
           className="image-toolkit"
-          style={{ position: "absolute", zIndex: 100 }}
+          style={{ position: "absolute", zIndex: 40 }}
         >
           <Button
             variant="destructive"

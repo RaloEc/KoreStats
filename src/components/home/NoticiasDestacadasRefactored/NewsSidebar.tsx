@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -8,6 +9,11 @@ import { Clock, ArrowRight } from "lucide-react";
 import EventosWidget from "@/components/home/EventosWidget";
 import { Noticia } from "./types";
 import { CATEGORIAS_PREDEFINIDAS } from "./constants";
+
+const ServerStatusWidget = dynamic(
+  () => import("@/components/riot/ServerStatusWidget"),
+  { ssr: false }
+);
 
 interface NewsSidebarProps {
   ultimasNoticias: Noticia[];
@@ -39,6 +45,9 @@ export function NewsSidebar({
         } as React.CSSProperties
       }
     >
+      {/* Estado del servidor de Riot (solo si hay problemas) */}
+      <ServerStatusWidget />
+
       {/* Últimas noticias */}
       <div
         className="rounded-xl p-4 transition-colors duration-300"

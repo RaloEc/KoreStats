@@ -604,7 +604,7 @@ export default function TablaReportes() {
           <p className="text-muted-foreground">Cargando reportes...</p>
         </div>
       ) : reportes.length === 0 ? (
-        <div className="text-center py-8 border rounded-lg">
+        <div className="text-center py-8 border border-zinc-200 dark:border-zinc-800 rounded-lg">
           <p className="text-muted-foreground">
             No hay reportes con los filtros seleccionados
           </p>
@@ -612,7 +612,7 @@ export default function TablaReportes() {
       ) : (
         <>
           {/* Tabla para escritorio */}
-          <div className="hidden md:block border rounded-lg">
+          <div className="hidden md:block border border-zinc-200 dark:border-zinc-800 rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -634,7 +634,10 @@ export default function TablaReportes() {
               </TableHeader>
               <TableBody>
                 {reportes.map((reporte: Reporte) => (
-                  <TableRow key={reporte.id}>
+                  <TableRow
+                    key={reporte.id}
+                    className="hover:bg-zinc-100 dark:hover:bg-zinc-900/50"
+                  >
                     <TableCell>
                       <Checkbox
                         checked={reportesSeleccionados.includes(reporte.id)}
@@ -723,7 +726,7 @@ export default function TablaReportes() {
             {reportes.map((reporte: Reporte) => (
               <div
                 key={reporte.id}
-                className="border rounded-lg p-4 bg-card space-y-3"
+                className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-card space-y-3"
               >
                 {/* Header con checkbox y tipo */}
                 <div className="flex items-start justify-between gap-3">

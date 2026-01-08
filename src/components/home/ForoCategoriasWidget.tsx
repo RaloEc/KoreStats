@@ -259,7 +259,7 @@ export default function ForoCategoriasWidget({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+    <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-bold text-lg text-gray-900 dark:text-white">
           Categorías del Foro
@@ -275,7 +275,7 @@ export default function ForoCategoriasWidget({
         {categorias.map((categoria) => (
           <div key={categoria.id} className="rounded-lg overflow-hidden">
             <div
-              className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               onClick={() => toggleCategoria(categoria.id)}
             >
               <div className="flex items-center space-x-2 flex-1">
@@ -287,21 +287,25 @@ export default function ForoCategoriasWidget({
                     <i className={categoria.icono}></i>
                   </div>
                 )}
-                <span className="font-medium">{categoria.nombre}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">
+                  {categoria.nombre}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                <span className="text-xs bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full">
                   {categoria.hilos_count || 0}
                 </span>
                 {categoria.subcategorias &&
-                  categoria.subcategorias.length > 0 && (
-                    <motion.span
-                      animate={{ rotate: categoria.abierta ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
-                    </motion.span>
-                  )}
+                categoria.subcategorias.length > 0 ? (
+                  <motion.span
+                    animate={{ rotate: categoria.abierta ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  </motion.span>
+                ) : (
+                  <div className="w-4 h-4" />
+                )}
               </div>
             </div>
 
@@ -322,7 +326,7 @@ export default function ForoCategoriasWidget({
                     <Link
                       key={subcategoria.id}
                       href={`/foro/categoria/${subcategoria.slug}`}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-sm"
                     >
                       <div className="flex items-center space-x-2">
                         {subcategoria.icono && (
@@ -335,9 +339,11 @@ export default function ForoCategoriasWidget({
                             <i className={subcategoria.icono}></i>
                           </div>
                         )}
-                        <span>{subcategoria.nombre}</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {subcategoria.nombre}
+                        </span>
                       </div>
-                      <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">
                         {subcategoria.hilos_count || 0}
                       </span>
                     </Link>

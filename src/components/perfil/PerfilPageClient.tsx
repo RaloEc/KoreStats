@@ -1,106 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useCheckUsername } from "@/hooks/use-check-username";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProfilePageData } from "@/hooks/use-profile-page-data";
-import ImageUploader from "@/components/ImageUploader";
-import ProfileHeader from "@/components/perfil/profile-header";
-import { BannerUploader } from "@/components/perfil/BannerUploader";
-import ProfileStats from "@/components/perfil/profile-stats";
-import Link from "next/link";
-// import UserActivityFeed from "@/components/perfil/UserActivityFeed";
-// import UserActivityFeedContainer from "@/components/perfil/UserActivityFeedContainer";
-// Dynamic imports for heavy tab components
-import dynamic from "next/dynamic";
-import { Skeleton } from "@nextui-org/react";
-
-const StatusFeed = dynamic(() => import("@/components/social/StatusFeed"), {
-  ssr: false,
-  loading: () => (
-    <div className="space-y-4">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="bg-white dark:bg-[#1a1b1e] border border-gray-200 dark:border-white/5 rounded-xl p-4 h-40 animate-pulse"
-        />
-      ))}
-    </div>
-  ),
-});
-
-const MatchHistoryList = dynamic(
-  () =>
-    import("@/components/riot/MatchHistoryList").then(
-      (mod) => mod.MatchHistoryList
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="h-32 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"
-          />
-        ))}
-      </div>
-    ),
-  }
-);
-
-import MembershipInfo from "@/components/perfil/membership-info";
-import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
-import { FriendRequestsList } from "@/components/social/FriendRequestsList";
-import { FriendsListCompact } from "@/components/social/FriendsListCompact";
-import { ConnectedAccountsModal } from "@/components/perfil/ConnectedAccountsModal";
-import { ConnectedAccountsForm } from "@/components/perfil/ConnectedAccountsForm";
-import { ProfileTabs } from "@/components/perfil/ProfileTabs";
-import { RiotAccountCard } from "@/components/riot/RiotAccountCard";
-import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
-import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
-import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
-import { UnifiedRiotSyncButton } from "@/components/riot/UnifiedRiotSyncButton";
+import { useEditProfile } from "@/hooks/use-edit-profile";
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
-import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
-import { ProfilePageSkeleton } from "@/components/perfil/ProfilePageSkeleton";
-import {
-  Card,
-  CardBody,
-  Button,
-  Input,
-  Textarea,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-  Spinner,
-  Divider,
-} from "@nextui-org/react";
-import { LogOut, X, Check, AlertCircle, Loader } from "lucide-react";
 
-interface PerfilCompleto {
-  id: string;
-  username: string;
-  role: "user" | "admin" | "moderator";
-  email?: string;
-  avatar_url: string;
-  banner_url?: string | null;
-  color: string;
-  bio?: string;
-  ubicacion?: string;
-  sitio_web?: string;
-  connected_accounts?: Record<string, string>;
-  activo?: boolean;
-  ultimo_acceso?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+// Componentes de perfil
+import ProfileHeader from "@/components/perfil/profile-header";
+import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
+import { ProfileTabs } from "@/components/perfil/ProfileTabs";
+import { ProfilePageSkeleton } from "@/components/perfil/ProfilePageSkeleton";
+import { EditProfileModal } from "@/components/perfil/EditProfileModal";
+import { ProfilePostsTabContent } from "@/components/perfil/ProfilePostsTabContent";
+import { ProfileLolTabContent } from "@/components/perfil/ProfileLolTabContent";
+import { ConnectedAccountsModal } from "@/components/perfil/ConnectedAccountsModal";
+
+import { Card, CardBody, Button, useDisclosure } from "@nextui-org/react";
 
 import {
   StaticProfileData,
@@ -143,10 +62,8 @@ export default function PerfilPageClient({
     invalidateAndRefetchStatic,
   } = useProfilePageData(initialStaticData, initialDynamicData);
 
-  // Estados locales para UI (no para datos)
-  const [isSaving, setSaving] = useState(false);
+  // Estados locales para UI
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
 
   // Hook para sincronización unificada de Riot
@@ -165,25 +82,25 @@ export default function PerfilPageClient({
     respuestas: 0,
   };
 
-  // Estados para el modal de edición
-  const [editData, setEditData] = useState({
-    username: "",
-    bio: "",
-    color: "#64748B",
-    avatar_url: "",
-    banner_url: "" as string | null,
-    connected_accounts: {} as Record<string, string>,
-  });
+  // Hook para edición de perfil
+  const { editData, setEditData, isSaving, error, handleSave } = useEditProfile(
+    {
+      perfil,
+      isOpen,
+      onClose,
+      invalidateStaticCache,
+      refreshProfile,
+      refreshAuth,
+    }
+  );
 
   const isOwnProfile = user?.id === perfil?.id;
 
   // Lee el tab activo desde la URL inicialmente
   const initialTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
-
-  // Estado local para control inmediato de la UI (sin esperar a router.replace)
   const [activeTab, setActiveTab] = useState<"posts" | "lol">(initialTab);
 
-  // Sincronizar URL silenciosamente cuando cambia el tab (sin re-render de Next.js)
+  // Sincronizar URL silenciosamente cuando cambia el tab
   useEffect(() => {
     const currentTab = new URLSearchParams(window.location.search).get("tab");
     if (currentTab !== activeTab) {
@@ -202,48 +119,6 @@ export default function PerfilPageClient({
     }
   }, [activeTab, lolTabVisited]);
 
-  const syncEditDataWithPerfil = useCallback((perfilData: PerfilCompleto) => {
-    // Parsear connected_accounts si es string JSON
-    let connectedAccounts: Record<string, string> = {};
-    const rawConnectedAccounts = perfilData.connected_accounts;
-    if (rawConnectedAccounts) {
-      if (typeof rawConnectedAccounts === "string") {
-        try {
-          connectedAccounts = JSON.parse(rawConnectedAccounts);
-        } catch (e) {
-          console.error("Error parsing connected_accounts:", e);
-          connectedAccounts = {};
-        }
-      } else if (typeof rawConnectedAccounts === "object") {
-        connectedAccounts = rawConnectedAccounts;
-      }
-    }
-
-    setEditData({
-      username: perfilData.username || "",
-      bio: perfilData.bio || "",
-      color: perfilData.color,
-      avatar_url: perfilData.avatar_url,
-      banner_url: perfilData.banner_url || "",
-      connected_accounts: connectedAccounts,
-    });
-  }, []);
-
-  // Validación de username
-  const usernameCheck = useCheckUsername(editData.username, user?.id);
-
-  const normalizedCurrentUsername = useMemo(
-    () => (perfil?.username ?? "").trim(),
-    [perfil?.username]
-  );
-  const normalizedEditUsername = useMemo(
-    () => editData.username.trim(),
-    [editData.username]
-  );
-  const usernameChanged = normalizedEditUsername !== normalizedCurrentUsername;
-  const hasUsernameValue = normalizedEditUsername.length > 0;
-  const shouldShowAvailability = usernameChanged && hasUsernameValue;
-
   // ========================================================================
   // EFECTO: Redirección si no hay sesión
   // ========================================================================
@@ -252,37 +127,6 @@ export default function PerfilPageClient({
       router.push("/login");
     }
   }, [isAuthLoading, session, router]);
-
-  // ========================================================================
-  // EFECTO: Sincronizar datos de edición cuando se abre el modal
-  // ========================================================================
-  useEffect(() => {
-    if (isOpen && perfil) {
-      syncEditDataWithPerfil(perfil as PerfilCompleto);
-      setError(null);
-    }
-  }, [isOpen, perfil, syncEditDataWithPerfil]);
-
-  // NOTA: Los useEffect de cargar estadísticas y cuenta Riot fueron eliminados
-  // Ahora se obtienen del hook unificado useProfilePageData con caché
-
-  // NOTA: cargarEstadisticas fue eliminada - ahora viene del hook unificado
-
-  // Función para obtener el nombre del color
-  const getColorName = (hex: string): string => {
-    const colors: Record<string, string> = {
-      "#4F46E5": "Azul",
-      "#10B981": "Verde",
-      "#EF4444": "Rojo",
-      "#F59E0B": "Amarillo",
-      "#8B5CF6": "Violeta",
-      "#06B6D4": "Turquesa",
-      "#F97316": "Naranja",
-      "#EC4899": "Rosa",
-      "#64748B": "Gris azulado",
-    };
-    return colors[hex] || "Personalizado";
-  };
 
   // Función para cargar actividades con paginación
   const fetchActividades = useCallback(
@@ -312,86 +156,24 @@ export default function PerfilPageClient({
     [user, toast]
   );
 
-  const handleSave = async () => {
-    if (!perfil) return;
-
-    setSaving(true);
-    setError(null);
-
-    try {
-      // Guardar datos actuales para actualización inmediata
-      const datosActualizados = {
-        username: editData.username,
-        bio: editData.bio,
-        color: editData.color,
-        avatar_url: editData.avatar_url,
-        banner_url: editData.banner_url,
-        connected_accounts: editData.connected_accounts,
-      };
-
-      // Cerrar el modal inmediatamente
-      onClose();
-
-      // Enviar datos al servidor
-      const response = await fetch("/api/perfil/actualizar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: perfil.id,
-          ...datosActualizados,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar perfil");
-      }
-
-      // Invalidar caché para forzar recarga de datos actualizados
-      invalidateStaticCache();
-
-      // También actualizamos el contexto de autenticación
-      await refreshProfile();
-      await refreshAuth();
-
-      // Mostrar notificación de éxito
-      toast({
-        title: "Perfil actualizado",
-        description: "Los cambios se han guardado correctamente.",
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      setError("Error al actualizar el perfil");
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el perfil.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleSignOut = async () => {
-    if (isSigningOut) return; // Evitar múltiples clics
+    if (isSigningOut) return;
 
     console.log("[Perfil] Iniciando proceso de cierre de sesión...");
     setIsSigningOut(true);
 
     try {
-      // 1. Intentar con el signOut del contexto de autenticación
       console.log(
         "[Perfil] Intentando cierre de sesión con el contexto de autenticación..."
       );
       await signOut();
       console.log("[Perfil] Cierre de sesión exitoso con el contexto");
-
-      // 2. Redirigir y forzar recarga para limpiar todo el estado
       console.log("[Perfil] Redirigiendo a la página principal...");
       window.location.href = "/";
-      return; // Salir de la función para evitar ejecutar el código restante
+      return;
     } catch (error) {
       console.error("[Perfil] Error en cierre de sesión con contexto:", error);
 
-      // 3. Si falla, intentar con una instancia directa de Supabase
       try {
         console.log(
           "[Perfil] Intentando cierre de sesión con instancia directa..."
@@ -406,19 +188,17 @@ export default function PerfilPageClient({
           innerError
         );
       } finally {
-        // 4. En cualquier caso, forzar recarga para asegurar limpieza
         console.log("[Perfil] Forzando recarga de la página...");
         window.location.href = "/";
       }
     } finally {
-      // 5. Asegurarse de que el estado se limpie
       console.log("[Perfil] Limpiando estado de carga...");
       setIsSigningOut(false);
     }
   };
 
   // ========================================================================
-  // RENDER: Skeleton mientras cargan TODOS los datos (elimina carga escalonada)
+  // RENDER: Skeleton mientras cargan TODOS los datos
   // ========================================================================
   if (!isFullyLoaded) {
     return <ProfilePageSkeleton />;
@@ -473,283 +253,20 @@ export default function PerfilPageClient({
           onInvalidateCache={invalidateAndRefetchStatic}
         />
 
-        {/* Modal de edición - Centrado para mejor visibilidad */}
-        <Modal
+        {/* Modal de edición */}
+        <EditProfileModal
           isOpen={isOpen}
           onClose={onClose}
-          size="2xl"
-          scrollBehavior="outside"
-          placement="center"
-          className="mx-4"
-          backdrop="blur"
-          classNames={{
-            base: "bg-white dark:bg-black amoled:bg-black",
-            header:
-              "border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800",
-            body: "bg-white dark:bg-black amoled:bg-black py-6",
-            footer:
-              "bg-white dark:bg-black amoled:bg-black border-t border-gray-200 dark:border-gray-800 amoled:border-gray-800",
-            backdrop: "backdrop-blur-sm bg-black/10",
-          }}
-        >
-          <ModalContent>
-            <ModalHeader className="bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
-                Editar Perfil
-              </h2>
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                onPress={onClose}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 amoled:text-gray-400 amoled:hover:text-gray-200"
-              >
-                <X size={20} />
-              </Button>
-            </ModalHeader>
-            <ModalBody className="bg-white dark:bg-black amoled:bg-black">
-              {error && (
-                <div className="p-3 bg-red-100 dark:bg-red-900/20 amoled:bg-red-900/20 border border-red-300 dark:border-red-800 amoled:border-red-800 text-red-700 dark:text-red-300 amoled:text-red-300 rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              {/* Sección de imagen de perfil */}
-              <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200 amoled:text-gray-200">
-                  Imagen de perfil
-                </h3>
-                <ImageUploader
-                  currentImageUrl={editData.avatar_url}
-                  userId={perfil?.id || ""}
-                  onImageUploaded={(url) =>
-                    setEditData((prev) => ({ ...prev, avatar_url: url }))
-                  }
-                  className="mb-2"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 amoled:text-gray-400 mt-1">
-                  Sube una imagen de perfil (máx. 2MB)
-                </p>
-              </div>
-
-              {/* Sección de banner de perfil */}
-              <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200 amoled:text-gray-200">
-                  Banner de perfil
-                </h3>
-                <BannerUploader
-                  variant="compact"
-                  userId={perfil.id}
-                  currentBanner={editData.banner_url || perfil.banner_url || ""}
-                  onUpload={(url) => {
-                    setEditData((prev) => ({ ...prev, banner_url: url }));
-                    // El banner se guarda al dar "Guardar Cambios"
-                  }}
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 amoled:text-gray-400 mt-1">
-                  Sube una imagen de banner (máx. 5MB). Relación recomendada 4:1
-                  (1920x480).
-                </p>
-              </div>
-
-              <Divider className="my-4" />
-
-              <div className="space-y-2">
-                <div className="relative">
-                  <Input
-                    label="Nombre de usuario"
-                    value={editData.username}
-                    onChange={(e) =>
-                      setEditData((prev) => ({
-                        ...prev,
-                        username: e.target.value,
-                      }))
-                    }
-                    placeholder="Tu nombre de usuario"
-                    isInvalid={
-                      shouldShowAvailability &&
-                      usernameCheck.available === false
-                    }
-                    color={
-                      shouldShowAvailability
-                        ? usernameCheck.available === true
-                          ? "success"
-                          : usernameCheck.available === false
-                          ? "danger"
-                          : "default"
-                        : "default"
-                    }
-                    endContent={
-                      shouldShowAvailability && (
-                        <div className="flex items-center gap-2">
-                          {usernameCheck.loading && (
-                            <Loader className="w-4 h-4 text-gray-400 animate-spin" />
-                          )}
-                          {!usernameCheck.loading &&
-                            usernameCheck.available === true && (
-                              <Check className="w-4 h-4 text-green-500" />
-                            )}
-                          {!usernameCheck.loading &&
-                            usernameCheck.available === false && (
-                              <AlertCircle className="w-4 h-4 text-red-500" />
-                            )}
-                        </div>
-                      )
-                    }
-                  />
-                </div>
-                {shouldShowAvailability && (
-                  <div className="text-sm">
-                    {usernameCheck.loading && (
-                      <p className="text-gray-500 dark:text-gray-400">
-                        Verificando disponibilidad...
-                      </p>
-                    )}
-                    {!usernameCheck.loading &&
-                      usernameCheck.available === true && (
-                        <p className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                          <Check className="w-4 h-4" />
-                          {usernameCheck.message || "Username disponible"}
-                        </p>
-                      )}
-                    {!usernameCheck.loading &&
-                      usernameCheck.available === false && (
-                        <p className="text-red-600 dark:text-red-400 flex items-center gap-1">
-                          <AlertCircle className="w-4 h-4" />
-                          {usernameCheck.error || "Username no disponible"}
-                        </p>
-                      )}
-                  </div>
-                )}
-              </div>
-
-              <Textarea
-                label="Biografía"
-                value={editData.bio}
-                onChange={(e) =>
-                  setEditData((prev) => ({ ...prev, bio: e.target.value }))
-                }
-                placeholder="Cuéntanos sobre ti..."
-                maxRows={4}
-              />
-
-              {/* Sección de cuentas conectadas - Temporalmente oculto */}
-              {/* <Divider className="my-4" />
-
-              <div className="space-y-3">
-                <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 amoled:text-gray-200">
-                  Cuentas Conectadas
-                </h3>
-                <ConnectedAccountsForm
-                  accounts={editData.connected_accounts || {}}
-                  onChange={(accounts) =>
-                    setEditData((prev) => ({
-                      ...prev,
-                      connected_accounts: accounts,
-                    }))
-                  }
-                />
-              </div> */}
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-3 bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-gray-200/80 dark:border-gray-700/70">
-                  <div
-                    className="w-10 h-10 rounded-lg shadow-sm transition-all duration-200"
-                    style={{
-                      backgroundColor: editData.color,
-                      transform: "translateY(-1px)",
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
-                      {getColorName(editData.color)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                      {editData.color.toUpperCase()}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Paleta de colores */}
-                <div className="p-2 bg-white/30 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/60">
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      "#4F46E5", // Azul
-                      "#10B981", // Verde
-                      "#EF4444", // Rojo
-                      "#F59E0B", // Amarillo
-                      "#8B5CF6", // Violeta
-                      "#06B6D4", // Turquesa
-                      "#F97316", // Naranja
-                      "#EC4899", // Rosa
-                    ].map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() =>
-                          setEditData((prev) => ({ ...prev, color }))
-                        }
-                        className={`relative w-full aspect-square rounded-lg transition-all duration-200 flex items-center justify-center
-                          ${
-                            editData.color === color
-                              ? "ring-2 ring-offset-1 ring-blue-500 dark:ring-offset-gray-800 scale-105 shadow-sm"
-                              : "hover:shadow-sm hover:scale-105"
-                          }
-                          after:absolute after:inset-0 after:rounded-lg after:transition-all after:duration-200
-                          ${
-                            editData.color === color
-                              ? "after:bg-white/10"
-                              : "hover:after:bg-black/5 dark:hover:after:bg-white/5"
-                          }
-                        `}
-                        style={{ backgroundColor: color }}
-                        title={getColorName(color)}
-                        aria-label={`Seleccionar color ${getColorName(color)}`}
-                      >
-                        {editData.color === color && (
-                          <svg
-                            className="w-4 h-4 text-white drop-shadow-md"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                color="danger"
-                variant="light"
-                onPress={onClose}
-                disabled={isSaving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                color="primary"
-                onPress={handleSave}
-                isLoading={isSaving}
-                isDisabled={
-                  isSaving ||
-                  (usernameChanged && usernameCheck.available !== true)
-                }
-              >
-                Guardar Cambios
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+          editData={editData}
+          setEditData={setEditData}
+          perfilId={perfil.id}
+          currentUsername={perfil.username ?? ""}
+          userId={user?.id}
+          error={error}
+          isSaving={isSaving}
+          onSave={handleSave}
+          isMobile={true}
+        />
       </>
     );
   }
@@ -802,38 +319,15 @@ export default function PerfilPageClient({
 
         {/* Contenido de Pestañas con Persistencia (KeepMounted) */}
 
-        {/* Pestaña Actividad - Siempre montada pero ocultable */}
+        {/* Pestaña Actividad */}
         <div className={activeTab === "posts" ? "block mt-8" : "hidden mt-8"}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Columna izquierda - Feed de actividad */}
-            <div className="lg:col-span-2">
-              {/*
-                Aseguramos detectar el rol admin aunque venga en mayúsculas/minúsculas mezcladas.
-                Esto permite que el menú muestre la opción de eliminar cuando el usuario es admin.
-              */}
-              <StatusFeed
-                profileId={perfil.id}
-                profileUsername={perfil.username}
-                isOwnProfile={true}
-              />
-            </div>
-
-            {/* Columna derecha - Información de membresía */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Solicitudes de amistad */}
-              <FriendRequestsList userColor={perfil.color} />
-
-              {/* Lista de amigos */}
-              <FriendsListCompact
-                userId={user?.id}
-                userColor={perfil.color}
-                limit={8}
-              />
-
-              {/* Estadísticas */}
-              <ProfileStats estadisticas={estadisticas} />
-            </div>
-          </div>
+          <ProfilePostsTabContent
+            perfilId={perfil.id}
+            perfilUsername={perfil.username}
+            perfilColor={perfil.color}
+            userId={user?.id}
+            estadisticas={estadisticas}
+          />
         </div>
 
         {/* Pestaña League of Legends - Lazy Mounted + Keep Alive */}
@@ -845,358 +339,32 @@ export default function PerfilPageClient({
                 : "hidden mt-8 space-y-6"
             }
           >
-            {riotAccount ? (
-              <>
-                {/* Tarjeta de cuenta de Riot */}
-                <RiotAccountCard
-                  useVisualDesign={true}
-                  externalSyncPending={unifiedSyncPending}
-                  externalCooldownSeconds={unifiedSyncCooldown}
-                  onUnlink={async () => {
-                    const confirmed = window.confirm(
-                      "¿Estás seguro de que deseas desvincular tu cuenta de Riot Games? Se eliminarán todos los datos asociados."
-                    );
-                    if (!confirmed) return;
-
-                    try {
-                      const response = await fetch("/api/riot/account/unlink", {
-                        method: "DELETE",
-                      });
-
-                      if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(
-                          error.error || "Error al desvincular la cuenta"
-                        );
-                      }
-
-                      toast({
-                        title: "Cuenta desvinculada",
-                        description:
-                          "Tu cuenta de Riot Games ha sido desvinculada exitosamente",
-                      });
-
-                      await invalidateAndRefetchStatic();
-                    } catch (error: any) {
-                      toast({
-                        title: "Error",
-                        description:
-                          error.message || "No se pudo desvincular la cuenta",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                />
-
-                {/* Resumen de campeones */}
-                {riotAccount.puuid && (
-                  <ChampionStatsSummary puuid={riotAccount.puuid} limit={5} />
-                )}
-
-                {/* Builds guardadas */}
-                <SavedBuildsPanel />
-
-                {/* Historial de partidas */}
-                <MatchHistoryList
-                  userId={perfil.id}
-                  externalSyncPending={unifiedSyncPending}
-                  externalCooldownSeconds={unifiedSyncCooldown}
-                />
-              </>
-            ) : (
-              // CTA para vincular Riot cuando es su propio perfil
-              isOwnProfile && (
-                <RiotEmptyState
-                  isOwnProfile
-                  onLinkClick={() => {
-                    window.location.href = "/api/riot/login";
-                  }}
-                  onManualLinkSuccess={async () => {
-                    // Invalidar caché Y refetch inmediatamente
-                    await invalidateAndRefetchStatic();
-                  }}
-                />
-              )
-            )}
+            <ProfileLolTabContent
+              riotAccount={riotAccount}
+              userId={perfil.id}
+              isOwnProfile={isOwnProfile}
+              unifiedSyncPending={unifiedSyncPending}
+              unifiedSyncCooldown={unifiedSyncCooldown}
+              onInvalidateCache={invalidateAndRefetchStatic}
+            />
           </div>
         )}
       </div>
 
-      {/* Modal de edición con scroll */}
-      <Modal
+      {/* Modal de edición */}
+      <EditProfileModal
         isOpen={isOpen}
         onClose={onClose}
-        size="2xl"
-        scrollBehavior="inside"
-        className="max-h-[90vh] z-50"
-        backdrop="blur"
-        classNames={{
-          base: "bg-white dark:bg-black amoled:bg-black z-50",
-          header:
-            "border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800",
-          body: "bg-white dark:bg-black amoled:bg-black",
-          footer:
-            "bg-white dark:bg-black amoled:bg-black border-t border-gray-200 dark:border-gray-800 amoled:border-gray-800",
-          backdrop: "backdrop-blur-sm bg-black/10 z-40",
-        }}
-      >
-        <ModalContent>
-          <ModalHeader className="sticky top-0 z-10 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
-              Editar Perfil
-            </h2>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              onPress={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 amoled:text-gray-400 amoled:hover:text-gray-200"
-            >
-              <X size={20} />
-            </Button>
-          </ModalHeader>
-          <ModalBody className="overflow-y-auto max-h-[60vh] bg-white dark:bg-black amoled:bg-black">
-            {error && (
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 amoled:bg-red-900/20 border border-red-300 dark:border-red-800 amoled:border-red-800 text-red-700 dark:text-red-300 amoled:text-red-300 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {/* Sección de imagen de perfil */}
-            <div className="mb-4">
-              <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200 amoled:text-gray-200">
-                Imagen de perfil
-              </h3>
-              <ImageUploader
-                currentImageUrl={editData.avatar_url}
-                userId={perfil?.id || ""}
-                onImageUploaded={(url) =>
-                  setEditData((prev) => ({ ...prev, avatar_url: url }))
-                }
-                className="mb-2"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 amoled:text-gray-400 mt-1">
-                Sube una imagen de perfil (máx. 2MB)
-              </p>
-            </div>
-
-            {/* Sección de banner de perfil */}
-            <div className="mb-4">
-              <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200 amoled:text-gray-200">
-                Banner de perfil
-              </h3>
-              <BannerUploader
-                variant="compact"
-                userId={perfil.id}
-                currentBanner={editData.banner_url || perfil.banner_url || ""}
-                onUpload={(url) => {
-                  setEditData((prev) => ({ ...prev, banner_url: url }));
-                  // El banner se guarda al dar "Guardar Cambios"
-                }}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 amoled:text-gray-400 mt-1">
-                Sube una imagen de banner (máx. 5MB). Relación recomendada 4:1
-                (1920x480).
-              </p>
-            </div>
-
-            <Divider className="my-4" />
-
-            <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  label="Nombre de usuario"
-                  value={editData.username}
-                  onChange={(e) =>
-                    setEditData((prev) => ({
-                      ...prev,
-                      username: e.target.value,
-                    }))
-                  }
-                  placeholder="Tu nombre de usuario"
-                  isInvalid={
-                    shouldShowAvailability && usernameCheck.available === false
-                  }
-                  color={
-                    shouldShowAvailability
-                      ? usernameCheck.available === true
-                        ? "success"
-                        : usernameCheck.available === false
-                        ? "danger"
-                        : "default"
-                      : "default"
-                  }
-                  endContent={
-                    shouldShowAvailability && (
-                      <div className="flex items-center gap-2">
-                        {usernameCheck.loading && (
-                          <Loader className="w-4 h-4 text-gray-400 animate-spin" />
-                        )}
-                        {!usernameCheck.loading &&
-                          usernameCheck.available === true && (
-                            <Check className="w-4 h-4 text-green-500" />
-                          )}
-                        {!usernameCheck.loading &&
-                          usernameCheck.available === false && (
-                            <AlertCircle className="w-4 h-4 text-red-500" />
-                          )}
-                      </div>
-                    )
-                  }
-                />
-              </div>
-              {shouldShowAvailability && (
-                <div className="text-sm">
-                  {usernameCheck.loading && (
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Verificando disponibilidad...
-                    </p>
-                  )}
-                  {!usernameCheck.loading &&
-                    usernameCheck.available === true && (
-                      <p className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                        <Check className="w-4 h-4" />
-                        {usernameCheck.message || "Username disponible"}
-                      </p>
-                    )}
-                  {!usernameCheck.loading &&
-                    usernameCheck.available === false && (
-                      <p className="text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {usernameCheck.error || "Username no disponible"}
-                      </p>
-                    )}
-                </div>
-              )}
-            </div>
-
-            <Textarea
-              label="Biografía"
-              value={editData.bio}
-              onChange={(e) =>
-                setEditData((prev) => ({ ...prev, bio: e.target.value }))
-              }
-              placeholder="Cuéntanos sobre ti..."
-              maxRows={4}
-            />
-
-            {/* Sección de cuentas conectadas - Temporalmente oculto */}
-            {/* <Divider className="my-4" />
-
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 amoled:text-gray-200">
-                Cuentas Conectadas
-              </h3>
-              <ConnectedAccountsForm
-                accounts={editData.connected_accounts || {}}
-                onChange={(accounts) =>
-                  setEditData((prev) => ({
-                    ...prev,
-                    connected_accounts: accounts,
-                  }))
-                }
-              />
-            </div> */}
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-3 bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-gray-200/80 dark:border-gray-700/70">
-                <div
-                  className="w-10 h-10 rounded-lg shadow-sm transition-all duration-200"
-                  style={{
-                    backgroundColor: editData.color,
-                    transform: "translateY(-1px)",
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
-                    {getColorName(editData.color)}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                    {editData.color.toUpperCase()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Paleta de colores */}
-              <div className="p-2 bg-white/30 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/60">
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    "#4F46E5", // Azul
-                    "#10B981", // Verde
-                    "#EF4444", // Rojo
-                    "#F59E0B", // Amarillo
-                    "#8B5CF6", // Violeta
-                    "#06B6D4", // Turquesa
-                    "#F97316", // Naranja
-                    "#EC4899", // Rosa
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() =>
-                        setEditData((prev) => ({ ...prev, color }))
-                      }
-                      className={`relative w-full aspect-square rounded-lg transition-all duration-200 flex items-center justify-center
-                        ${
-                          editData.color === color
-                            ? "ring-2 ring-offset-1 ring-blue-500 dark:ring-offset-gray-800 scale-105 shadow-sm"
-                            : "hover:shadow-sm hover:scale-105"
-                        }
-                        after:absolute after:inset-0 after:rounded-lg after:transition-all after:duration-200
-                        ${
-                          editData.color === color
-                            ? "after:bg-white/10"
-                            : "hover:after:bg-black/5 dark:hover:after:bg-white/5"
-                        }
-                      `}
-                      style={{ backgroundColor: color }}
-                      title={getColorName(color)}
-                      aria-label={`Seleccionar color ${getColorName(color)}`}
-                    >
-                      {editData.color === color && (
-                        <svg
-                          className="w-4 h-4 text-white drop-shadow-md"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              color="danger"
-              variant="light"
-              onPress={onClose}
-              disabled={isSaving}
-            >
-              Cancelar
-            </Button>
-            <Button
-              color="primary"
-              onPress={handleSave}
-              isLoading={isSaving}
-              isDisabled={
-                isSaving ||
-                (usernameChanged && usernameCheck.available !== true)
-              }
-            >
-              Guardar Cambios
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        editData={editData}
+        setEditData={setEditData}
+        perfilId={perfil.id}
+        currentUsername={perfil.username ?? ""}
+        userId={user?.id}
+        error={error}
+        isSaving={isSaving}
+        onSave={handleSave}
+        isMobile={false}
+      />
 
       {/* Modal de gestión de cuentas conectadas */}
       <ConnectedAccountsModal
@@ -1204,7 +372,6 @@ export default function PerfilPageClient({
         onClose={() => setIsAccountsModalOpen(false)}
         userId={perfil?.id || ""}
         onSave={async () => {
-          // Invalidar caché para refrescar los datos
           invalidateStaticCache();
           await refreshProfile();
         }}

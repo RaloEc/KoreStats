@@ -81,6 +81,8 @@ export default function ProfileHeader({
             onError={() => setBannerError(true)}
             placeholder="blur"
             blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
           />
         ) : null}
       </div>
@@ -103,6 +105,8 @@ export default function ProfileHeader({
                     src={perfil.avatar_url}
                     alt={perfil.username}
                     onError={() => setAvatarError(true)}
+                    onContextMenu={(e) => e.preventDefault()}
+                    draggable={false}
                   />
                 ) : null}
                 <AvatarFallback

@@ -113,6 +113,8 @@ export type Noticia = {
   slug: string;
   imagen_url: string | null;
   imagen_portada?: string | null; // Campo alternativo para la imagen
+  fuentes?: string[] | null; // Fuentes de la noticia
+  fuente?: string | null; // Deprecated: Mantener por compatibilidad temporal
   vistas?: number;
   comentarios_count?: number;
   type?: string; // Tipo de noticia (ej: 'lol_patch')
@@ -128,6 +130,8 @@ export type Noticia = {
   autor_avatar?: string | null;
   autor_rol?: "admin" | "moderator" | "user";
   resumen?: string;
+  estado?: "borrador" | "publicada" | "programada";
+  destacada?: boolean;
 };
 
 // =================================================================

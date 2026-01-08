@@ -54,6 +54,7 @@ import {
   useMoverHilo,
   useEliminarHilosLote,
   useMoverHilosLote,
+  useEliminarComentariosLote,
 } from "./hooks/useModeracionForo";
 import { useEstadisticasCategorias } from "./hooks/useEstadisticasForo";
 import {
@@ -91,6 +92,9 @@ export default function PanelModeracion() {
   const [hilosSeleccionados, setHilosSeleccionados] = useState<Set<string>>(
     new Set()
   );
+  const [comentariosSeleccionados, setComentariosSeleccionados] = useState<
+    Set<string>
+  >(new Set());
   const [dialogEliminar, setDialogEliminar] = useState<{
     tipo: "hilo" | "comentario";
     id: string;
@@ -129,6 +133,7 @@ export default function PanelModeracion() {
   const moverHilo = useMoverHilo();
   const eliminarHilosLote = useEliminarHilosLote();
   const moverHilosLote = useMoverHilosLote();
+  const eliminarComentariosLote = useEliminarComentariosLote();
 
   // Infinite scroll
   const { ref: refHilos } = useInView({
@@ -173,6 +178,24 @@ export default function PanelModeracion() {
     }
   };
 
+  const toggleSeleccionComentario = (comentarioId: string) => {
+    const nuevaSeleccion = new Set(comentariosSeleccionados);
+    if (nuevaSeleccion.has(comentarioId)) {
+      nuevaSeleccion.delete(comentarioId);
+    } else {
+      nuevaSeleccion.add(comentarioId);
+    }
+    setComentariosSeleccionados(nuevaSeleccion);
+  };
+
+  const seleccionarTodosComentarios = () => {
+    if (comentariosSeleccionados.size === comentarios.length) {
+      setComentariosSeleccionados(new Set());
+    } else {
+      setComentariosSeleccionados(new Set(comentarios.map((c) => c.id)));
+    }
+  };
+
   // Acciones
   const handleEliminar = async () => {
     if (!dialogEliminar) return;
@@ -200,6 +223,21 @@ export default function PanelModeracion() {
     setHilosSeleccionados(new Set());
     setDialogMover(false);
     setCategoriaDestino("");
+  };
+
+  const handleEliminarComentariosLote = async () => {
+    if (comentariosSeleccionados.size === 0) return;
+    if (
+      !confirm(
+        `¿Estás seguro de eliminar ${comentariosSeleccionados.size} comentarios?`
+      )
+    )
+      return;
+
+    await eliminarComentariosLote.mutateAsync(
+      Array.from(comentariosSeleccionados)
+    );
+    setComentariosSeleccionados(new Set());
   };
 
   return (
@@ -235,6 +273,21 @@ export default function PanelModeracion() {
               >
                 <FolderOpen className="h-4 w-4 mr-2" />
                 Mover
+              </Button>
+            </div>
+          )}
+          {tabActiva === "comentarios" && comentariosSeleccionados.size > 0 && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                {comentariosSeleccionados.size} seleccionados
+              </Badge>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleEliminarComentariosLote}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
               </Button>
             </div>
           )}
@@ -352,8 +405,8 @@ export default function PanelModeracion() {
                   key={hilo.id}
                   className={`flex items-start gap-4 p-4 rounded-lg border transition-colors ${
                     hilosSeleccionados.has(hilo.id)
-                      ? "bg-accent border-primary"
-                      : "hover:bg-accent"
+                      ? "bg-zinc-100 dark:bg-zinc-900/80 border-zinc-300 dark:border-zinc-700"
+                      : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50"
                   }`}
                 >
                   <Checkbox
@@ -375,9 +428,7 @@ export default function PanelModeracion() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <Link
-                          href={`/foro/${hilo.categoria_nombre.toLowerCase()}/${
-                            hilo.slug
-                          }`}
+                          href={`/foro/hilos/${hilo.slug}`}
                           className="font-medium hover:underline line-clamp-2"
                           target="_blank"
                         >
@@ -432,9 +483,7 @@ export default function PanelModeracion() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link
-                              href={`/foro/${hilo.categoria_nombre.toLowerCase()}/${
-                                hilo.slug
-                              }`}
+                              href={`/foro/hilos/${hilo.slug}`}
                               target="_blank"
                             >
                               <ExternalLink className="h-4 w-4 mr-2" />
@@ -536,7 +585,7 @@ export default function PanelModeracion() {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-4 p-4 rounded-lg border"
+                      className="flex items-center gap-4 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800"
                     >
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="flex-1">
@@ -574,11 +623,41 @@ export default function PanelModeracion() {
                     No hay comentarios para mostrar
                   </div>
                 )}
+              <div className="flex items-center justify-end mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={seleccionarTodosComentarios}
+                >
+                  {comentariosSeleccionados.size === comentarios.length ? (
+                    <>
+                      <Square className="h-4 w-4 mr-2" />
+                      Deseleccionar todos
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      Seleccionar todos
+                    </>
+                  )}
+                </Button>
+              </div>
+
               {comentarios.map((comentario) => (
                 <div
                   key={comentario.id}
-                  className="flex items-start gap-4 p-4 rounded-lg border hover:bg-accent transition-colors"
+                  className={`flex items-start gap-4 p-4 rounded-lg border transition-colors ${
+                    comentariosSeleccionados.has(comentario.id)
+                      ? "bg-zinc-100 dark:bg-zinc-900/80 border-zinc-300 dark:border-zinc-700"
+                      : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50"
+                  }`}
                 >
+                  <Checkbox
+                    checked={comentariosSeleccionados.has(comentario.id)}
+                    onCheckedChange={() =>
+                      toggleSeleccionComentario(comentario.id)
+                    }
+                  />
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={comentario.autor_avatar_url || undefined}
@@ -612,7 +691,7 @@ export default function PanelModeracion() {
                           )}
                         </div>
                         <Link
-                          href={`/foro/${comentario.hilo_slug}#comentario-${comentario.id}`}
+                          href={`/foro/hilos/${comentario.hilo_slug}#comentario-${comentario.id}`}
                           className="text-sm text-muted-foreground hover:underline mt-1 block"
                           target="_blank"
                         >
@@ -632,7 +711,7 @@ export default function PanelModeracion() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link
-                              href={`/foro/${comentario.hilo_slug}#comentario-${comentario.id}`}
+                              href={`/foro/hilos/${comentario.hilo_slug}#comentario-${comentario.id}`}
                               target="_blank"
                             >
                               <ExternalLink className="h-4 w-4 mr-2" />
@@ -667,7 +746,7 @@ export default function PanelModeracion() {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-4 p-4 rounded-lg border"
+                      className="flex items-center gap-4 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800"
                     >
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="flex-1">

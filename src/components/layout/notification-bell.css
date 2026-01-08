@@ -343,6 +343,55 @@
 }
 
 /* ============================================
+   ANIMACIÓN DE ELIMINACIÓN
+   ============================================ */
+@keyframes exitNotification {
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border: 0;
+  }
+}
+
+.notification-item.removing {
+  animation: exitNotification 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  pointer-events: none;
+}
+
+/* ============================================
+   BOTÓN ELIMINAR NOTIFICACIÓN
+   ============================================ */
+.delete-notification-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 50;
+  pointer-events: auto !important;
+  opacity: 0;
+}
+
+.notification-item:hover .delete-notification-btn {
+  opacity: 1;
+}
+
+.delete-notification-btn:active {
+  transform: scale(0.9);
+}
+
+/* En móviles o dispositivos táctiles, mostrar siempre el botón si es legible */
+@media (hover: none) {
+  .delete-notification-btn {
+    opacity: 0.7 !important;
+  }
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 640px) {

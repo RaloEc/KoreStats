@@ -72,7 +72,52 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 /**
+ * Convierte una imagen a base64 usando un canvas
+ * Usa el proxy local para imágenes de DDragon para evitar CORS
+ */
+async function imageToBase64(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo obtener el contexto del canvas"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        resolve(dataUrl);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error(`Error al cargar la imagen: ${url}`));
+    };
+
+    // Usar el proxy para URLs de DDragon o CommunityDragon
+    let finalUrl = url;
+    if (
+      url.includes("ddragon.leagueoflegends.com") ||
+      url.includes("communitydragon.org")
+    ) {
+      finalUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+
+    img.src = finalUrl;
+  });
+}
+
+/**
  * Imagen con fallback robusto para html-to-image
+ * Convierte las imágenes a base64 para evitar problemas de CORS
  */
 function ProxiedImage({
   src,
@@ -84,16 +129,67 @@ function ProxiedImage({
   style?: React.CSSProperties;
 }) {
   const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState(TRANSPARENT_PIXEL);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadImage = async () => {
+      if (!src) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Si la URL es del proxy, extraer la URL original
+        let finalUrl = src;
+        if (src.includes("/api/proxy-image?url=")) {
+          try {
+            const urlParam = new URL(
+              src,
+              window.location.origin
+            ).searchParams.get("url");
+            if (urlParam) {
+              finalUrl = decodeURIComponent(urlParam);
+            }
+          } catch (e) {
+            console.warn("Error al extraer URL del proxy:", e);
+          }
+        }
+
+        // Convertir a base64 para evitar problemas de CORS con html-to-image
+        const base64 = await imageToBase64(finalUrl);
+
+        if (isMounted) {
+          setImgSrc(base64);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.warn("Error al cargar imagen:", src, err);
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [src]);
 
   return (
     <img
-      src={hasError || !src ? TRANSPARENT_PIXEL : src}
+      src={imgSrc}
       alt={alt}
       style={{
         ...style,
         backgroundColor: hasError ? "rgba(30, 41, 59, 0.5)" : undefined,
+        opacity: isLoading ? 0.5 : 1,
       }}
-      crossOrigin="anonymous"
       onError={() => setHasError(true)}
     />
   );
@@ -109,7 +205,24 @@ export function MatchShareCard({
   const championName = participant.championName || "Unknown";
   const accentColor = userColor || DEFAULT_COLOR;
   const rgb = hexToRgb(accentColor);
-  const version = resolveDDragonAssetVersion(gameVersion);
+
+  // Normalizar la versión del parche para DDragon
+  // DDragon usa versiones como "15.24.1", no "15.24.734.7485"
+  const normalizeVersion = (v: string): string => {
+    if (!v) return "15.24.1";
+    const parts = v.split(".");
+    // Si tiene más de 3 partes o la tercera parte es muy larga, normalizar
+    if (parts.length >= 2) {
+      const major = parts[0];
+      const minor = parts[1];
+      // Usar "1" como tercer dígito por defecto
+      return `${major}.${minor}.1`;
+    }
+    return "15.24.1";
+  };
+
+  const rawVersion = gameVersion || match.game_version || "15.24.1";
+  const version = normalizeVersion(rawVersion);
 
   // Metadata
   const queueId = match.queue_id || match.full_json?.info?.queueId;
@@ -204,8 +317,9 @@ export function MatchShareCard({
     return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${n}_${skin}.jpg`;
   };
 
-  const splashUrl = proxyUrl(getDynamicSplashUrl(championName, skinId));
-  const championIconUrl = proxyUrl(getChampionIconUrl(championName, version));
+  // Usar URLs directas sin proxy para que html-to-image pueda capturarlas
+  const splashUrl = getDynamicSplashUrl(championName, skinId);
+  const championIconUrl = getChampionIconUrl(championName, version);
 
   return (
     <div
@@ -336,7 +450,7 @@ export function MatchShareCard({
                     }}
                   >
                     <ProxiedImage
-                      src={proxyUrl(url)}
+                      src={url}
                       alt=""
                       style={{ width: "100%", height: "100%" }}
                     />
@@ -399,7 +513,7 @@ export function MatchShareCard({
             >
               {primaryPerkUrl && (
                 <ProxiedImage
-                  src={proxyUrl(primaryPerkUrl)}
+                  src={primaryPerkUrl}
                   alt=""
                   style={{ width: "90%", height: "90%", objectFit: "contain" }}
                 />
@@ -420,7 +534,7 @@ export function MatchShareCard({
             >
               {subStyleUrl && (
                 <ProxiedImage
-                  src={proxyUrl(subStyleUrl)}
+                  src={subStyleUrl}
                   alt=""
                   style={{
                     width: "60%",
@@ -569,7 +683,7 @@ export function MatchShareCard({
               >
                 {url && (
                   <ProxiedImage
-                    src={proxyUrl(url)}
+                    src={url}
                     alt=""
                     style={{ width: "100%", height: "100%" }}
                   />
@@ -597,7 +711,7 @@ export function MatchShareCard({
           >
             {getItemUrl(trinket, version) && (
               <ProxiedImage
-                src={proxyUrl(getItemUrl(trinket, version)!)}
+                src={getItemUrl(trinket, version)!}
                 alt=""
                 style={{ width: "100%", height: "100%" }}
               />

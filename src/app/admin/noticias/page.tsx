@@ -4,6 +4,8 @@ import { memo, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import AdminProtection from "@/components/AdminProtection";
 import {
   Card,
@@ -29,6 +31,7 @@ import {
   NoticiaCard,
   NoticiaCardSkeleton as NoticiaCardSkeletonComponent,
 } from "@/components/admin/noticias/NoticiaCard";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import {
   EstadisticasTabla,
   EstadisticasTablaLoading,
@@ -95,14 +98,61 @@ function AdminNoticiasContent() {
   const {
     recientes: noticiasRecientes,
     masVistas: noticiasMasVistas,
+    borradores: noticiasBorradores,
     isLoading: loadingNoticias,
     prefetchNoticia,
+    refetch: refetchNoticias,
   } = useNoticiasDashboard({
     limiteRecientes: 4,
     limiteVistas: 4,
+    incluirBorradores: false, // Explicitly exclude drafts from Recientes
     enableRealtime: true,
   });
   const { profile } = useAuth();
+  const { toast } = useToast();
+  // const supabase = createClient(); // No longer needed for deletion if using API
+
+  // Estado para el modal de eliminación
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDeleteBorrador = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!itemToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/noticias?id=${itemToDelete}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar la noticia");
+      }
+
+      toast({
+        title: "Borrador eliminado",
+        description: "El borrador ha sido eliminado correctamente.",
+      });
+      refetchNoticias();
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Error al eliminar borrador:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el borrador.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Estado para la tabla de estadísticas
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
@@ -396,6 +446,39 @@ function AdminNoticiasContent() {
           </CollapsibleContent>
         </Collapsible>
 
+        {/* Sección de Borradores */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Borradores</h2>
+          </div>
+          {loadingNoticias ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(2)].map((_, i) => (
+                <NoticiaCardSkeletonComponent key={i} showImage={true} />
+              ))}
+            </div>
+          ) : noticiasBorradores && noticiasBorradores.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {noticiasBorradores.map((noticia) => (
+                <NoticiaCard
+                  key={noticia.id}
+                  noticia={noticia}
+                  variant="borrador"
+                  showImage={true}
+                  onHover={prefetchNoticia}
+                  onDelete={confirmDeleteBorrador}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                No hay borradores pendientes
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         {/* Sección de Noticias Recientes */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -471,46 +554,7 @@ function AdminNoticiasContent() {
 
       {/* Sección de estadísticas adicionales */}
       {estadisticas && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Noticias más vistas */}
-          {estadisticas.noticias_mas_vistas &&
-            estadisticas.noticias_mas_vistas.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Noticias Más Vistas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {estadisticas.noticias_mas_vistas
-                      .slice(0, 5)
-                      .map((noticia, index) => (
-                        <Link
-                          key={noticia.id}
-                          href={`/admin/noticias/editar/${noticia.id}`}
-                          className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Badge variant="outline">{index + 1}</Badge>
-                            <span className="text-sm font-medium truncate">
-                              {noticia.titulo}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Eye className="h-3 w-3" />
-                            <span className="text-sm">
-                              {noticia.vistas.toLocaleString("es-ES")}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
+        <div className="grid grid-cols-1 gap-6">
           {/* Distribución por categoría */}
           {estadisticas.noticias_por_categoria &&
             estadisticas.noticias_por_categoria.length > 0 && (
@@ -522,13 +566,13 @@ function AdminNoticiasContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {estadisticas.noticias_por_categoria
-                      .slice(0, 5)
+                      .slice(0, 6)
                       .map((cat) => (
                         <div
                           key={cat.categoria}
-                          className="flex items-center justify-between"
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                         >
                           <span className="text-sm font-medium">
                             {cat.categoria}
@@ -544,6 +588,18 @@ function AdminNoticiasContent() {
             )}
         </div>
       )}
+
+      <ConfirmDeleteModal
+        open={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        title="¿Eliminar borrador?"
+        description="Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar este borrador permanentemente?"
+        onConfirm={executeDelete}
+        isLoading={isDeleting}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous={true}
+      />
     </div>
   );
 }

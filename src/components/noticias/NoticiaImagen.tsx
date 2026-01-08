@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState } from "react";
+import Image from "next/image";
+import { SupabaseImage } from "@/components/ui/SupabaseImage";
 
 interface NoticiaImagenProps {
   src: string;
@@ -9,7 +10,11 @@ interface NoticiaImagenProps {
   priority?: boolean;
 }
 
-const NoticiaImagen: React.FC<NoticiaImagenProps> = ({ src, alt, priority = false }) => {
+const NoticiaImagen: React.FC<NoticiaImagenProps> = ({
+  src,
+  alt,
+  priority = false,
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -38,13 +43,15 @@ const NoticiaImagen: React.FC<NoticiaImagenProps> = ({ src, alt, priority = fals
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
-      
+
       {/* Imagen real */}
-      <Image
+      <SupabaseImage
         src={src}
         alt={alt}
         fill
-        className={`object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`object-cover transition-opacity duration-300 ${
+          isLoading ? "opacity-0" : "opacity-100"
+        }`}
         onError={handleError}
         onLoad={handleLoad}
         priority={priority}

@@ -13,6 +13,7 @@ import {
   User,
   Calendar,
   ArrowUpRight,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +30,11 @@ import { usePerformanceMetrics } from "../hooks/useNoticiasDashboard";
 
 interface NoticiaCardProps {
   noticia: NoticiaReciente | NoticiaMasVista;
-  variant?: "reciente" | "mas-vista";
+  variant?: "reciente" | "mas-vista" | "borrador";
   showImage?: boolean;
   onHover?: (id: string) => void;
   onClick?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 // =====================================================
@@ -175,6 +177,7 @@ export const NoticiaCard = memo(
     showImage = true,
     onHover,
     onClick,
+    onDelete,
   }: NoticiaCardProps) {
     // Métricas de rendimiento
     usePerformanceMetrics("NoticiaCard");
@@ -212,6 +215,12 @@ export const NoticiaCard = memo(
           value: noticia.vistas,
         });
       }
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onDelete?.(noticia.id);
     };
 
     return (
@@ -305,9 +314,24 @@ export const NoticiaCard = memo(
               {/* Acción */}
               <div className="flex items-center justify-between pt-2 border-t">
                 <span className="text-xs text-muted-foreground">
-                  {variant === "mas-vista" ? "Más vista" : "Reciente"}
+                  {variant === "mas-vista"
+                    ? "Más vista"
+                    : variant === "borrador"
+                    ? "Borrador"
+                    : "Reciente"}
                 </span>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                <div className="flex items-center gap-2">
+                  {onDelete && (
+                    <button
+                      onClick={handleDelete}
+                      className="p-1 rounded-full hover:bg-destructive/10 text-destructive transition-colors z-20"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                </div>
               </div>
             </CardContent>
           </Card>

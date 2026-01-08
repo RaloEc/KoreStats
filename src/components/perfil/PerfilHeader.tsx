@@ -379,6 +379,8 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
             onError={() => setBannerError(true)}
             placeholder="blur"
             blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
           />
         ) : null}
       </div>
@@ -401,6 +403,8 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
                     src={normalizeAvatarUrl(profile.avatar_url) || ""}
                     alt={profile.username}
                     onError={() => setAvatarError(true)}
+                    onContextMenu={(e) => e.preventDefault()}
+                    draggable={false}
                   />
                 ) : null}
                 <AvatarFallback

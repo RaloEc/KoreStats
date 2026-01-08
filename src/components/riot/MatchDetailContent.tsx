@@ -8,12 +8,10 @@ import { Eye } from "lucide-react";
 import { MatchMapAnalysis } from "@/components/riot/MatchDeathMap";
 import { MatchAnalysis } from "@/components/riot/analysis/MatchAnalysis";
 import { ScoreboardTable } from "@/components/riot/ScoreboardTable";
-import { MatchShareCard } from "@/components/riot/MatchShareCard";
+import { MatchShareButton } from "@/components/riot/MatchShareButton";
 import { createClient } from "@/lib/supabase/client";
-import { toPng } from "html-to-image";
-import { Share2, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRef } from "react";
 
 interface MatchDetailContentProps {
   matchId: string;
@@ -50,26 +48,6 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
   const [currentUserPuuid, setCurrentUserPuuid] = useState<
     string | undefined
   >();
-  const shareRef = useRef<HTMLDivElement>(null);
-
-  const handleShare = async () => {
-    if (shareRef.current === null) {
-      return;
-    }
-
-    try {
-      const dataUrl = await toPng(shareRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-      });
-      const link = document.createElement("a");
-      link.download = `korestats-match-${matchId}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error("Error al generar la imagen:", err);
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -225,27 +203,15 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
           </p>
         </div>
 
-        <Button
-          onClick={handleShare}
-          variant="outline"
-          size="sm"
-          className="gap-2 ml-4 shrink-0 bg-slate-800 border-slate-700 hover:bg-slate-700"
-        >
-          <Share2 className="h-4 w-4" />
-          <span>Compartir Stats</span>
-        </Button>
-      </div>
-
-      {/* Hidden Share Card */}
-      <div className="fixed left-[-9999px] top-0">
-        <div ref={shareRef}>
-          {focusParticipant ? (
-            <MatchShareCard
-              participant={focusParticipant}
+        <div className="ml-4 shrink-0">
+          {focusParticipant && (
+            <MatchShareButton
               match={match}
+              focusParticipant={focusParticipant}
               gameVersion={gameVersion}
+              userColor={null} // Can be improved later by fetching user color
             />
-          ) : null}
+          )}
         </div>
       </div>
 

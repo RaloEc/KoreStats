@@ -1,10 +1,11 @@
 .tiptap-toolbar {
   position: sticky;
   top: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border));
   padding: 0.5rem;
-  background-color: var(--background);
-  z-index: 10;
+  background-color: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 45;
 }
 
 /* Contenedor con scroll horizontal */
@@ -40,7 +41,7 @@
 .font-selector-dropdown {
   position: fixed !important;
   z-index: 1000;
-  background-color: var(--background);
+  background-color: hsl(var(--background));
   border-radius: var(--radius);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -69,8 +70,8 @@
 
 /* Estilos para botones activos */
 .tiptap-toolbar button.is-active {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 /* Estilos para el selector de fuente */
@@ -95,4 +96,33 @@
   .hide-on-mobile {
     display: none;
   }
+}
+
+/* Estilos para menús flotantes y de burbuja */
+.floating-menu,
+.bubble-menu {
+  display: flex !important;
+  background-color: hsl(var(--background) / 0.95) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--border)) !important;
+  padding: 0.2rem !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  gap: 0.1rem !important;
+  z-index: 40 !important;
+}
+
+.floating-menu button,
+.bubble-menu button {
+  padding: 0.25rem !important;
+  height: 2rem !important;
+  width: 2rem !important;
+  background-color: transparent !important;
+}
+
+.floating-menu button:hover,
+.bubble-menu button:hover {
+  background-color: hsl(var(--accent) / 0.1) !important;
+  color: hsl(var(--accent)) !important;
 }

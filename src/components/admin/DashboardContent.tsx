@@ -410,7 +410,7 @@ export default function DashboardContent() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-3 rounded-lg border dark:border-zinc-800/60 border-zinc-200/80"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800"
                 >
                   <Skeleton className="h-10 w-10 rounded-md dark:bg-zinc-900 bg-zinc-200" />
                   <div className="flex-1 space-y-2">
@@ -435,7 +435,7 @@ export default function DashboardContent() {
                   className="group block"
                   aria-label={`Abrir noticia: ${n.titulo || "Sin título"}`}
                 >
-                  <div className="relative flex items-center gap-3 p-3 rounded-lg border border-transparent dark:border-zinc-800/60 amoled:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 amoled:hover:bg-zinc-900/40 transition-colors cursor-pointer">
+                  <div className="relative flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer">
                     {n.imagen_portada ? (
                       <img
                         src={n.imagen_portada}

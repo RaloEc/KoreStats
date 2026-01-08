@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { commentsCacheManager } from "@/lib/cache/commentsCache";
 import { useAuth } from "@/context/AuthContext";
+import UserAvatar from "@/components/UserAvatar";
+import { SupabaseImage } from "@/components/ui/SupabaseImage";
 import PostComments from "./PostComments";
 import ReportModal from "./ReportModal";
 
@@ -130,14 +133,13 @@ export default function StatusCard({ post, onDelete }: StatusCardProps) {
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <Link href={`/perfil/${post.user.username}`}>
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-white/10">
-              <Image
-                src={post.user.avatar_url || "/default-avatar.png"}
-                alt={post.user.username}
-                fill
-                className="object-cover"
-              />
-            </div>
+            <UserAvatar
+              username={post.user.username}
+              avatarUrl={post.user.avatar_url}
+              size="md"
+              className="border border-gray-200 dark:border-white/10"
+              color={post.user.color || undefined}
+            />
           </Link>
           <div>
             <div className="flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white">
@@ -235,11 +237,12 @@ export default function StatusCard({ post, onDelete }: StatusCardProps) {
 
         {post.media_type === "image" && post.media_url && (
           <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-black/50">
-            <Image
+            <SupabaseImage
               src={post.media_url}
               alt="Post attachment"
               fill
               className="object-contain"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           </div>
         )}

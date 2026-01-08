@@ -124,7 +124,7 @@ export default function UsuariosActivos() {
           {usuarios.map((usuario, index) => (
             <div
               key={usuario.usuario_id}
-              className="flex items-start sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg border hover:bg-accent transition-colors text-sm sm:text-base"
+              className="flex items-start sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors text-sm sm:text-base"
             >
               {/* Ranking */}
               <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary font-bold text-xs sm:text-sm flex-shrink-0">

@@ -1,8 +1,13 @@
-import React from 'react'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,19 +15,26 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Calendar, Eye, MoreHorizontal, Edit, Trash2, ExternalLink } from 'lucide-react'
-import { NoticiaAdmin } from '@/components/noticias/hooks/useAdminNoticias'
-import { ToggleEstado } from './ToggleEstado'
-import Image from 'next/image'
-import Link from 'next/link'
+} from "@/components/ui/dropdown-menu";
+import {
+  Calendar,
+  Eye,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
+import { NoticiaAdmin } from "@/components/noticias/hooks/useAdminNoticias";
+import { ToggleEstado } from "./ToggleEstado";
+import Image from "next/image";
+import Link from "next/link";
 
 interface VistaTarjetasProps {
-  noticias: NoticiaAdmin[]
-  seleccionadas: string[]
-  onToggleSeleccion: (id: string) => void
-  onVerPrevia: (noticia: NoticiaAdmin) => void
-  onEliminar: (id: string) => void
+  noticias: NoticiaAdmin[];
+  seleccionadas: string[];
+  onToggleSeleccion: (id: string) => void;
+  onVerPrevia: (noticia: NoticiaAdmin) => void;
+  onEliminar: (id: string) => void;
 }
 
 export const VistaTarjetas = React.memo(function VistaTarjetas({
@@ -33,17 +45,20 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
   onEliminar,
 }: VistaTarjetasProps) {
   const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  }
+    return new Date(fecha).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {noticias.map((noticia) => (
-        <Card key={noticia.id} className="overflow-hidden">
+        <Card
+          key={noticia.id}
+          className="overflow-hidden border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors"
+        >
           <CardHeader className="p-0">
             <div className="relative">
               {noticia.imagen_url && (
@@ -70,10 +85,12 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
               )}
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-4">
-            <h3 className="font-semibold line-clamp-2 mb-2">{noticia.titulo}</h3>
-            
+            <h3 className="font-semibold line-clamp-2 mb-2">
+              {noticia.titulo}
+            </h3>
+
             {noticia.categorias && noticia.categorias.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {noticia.categorias.slice(0, 2).map((cat) => (
@@ -96,7 +113,7 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
                 )}
               </div>
             )}
-            
+
             <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
@@ -107,7 +124,7 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
                 {noticia.vistas || 0}
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <ToggleEstado
                 noticiaId={noticia.id}
@@ -123,7 +140,7 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
               />
             </div>
           </CardContent>
-          
+
           <CardFooter className="p-4 pt-0 flex gap-2">
             <Button
               variant="outline"
@@ -134,7 +151,7 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
               <ExternalLink className="h-4 w-4 mr-1" />
               Ver
             </Button>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -167,5 +184,5 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
         </Card>
       ))}
     </div>
-  )
-})
+  );
+});

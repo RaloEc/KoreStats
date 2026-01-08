@@ -19,9 +19,16 @@ import { useRespondFriendRequestMutation } from "@/hooks/useSocialFeatures";
 import "./notification-bell.css";
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } =
-    useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    isLoading,
+  } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const { mutate: respondFriendRequest } = useRespondFriendRequestMutation();
 
   const handleNotificationClick = (
@@ -29,6 +36,8 @@ export function NotificationBell() {
     read: boolean,
     notification: any
   ) => {
+    if (deletingIds.has(id)) return; // No hacer nada si se está borrando
+
     if (!read) {
       markAsRead(id);
     }
@@ -84,6 +93,36 @@ export function NotificationBell() {
       // Más de 1 día: mostrar DD/MM
       return format(date, "dd/MM");
     }
+  };
+
+  const handleDeleteNotification = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (deletingIds.has(id)) return;
+
+    console.log("🖱️ [NotificationBell] Iniciando animación para ID:", id);
+
+    // 1. Activar animación visual (clase .removing)
+    setDeletingIds((prev) => new Set(prev).add(id));
+
+    // 2. Esperar a que la animación de CSS (0.4s) casi termine antes de quitarlo del estado global
+    setTimeout(() => {
+      console.log(
+        "📡 [NotificationBell] Llamando a deleteNotification para ID:",
+        id
+      );
+      deleteNotification(id);
+
+      // 3. Limpiar el ID del estado de "animando" un poco después
+      setTimeout(() => {
+        setDeletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }, 300);
+    }, 400); // Coincide con el tiempo de la animación CSS
   };
 
   const handleFriendRequest = (
@@ -161,8 +200,9 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={cn(
-                    "notification-item",
-                    !notification.read && "unread"
+                    "notification-item group",
+                    !notification.read && "unread",
+                    deletingIds.has(notification.id) && "removing"
                   )}
                   onClick={() =>
                     handleNotificationClick(
@@ -178,12 +218,23 @@ export function NotificationBell() {
                       <span className="notification-title line-clamp-2 text-sm flex-1">
                         {notification.title}
                       </span>
-                      <span className="notification-time text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                        {formatNotificationTime(notification.created_at)}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="notification-time text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                          {formatNotificationTime(notification.created_at)}
+                        </span>
+                        <button
+                          onClick={(e) =>
+                            handleDeleteNotification(e, notification.id)
+                          }
+                          className="delete-notification-btn transition-opacity p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-muted-foreground hover:text-red-500"
+                          title="Eliminar notificación"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                     {/* Mensaje */}
-                    <p className="notification-message line-clamp-2 text-xs mt-0.5">
+                    <p className="notification-message line-clamp-2 text-xs mt-0.5 pr-6">
                       {notification.message}
                     </p>
 

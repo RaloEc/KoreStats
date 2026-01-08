@@ -117,7 +117,7 @@ interface CachedMatchesResponse {
 
 const QUEUE_FILTERS = [
   { label: "Todos", value: "all" },
-  { label: "Ranked SoloQ", value: "soloq" },
+  { label: "SoloQ", value: "soloq" },
   { label: "Flex", value: "flex" },
   { label: "Normales", value: "normals" },
   { label: "ARAM", value: "aram" },
@@ -993,12 +993,14 @@ export function MatchHistoryList({
                   <div className="pb-2">
                     {" "}
                     {/* Spacing wrapper */}
-                    {/* Publicidad móvil cada 4 partidas */}
-                    {isMobile && idx > 0 && idx % 4 === 0 && (
-                      <div className="mb-2">
-                        <MobileMatchHistoryAdBanner />
-                      </div>
-                    )}
+                    {/* Publicidad móvil: compacta cada 12, completa cada 5 */}
+                    {isMobile &&
+                      idx > 0 &&
+                      idx % (mobileViewMode === "compact" ? 12 : 5) === 0 && (
+                        <div className="mb-2">
+                          <MobileMatchHistoryAdBanner />
+                        </div>
+                      )}
                     {/* Publicidad desktop cada 6 partidas */}
                     {!isMobile && idx > 0 && idx % 6 === 0 && (
                       <div className="mb-2">

@@ -46,6 +46,7 @@ import * as z from "zod";
 import Link from "next/link";
 import { Dropzone } from "@/components/ui/dropzone";
 import AdminProtection from "@/components/AdminProtection";
+import { FuentesListInput } from "@/components/admin/noticias/FuentesListInput";
 
 // Tipo para las categorías
 type Categoria = {
@@ -79,6 +80,7 @@ const formSchema = z.object({
   imagen_portada: z.string().optional(),
   autor: z.string().optional(),
   destacada: z.boolean().default(false),
+  fuentes: z.array(z.string()).optional(),
 });
 
 function CrearNoticiaContent() {
@@ -108,6 +110,19 @@ function CrearNoticiaContent() {
       field.onChange([...field.value, categoriaId]);
     }
   };
+
+  // Actualizar la URL cuando se crea un borrador para que al recargar no se pierda
+  useEffect(() => {
+    if (noticiaId) {
+      // Usar replaceState para cambiar la URL sin recargar ni navegar
+      const newUrl = `/admin/noticias/editar/${noticiaId}`;
+      window.history.replaceState(
+        { ...window.history.state, as: newUrl, url: newUrl },
+        "",
+        newUrl
+      );
+    }
+  }, [noticiaId]);
 
   // Cargar categorías al iniciar
   useEffect(() => {
@@ -219,6 +234,7 @@ function CrearNoticiaContent() {
       imagen_portada: "",
       autor: nombreUsuario,
       destacada: false,
+      fuentes: [],
     },
     mode: "onChange", // Cambiar a onChange para validación más suave
     reValidateMode: "onBlur", // Validar solo al salir del campo
@@ -325,14 +341,21 @@ function CrearNoticiaContent() {
 
       // Establecer nuevo timeout para auto-guardar después de 3 segundos de inactividad
       autoGuardarTimeoutRef.current = setTimeout(() => {
-        if (data.titulo && data.contenido && data.categoria_ids?.length > 0) {
+        // Permitir guardar si hay título O si hay suficiente contenido
+        if (data.titulo || (data.contenido && data.contenido.length > 10)) {
+          // Generar un título temporal si no existe
+          const tituloParaGuardar =
+            data.titulo ||
+            `Borrador sin título ${new Date().toLocaleTimeString()}`;
+
           autoGuardar({
             id: noticiaId || undefined,
-            titulo: data.titulo,
-            contenido: data.contenido,
+            titulo: tituloParaGuardar,
+            contenido: data.contenido || "",
             imagen_portada: data.imagen_portada,
             categoria_ids: data.categoria_ids || [],
             destacada: data.destacada,
+            fuentes: data.fuentes,
           });
         }
       }, 3000); // 3 segundos de inactividad
@@ -347,6 +370,11 @@ function CrearNoticiaContent() {
   }, [form, autoGuardar, noticiaId]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Limpiar cualquier auto-guardado pendiente para evitar conflictos
+    if (autoGuardarTimeoutRef.current) {
+      clearTimeout(autoGuardarTimeoutRef.current);
+    }
+
     try {
       console.log("=== INICIO DEL PROCESO DE GUARDADO DE NOTICIA ===");
       setEnviando(true);
@@ -486,6 +514,7 @@ function CrearNoticiaContent() {
         autor_nombre: nombreUsuario, // Añadir el nombre de usuario
         destacada: values.destacada,
         categoria_ids: values.categoria_ids,
+        fuentes: values.fuentes,
       };
 
       console.log("Enviando datos de noticia:", {
@@ -545,6 +574,7 @@ function CrearNoticiaContent() {
           categoria_ids: values.categoria_ids || [],
           destacada: values.destacada || false,
           estado: "publicada", // Crear directamente como publicada
+          fuentes: values.fuentes || [],
         }),
       });
 
@@ -706,6 +736,27 @@ function CrearNoticiaContent() {
                       />
                       <FormMessage />
                     </div>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fuentes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fuentes (Opcional)</FormLabel>
+                      <FormControl>
+                        <FuentesListInput
+                          value={field.value || []}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Indica de dónde proviene la información. Puedes añadir
+                        múltiples fuentes.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
 

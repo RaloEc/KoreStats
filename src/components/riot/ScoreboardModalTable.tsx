@@ -15,11 +15,21 @@ import {
   computeParticipantScores,
   getParticipantKey as getParticipantKeyUtil,
 } from "@/components/riot/match-card/performance-utils";
+import {
+  calculateDetailedPerformanceScore,
+  PerformanceBreakdown,
+} from "@/lib/riot/match-analyzer";
 import { useSaveBuild } from "@/hooks/use-save-build";
 import { BookmarkPlus } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { PlayerNoteButton } from "./PlayerNoteButton";
 import { usePlayerNotes, PlayerNote } from "@/hooks/use-player-notes";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ScoreboardModalTableProps {
   matchId: string;
@@ -31,6 +41,104 @@ interface ScoreboardModalTableProps {
   linkedAccountsMap?: Record<string, string>;
 }
 
+const PerformanceTooltipContent = ({
+  score,
+  ranking,
+  breakdown,
+}: {
+  score: number;
+  ranking: number;
+  breakdown?: PerformanceBreakdown;
+}) => (
+  <div className="px-1 py-1 text-slate-700 dark:text-slate-200">
+    <div className="flex items-center justify-between gap-4 mb-2">
+      <span className="font-bold text-sm text-slate-900 dark:text-white">
+        Puntaje: {score.toFixed(1)}/120
+      </span>
+      <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+        #{ranking} de 10
+      </span>
+    </div>
+    <div className="space-y-1 border-t border-slate-200 dark:border-slate-800 pt-2 mb-2">
+      <div className="flex justify-between text-[11px] gap-4">
+        <span className="text-slate-500 dark:text-slate-400">
+          Distribución de Daño (26%)
+        </span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {breakdown ? breakdown.damage.toFixed(1) : "0.0"}
+        </span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-500 dark:text-slate-400">
+          Participación Kills (21%)
+        </span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {breakdown ? breakdown.kp.toFixed(1) : "0.0"}
+        </span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-500 dark:text-slate-400">
+          KDA / Supervivencia (18%)
+        </span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {breakdown ? breakdown.kda.toFixed(1) : "0.0"}
+        </span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-500 dark:text-slate-400">
+          Oro Generado (13%)
+        </span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {breakdown ? breakdown.gold.toFixed(1) : "0.0"}
+        </span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-500 dark:text-slate-400">
+          Farmeo (CS/min) (12%)
+        </span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {breakdown ? breakdown.cs.toFixed(1) : "0.0"}
+        </span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-500 dark:text-slate-400">
+          Visión / Utilidad (10%)
+        </span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {breakdown ? breakdown.vision.toFixed(1) : "0.0"}
+        </span>
+      </div>
+      {breakdown && breakdown.victoryBonus > 0 && (
+        <div className="flex justify-between text-[11px] text-blue-600 dark:text-blue-400 border-t border-slate-200/60 dark:border-slate-800/60 pt-1 mt-1 font-medium">
+          <span>Bono de Victoria</span>
+          <span className="font-bold">
+            +{breakdown.victoryBonus.toFixed(0)}
+          </span>
+        </div>
+      )}
+      {breakdown && breakdown.penalties !== 0 && (
+        <div
+          className={`flex justify-between text-[11px] ${
+            breakdown.penalties > 0
+              ? "text-rose-600 dark:text-rose-400"
+              : "text-emerald-600 dark:text-emerald-400"
+          }`}
+        >
+          <span>Ajustes Especiales</span>
+          <span className="font-bold">
+            {breakdown.penalties > 0 ? "-" : "+"}
+            {Math.abs(breakdown.penalties).toFixed(1)}
+          </span>
+        </div>
+      )}
+    </div>
+    <div className="text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
+      * Los valores a la derecha indican los puntos reales aportados al score
+      final.
+    </div>
+  </div>
+);
+
 const PlayerRow = React.memo(
   ({
     player,
@@ -39,6 +147,7 @@ const PlayerRow = React.memo(
     matchId,
     rankingMap,
     scoreMap,
+    breakdownMap,
     linkedAccountsMap,
     gameVersion,
     maxDamage,
@@ -221,18 +330,24 @@ const PlayerRow = React.memo(
                       />
                     </div>
                   )}
-                  <span
-                    className={`mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${rankingBadgeClass}`}
-                    title={
-                      playerScore
-                        ? `Posición #${
-                            rankingPosition || "-"
-                          } · Score ${playerScore.toFixed(1)}`
-                        : "Posición no disponible"
-                    }
-                  >
-                    #{rankingPosition || "-"}
-                  </span>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={`mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow cursor-help ${rankingBadgeClass}`}
+                        >
+                          #{rankingPosition || "-"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="p-3 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-xl">
+                        <PerformanceTooltipContent
+                          score={playerScore}
+                          ranking={rankingPosition}
+                          breakdown={breakdownMap?.get(playerKey)}
+                        />
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </>
               );
             })()}
@@ -467,6 +582,7 @@ export function ScoreboardModalTable({
   const {
     rankingMap,
     scoreMap,
+    breakdownMap,
     team1,
     team2,
     maxDamage,
@@ -497,6 +613,13 @@ export function ScoreboardModalTable({
 
     const rankingMap = new Map<string, number>();
     const scoreMap = new Map<string, number>();
+    const breakdownMap = new Map<string, PerformanceBreakdown>();
+
+    scoreEntries.forEach((entry) => {
+      if (entry.breakdown) {
+        breakdownMap.set(entry.key, entry.breakdown);
+      }
+    });
 
     participants.forEach((player) => {
       const playerKey = getParticipantKeyUtil(player);
@@ -554,6 +677,7 @@ export function ScoreboardModalTable({
     return {
       rankingMap,
       scoreMap,
+      breakdownMap,
       team1,
       team2,
       maxDamage,
@@ -602,6 +726,7 @@ export function ScoreboardModalTable({
                   matchId={matchId}
                   rankingMap={rankingMap}
                   scoreMap={scoreMap}
+                  breakdownMap={breakdownMap}
                   linkedAccountsMap={linkedAccountsMap}
                   gameVersion={gameVersion}
                   maxDamage={maxDamage}
@@ -650,6 +775,7 @@ export function ScoreboardModalTable({
                   matchId={matchId}
                   rankingMap={rankingMap}
                   scoreMap={scoreMap}
+                  breakdownMap={breakdownMap}
                   linkedAccountsMap={linkedAccountsMap}
                   gameVersion={gameVersion}
                   maxDamage={maxDamage}
@@ -731,6 +857,7 @@ export function ScoreboardModalTable({
                       matchId={matchId}
                       rankingMap={rankingMap}
                       scoreMap={scoreMap}
+                      breakdownMap={breakdownMap}
                       linkedAccountsMap={linkedAccountsMap}
                       gameVersion={gameVersion}
                       maxDamage={maxDamage}
@@ -784,6 +911,7 @@ export function ScoreboardModalTable({
                       matchId={matchId}
                       rankingMap={rankingMap}
                       scoreMap={scoreMap}
+                      breakdownMap={breakdownMap}
                       linkedAccountsMap={linkedAccountsMap}
                       gameVersion={gameVersion}
                       maxDamage={maxDamage}

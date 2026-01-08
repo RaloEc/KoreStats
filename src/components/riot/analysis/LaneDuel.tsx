@@ -296,22 +296,76 @@ const extractLaneEvents = (
         const gold = event.bounty ?? event.shutdown ?? event.goldGranted ?? 300;
         const victimPart = participantsMap.get(event.victimId ?? 0);
         const killerPart = participantsMap.get(event.killerId ?? 0);
+        const focusPart = participantsMap.get(focusId);
+        const opponentPart = participantsMap.get(opponentId);
 
         const victimName = victimPart?.championName ?? "Rival";
         const killerName = killerPart?.championName ?? "Rival";
+        const focusName = focusPart?.championName ?? "Tú";
+        const opponentName = opponentPart?.championName ?? "Rival";
 
-        if (
-          event.killerId === focusId ||
-          event.assistingParticipantIds?.includes(focusId)
-        ) {
+        if (event.killerId === focusId) {
           pushEvent({
             type: "kill",
             impact: "positive",
-            comment: `Eliminaste a ${victimName}`,
+            comment: `Asesinaste a ${victimName}`,
             subject: {
               type: "champion",
               name: killerPart?.summonerName || killerName,
               championName: killerName,
+            },
+            target: {
+              type: "champion",
+              value: victimName,
+              displayName: victimName,
+            },
+            gold,
+          });
+        } else if (event.assistingParticipantIds?.includes(focusId)) {
+          pushEvent({
+            type: "kill",
+            impact: "positive",
+            comment: `Asististe contra ${victimName}`,
+            subject: {
+              type: "champion",
+              name: focusPart?.summonerName || focusName,
+              championName: focusName,
+            },
+            target: {
+              type: "champion",
+              value: victimName,
+              displayName: victimName,
+            },
+            gold,
+          });
+        } else if (event.killerId === opponentId) {
+          // Rival kills someone else
+          pushEvent({
+            type: "kill",
+            impact: "negative",
+            comment: `${killerName} asesinó a ${victimName}`,
+            subject: {
+              type: "champion",
+              name: killerPart?.summonerName || killerName,
+              championName: killerName,
+            },
+            target: {
+              type: "champion",
+              value: victimName,
+              displayName: victimName,
+            },
+            gold,
+          });
+        } else if (event.assistingParticipantIds?.includes(opponentId)) {
+          // Rival assists killing someone else
+          pushEvent({
+            type: "kill",
+            impact: "negative",
+            comment: `${opponentName} asistió contra ${victimName}`,
+            subject: {
+              type: "champion",
+              name: opponentPart?.summonerName || opponentName,
+              championName: opponentName,
             },
             target: {
               type: "champion",
@@ -336,33 +390,12 @@ const extractLaneEvents = (
               displayName: "Ti",
             },
           });
-        } else if (
-          event.killerId === opponentId ||
-          event.assistingParticipantIds?.includes(opponentId)
-        ) {
-          // Rival kills someone else
-          pushEvent({
-            type: "kill",
-            impact: "negative",
-            comment: `${killerName} eliminó a ${victimName}`,
-            subject: {
-              type: "champion",
-              name: killerPart?.summonerName || killerName,
-              championName: killerName,
-            },
-            target: {
-              type: "champion",
-              value: victimName,
-              displayName: victimName,
-            },
-            gold,
-          });
         } else if (event.victimId === opponentId) {
           // Rival died to someone else
           pushEvent({
             type: "kill",
             impact: "positive",
-            comment: `${killerName} eliminó a ${victimName}`,
+            comment: `El rival (${victimName}) murió`,
             subject: {
               type: "champion",
               name: killerPart?.summonerName || killerName,
@@ -1234,7 +1267,7 @@ export function LaneDuel({
               </ResponsiveContainer>
               {/* Overlay Label */}
               <div className="absolute top-2 left-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded shadow-sm backdrop-blur-sm">
-                Ventaja de Oro
+                Ventaja de Oro (Duelo)
               </div>
             </div>
           </div>

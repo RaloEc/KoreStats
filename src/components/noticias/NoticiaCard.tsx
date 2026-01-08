@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { SupabaseImage } from "@/components/ui/SupabaseImage";
 import Link from "next/link";
 import { CalendarIcon, ArrowRightIcon, Eye, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -133,7 +134,7 @@ const NoticiaCard = React.forwardRef<HTMLDivElement, NoticiaCardProps>(
             {/* Imagen de portada */}
             <div className="relative w-full aspect-video overflow-hidden bg-muted">
               {noticia.imagen_url || noticia.imagen_portada ? (
-                <Image
+                <SupabaseImage
                   src={
                     noticia.imagen_url ||
                     noticia.imagen_portada ||

@@ -1,15 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Noticia } from '@/types';
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Noticia } from "@/types";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 
 // Función para procesar el contenido HTML y corregir URLs de imágenes
 export function procesarContenido(contenido: string): string {
   if (!contenido) return "";
 
-  // Reemplazar URLs de blob o data por URLs de Supabase
-  let contenidoProcesado = contenido;
+  // Sanear el contenido para evitar XSS
+  let contenidoProcesado = sanitizeHtml(contenido);
+
+  // Reemplazar atributos src que contengan blob: o data:
 
   // Reemplazar atributos src que contengan blob: o data:
   contenidoProcesado = contenidoProcesado.replace(
@@ -52,7 +55,7 @@ interface NoticiaResponse {
 // Hook personalizado para gestionar una noticia individual
 export function useNoticia(id: string) {
   const queryClient = useQueryClient();
-  
+
   // Función para obtener la noticia desde la API
   const fetchNoticia = async (): Promise<Noticia> => {
     // Construir URL absoluta para evitar problemas con Next.js
@@ -97,9 +100,9 @@ export function useNoticia(id: string) {
     isLoading,
     isError,
     error,
-    refetch
+    refetch,
   } = useQuery({
-    queryKey: ['noticia', id],
+    queryKey: ["noticia", id],
     queryFn: fetchNoticia,
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 30 * 60 * 1000, // 30 minutos
@@ -112,49 +115,55 @@ export function useNoticia(id: string) {
       return [];
     }
 
-    const response = await fetch(`/api/noticias?categoria=${noticia.categoria_id}&limit=4&exclude=${id}`);
-    
+    const response = await fetch(
+      `/api/noticias?categoria=${noticia.categoria_id}&limit=4&exclude=${id}`
+    );
+
     if (!response.ok) {
-      throw new Error(`Error al obtener noticias relacionadas: ${response.status}`);
+      throw new Error(
+        `Error al obtener noticias relacionadas: ${response.status}`
+      );
     }
-    
+
     const data = await response.json();
-    
+
     if (data.success && Array.isArray(data.data)) {
       return data.data;
     }
-    
+
     return [];
   };
 
   // Consulta para noticias relacionadas
-  const {
-    data: noticiasRelacionadas = [],
-    isLoading: isLoadingRelacionadas,
-  } = useQuery({
-    queryKey: ['noticia', id, 'relacionadas'],
-    queryFn: fetchNoticiasRelacionadas,
-    enabled: !!noticia?.categoria_id, // Solo ejecutar si tenemos la noticia principal
-    staleTime: 10 * 60 * 1000, // 10 minutos
-  });
+  const { data: noticiasRelacionadas = [], isLoading: isLoadingRelacionadas } =
+    useQuery({
+      queryKey: ["noticia", id, "relacionadas"],
+      queryFn: fetchNoticiasRelacionadas,
+      enabled: !!noticia?.categoria_id, // Solo ejecutar si tenemos la noticia principal
+      staleTime: 10 * 60 * 1000, // 10 minutos
+    });
 
   // Efecto para manejar la visibilidad de la página
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // Refrescar datos solo si han pasado 5 minutos desde la última actualización
-        const lastUpdate = queryClient.getQueryState(['noticia', id])?.dataUpdatedAt;
+        const lastUpdate = queryClient.getQueryState([
+          "noticia",
+          id,
+        ])?.dataUpdatedAt;
         const now = Date.now();
-        
-        if (lastUpdate && (now - lastUpdate > 5 * 60 * 1000)) { // 5 minutos
+
+        if (lastUpdate && now - lastUpdate > 5 * 60 * 1000) {
+          // 5 minutos
           refetch();
         }
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [id, queryClient, refetch]);
 
@@ -166,6 +175,6 @@ export function useNoticia(id: string) {
     isError,
     error,
     refetch,
-    procesarContenido
+    procesarContenido,
   };
 }

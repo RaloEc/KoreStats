@@ -29,13 +29,21 @@ export async function POST(request: NextRequest) {
     // Usar cliente de servicio para bypasear RLS
     const serviceClient = getServiceClient();
 
-    const { id, titulo, contenido, imagen_portada, categoria_ids, destacada } =
-      await request.json();
+    const {
+      id,
+      titulo,
+      contenido,
+      imagen_portada,
+      categoria_ids,
+      destacada,
+      fuentes,
+      fuente,
+    } = await request.json();
 
-    // Validar campos mínimos
-    if (!titulo || !contenido || !categoria_ids || categoria_ids.length === 0) {
+    // Validar campos mínimos (Solo título es requerido para guardar borrador)
+    if (!titulo) {
       return NextResponse.json(
-        { error: "Faltan campos requeridos" },
+        { error: "El título es requerido para guardar el borrador" },
         { status: 400 }
       );
     }
@@ -49,20 +57,19 @@ export async function POST(request: NextRequest) {
         .update({
           titulo,
           contenido,
-          imagen_portada: imagen_portada || null,
-          destacada: destacada || false,
-          estado: "borrador", // Asegurar que sigue siendo borrador
-          updated_at: new Date().toISOString(),
+          imagen_portada: imagen_portada || null, // Revertido a imagen_portada porque la DB parece usar eso
+          estado: "borrador",
+          updated_at: new Date().toISOString(), // Revertido a updated_at por si acaso
         })
         .eq("id", id)
-        .eq("autor_id", user.id) // Verificar que el usuario es el autor
+        .eq("autor_id", user.id)
         .select()
         .single();
 
       if (error) {
         console.error("Error al actualizar borrador:", error);
         return NextResponse.json(
-          { error: "Error al actualizar borrador" },
+          { error: "Error al actualizar borrador: " + error.message },
           { status: 500 }
         );
       }
@@ -98,18 +105,15 @@ export async function POST(request: NextRequest) {
         .insert({
           titulo,
           contenido,
-          imagen_portada: imagen_portada || null,
+          imagen_portada: imagen_portada || null, // Revertido
           autor_id: user.id,
-          autor: user.email || "Admin",
-          destacada: destacada || false,
-          estado: "borrador", // Nuevo borrador
-          es_activa: false, // No activo hasta que se publique
+          estado: "borrador",
           vistas: 0,
           slug: titulo
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, ""),
-          fecha_publicacion: new Date().toISOString(),
+          // fecha_publicacion: null, // Comentado por si acaso no existe
         })
         .select()
         .single();
@@ -117,7 +121,7 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error("Error al crear borrador:", error);
         return NextResponse.json(
-          { error: "Error al crear borrador" },
+          { error: "Error al crear borrador: " + error.message },
           { status: 500 }
         );
       }

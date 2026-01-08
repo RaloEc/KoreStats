@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { SupabaseImage } from "@/components/ui/SupabaseImage";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -162,7 +163,7 @@ const HiloPreviewSimple = ({
         <div className="mb-3 w-full flex justify-center">
           <div className="w-full max-w-4xl">
             <div className="relative w-full h-[300px] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-              <Image
+              <SupabaseImage
                 src={thumbnailUrl}
                 alt="Imagen destacada"
                 fill
@@ -179,7 +180,7 @@ const HiloPreviewSimple = ({
       {!youtubeVideoId && !thumbnailUrl && images.length > 0 && (
         <div className="mb-3 w-full flex justify-center">
           <div className="relative w-full h-[300px] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-            <Image
+            <SupabaseImage
               src={images[0]}
               alt="Imagen destacada"
               fill

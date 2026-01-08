@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -35,6 +35,7 @@ export interface NoticiaMasVista extends NoticiaReciente {
 export interface NoticiasDashboardData {
   recientes: NoticiaReciente[];
   mas_vistas: NoticiaMasVista[];
+  borradores: NoticiaReciente[]; // Added borradores
   timestamp: string;
 }
 
@@ -51,6 +52,7 @@ export interface UseNoticiasDashboardReturn {
   data: NoticiasDashboardData | undefined;
   recientes: NoticiaReciente[];
   masVistas: NoticiaMasVista[];
+  borradores: NoticiaReciente[];
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -215,10 +217,44 @@ export function useNoticiasDashboard(
     [queryClient, supabase]
   );
 
+  const recientesMemos = useMemo(() => {
+    if (!data?.recientes) return [];
+    // Deduplicar por ID
+    const uniques = Array.from(
+      new Map(data.recientes.map((item) => [item.id, item])).values()
+    );
+    // Ordenar: lo más reciente (publicada o creada) primero
+    return uniques.sort((a, b) => {
+      const dateA = new Date(a.publicada_en || a.creada_en).getTime();
+      const dateB = new Date(b.publicada_en || b.creada_en).getTime();
+      return dateB - dateA;
+    });
+  }, [data?.recientes]);
+
+  const masVistasMemos = useMemo(() => {
+    if (!data?.mas_vistas) return [];
+    return Array.from(
+      new Map(data.mas_vistas.map((item) => [item.id, item])).values()
+    );
+  }, [data?.mas_vistas]);
+
+  const borradoresMemos = useMemo(() => {
+    if (!data?.borradores) return [];
+    const uniques = Array.from(
+      new Map(data.borradores.map((item) => [item.id, item])).values()
+    );
+    return uniques.sort((a, b) => {
+      const dateA = new Date(a.creada_en).getTime();
+      const dateB = new Date(b.creada_en).getTime();
+      return dateB - dateA;
+    });
+  }, [data?.borradores]);
+
   return {
     data,
-    recientes: data?.recientes || [],
-    masVistas: data?.mas_vistas || [],
+    recientes: recientesMemos,
+    masVistas: masVistasMemos,
+    borradores: borradoresMemos,
     isLoading,
     isError,
     error: error as Error | null,

@@ -307,7 +307,9 @@ export async function POST(request: Request) {
       destacada: data.destacada || false,
       estado: data.estado || "borrador", // Estado: borrador o publicada
       es_activa: data.estado === "publicada" ? true : false, // Activa solo si se publica
-      fecha_publicacion: new Date().toISOString(),
+      fecha_publicacion:
+        data.estado === "publicada" ? new Date().toISOString() : null,
+      fuentes: data.fuentes || (data.fuente ? [data.fuente] : []),
     };
 
     console.log("Datos de la noticia a crear:", {
@@ -469,6 +471,7 @@ export async function PUT(request: Request) {
         autor_id: data.autor_id, // Guardar el ID del usuario como referencia
         destacada: data.destacada || false,
         updated_at: new Date().toISOString(),
+        fuentes: data.fuentes || (data.fuente ? [data.fuente] : []),
       })
       .eq("id", data.id);
 

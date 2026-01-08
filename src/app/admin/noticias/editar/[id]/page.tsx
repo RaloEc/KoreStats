@@ -40,13 +40,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Image as ImageIcon, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Image as ImageIcon,
+  Upload,
+  Rocket,
+} from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
 import { Dropzone } from "@/components/ui/dropzone";
 import AdminProtection from "@/components/AdminProtection";
+import { FuentesListInput } from "@/components/admin/noticias/FuentesListInput";
 
 // Tipo para las categorías
 type Categoria = {
@@ -80,6 +87,7 @@ const formSchema = z.object({
     message: "Selecciona al menos una categoría",
   }),
   imagen_portada: z.string().optional(),
+  fuentes: z.array(z.string()).optional(),
 
   destacada: z.boolean().default(false),
 });
@@ -107,6 +115,7 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
       categoria_ids: [],
       imagen_portada: "",
       destacada: false,
+      fuentes: [],
     },
   });
   const { autoGuardar, isAutoSaving, lastSavedAt, noticiaId } =
@@ -130,6 +139,7 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
           imagen_portada: values.imagen_portada || undefined,
           categoria_ids: values.categoria_ids || [],
           destacada: values.destacada,
+          fuentes: values.fuentes,
         });
       }, 3000);
     });
@@ -146,6 +156,7 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
           imagen_portada: values.imagen_portada || undefined,
           categoria_ids: values.categoria_ids || [],
           destacada: values.destacada,
+          fuentes: values.fuentes,
         });
       }
     };
@@ -339,6 +350,7 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
           categoria_ids: categoriasSeleccionadas,
           imagen_portada: data.imagen_portada || "",
           destacada: data.destacada || false,
+          fuentes: data.fuentes || (data.fuente ? [data.fuente] : []),
         });
 
         // Habilitar autosave una vez cargados los datos iniciales
@@ -457,6 +469,7 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
         autor_nombre: nombreUsuario, // Añadir el nombre de usuario
         destacada: values.destacada,
         categoria_ids: values.categoria_ids,
+        fuentes: values.fuentes,
       };
 
       // Usar la API para actualizar la noticia (utiliza el cliente de servicio)
@@ -488,6 +501,39 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
     } catch (error) {
       console.error("Error al actualizar noticia:", error);
       alert("Error al actualizar la noticia. Por favor, inténtalo de nuevo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function handlePublicar() {
+    try {
+      if (!confirm("¿Estás seguro de que quieres publicar esta noticia?")) {
+        return;
+      }
+
+      setEnviando(true);
+
+      const response = await fetch("/api/admin/noticias/cambiar-estado", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          estado: "publicada",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al publicar la noticia");
+      }
+
+      alert("Noticia publicada correctamente");
+      router.push("/admin/noticias");
+    } catch (error) {
+      console.error("Error al publicar:", error);
+      alert("Error al publicar la noticia");
     } finally {
       setEnviando(false);
     }
@@ -794,6 +840,27 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
 
               <FormField
                 control={form.control}
+                name="fuentes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fuentes (Opcional)</FormLabel>
+                    <FormControl>
+                      <FuentesListInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Indica de dónde proviene la información. Puedes añadir
+                      múltiples fuentes.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="imagen_portada"
                 render={({ field }) => (
                   <FormItem>
@@ -817,27 +884,52 @@ function EditarNoticiaContent({ params }: { params: { id: string } }) {
                 )}
               />
 
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-6 border-t mt-8">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   type="button"
                   onClick={() => router.push("/admin/noticias")}
+                  className="w-full sm:w-auto text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Cancelar
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <span>Cancelar y salir</span>
                 </Button>
-                <Button type="submit" disabled={enviando} className="gap-1">
-                  {enviando ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                      <span>Guardando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-1" />
-                      <span>Guardar Cambios</span>
-                    </>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {noticia?.estado === "borrador" && (
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white font-semibold shadow-lg shadow-emerald-500/20 dark:shadow-emerald-900/40 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2 px-6"
+                      onClick={handlePublicar}
+                      disabled={enviando}
+                    >
+                      <Rocket className="h-4 w-4" />
+                      <span>Publicar ahora</span>
+                    </Button>
                   )}
-                </Button>
+
+                  <Button
+                    type="submit"
+                    disabled={enviando}
+                    className="flex-1 sm:flex-none relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 dark:from-indigo-500 dark:to-violet-600 dark:hover:from-indigo-400 dark:hover:to-violet-500 text-white font-bold tracking-wide shadow-xl shadow-indigo-500/20 dark:shadow-indigo-900/40 transition-all duration-300 hover:scale-[1.05] hover:shadow-indigo-500/40 active:scale-[0.95] gap-2 px-8 py-6 rounded-xl group"
+                  >
+                    {/* Efecto de brillo al pasar el mouse */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                    {enviando ? (
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" />
+                        <span className="animate-pulse">Sincronizando...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 relative z-10">
+                        <Save className="h-5 w-5 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" />
+                        <span>Guardar cambios</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>

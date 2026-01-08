@@ -1,33 +1,35 @@
-'use client'
+"use client";
 
-import { useEffect, useRef } from 'react'
-import { highlightCodeBlocks } from '@/lib/utils/highlightCode'
-import '@/components/tiptap-editor/editor-styles.css'
+import { useEffect, useRef } from "react";
+import { highlightCodeBlocks } from "@/lib/utils/highlightCode";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
+import "@/components/tiptap-editor/editor-styles.css";
 
 interface HighlightedContentProps {
-  html: string
-  className?: string
+  html: string;
+  className?: string;
 }
 
 /**
  * Componente que renderiza HTML con resaltado de sintaxis en bloques de código
  */
-export function HighlightedContent({ html, className = '' }: HighlightedContentProps) {
-  const contentRef = useRef<HTMLDivElement>(null)
+export function HighlightedContent({
+  html,
+  className = "",
+}: HighlightedContentProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (contentRef.current) {
+      // Sanear el HTML antes de procesarlo
+      const sanitizedHtml = sanitizeHtml(html);
       // Aplicar resaltado de sintaxis
-      const highlightedHtml = highlightCodeBlocks(html)
-      contentRef.current.innerHTML = highlightedHtml
+      const highlightedHtml = highlightCodeBlocks(sanitizedHtml);
+      contentRef.current.innerHTML = highlightedHtml;
     }
-  }, [html])
+  }, [html]);
 
   return (
-    <div
-      ref={contentRef}
-      className={className}
-      suppressHydrationWarning
-    />
-  )
+    <div ref={contentRef} className={className} suppressHydrationWarning />
+  );
 }

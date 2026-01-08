@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { commentsCacheManager } from "@/lib/cache/commentsCache";
 import { useAuth } from "@/context/AuthContext";
+import UserAvatar from "@/components/UserAvatar";
 import ReportModal from "./ReportModal";
 
 interface Comment {
@@ -192,14 +193,12 @@ export default function PostComments({
         <form onSubmit={handleSubmit} className="mb-4">
           <div className="flex items-end gap-2">
             {/* Avatar */}
-            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-white/10 flex-shrink-0">
-              <Image
-                src={profile?.avatar_url || "/default-avatar.png"}
-                alt={profile?.username || "Usuario"}
-                fill
-                className="object-cover"
-              />
-            </div>
+            <UserAvatar
+              username={profile?.username || "Usuario"}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+              className="border border-gray-200 dark:border-white/10 flex-shrink-0"
+            />
 
             {/* Input */}
             <div
@@ -332,14 +331,12 @@ export default function PostComments({
             >
               {/* Avatar */}
               <Link href={`/perfil/${comment.user.username}`}>
-                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-white/10 flex-shrink-0 hover:opacity-80 transition-opacity">
-                  <Image
-                    src={comment.user.avatar_url || "/default-avatar.png"}
-                    alt={comment.user.username}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+                <UserAvatar
+                  username={comment.user.username}
+                  avatarUrl={comment.user.avatar_url}
+                  size="sm"
+                  className="border border-gray-200 dark:border-white/10 flex-shrink-0 hover:opacity-80 transition-opacity"
+                />
               </Link>
 
               {/* Content */}

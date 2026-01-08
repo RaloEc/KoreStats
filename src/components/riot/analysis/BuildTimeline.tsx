@@ -115,7 +115,7 @@ export function BuildTimeline({
         <div
           ref={scrollRef}
           className={cn(
-            "w-full overflow-x-auto overflow-y-hidden timeline-scroll active:cursor-grabbing cursor-grab select-none pb-4 pt-8 px-4",
+            "w-full overflow-x-auto overflow-y-hidden timeline-scroll active:cursor-grabbing cursor-grab select-none pb-6 pt-10 px-8",
             isDragging ? "cursor-grabbing" : "cursor-grab"
           )}
           onMouseDown={handleMouseDown}
@@ -123,81 +123,54 @@ export function BuildTimeline({
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
         >
-          <div className="relative h-52" style={{ width: `${totalWidth}px` }}>
-            {/* Timeline Track */}
-            <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full -translate-y-1/2" />
+          <div className="flex items-end gap-12 min-w-max h-80 relative">
+            {/* Horizontal Timeline Line - Subtle and elegant */}
+            <div className="absolute bottom-[32px] left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-800/60" />
 
-            {/* Minute Markers every 5 mins */}
-            {Array.from({ length: Math.ceil(totalMinutes / 5) + 1 }).map(
-              (_, i) => {
-                const minute = i * 5;
-                const position = (minute / totalMinutes) * 100;
-                if (minute > totalMinutes) return null;
-
-                return (
-                  <div
-                    key={`marker-${minute}`}
-                    className="absolute top-1/2 flex flex-col items-center -translate-x-1/2"
-                    style={{ left: `${position}%` }}
-                  >
-                    <div className="h-4 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-2" />
-                    <span className="text-[10px] font-mono text-slate-400 mt-4">
-                      {minute}m
-                    </span>
-                  </div>
-                );
-              }
-            )}
-
-            {/* Item Groups */}
-            {buildGroups.map((group) => {
-              const position = (group.minute / totalMinutes) * 100;
-
-              return (
-                <div
-                  key={group.minute}
-                  className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center z-10"
-                  style={{
-                    left: `${position}%`,
-                    transform: "translate(-50%, -50%)",
-                  }}
-                >
-                  {/* Time Badge */}
-                  <div className="mb-3 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300 shadow-sm whitespace-nowrap">
-                    {group.minute}&apos;
-                  </div>
-
-                  {/* Items Stack */}
-                  <div className="flex flex-col gap-1.5">
-                    {group.events.map((event, idx) => (
-                      <TooltipProvider key={`${group.minute}-${idx}`}>
-                        <Tooltip delayDuration={0}>
-                          <TooltipTrigger asChild>
-                            <div className="w-10 h-10 border-2 border-slate-200 dark:border-slate-700 shadow-md rounded-lg bg-white dark:bg-slate-900 relative hover:scale-110 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all z-10 hover:z-20 group">
-                              <Image
-                                src={getItemImg(event.itemId, gameVersion)!}
-                                alt={`Item ${event.itemId}`}
-                                fill
-                                sizes="40px"
-                                className="object-cover rounded-md"
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-slate-900 border-slate-700 text-white">
-                            <p className="font-medium">
-                              Comprado al minuto {group.minute}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ))}
-                  </div>
-
-                  {/* Connector Dot */}
-                  <div className="mt-3 w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500 ring-4 ring-white dark:ring-slate-950" />
+            {buildGroups.map((group) => (
+              <div
+                key={group.minute}
+                className="flex flex-col items-center relative"
+              >
+                {/* Items Stack - Glass Container to prevent distortion */}
+                <div className="flex flex-col-reverse gap-3 mb-10 p-2.5 rounded-2xl bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 backdrop-blur-sm shadow-sm transition-transform hover:-translate-y-2 group">
+                  {group.events.map((event, idx) => (
+                    <TooltipProvider key={`${group.minute}-${idx}`}>
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <div className="w-12 h-12 shrink-0 bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all cursor-pointer relative shadow-md">
+                            <Image
+                              src={getItemImg(event.itemId, gameVersion)!}
+                              alt={`Item ${event.itemId}`}
+                              fill
+                              sizes="48px"
+                              className="object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          className="bg-slate-900 border-slate-700 text-white text-[11px] font-semibold"
+                        >
+                          Minuto {group.minute}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
                 </div>
-              );
-            })}
+
+                {/* Vertical Step Connector */}
+                <div className="absolute bottom-[32px] w-0.5 h-6 bg-slate-200 dark:bg-slate-800/60" />
+
+                {/* Interaction Point */}
+                <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-950 border-[4px] border-emerald-500 dark:border-emerald-600 shadow-sm z-10" />
+
+                {/* Minute Label */}
+                <div className="mt-3 text-xs font-bold font-mono text-slate-400 dark:text-slate-500">
+                  {group.minute}m
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>

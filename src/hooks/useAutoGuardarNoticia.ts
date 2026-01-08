@@ -8,6 +8,7 @@ interface DatosAutoGuardar {
   imagen_portada?: string;
   categoria_ids: string[];
   destacada?: boolean;
+  fuentes?: string[];
 }
 
 interface UseAutoGuardarNoticiaReturn {
@@ -37,8 +38,8 @@ export function useAutoGuardarNoticia(): UseAutoGuardarNoticiaReturn {
         return noticiaId;
       }
 
-      // No guardar si faltan campos críticos (solo título y categorías)
-      if (!datos.titulo || datos.categoria_ids.length === 0) {
+      // No guardar si faltan campos críticos (solo título es obligatorio para borrador)
+      if (!datos.titulo) {
         return noticiaId;
       }
 
@@ -63,6 +64,7 @@ export function useAutoGuardarNoticia(): UseAutoGuardarNoticiaReturn {
             imagen_portada: datos.imagen_portada || null,
             categoria_ids: datos.categoria_ids,
             destacada: datos.destacada || false,
+            fuentes: datos.fuentes || [],
           }),
         });
 

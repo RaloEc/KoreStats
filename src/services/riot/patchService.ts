@@ -61,6 +61,11 @@ interface ChampionData {
     image: Image;
   };
   image: Image;
+  skins: {
+    id: string;
+    num: number;
+    name: string;
+  }[];
 }
 
 interface ItemData {
@@ -157,7 +162,7 @@ interface ItemChange {
   statChanges: StatChange[];
   goldChange?: { old: number; new: number };
   descriptionChange?: { old: string; new: string };
-  type: "buff" | "nerf" | "adjustment";
+  type: "buff" | "nerf" | "adjustment" | "new";
   developerContext?: {
     summary?: string;
     context?: string;
@@ -186,22 +191,29 @@ interface PatchData {
   items: ItemChange[];
   runes: RuneChange[];
   summoners: SummonerChange[];
+  displayVersion?: string;
+  scrapingDebug?: any;
 }
 
-import { getPatchContext } from "./scrapingService";
+import { getPatchContext, PatchContext } from "./scrapingService";
 import { championService } from "./championService";
 
 export const patchService = {
   async checkForNewPatch(force: boolean = false) {
     try {
-      // 1. Obtener versiones
+      // 1. Obtener versiones sin caché
       const versionsResponse = await fetch(
-        "https://ddragon.leagueoflegends.com/api/versions.json"
+        "https://ddragon.leagueoflegends.com/api/versions.json",
+        { cache: "no-store", headers: { "Cache-Control": "no-cache" } }
       );
       if (!versionsResponse.ok) throw new Error("Error fetching versions");
       const versions: string[] = await versionsResponse.json();
       const latestVersion = versions[0];
       const previousVersion = versions[1];
+
+      console.log(
+        `Versiones detectadas - Latest: ${latestVersion}, Prev: ${previousVersion}`
+      );
 
       if (!latestVersion || !previousVersion)
         throw new Error("Versions not found");
@@ -251,18 +263,22 @@ export const patchService = {
 
       // 3.5. Obtener contexto de la web oficial (Scraping)
       console.log("Fetching developer context from official site...");
-      const patchContext = await getPatchContext(latestVersion);
+      const patchContext = await getPatchContext(
+        latestVersion,
+        Object.keys(latestChamps?.data || {}),
+        Object.keys(latestItems?.data || {})
+      );
 
-      // 4. Comparar TODO
+      // 4. Comparar TODO - Usando contextos categorizados
       const championChanges = this.compareChampions(
         prevChamps,
         latestChamps,
-        patchContext
+        patchContext.champions
       );
       const itemChanges = this.compareItems(
         prevItems,
         latestItems,
-        patchContext
+        patchContext.items
       );
       const runeChanges = this.compareRunes(prevRunes, latestRunes);
       const summonerChanges = this.compareSummoners(prevSums, latestSums);
@@ -271,22 +287,115 @@ export const patchService = {
       const slug = `parche-${latestVersion.replace(/\./g, "-")}`;
       const adminId = process.env.ADMIN_USER_ID;
 
+      // Seleccionar imagen de portada
+      let imagenPrincipal = null;
+
+      // Estrategia: Elegir un campeón modificado al azar
+      if (championChanges.length > 0) {
+        const randomChampChange =
+          championChanges[Math.floor(Math.random() * championChanges.length)];
+        // Buscar datos completos del campeón para obtener skins
+        const champData = latestChamps[randomChampChange.id];
+        if (champData && champData.skins && champData.skins.length > 0) {
+          // Intentar no elegir la skin base (num 0) si hay otras opciones, para variar
+          const skins = champData.skins;
+          // Filtrar skins que no sean la default si es posible, sino usar cualquiera
+          const candidateSkins =
+            skins.length > 1 ? skins.filter((s) => s.num !== 0) : skins;
+          const randomSkin =
+            candidateSkins[Math.floor(Math.random() * candidateSkins.length)];
+          imagenPrincipal = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champData.id}_${randomSkin.num}.jpg`;
+        }
+      }
+
+      // Si no tenemos imagen (no hubo campeones modificados o error), elegir uno al azar de todos
+      if (!imagenPrincipal) {
+        const allChampKeys = Object.keys(latestChamps);
+        if (allChampKeys.length > 0) {
+          const randomKey =
+            allChampKeys[Math.floor(Math.random() * allChampKeys.length)];
+          const champData = latestChamps[randomKey];
+          if (champData && champData.skins && champData.skins.length > 0) {
+            const randomSkin =
+              champData.skins[
+                Math.floor(Math.random() * champData.skins.length)
+              ];
+            imagenPrincipal = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champData.id}_${randomSkin.num}.jpg`;
+          }
+        }
+      }
+
+      // Convertir la imagen principal a nuestra URL dinámica con texto
+      if (imagenPrincipal) {
+        // Usamos ruta relativa o absoluta si existe la variable.
+        // Al guardar en base de datos, lo ideal es que sea accesible desde cualquier lugar.
+        // Si usamos ruta relativa iniciando con /, en la web funcionará.
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+        imagenPrincipal = `${baseUrl}/api/og/patch?version=${latestVersion}&bg=${encodeURIComponent(
+          imagenPrincipal
+        )}`;
+      }
+
+      const season = parseInt(latestVersion.split(".")[0]);
+      const patchNum = latestVersion.split(".")[1];
+      const displayVersion = `${season + 10}.${patchNum}`;
+
+      // 5. Deduplicar Items (Fix para "Retoño de Pisamusgo" duplicado)
+      const uniqueItemChanges = Array.from(
+        itemChanges
+          .reduce((map, item) => {
+            if (!map.has(item.id)) {
+              map.set(item.id, item);
+            } else {
+              // Merge inteligente: Si ya existe, nos quedamos con el que tenga más info
+              const existing = map.get(item.id)!;
+              const hasStats = item.statChanges.length > 0;
+              const hasContext = !!item.developerContext;
+              const existingHasStats = existing.statChanges.length > 0;
+              const existingHasContext = !!existing.developerContext;
+
+              // Si el nuevo tiene stats y el viejo no, reemplazamos
+              if (hasStats && !existingHasStats) {
+                map.set(item.id, item);
+              }
+              // Si ambos tienen stats (o ninguno), priorizamos el que tenga contexto
+              else if (hasContext && !existingHasContext) {
+                map.set(item.id, item);
+              }
+              // Si el nuevo tiene una sección definida y el viejo no, reemplazamos
+              else if (
+                item.developerContext?.section &&
+                !existing.developerContext?.section
+              ) {
+                map.set(item.id, item);
+              }
+            }
+            return map;
+          }, new Map<string, ItemChange>())
+          .values()
+      ) as ItemChange[];
+
       const patchData: PatchData = {
-        version: latestVersion,
+        version: latestVersion, // Versión Técnica para DataDragon (16.1.1)
+        displayVersion: displayVersion, // Versión Comercial para mostrar (26.1)
         champions: championChanges,
-        items: itemChanges,
+        items: uniqueItemChanges,
         runes: runeChanges,
         summoners: summonerChanges,
+        scrapingDebug: {
+          ...patchContext._meta,
+          contextsFound: patchContext._meta?.contextsFound || 0,
+        },
       };
 
       const hasChanges =
         championChanges.length > 0 ||
-        itemChanges.length > 0 ||
+        uniqueItemChanges.length > 0 ||
         runeChanges.length > 0 ||
         summonerChanges.length > 0;
 
-      // Generar resumen HTML
-      let contentHtml = `<h3>Resumen del Parche ${latestVersion}</h3>`;
+      // Generar resumen HTML usando la versión comercial si es posible
+      let contentHtml = `<h3>Resumen del Parche ${displayVersion} (${latestVersion})</h3>`;
       contentHtml += `<ul>
         <li>Campeones modificados: ${championChanges.length}</li>
         <li>Objetos modificados: ${itemChanges.length}</li>
@@ -295,13 +404,14 @@ export const patchService = {
       </ul>`;
 
       const payload = {
-        titulo: `Notas del Parche ${latestVersion}`,
+        titulo: `Notas del Parche ${displayVersion}`,
         contenido: contentHtml,
         type: "lol_patch",
         fecha_publicacion: null,
         autor_id: adminId || undefined,
         slug: slug,
         data: patchData,
+        imagen_portada: imagenPrincipal,
       };
 
       // 6. Insertar o Actualizar noticia
@@ -356,6 +466,7 @@ export const patchService = {
           summoners: summonerChanges.length,
         },
         championDatabase: championSyncResult,
+        scrapingDebug: patchContext._meta,
       };
     } catch (error) {
       console.error("Error in patchService:", error);
@@ -369,7 +480,7 @@ export const patchService = {
     version: string
   ): Promise<Record<string, ChampionData>> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_MX/championFull.json`,
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/championFull.json`,
       { cache: "no-store" }
     );
     if (!res.ok) throw new Error(`Failed fetches champions ${version}`);
@@ -379,7 +490,7 @@ export const patchService = {
 
   async fetchItems(version: string): Promise<Record<string, ItemData>> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_MX/item.json`
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/item.json`
     );
     if (!res.ok) return {};
     const json = await res.json();
@@ -405,7 +516,15 @@ export const patchService = {
 
       for (const key in newData) {
         const item = newData[key];
-        if (item.name.toLowerCase() === itemName.toLowerCase()) {
+        // Normalizar nombres para comparación robusta (ignorar acentos, case y caracteres especiales)
+        const normalize = (s: string) =>
+          s
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "");
+
+        if (normalize(item.name) === normalize(itemName)) {
           foundItem = item;
           itemKey = key;
           break;
@@ -414,10 +533,12 @@ export const patchService = {
 
       if (foundItem && itemKey) {
         const oldItem = oldData[itemKey];
-        if (oldItem) {
-          const statChanges: StatChange[] = [];
+        const statChanges: StatChange[] = [];
+        let goldChange;
+        let descriptionChanged = false;
 
-          // Stats
+        if (oldItem) {
+          // Item existente con cambios
           for (const stat in foundItem.stats) {
             const oldVal = oldItem.stats[stat] || 0;
             const newVal = foundItem.stats[stat];
@@ -431,29 +552,39 @@ export const patchService = {
             }
           }
 
-          // Gold
-          let goldChange;
           if (foundItem.gold.total !== oldItem.gold.total) {
             goldChange = { old: oldItem.gold.total, new: foundItem.gold.total };
           }
 
-          const descriptionChanged =
-            foundItem.description !== oldItem.description;
-
-          // Always include items mentioned in context
-          changes.push({
-            id: itemKey,
-            name: foundItem.name,
-            image: foundItem.image.full,
-            statChanges,
-            goldChange,
-            descriptionChange: descriptionChanged
-              ? { old: "...", new: "Updated" }
-              : undefined,
-            type: "adjustment",
-            developerContext: contextMap[itemName],
-          });
+          descriptionChanged = foundItem.description !== oldItem.description;
         }
+
+        // Incluir el item aunque sea nuevo (sin oldItem) si está en el contexto
+        changes.push({
+          id: itemKey,
+          name: foundItem.name,
+          image: foundItem.image.full,
+          statChanges,
+          goldChange,
+          descriptionChange: descriptionChanged
+            ? { old: "...", new: "Updated" }
+            : undefined,
+          type: oldItem ? "adjustment" : "new",
+          developerContext: contextMap[itemName],
+        });
+      } else if (!foundItem && contextMap[itemName]) {
+        // Item mencionado en notas pero no encontrado en DDragon (quizás nombre diferente)
+        // Crear entrada placeholder con la info del scraping
+        changes.push({
+          id: `scraped-${itemName.toLowerCase().replace(/\s+/g, "-")}`,
+          name: itemName,
+          image: "3340.png", // Trinket placeholder
+          statChanges: [],
+          goldChange: undefined,
+          descriptionChange: undefined,
+          type: "new",
+          developerContext: contextMap[itemName],
+        });
       }
     }
 
@@ -514,7 +645,7 @@ export const patchService = {
 
   async fetchRunes(version: string): Promise<RunePath[]> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_MX/runesReforged.json`
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/runesReforged.json`
     );
     if (!res.ok) return [];
     return await res.json();
@@ -524,7 +655,7 @@ export const patchService = {
     version: string
   ): Promise<Record<string, SummonerSpell>> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_MX/summoner.json`
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/summoner.json`
     );
     if (!res.ok) return {};
     const json = await res.json();
@@ -879,35 +1010,37 @@ export const patchService = {
           else if (lowerLine.includes("**r") || lowerLine.includes("r -"))
             nextSection = "R";
 
-          if (nextSection) {
+          // Detectar si entramos en sección Stats ANTES del flush general
+          const isStatsSection = nextSection === "Stats";
+          const isStatsContent = currentSection === "Stats" && !nextSection;
+
+          if (nextSection && !isStatsSection) {
             flushPending();
             currentSection = nextSection;
           }
 
-          // Filtro: Solo mantener líneas si NO estamos en una sección reconocida
-          // (Passive, Q, W, E, R, Stats). Si currentSection activo, drop.
-          // Si es el header también drop.
-          if (
-            !nextSection &&
-            !currentSection &&
-            !lowerLine.includes("estadísticas")
-          ) {
+          // Lógica de procesamiento según la sección actual
+          if (isStatsSection) {
+            // El header "Estadísticas básicas" se añade a remainingLines para mostrarlo
             remainingLines.push(line);
-          }
-
-          if (nextSection && nextSection !== "Stats") {
-            // currentSection = nextSection; // Ya seteado arriba
-            // Nota: Arriba seteamos currentSection = null si Stats, para no generar visuales sinteticos de stats
+            currentSection = "Stats" as typeof currentSection;
+          } else if (isStatsContent) {
+            // Estamos procesando líneas DENTRO de la sección de Stats
+            remainingLines.push(line);
+          } else if (nextSection) {
+            // Es un header de habilidad (Q, W, E, R, Pasiva), no añadir a remainingLines
+            // currentSection ya está seteado arriba
           } else if (currentSection) {
-            // Ignorar líneas tipo "Estadísticas básicas" si no queremos parsearlas o ya las cubre DDragon
-            if (!lowerLine.includes("estadísticas")) {
-              pendingText.push(line);
-            }
+            // Estamos dentro de una habilidad, añadir a pendingText para procesar
+            pendingText.push(line);
+          } else {
+            // Línea sin sección (contexto general), añadir a remainingLines
+            remainingLines.push(line);
           }
         }
         flushPending(); // Procesar último bloque
 
-        // Actualizar context.changes con lo que sobró
+        // Actualizar context.changes con lo que sobró (incluye Stats ahora)
         context.changes = remainingLines;
       }
 

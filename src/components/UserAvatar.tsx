@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Avatar } from "@nextui-org/react";
 import { normalizeAvatarUrl } from "@/lib/utils/avatar-utils";
+import { SupabaseImage } from "@/components/ui/SupabaseImage";
 
 interface UserAvatarProps {
   username: string;
@@ -18,22 +18,14 @@ const generateColor = (name: string) => {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-
-  // Generar un color en el rango de azules/verdes/morados
-  // Evitamos rojos/naranjas para mejor contraste con texto blanco
-  const h = Math.abs(hash) % 270; // 0-270 cubre azules, verdes y morados
-  return `hsl(${h}, 70%, 40%)`; // Saturación y luminosidad fijas para buen contraste
+  const h = Math.abs(hash) % 270;
+  return `hsl(${h}, 70%, 40%)`;
 };
 
-// Obtener iniciales del nombre (máximo 2 caracteres)
 const getInitials = (name: string) => {
   if (!name) return "?";
-
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) {
-    return parts[0].substring(0, 2).toUpperCase();
-  }
-
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
@@ -48,26 +40,50 @@ export default function UserAvatar({
   const initials = getInitials(username || "");
   const avatarColor = useMemo(() => {
     if (color) return color;
-
-    if (!username) return "#3b82f6"; // Color azul predeterminado
-
+    if (!username) return "#3b82f6";
     return generateColor(username || "user");
   }, [username, color]);
 
-  // Crear un estilo combinado que incluya tanto el color de fondo como el borde si está definido
-  const avatarStyle = {
-    backgroundColor: !avatarUrl ? avatarColor : undefined,
-    ...(borderColor && { borderColor, borderStyle: "solid" }),
+  const sizeClasses = {
+    sm: "w-8 h-8 text-xs",
+    md: "w-10 h-10 text-sm",
+    lg: "w-12 h-12 text-base",
   };
 
+  const avatarStyle = {
+    backgroundColor: !avatarUrl ? avatarColor : undefined,
+    ...(borderColor && {
+      borderColor,
+      borderStyle: "solid",
+      borderWeight: "2px",
+    }),
+  };
+
+  const normalizedUrl = normalizeAvatarUrl(avatarUrl);
+
+  if (normalizedUrl) {
+    return (
+      <div
+        className={`${sizeClasses[size]} ${className} relative rounded-full overflow-hidden flex-shrink-0 border-2 border-border/10`}
+        style={borderColor ? { borderColor } : {}}
+      >
+        <SupabaseImage
+          src={normalizedUrl}
+          alt={username}
+          fill
+          className="object-cover"
+          sizes={size === "sm" ? "32px" : size === "md" ? "40px" : "48px"}
+        />
+      </div>
+    );
+  }
+
   return (
-    <Avatar
-      src={normalizeAvatarUrl(avatarUrl) || undefined}
-      name={initials}
-      size={size}
-      className={className}
+    <div
+      className={`${sizeClasses[size]} ${className} rounded-full flex items-center justify-center font-bold text-white flex-shrink-0`}
       style={avatarStyle}
-      showFallback
-    />
+    >
+      {initials}
+    </div>
   );
 }

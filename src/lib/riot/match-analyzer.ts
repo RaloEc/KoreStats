@@ -613,95 +613,109 @@ function buildUnluckyNarrative(
   return `${topPositive}, pero ${topNegative}.`;
 }
 
+export interface PerformanceBreakdown {
+  total: number;
+  kda: number;
+  kp: number;
+  damage: number;
+  gold: number;
+  vision: number;
+  cs: number;
+  victoryBonus: number;
+  penalties: number;
+}
+
 /**
- * Calcula el performance score compuesto (0-120)
- * Fórmula con pesos normalizados:
- * - KDA: 0.18
- * - Kill Participation: 0.21
- * - Damage Share: 0.26
- * - Gold Share: 0.13
- * - Vision/Utility: 0.10
- * - CS Score: 0.12
- * + Bonus de victoria: +20 puntos
- *
- * @param stats - Estadísticas de la partida
- * @returns Score entre 0 y 120
+ * Calcula el desglose detallado del performance score
  */
-export function calculatePerformanceScore(stats: MatchTagInput): number {
+export function calculateDetailedPerformanceScore(
+  stats: MatchTagInput
+): PerformanceBreakdown {
   const minutes = Math.max(1, stats.gameDuration / 60);
 
   // 1. KDA Score (0-1)
   const kda = calculateKDA(stats.kills, stats.deaths, stats.assists);
-  const kdaScore = Math.min(kda / 8, 1); // Normalizar con umbral de 8
+  const kdaScore = Math.min(kda / 8, 1);
+  const kdaPoints = 0.18 * kdaScore * 100;
 
   // 2. Kill Participation (0-1)
   const teamKills = stats.teamTotalKills ?? 1;
   const playerKills = stats.kills + stats.assists;
-  const kpScore = Math.min(playerKills / Math.max(1, teamKills * 0.5), 1); // Clamp a 1
+  const kpScore = Math.min(playerKills / Math.max(1, teamKills * 0.5), 1);
+  const kpPoints = 0.21 * kpScore * 100;
 
   // 3. Damage Share (0-1)
   const teamDamage = stats.teamTotalDamage ?? 1;
   const playerDamage = stats.totalDamageDealtToChampions ?? 0;
   const dmgShare = Math.min(playerDamage / Math.max(1, teamDamage), 1);
+  const damagePoints = 0.26 * dmgShare * 100;
 
   // 4. Gold Share (0-1)
   const teamGold = stats.teamTotalGold ?? 1;
   const goldShare = Math.min(stats.goldEarned / Math.max(1, teamGold), 1);
+  const goldPoints = 0.13 * goldShare * 100;
 
-  // 5. Vision Score (dinámico según duración)
+  // 5. Vision Score
   const baseCap = minutes * 1.5;
   const isSupport =
     stats.role?.toUpperCase() === "UTILITY" ||
     stats.role?.toUpperCase() === "SUPPORT";
   const visCap = isSupport ? baseCap * 1.7 : baseCap;
   const visionScoreRaw = stats.visionScore ?? 0;
-  let visionScore = Math.min(visionScoreRaw / Math.max(1, visCap), 1);
+  let visionScoreNormal = Math.min(visionScoreRaw / Math.max(1, visCap), 1);
 
-  // Bonus para soportes en visión
   if (isSupport) {
-    visionScore = Math.min(visionScore * 1.15, 1);
+    visionScoreNormal = Math.min(visionScoreNormal * 1.15, 1);
   }
+  const visionPoints = 0.1 * visionScoreNormal * 100;
 
   // 6. CS Score (0-1)
   const csPerMinute = calculateCsPerMinute(stats);
-  const csScore = Math.min(csPerMinute / 9, 1); // Normalizar con umbral de 9 cs/min
+  const csScore = Math.min(csPerMinute / 9, 1);
+  const csPoints = 0.12 * csScore * 100;
 
-  // Calcular base score (suma de pesos = 1.0)
-  const baseScore =
-    0.18 * kdaScore +
-    0.21 * kpScore +
-    0.26 * dmgShare +
-    0.13 * goldShare +
-    0.1 * visionScore +
-    0.12 * csScore;
+  let total =
+    kdaPoints + kpPoints + damagePoints + goldPoints + visionPoints + csPoints;
 
-  // Convertir a escala 0-100
-  let finalScore = baseScore * 100;
-
-  // Bonus de victoria: +20 puntos
+  // Bonus de victoria
+  let victoryBonus = 0;
   if (stats.win) {
-    finalScore += 20;
+    victoryBonus = 20;
+    total += 20;
   }
 
-  // Micro-bonos por logros especiales
-  if ((stats.objectivesStolen ?? 0) > 0) {
-    finalScore += 2;
-  }
-  if (dmgShare > 0.35) {
-    finalScore += 1;
-  }
-  if (stats.deaths === 0 && playerKills + stats.assists >= 10) {
-    finalScore += 2;
-  }
+  // Micro-bonos y penalizaciones
+  let extraBonus = 0;
+  if ((stats.objectivesStolen ?? 0) > 0) extraBonus += 2;
+  if (dmgShare > 0.35) extraBonus += 1;
+  if (stats.deaths === 0 && playerKills + stats.assists >= 10) extraBonus += 2;
+  total += extraBonus;
 
-  // Penalización por muertes críticas
   const mistakes = stats.criticalMistakes || {};
-  const mistakeScore =
+  const penalties =
     (mistakes.nashorThrows ?? 0) * 2 +
     (mistakes.preObjectiveDeaths ?? 0) * 1.5 +
     (mistakes.missedTeleports ?? 0) * 0.5;
-  finalScore -= mistakeScore;
+  total -= penalties;
 
-  // Clamp final a [0, 120]
-  return Math.max(0, Math.min(finalScore, 120));
+  return {
+    total: Math.max(0, Math.min(total, 120)),
+    kda: kdaPoints,
+    kp: kpPoints,
+    damage: damagePoints,
+    gold: goldPoints,
+    vision: visionPoints,
+    cs: csPoints,
+    victoryBonus,
+    penalties: penalties - extraBonus, // Simplificado para el tooltip
+  };
+}
+
+/**
+ * Calcula el performance score compuesto (0-120)
+ * @param stats - Estadísticas de la partida
+ * @returns Score entre 0 y 120
+ */
+export function calculatePerformanceScore(stats: MatchTagInput): number {
+  return calculateDetailedPerformanceScore(stats).total;
 }

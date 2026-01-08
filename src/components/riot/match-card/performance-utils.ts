@@ -1,4 +1,8 @@
-import { calculatePerformanceScore } from "@/lib/riot/match-analyzer";
+import {
+  calculatePerformanceScore,
+  calculateDetailedPerformanceScore,
+  PerformanceBreakdown,
+} from "@/lib/riot/match-analyzer";
 
 export interface PerformanceParticipant {
   teamId?: number;
@@ -29,17 +33,25 @@ interface TeamTotals {
   gold: number;
 }
 
+interface ParticipantAny extends PerformanceParticipant {
+  [key: string]: any;
+}
+
 function buildTeamTotals(
   participants: PerformanceParticipant[]
 ): Record<number, TeamTotals> {
-  return participants.reduce((acc, participant) => {
+  return participants.reduce((acc, p) => {
+    const participant = p as ParticipantAny;
     const teamId = participant.teamId ?? 0;
     if (!acc[teamId]) {
       acc[teamId] = { kills: 0, damage: 0, gold: 0 };
     }
     acc[teamId].kills += participant.kills ?? 0;
-    acc[teamId].damage += participant.totalDamageDealtToChampions ?? 0;
-    acc[teamId].gold += participant.goldEarned ?? 0;
+    acc[teamId].damage +=
+      participant.totalDamageDealtToChampions ??
+      participant.total_damage_dealt_to_champions ??
+      0;
+    acc[teamId].gold += participant.goldEarned ?? participant.gold_earned ?? 0;
     return acc;
   }, {} as Record<number, TeamTotals>);
 }
@@ -88,6 +100,7 @@ export interface ParticipantScoreEntry {
   participant: PerformanceParticipant;
   score: number;
   key: string;
+  breakdown?: PerformanceBreakdown;
 }
 
 export function computeParticipantScores(
@@ -99,21 +112,29 @@ export function computeParticipantScores(
   const teamTotals = buildTeamTotals(participants);
   const teamWinMap = buildTeamWinMap(matchInfo);
 
-  return participants.map((participant) => {
+  return participants.map((p) => {
+    const participant = p as ParticipantAny;
     const teamId = participant.teamId ?? 0;
     const totals = teamTotals[teamId] ?? { kills: 0, damage: 0, gold: 0 };
 
-    const score = calculatePerformanceScore({
+    const breakdown = calculateDetailedPerformanceScore({
       kills: participant.kills ?? 0,
       deaths: participant.deaths ?? 0,
       assists: participant.assists ?? 0,
       win: participant.win ?? teamWinMap[teamId] ?? false,
       gameDuration: normalizedDuration,
-      goldEarned: participant.goldEarned ?? 0,
-      totalDamageDealtToChampions: participant.totalDamageDealtToChampions ?? 0,
-      visionScore: participant.visionScore ?? 0,
-      totalMinionsKilled: participant.totalMinionsKilled ?? 0,
-      neutralMinionsKilled: participant.neutralMinionsKilled ?? 0,
+      goldEarned: participant.goldEarned ?? participant.gold_earned ?? 0,
+      totalDamageDealtToChampions:
+        participant.totalDamageDealtToChampions ??
+        participant.total_damage_dealt_to_champions ??
+        0,
+      visionScore: participant.visionScore ?? participant.vision_score ?? 0,
+      totalMinionsKilled:
+        participant.totalMinionsKilled ?? participant.total_minions_killed ?? 0,
+      neutralMinionsKilled:
+        participant.neutralMinionsKilled ??
+        participant.neutral_minions_killed ??
+        0,
       role: getParticipantRole(participant),
       teamTotalKills: totals.kills,
       teamTotalDamage: totals.damage,
@@ -124,8 +145,9 @@ export function computeParticipantScores(
 
     return {
       participant,
-      score,
+      score: breakdown.total,
       key: getParticipantKey(participant),
+      breakdown,
     };
   });
 }

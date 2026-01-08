@@ -116,13 +116,7 @@ export default function HilosPopulares() {
           {hilos.map((hilo, index) => (
             <div
               key={hilo.id}
-              className="flex items-start gap-2 sm:gap-4 p-2 sm:p-4 rounded-lg border transition-colors"
-              onMouseEnter={() => setHoveredId(hilo.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              style={{
-                backgroundColor:
-                  hoveredId === hilo.id ? getFadedBackground() : undefined,
-              }}
+              className="flex items-start gap-2 sm:gap-4 p-2 sm:p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors"
             >
               {/* Ranking */}
               <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary font-bold text-xs sm:text-sm flex-shrink-0">

@@ -27,6 +27,7 @@ import { Target, CheckCircle, Eye } from "lucide-react";
 import { WeaponStatsCard } from "@/components/weapon/WeaponStatsCard";
 import { cn } from "@/lib/utils";
 import { processEditorContent as processEditorImages } from "@/components/tiptap-editor/processImages";
+import { useAutoGuardarHilo } from "@/hooks/useAutoGuardarHilo";
 
 type CategoriaForo = Database["public"]["Tables"]["foro_categorias"]["Row"] & {
   subcategorias?: CategoriaForo[];
@@ -56,6 +57,11 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { userColor } = useUserTheme();
+
+  // Hook de autoguardado
+  const { isAutoSaving, lastSavedAt, saveDraft, loadDraft, clearDraft } =
+    useAutoGuardarHilo();
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Convertir categorías al formato esperado por CategorySelector (recursivo para 3 niveles)
   const formatCategory = (cat: CategoriaForo): Category => ({
@@ -115,6 +121,61 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Cargar borrador al iniciar (solo una vez y si hay usuario)
+  useEffect(() => {
+    if (user && !draftLoaded) {
+      const draft = loadDraft();
+      if (draft) {
+        // Confirmar si el usuario quiere restaurar el borrador
+        toast("Se encontró un borrador no guardado", {
+          action: {
+            label: "Restaurar",
+            onClick: () => {
+              setTitulo(draft.titulo);
+              setContenido(draft.contenido);
+              setCategoriaId(draft.categoriaId);
+              setWeaponStatsRecordId(draft.weaponStatsRecordId);
+
+              if (draft.categoriaId) {
+                const cat = findCategoryById(draft.categoriaId);
+                if (cat) setSelectedCategory(cat);
+              }
+
+              toast.success("Borrador restaurado");
+            },
+          },
+          duration: 8000,
+        });
+      }
+      setDraftLoaded(true);
+    }
+  }, [user, draftLoaded, loadDraft, formattedCategories]);
+
+  // Autoguardado al cambiar datos (debounce de 3s manual)
+  useEffect(() => {
+    if (!draftLoaded) return; // No guardar hasta intentar cargar
+
+    const timer = setTimeout(() => {
+      if (titulo || contenido || categoriaId) {
+        saveDraft({
+          titulo,
+          contenido,
+          categoriaId,
+          weaponStatsRecordId,
+        });
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [
+    titulo,
+    contenido,
+    categoriaId,
+    weaponStatsRecordId,
+    draftLoaded,
+    saveDraft,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +253,7 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
 
       const nuevoHilo = await response.json();
       toast.success("¡Hilo creado con éxito!");
+      clearDraft(); // Limpiar borrador
       router.push(`/foro/hilos/${nuevoHilo.id}`);
     } catch (error) {
       const errorMessage =

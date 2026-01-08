@@ -74,6 +74,27 @@ export const useNotifications = () => {
           );
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log(
+            "🗑️ [Notifications] Notificación borrada (Realtime):",
+            payload
+          );
+          const deletedId = (payload.old as any).id;
+          queryClient.setQueryData(
+            ["notifications", user.id],
+            (oldData: Notification[] = []) =>
+              oldData.filter((n) => n.id !== deletedId)
+          );
+        }
+      )
       .subscribe((status) => {
         console.log("🔔 [Notifications] Estado de suscripción:", status);
       });
@@ -116,6 +137,60 @@ export const useNotifications = () => {
     },
   });
 
+  // 4. Mutación para eliminar notificación
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      console.log("🗑️ [useNotifications] Intentando borrar:", notificationId);
+      const { error } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("id", notificationId)
+        .eq("user_id", user?.id);
+
+      if (error) throw error;
+      return notificationId;
+    },
+    onMutate: async (notificationId) => {
+      // Cancelar cualquier refetch saliente para que no sobrescriba nuestra actualización optimista
+      await queryClient.cancelQueries({
+        queryKey: ["notifications", user?.id],
+      });
+
+      // Guardar el estado anterior
+      const previousNotifications = queryClient.getQueryData<Notification[]>([
+        "notifications",
+        user?.id,
+      ]);
+
+      // Actualizar el caché de forma optimista
+      if (previousNotifications) {
+        queryClient.setQueryData(
+          ["notifications", user?.id],
+          previousNotifications.filter((n) => n.id !== notificationId)
+        );
+      }
+
+      console.log("✨ [useNotifications] Cache actualizado optimista");
+
+      return { previousNotifications };
+    },
+    onError: (err, notificationId, context) => {
+      console.error("❌ [useNotifications] Error al eliminar:", err);
+      // Revertir al estado anterior si falla
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          ["notifications", user?.id],
+          context.previousNotifications
+        );
+      }
+      toast.error("No se pudo eliminar la notificación");
+    },
+    onSettled: () => {
+      // Invalidar siempre para asegurar sincronización con el servidor
+      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+    },
+  });
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return {
@@ -125,5 +200,6 @@ export const useNotifications = () => {
     unreadCount,
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
+    deleteNotification: deleteNotificationMutation.mutate,
   };
 };

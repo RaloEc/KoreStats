@@ -3,14 +3,13 @@
 import React, { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Crosshair, Trophy } from "lucide-react";
+import { Crosshair, Trophy, Swords } from "lucide-react";
 import Image from "next/image";
 import { getChampionImg } from "@/lib/riot/helpers";
 import { cn } from "@/lib/utils";
 
 interface DamageChartProps {
   participants: any[];
-  teamId: number; // 100 or 200
   gameVersion?: string;
 }
 
@@ -22,194 +21,199 @@ const COLORS = [
   "#f6c58b", // Soft Peach
 ];
 
-export function DamageChart({
-  participants,
-  teamId,
+const COLORS_RED = [
+  "#9ca3af", // Gray for neutral
+  "#f87171", // Red 400
+  "#fb7185", // Rose 400
+  "#f43f5e", // Rose 500
+  "#fda4af", // Rose 300
+];
+
+const COLORS_BLUE = [
+  "#9ca3af", // Gray for neutral
+  "#60a5fa", // Blue 400
+  "#3b82f6", // Blue 500
+  "#93c5fd", // Blue 300
+  "#bfdbfe", // Blue 200
+];
+
+function TeamDamageSection({
+  data,
+  title,
+  totalDamage,
+  colorPalette,
   gameVersion,
-}: DamageChartProps) {
-  const { data, totalTeamDamage } = useMemo(() => {
-    const teamOnes = participants
-      .filter((p) => p.teamId === teamId)
-      .map((p) => ({
-        name: p.championName,
-        value: p.totalDamageDealtToChampions || 0,
-        summonerName: p.summonerName,
-        championName: p.championName,
-      }))
-      .sort((a, b) => b.value - a.value);
-
-    const total = teamOnes.reduce((acc, p) => acc + p.value, 0);
-
-    return {
-      data: teamOnes,
-      totalTeamDamage: total,
-    };
-  }, [participants, teamId]);
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const pData = payload[0].payload;
-      const percent =
-        totalTeamDamage > 0 ? (pData.value / totalTeamDamage) * 100 : 0;
-      return (
-        <div className="bg-slate-900/90 border border-slate-700/50 p-3 rounded-xl shadow-2xl text-xs backdrop-blur-md">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="relative w-9 h-9 rounded-lg border border-slate-700 overflow-hidden">
-              <Image
-                src={getChampionImg(pData.championName, gameVersion)}
-                alt={pData.championName}
-                fill
-                sizes="36px"
-                className="object-cover"
-              />
-            </div>
-            <div>
-              <p className="font-semibold text-white">{pData.championName}</p>
-              <p className="text-slate-500 text-[10px]">{pData.summonerName}</p>
-            </div>
-          </div>
-          <p className="text-slate-300 font-medium">
-            {pData.value.toLocaleString()}{" "}
-            <span className="text-slate-500 mx-1">/</span> {percent.toFixed(1)}%
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
+  alignRight = false,
+}: any) {
   return (
-    <Card className="bg-transparent border-slate-200/50 dark:border-slate-800/50 shadow-none overflow-hidden min-h-[380px]">
-      <CardHeader className="border-b border-slate-200/20 dark:border-slate-800/20 pb-4 pt-5 px-6">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs uppercase tracking-[0.2em] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-2">
-            <Crosshair className="w-4 h-4" />
-            Distribución de Daño
-          </CardTitle>
-          <div className="text-[10px] font-bold text-slate-400/80 dark:text-slate-500 font-mono tracking-tighter">
-            TOTAL: {totalTeamDamage.toLocaleString()}
+    <div className="flex flex-col gap-6">
+      <div
+        className={cn(
+          "flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2",
+          alignRight ? "justify-end" : "justify-start"
+        )}
+      >
+        <h4
+          className={cn(
+            "text-xs font-bold uppercase tracking-widest",
+            title.includes("Azul") ? "text-blue-500" : "text-rose-500"
+          )}
+        >
+          {title}
+        </h4>
+        <span className="text-[10px] text-slate-400 font-mono">
+          {totalDamage.toLocaleString()} DMG
+        </span>
+      </div>
+
+      <div className="grid grid-cols-[1fr,1.5fr] gap-4 items-center">
+        {/* Chart */}
+        <div className="relative h-[160px] w-full flex justify-center items-center">
+          <PieChart width={160} height={160}>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={55}
+              outerRadius={65}
+              paddingAngle={2}
+              dataKey="value"
+              stroke="none"
+            >
+              {data.map((entry: any, index: number) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={colorPalette[index % colorPalette.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              content={({ active, payload }: any) => {
+                if (active && payload && payload.length) {
+                  const pData = payload[0].payload;
+                  const percent =
+                    totalDamage > 0 ? (pData.value / totalDamage) * 100 : 0;
+                  return (
+                    <div className="bg-slate-900/90 border border-slate-700 p-2 rounded text-xs text-white shadow-xl pointer-events-none">
+                      <p className="font-bold mb-1">{pData.championName}</p>
+                      <p>
+                        {pData.value.toLocaleString()} ({percent.toFixed(1)}%)
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+          </PieChart>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-50">
+            <Swords className="w-5 h-5 text-slate-400" />
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="grid lg:grid-cols-[1.2fr,1.8fr] gap-8 items-center">
-          {/* Donut Chart */}
-          <div className="relative h-[200px] w-full flex items-center justify-center">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={200}
-              minHeight={200}
-            >
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={74}
-                  outerRadius={86}
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="none"
-                  animationDuration={800}
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      className="hover:opacity-70 transition-opacity cursor-pointer outline-none"
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  content={<CustomTooltip />}
-                  wrapperStyle={{ zIndex: 1000 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            {/* Center Label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0">
-              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-[0.2em] mb-1">
-                Impact
-              </span>
-              <span className="text-2xl font-light text-slate-900 dark:text-white">
-                DMG
-              </span>
-            </div>
-          </div>
 
-          {/* Detailed List */}
-          <div className="space-y-4">
-            {data.map((player, index) => {
-              const percent =
-                totalTeamDamage > 0
-                  ? (player.value / totalTeamDamage) * 100
-                  : 0;
-              const isTopDmg = index === 0;
+        {/* List */}
+        <div className="space-y-3">
+          {data.map((player: any, index: number) => {
+            const percent =
+              totalDamage > 0 ? (player.value / totalDamage) * 100 : 0;
+            const isTop = index === 0;
 
-              return (
-                <div
-                  key={player.name}
-                  className="flex items-center gap-3 group"
-                >
-                  {/* Icon */}
-                  <div className="relative w-11 h-11 shrink-0">
-                    <div
+            return (
+              <div
+                key={player.participantId}
+                className="flex items-center gap-2 text-xs"
+              >
+                <div className="relative w-8 h-8 rounded border border-slate-700 overflow-hidden shrink-0">
+                  <Image
+                    src={getChampionImg(player.championName, gameVersion)}
+                    alt={player.name}
+                    fill
+                    className="object-cover"
+                    sizes="32px"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between mb-0.5">
+                    <span
                       className={cn(
-                        "w-full h-full rounded-lg overflow-hidden border-2 shadow-sm transition-transform group-hover:scale-110",
-                        isTopDmg
-                          ? "border-amber-400"
-                          : "border-slate-200 dark:border-slate-700"
+                        "font-bold truncate",
+                        isTop ? "text-amber-500" : "text-slate-300"
                       )}
                     >
-                      <Image
-                        src={getChampionImg(player.championName, gameVersion)}
-                        alt={player.name}
-                        fill
-                        sizes="44px"
-                        className="object-cover"
-                      />
-                    </div>
-                    {isTopDmg && (
-                      <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-900 rounded-full p-0.5 shadow-md">
-                        <Trophy className="w-2.5 h-2.5" />
-                      </div>
-                    )}
+                      {player.championName}
+                    </span>
+                    <span className="text-slate-500">
+                      {percent.toFixed(0)}%
+                    </span>
                   </div>
-
-                  {/* Bar and Stats */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <div className="truncate pr-4">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {player.name}
-                        </span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mr-2">
-                          {percent.toFixed(1)}%
-                        </span>
-                        <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                          {player.value.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Tiny Progress Bar */}
-                    <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000 ease-out"
-                        style={{
-                          width: `${percent}%`,
-                          backgroundColor: COLORS[index % COLORS.length],
-                        }}
-                      />
-                    </div>
+                  <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${percent}%`,
+                        backgroundColor:
+                          colorPalette[index % colorPalette.length],
+                      }}
+                    />
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DamageChart({ participants, gameVersion }: DamageChartProps) {
+  const { blueTeam, redTeam } = useMemo(() => {
+    const processTeam = (teamId: number) => {
+      const teamMembers = participants
+        .filter((p) => p.teamId === teamId)
+        .map((p) => ({
+          participantId: p.participantId,
+          name: p.summonerName,
+          championName: p.championName,
+          value: p.totalDamageDealtToChampions || 0,
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      const total = teamMembers.reduce((acc, curr) => acc + curr.value, 0);
+      return { data: teamMembers, total };
+    };
+
+    return {
+      blueTeam: processTeam(100),
+      redTeam: processTeam(200),
+    };
+  }, [participants]);
+
+  return (
+    <Card className="bg-transparent border-slate-200/50 dark:border-slate-800/50 shadow-none overflow-hidden min-h-[380px] col-span-1 lg:col-span-2">
+      <CardHeader className="border-b border-slate-200/20 dark:border-slate-800/20 pb-4 pt-5 px-6">
+        <CardTitle className="text-xs uppercase tracking-[0.2em] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-2">
+          <Crosshair className="w-4 h-4" />
+          Distribución de Daño Total
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <TeamDamageSection
+            data={blueTeam.data}
+            totalDamage={blueTeam.total}
+            title="Equipo Azul"
+            colorPalette={COLORS_BLUE}
+            gameVersion={gameVersion}
+          />
+          <TeamDamageSection
+            data={redTeam.data}
+            totalDamage={redTeam.total}
+            title="Equipo Rojo"
+            colorPalette={COLORS_RED}
+            gameVersion={gameVersion}
+            alignRight
+          />
         </div>
       </CardContent>
     </Card>

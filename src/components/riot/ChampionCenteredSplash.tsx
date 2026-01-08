@@ -167,7 +167,6 @@ export const ChampionCenteredSplash = memo(function ChampionCenteredSplash({
           onLoad={handleLoad}
           onError={handleError}
           quality={85}
-          unoptimized
         />
       )}
     </div>

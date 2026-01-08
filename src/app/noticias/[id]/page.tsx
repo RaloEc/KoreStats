@@ -149,8 +149,45 @@ export default async function NoticiaDetalle({
             />
           )}
 
-          {/* Contenido de la noticia */}
-          <NoticiaContenido contenido={contenidoProcesado} />
+          {/* Contenido de la noticia (Ocultar para parches de LoL para evitar duplicidad con el componente interactivo) */}
+          {noticia.type !== "lol_patch" && (
+            <NoticiaContenido contenido={contenidoProcesado} />
+          )}
+
+          {/* Fuente de la noticia */}
+          {/* Fuentes de la noticia */}
+          {(noticia.fuentes && noticia.fuentes.length > 0) || noticia.fuente ? (
+            <div className="max-w-4xl mx-auto -mt-2 mb-8 px-2 md:px-0">
+              <div className="text-xs text-muted-foreground/70 italic flex items-center gap-1.5 overflow-hidden flex-wrap">
+                <span className="font-medium shrink-0">
+                  Fuente
+                  {noticia.fuentes && noticia.fuentes.length > 1 ? "s" : ""}:
+                </span>
+                {(noticia.fuentes && noticia.fuentes.length > 0
+                  ? noticia.fuentes
+                  : [noticia.fuente]
+                ).map((fuente, index, arr) => (
+                  <span key={index} className="inline-flex items-center">
+                    {fuente && fuente.match(/^https?:\/\//) ? (
+                      <a
+                        href={fuente}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-primary/80 hover:text-primary transition-colors truncate max-w-[200px] md:max-w-[300px]"
+                      >
+                        {fuente}
+                      </a>
+                    ) : (
+                      <span className="truncate max-w-[200px] md:max-w-[300px]">
+                        {fuente || ""}
+                      </span>
+                    )}
+                    {index < arr.length - 1 && <span className="mr-1">,</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {/* Contenido especial para parches de LoL */}
           {noticia.type === "lol_patch" && noticia.data && (

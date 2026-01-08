@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getServiceClient } from "@/utils/supabase-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(request: NextRequest) {
@@ -17,11 +18,11 @@ export async function PATCH(request: NextRequest) {
     // Verificar rol admin
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("es_admin")
+      .select("role")
       .eq("id", user.id)
       .single();
 
-    if (!perfil?.es_admin) {
+    if (perfil?.role !== "admin") {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
@@ -38,15 +39,23 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
     }
 
+    // Usar cliente de servicio para bypasear RLS
+    const serviceClient = getServiceClient();
+
     // Actualizar estado
-    const { data, error } = await supabase
+    const updateData: any = {
+      estado,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Si se publica por primera vez, establecer la fecha de publicación
+    if (estado === "publicada") {
+      updateData.fecha_publicacion = new Date().toISOString();
+    }
+
+    const { data, error } = await serviceClient
       .from("noticias")
-      .update({
-        estado,
-        // Si se publica, marcar como activa
-        es_activa: estado === "publicada" ? true : undefined,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();

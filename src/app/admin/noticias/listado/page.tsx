@@ -288,7 +288,7 @@ export default function ListadoNoticiasPage() {
           />
         )}
 
-        <Card>
+        <Card className="border border-zinc-200 dark:border-zinc-800">
           <CardHeader>
             <CardTitle>Noticias</CardTitle>
             <CardDescription>
@@ -365,7 +365,7 @@ export default function ListadoNoticiasPage() {
             </div>
 
             {modoVista === "tabla" ? (
-              <div className="rounded-md border">
+              <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
                 <Table>
                   <TableHeader>
                     <TableRow>
