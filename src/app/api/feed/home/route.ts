@@ -46,7 +46,7 @@ type FeedNewsItem = {
   id: string;
   created_at: string;
   news: {
-    id: number;
+    id: string | number;
     titulo: string;
     contenido: string;
     fecha_publicacion: string;
@@ -58,6 +58,13 @@ type FeedNewsItem = {
     autor_nombre?: string;
     autor_color?: string;
     autor_avatar?: string | null;
+    autor?: {
+      id: string;
+      username: string;
+      role: string;
+      avatar_url: string | null;
+      color: string | null;
+    } | null;
     categorias?: Array<{
       id: string | number;
       nombre: string;
@@ -630,45 +637,43 @@ export async function GET(request: NextRequest) {
       console.error("[feed/home] Error lol entries", lolEntriesRes.error);
     }
 
+    const newsDataArr = (newsRes.data ?? []) as Array<Record<string, unknown>>;
     const lolEntries = (lolEntriesRes.data ?? []) as Array<
       Record<string, unknown>
     >;
 
+    // Collect IDs from both sources
+    const userIdsOfInterest = Array.from(
+      new Set([
+        ...lolEntries
+          .map((e) => (typeof e.user_id === "string" ? e.user_id : ""))
+          .filter(Boolean),
+        ...newsDataArr
+          .map((n) => (typeof n.autor_id === "string" ? n.autor_id : ""))
+          .filter(Boolean),
+      ])
+    );
+
     const profileById = new Map<string, FeedAuthor>();
-    if (wantLol && lolEntries.length > 0) {
-      const userIds = Array.from(
-        new Set(
-          lolEntries
-            .map((e) => (typeof e.user_id === "string" ? e.user_id : ""))
-            .filter(Boolean)
-        )
-      );
+    if (userIdsOfInterest.length > 0) {
+      const { data: profileRows, error: profileError } = await supabase
+        .from("perfiles")
+        .select("id, username, public_id, avatar_url, color")
+        .in("id", userIdsOfInterest);
 
-      if (userIds.length > 0) {
-        const { data: profileRows, error: profileError } = await supabase
-          .from("perfiles")
-          .select("id, username, public_id, avatar_url, color")
-          .in("id", userIds);
-
-        if (profileError) {
-          console.warn(
-            "[feed/home] Error perfiles for lol sharedBy",
-            profileError
-          );
-        } else {
-          for (const p of (profileRows ?? []) as Array<
-            Record<string, unknown>
-          >) {
-            const id = String(p.id ?? "");
-            if (!id) continue;
-            profileById.set(id, {
-              id,
-              username: (p.username as string | null) ?? null,
-              public_id: (p.public_id as string | null) ?? null,
-              avatar_url: (p.avatar_url as string | null) ?? null,
-              color: (p.color as string | null) ?? null,
-            });
-          }
+      if (profileError) {
+        console.warn("[feed/home] Error perfiles fetching", profileError);
+      } else {
+        for (const p of (profileRows ?? []) as Array<Record<string, unknown>>) {
+          const id = String(p.id ?? "");
+          if (!id) continue;
+          profileById.set(id, {
+            id,
+            username: (p.username as string | null) ?? null,
+            public_id: (p.public_id as string | null) ?? null,
+            avatar_url: (p.avatar_url as string | null) ?? null,
+            color: (p.color as string | null) ?? null,
+          });
         }
       }
     }
@@ -788,9 +793,14 @@ export async function GET(request: NextRequest) {
       (newsRes.data ?? []) as Array<Record<string, unknown>>
     ).map((n) => {
       const fecha_publicacion = String(n.fecha_publicacion || n.created_at);
-      const numericId =
+      const finalId =
         typeof n.id === "number" && Number.isFinite(n.id)
           ? n.id
+          : typeof n.id === "string" &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              n.id
+            )
+          ? n.id // Es un UUID válido
           : typeof n.id === "string" && Number.isFinite(Number(n.id))
           ? Number(n.id)
           : stableHashNumber(`${fecha_publicacion}|${String(n.titulo ?? "")}`);
@@ -798,12 +808,19 @@ export async function GET(request: NextRequest) {
       const resumen = makeSummary(contenido, 180);
       const autorNombre = typeof n.autor === "string" ? n.autor : "";
 
+      // Resolve profile from autor_id if available
+      let profile: FeedAuthor | undefined;
+      const autorId = typeof n.autor_id === "string" ? n.autor_id : null;
+      if (autorId && profileById.has(autorId)) {
+        profile = profileById.get(autorId);
+      }
+
       return {
         type: "news",
-        id: `news-${numericId}`,
+        id: `news-${finalId}`,
         created_at: fecha_publicacion,
         news: {
-          id: numericId,
+          id: finalId,
           titulo: String(n.titulo ?? ""),
           contenido,
           fecha_publicacion,
@@ -812,10 +829,25 @@ export async function GET(request: NextRequest) {
           vistas: typeof n.vistas === "number" ? n.vistas : undefined,
           comentarios_count: undefined,
           resumen,
-          autor_nombre: autorNombre || undefined,
-          autor_color: undefined,
-          autor_avatar: null,
+          autor_nombre: profile?.username || autorNombre || undefined,
+          autor_color: profile?.color || undefined,
+          autor_avatar: profile?.avatar_url || null,
+          // Add author object relationship if supported by type, but currently Noticia type in Feed uses flat fields
+          // However, for NoticiaCard, we might want to attach the full author object if we updated the interface.
+          // The current FeedNewsItem type in this file has:
+          // autor_nombre, autor_color, autor_avatar.
+          // We will stick to that for now.
           categorias: [],
+
+          autor: profile // Populate the autor relation as well
+            ? {
+                id: profile.id,
+                username: profile.username || "Usuario",
+                role: "user", // FeedAuthor doesn't have role, default to user or fetch if needed
+                avatar_url: profile.avatar_url,
+                color: profile.color,
+              }
+            : null,
         },
       };
     });

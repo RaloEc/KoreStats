@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import ForoBtnFlotante from "./ForoBtnFlotante";
 import ForoFiltrosModal, { ForoFiltersState } from "./ForoFiltrosModal";
-import BtnFlotanteUnificado from "@/components/BtnFlotanteUnificado";
+import BtnFlotanteInteligente from "@/components/BtnFlotanteInteligente";
 import HiloCard from "./HiloCard";
 import { useForoHilos, type Categoria } from "./hooks/useForoHilos";
 import { useRealtimeVotosHilos } from "@/hooks/useRealtimeVotosHilos";
@@ -333,20 +333,18 @@ export default function ForoCliente({ initialCategorias }: ForoClienteProps) {
       </div>
 
       {/* Botón flotante unificado para móvil */}
-      <BtnFlotanteUnificado
-        tipo="foro"
-        usuarioAutenticado={!!user}
-        filtroActivo={activeTab}
-        onCambiarFiltro={(filtro) => {
-          setActiveTab(filtro as any);
+      {/* Botón flotante unificado para móvil */}
+      <BtnFlotanteInteligente
+        filtroForoActivo={activeTab}
+        onCambiarFiltroForo={(filtro) => {
+          setActiveTab(filtro);
         }}
-        onCambiarCategoria={(categoriaId) => {
-          // Navegar a la categoría usando el router de Next.js
+        onCambiarCategoriaForo={(categoriaId) => {
           if (categoriaId) {
             router.push(`/foro/categoria/${categoriaId}`);
           }
         }}
-        categorias={(categorias || []).map((cat) => ({
+        categoriasForo={(categorias || []).map((cat) => ({
           id: cat.slug || cat.id.toString(),
           nombre: cat.nombre,
           color: cat.color || undefined,

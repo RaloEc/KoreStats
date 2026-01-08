@@ -47,7 +47,7 @@ export default function CategoriaFiltrosDesktop({
     value.destacados === true;
 
   return (
-    <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm space-y-4">
+    <div className="hidden md:block bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm space-y-4">
       {/* Top Row: Main Filters */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">

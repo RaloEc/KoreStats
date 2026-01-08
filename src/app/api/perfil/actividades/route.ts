@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         .from("noticias")
         .select(
           `
-          id, titulo, contenido, created_at, estado, deleted_at,
+          id, titulo, contenido, created_at, estado, deleted_at, imagen_portada,
           categorias:noticias_categorias(categoria:categorias(nombre))
         `
         )
@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
       contenido?: string;
       created_at: string;
       categorias?: Array<{ categoria?: { nombre?: string } }> | null;
+      imagen_portada?: string | null;
     };
 
     type ComentarioItem = {
@@ -182,6 +183,7 @@ export async function GET(request: NextRequest) {
           preview: getContentPreview(noticia.contenido || ""),
           timestamp: noticia.created_at,
           category: primeraCategoria,
+          image: noticia.imagen_portada || null,
         };
       }
     );

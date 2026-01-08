@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCanvas, loadImage } from "canvas";
+import { createCanvas, loadImage, registerFont } from "canvas";
+import path from "path";
+
+// Registrar fuente para asegurar que el texto se renderice
+try {
+  const fontPath = path.join(
+    process.cwd(),
+    "public",
+    "fonts",
+    "MinecraftRegular.otf"
+  );
+  registerFont(fontPath, { family: "Minecraft" });
+} catch (e) {
+  // Ignorar error si ya está registrada o no se encuentra (fallback a sans-serif)
+  console.warn("Error registering font:", e);
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -40,19 +55,19 @@ export async function GET(req: NextRequest) {
     ctx.textAlign = "center";
 
     // Title
-    ctx.font = "bold 60px sans-serif";
+    ctx.font = "bold 60px Minecraft";
     ctx.fillStyle = "#ffffff";
     ctx.shadowColor = "rgba(0,0,0,0.8)";
     ctx.shadowBlur = 10;
     ctx.fillText("NOTAS DEL PARCHE", width / 2, height - 160);
 
     // Version
-    ctx.font = "bold 130px sans-serif";
+    ctx.font = "bold 130px Minecraft";
     ctx.fillStyle = "#fbbf24"; // Amber-400
     ctx.fillText(version, width / 2, height - 40);
 
     // Branding
-    ctx.font = "bold 24px sans-serif";
+    ctx.font = "bold 24px Minecraft";
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.fillText("KORESTATS.COM", width / 2, 40);
 

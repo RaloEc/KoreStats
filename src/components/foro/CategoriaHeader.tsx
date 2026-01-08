@@ -37,11 +37,6 @@ export default function CategoriaHeader({ categoria }: Props) {
           <h1 className="text-3xl lg:text-4xl font-bold leading-tight">
             {categoria.nombre}
           </h1>
-          {categoria.descripcion && (
-            <p className="mt-2 text-base text-muted-foreground max-w-3xl">
-              {categoria.descripcion}
-            </p>
-          )}
         </div>
       </div>
     </header>

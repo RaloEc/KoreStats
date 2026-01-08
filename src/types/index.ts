@@ -103,7 +103,7 @@ export type CategoriaNoticia = {
 };
 
 export type Noticia = {
-  id: number;
+  id: string | number;
   titulo: string;
   contenido: string;
   fecha_publicacion: string;

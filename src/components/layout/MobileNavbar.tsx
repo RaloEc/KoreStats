@@ -278,7 +278,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   return (
     <>
       {/* Header móvil con logo - Solo visible en móviles */}
-      <header className="fixed top-0 left-0 right-0 z-[9999] lg:hidden pwa-only-nav pwa-top-header bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200/80 dark:border-gray-700/50">
+      <header className="fixed top-0 left-0 right-0 z-[9999] lg:hidden pwa-only-nav pwa-top-header bg-white/95 dark:bg-black backdrop-blur-lg border-b border-gray-200/80 dark:border-gray-800/50">
         <div className="flex items-center justify-between h-14 px-4">
           <Link
             href="/"

@@ -4,8 +4,8 @@
   "description": "Estadísticas avanzadas y análisis para jugadores de videojuegos",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#18181b",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {

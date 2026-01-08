@@ -18,6 +18,10 @@ export function LPBadge({
   className,
   isOwnProfile,
 }: LPBadgeProps) {
+  // Deshabilitado temporalmente para no mostrar PL en el frontend
+  return null;
+
+  /*
   const { session } = useAuth();
 
   const { data: lpData, isLoading } = useQuery({
@@ -58,7 +62,7 @@ export function LPBadge({
 
   if (!lpData?.lpChange) return null;
 
-  const { gained } = lpData.lpChange;
+  const { gained, didPromote, didDemote } = lpData.lpChange;
 
   const isPositive = gained > 0;
   const isZero = gained === 0;
@@ -68,7 +72,11 @@ export function LPBadge({
       className={`
       inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider
       ${
-        isPositive
+        didPromote
+          ? "text-amber-600 bg-amber-500/10 border border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20"
+          : didDemote
+          ? "text-rose-600 bg-rose-500/10 border border-rose-500/20 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20"
+          : isPositive
           ? "text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20"
           : isZero
           ? "text-gray-500 bg-gray-500/10 border border-gray-500/20 dark:text-gray-400 dark:bg-gray-500/10 dark:border-gray-500/20"
@@ -76,9 +84,19 @@ export function LPBadge({
       }
       ${className}
     `}
+      title={
+        didPromote
+          ? "Ascenso de división"
+          : didDemote
+          ? "Descenso de división"
+          : ""
+      }
     >
-      {isPositive ? "+" : ""}
+      {didPromote && <span className="mr-0.5">▲</span>}
+      {didDemote && <span className="mr-0.5">▼</span>}
+      {!didPromote && !didDemote && isPositive ? "+" : ""}
       {gained} PL
     </div>
   );
+  */
 }

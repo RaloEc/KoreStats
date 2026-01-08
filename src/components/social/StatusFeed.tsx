@@ -13,6 +13,7 @@ interface StatusFeedProps {
   profileId: string;
   profileUsername?: string; // Username of the profile being viewed
   isOwnProfile?: boolean;
+  userColor?: string;
 }
 
 // Skeleton component for loading state
@@ -36,6 +37,7 @@ export default function StatusFeed({
   profileId,
   profileUsername,
   isOwnProfile,
+  userColor = "#f43f5e", // Default color if none provided
 }: StatusFeedProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,6 +245,7 @@ export default function StatusFeed({
                     <MemoizedActivityItem
                       activity={activity}
                       onDelete={handleDeletePost}
+                      userColor={userColor}
                     />
                   </div>
                 </div>

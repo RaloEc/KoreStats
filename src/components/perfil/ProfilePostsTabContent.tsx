@@ -50,6 +50,7 @@ export function ProfilePostsTabContent({
           profileId={perfilId}
           profileUsername={perfilUsername}
           isOwnProfile={true}
+          userColor={perfilColor}
         />
       </div>
 

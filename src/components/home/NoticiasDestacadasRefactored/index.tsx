@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -14,6 +15,11 @@ import { NewsSkeleton } from "./NewsSkeleton";
 import { useNoticias } from "./hooks/useNoticias";
 import { useThemeDetection } from "./hooks/useThemeDetection";
 import { Noticia, TabType } from "./types";
+
+const ServerStatusWidget = dynamic(
+  () => import("@/components/riot/ServerStatusWidget"),
+  { ssr: false }
+);
 
 interface NoticiasDestacadasProps {
   className?: string;
@@ -130,6 +136,11 @@ function NoticiasDestacadasContent({
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 dark:bg-black">
+          {/* Mobile specific Riot Status */}
+          <div className="lg:hidden mb-6">
+            <ServerStatusWidget />
+          </div>
+
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Columna principal */}
             <div className="lg:w-2/3">

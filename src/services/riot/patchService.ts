@@ -285,7 +285,23 @@ export const patchService = {
 
       // 5. Preparar Payload
       const slug = `parche-${latestVersion.replace(/\./g, "-")}`;
-      const adminId = process.env.ADMIN_USER_ID;
+
+      // Obtener Admin ID (desde ENV o Base de Datos)
+      let adminId = process.env.ADMIN_USER_ID;
+
+      if (!adminId) {
+        // Fallback: Buscar cualquier usuario con rol admin
+        const { data: adminUser } = await supabase
+          .from("perfiles")
+          .select("id")
+          .eq("role", "admin")
+          .limit(1)
+          .single();
+
+        if (adminUser) {
+          adminId = adminUser.id;
+        }
+      }
 
       // Seleccionar imagen de portada
       let imagenPrincipal = null;
@@ -407,7 +423,8 @@ export const patchService = {
         titulo: `Notas del Parche ${displayVersion}`,
         contenido: contentHtml,
         type: "lol_patch",
-        fecha_publicacion: null,
+        fecha_publicacion: new Date().toISOString(),
+        estado: "publicada", // Asegurar que sea visible
         autor_id: adminId || undefined,
         slug: slug,
         data: patchData,

@@ -23,7 +23,7 @@ export default function DynamicThemeColor() {
     // Definir colores según el tema
     const colors = {
       light: "#ffffff", // Blanco para tema claro
-      dark: "#18181b", // Zinc-900 para tema oscuro
+      dark: "#000000", // Negro puro para tema oscuro (AMOLED)
       amoled: "#000000", // Negro puro para AMOLED
     };
 

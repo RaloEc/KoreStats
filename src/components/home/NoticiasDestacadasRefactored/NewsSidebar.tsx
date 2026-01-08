@@ -46,7 +46,9 @@ export function NewsSidebar({
       }
     >
       {/* Estado del servidor de Riot (solo si hay problemas) */}
-      <ServerStatusWidget />
+      <div className="hidden lg:block">
+        <ServerStatusWidget />
+      </div>
 
       {/* Últimas noticias */}
       <div

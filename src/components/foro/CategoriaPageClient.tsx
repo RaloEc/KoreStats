@@ -5,12 +5,11 @@ import CategoriaHeader from "./CategoriaHeader";
 import { CategoriaFiltersState } from "./CategoriaFilters";
 import SubcategoriasDestacadas from "./SubcategoriasDestacadas";
 import HilosLista, { HiloDTO } from "./HilosLista";
-import FloatingCreateButton from "./FloatingCreateButton";
-
 import CategoriaFiltrosDesktop from "./CategoriaFiltrosDesktop";
-import CategoriaFiltrosBtnFlotante from "./CategoriaFiltrosBtnFlotante";
 import CategoriaFiltrosModal from "./CategoriaFiltrosModal";
 import AdRectangle from "@/components/ads/AdRectangle";
+import BtnFlotanteInteligente from "@/components/BtnFlotanteInteligente";
+import { Filter as FilterIcon } from "lucide-react";
 
 type Categoria = {
   id: string;
@@ -271,20 +270,31 @@ export default function CategoriaPageClient({
           </aside>
         </div>
       </div>
-      <FloatingCreateButton categoriaId={categoria.id} />
-
-      {/* Botón flotante para filtros en móvil */}
-      <CategoriaFiltrosBtnFlotante
-        modalAbierto={modalFiltrosAbierto}
-        onAbrirModal={() => setModalFiltrosAbierto(true)}
-        hayFiltrosActivos={
-          filters.tags.length > 0 ||
-          filters.estado !== undefined ||
-          filters.popularidad !== undefined ||
-          filters.fechaFrom !== undefined ||
-          filters.fechaTo !== undefined ||
-          filters.destacados === true
-        }
+      {/* Botón flotante unificado */}
+      <BtnFlotanteInteligente
+        customCrearUrl={`/foro/crear-hilo?categoria=${encodeURIComponent(
+          categoria.id
+        )}`}
+        onCambiarFiltroForo={() => {}} // No-op, managed by extra options
+        extraOpciones={[
+          {
+            id: "filtros-avanzados",
+            label: "Filtros y Tags",
+            icon: FilterIcon,
+            onClick: () => setModalFiltrosAbierto(true),
+          },
+        ]}
+        categoriasForo={(meta?.subcategorias || [])
+          .filter((sub) => !sub.parent_id || sub.parent_id === categoria.id)
+          .map((sub) => ({
+            id: sub.slug || sub.id,
+            nombre: sub.nombre || "Subcategoría",
+            color: sub.color || undefined,
+          }))}
+        onCambiarCategoriaForo={(catId) => {
+          // Navegación a subcategoría
+          window.location.href = `/foro/categoria/${catId}`;
+        }}
       />
 
       {/* Modal de filtros para móvil */}

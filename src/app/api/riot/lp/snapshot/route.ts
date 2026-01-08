@@ -301,14 +301,80 @@ export async function GET(request: NextRequest) {
     // Calcular LP change si tenemos ambos snapshots
     let lpChange = null;
     if (preGame && postGame) {
+      const getTierValue = (tier: string) => {
+        const tiers = [
+          "IRON",
+          "BRONZE",
+          "SILVER",
+          "GOLD",
+          "PLATINUM",
+          "EMERALD",
+          "DIAMOND",
+          "MASTER",
+          "GRANDMASTER",
+          "CHALLENGER",
+        ];
+        return tiers.indexOf(tier);
+      };
+
+      const getRankValue = (rank: string) => {
+        const ranks = ["IV", "III", "II", "I"];
+        return ranks.indexOf(rank);
+      };
+
+      const calculateTotalLp = (tier: string, rank: string, lp: number) => {
+        const tierVal = getTierValue(tier);
+        const rankVal = getRankValue(rank);
+
+        // Si no es un tier válido, retornar 0 o el LP crudo
+        if (tierVal === -1) return lp;
+
+        // Para Apex Tiers (Master+), todos comparten la misma "base" de Diamond I 100LP
+        // y su LP es absoluto.
+        if (tierVal >= 7) {
+          // Base hasta Diamond (6 * 400 = 2400) + Diamond I completado (100) = 2500?
+          // Hagamos la matemática estándar:
+          // Iron IV (0) -> Diamond I (400*6 + 3*100) = 2400 + 300 = 2700.
+          // Al llegar a 2800 (Diamond I 100LP), saltas a Master.
+          // Así que Master 0 PL = 2800 absoluto.
+          return 2800 + lp;
+        }
+
+        // Para rangos normales (Iron - Diamond)
+        // Cada Tier son 400 PL (4 divisiones de 100)
+        // Cada Rank son 100 PL
+        return tierVal * 400 + rankVal * 100 + lp;
+      };
+
+      const preTotal = calculateTotalLp(
+        preGame.tier,
+        preGame.rank,
+        preGame.league_points
+      );
+      const postTotal = calculateTotalLp(
+        postGame.tier,
+        postGame.rank,
+        postGame.league_points
+      );
+
+      const gained = postTotal - preTotal;
+
       lpChange = {
-        gained: postGame.league_points - preGame.league_points,
+        gained,
         preLp: preGame.league_points,
         postLp: postGame.league_points,
         preTier: preGame.tier,
         postTier: postGame.tier,
         preRank: preGame.rank,
         postRank: postGame.rank,
+        didPromote:
+          getTierValue(postGame.tier) > getTierValue(preGame.tier) ||
+          (postGame.tier === preGame.tier &&
+            getRankValue(postGame.rank) > getRankValue(preGame.rank)),
+        didDemote:
+          getTierValue(postGame.tier) < getTierValue(preGame.tier) ||
+          (postGame.tier === preGame.tier &&
+            getRankValue(postGame.rank) < getRankValue(preGame.rank)),
       };
     }
 
