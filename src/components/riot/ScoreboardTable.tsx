@@ -11,6 +11,7 @@ import { useSaveBuild } from "@/hooks/use-save-build";
 import { usePlayerNotes } from "@/hooks/use-player-notes";
 import { usePerkAssets } from "./match-card/RunesTooltip";
 import { ScoreboardPlayerRow } from "./ScoreboardPlayerRow";
+import { organizeMatchParticipants } from "@/lib/riot/organize-participants";
 
 interface ScoreboardTableProps {
   participants: any[];
@@ -71,13 +72,26 @@ export function ScoreboardTable({
       TOP: 0,
       JUNGLE: 1,
       MIDDLE: 2,
+      MID: 2,
       BOTTOM: 3,
+      BOT: 3,
+      ADC: 3,
       UTILITY: 4,
+      SUPPORT: 4,
+      SUP: 4,
     };
+
+    const normalizeRole = (p: any) => {
+      // Prioridad: lane > teamPosition > individualPosition > role
+      const raw =
+        p.lane || p.teamPosition || p.individualPosition || p.role || "";
+      return raw.toUpperCase();
+    };
+
     const sortByLane = (players: any[]) => {
       return [...players].sort((a, b) => {
-        const laneA = (a.lane || a.teamPosition || "").toUpperCase();
-        const laneB = (b.lane || b.teamPosition || "").toUpperCase();
+        const laneA = normalizeRole(a);
+        const laneB = normalizeRole(b);
         return (laneOrder[laneA] ?? 999) - (laneOrder[laneB] ?? 999);
       });
     };
@@ -92,19 +106,46 @@ export function ScoreboardTable({
 
       return {
         ...p,
+        // Normalizar teamId para compatibilidad
+        teamId: p.teamId ?? p.team_id ?? raw?.teamId,
+        team_id: p.team_id ?? p.teamId ?? raw?.teamId,
         keystone_id:
           raw?.perks?.styles?.[0]?.selections?.[0]?.perk ?? p.keystone_id,
         primary_style_id:
           raw?.perks?.styles?.[0]?.style ?? p.perk_primary_style,
         sub_style_id: raw?.perks?.styles?.[1]?.style ?? p.perk_sub_style,
+        // Ensure teamPosition is available for the organizer
+        teamPosition:
+          p.teamPosition ||
+          raw?.teamPosition ||
+          p.individualPosition ||
+          raw?.individualPosition ||
+          p.lane ||
+          raw?.lane ||
+          "",
       };
     });
 
-    const team1P = sortByLane(enhancedParticipants.filter((p: any) => p.win));
-    const team2P = sortByLane(enhancedParticipants.filter((p: any) => !p.win));
+    const { blueTeam, redTeam } =
+      organizeMatchParticipants(enhancedParticipants);
 
-    const t1Kills = team1P.reduce((acc: number, p: any) => acc + p.kills, 0);
-    const t2Kills = team2P.reduce((acc: number, p: any) => acc + p.kills, 0);
+    // Determinar cuál equipo ganó
+    // blueTeam = teamId 100, redTeam = teamId 200
+    // Todos los jugadores del mismo equipo tienen el mismo valor de 'win'
+    const blueWon = blueTeam.length > 0 && blueTeam[0]?.win === true;
+
+    // team1P = Ganadores, team2P = Perdedores (para mantener la lógica del UI)
+    const team1P = blueWon ? blueTeam : redTeam;
+    const team2P = blueWon ? redTeam : blueTeam;
+
+    const t1Kills = team1P.reduce(
+      (acc: number, p: any) => acc + (p.kills || 0),
+      0
+    );
+    const t2Kills = team2P.reduce(
+      (acc: number, p: any) => acc + (p.kills || 0),
+      0
+    );
     const t1Gold = team1P.reduce(
       (acc: number, p: any) => acc + getValue(p, "gold_earned", "goldEarned"),
       0

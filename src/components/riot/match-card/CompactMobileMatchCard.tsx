@@ -16,6 +16,23 @@ import {
   usePerkAssets,
 } from "./RunesTooltip";
 import { LPBadge } from "./LPBadge";
+import {
+  computeParticipantScores,
+  getParticipantKey as getParticipantKeyUtil,
+} from "./performance-utils";
+
+function getRankingBadgeClass(position?: number | null) {
+  if (!position) {
+    return "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-100";
+  }
+  if (position === 1) {
+    return "bg-amber-400 text-slate-900 dark:bg-amber-300";
+  }
+  if (position <= 3) {
+    return "bg-sky-400 text-slate-900 dark:bg-sky-300";
+  }
+  return "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100";
+}
 
 interface RiotParticipant {
   puuid: string;
@@ -98,6 +115,38 @@ export function CompactMobileMatchCard({
   const playerSecondaryRune = match.perk_sub_style;
   const playerKeystonePerkId = getKeystonePerkId(currentParticipant?.perks);
   const { perkIconById, perkNameById } = usePerkAssets([playerKeystonePerkId]);
+
+  // Calcular ranking del jugador
+  const scoreEntries = computeParticipantScores(
+    participants,
+    match.matches.game_duration,
+    match.matches.full_json?.info
+  );
+
+  const sortedByScore = [...scoreEntries].sort(
+    (a, b) => (b.score ?? 0) - (a.score ?? 0)
+  );
+  const rankingPositions = new Map<string, number>();
+  sortedByScore.forEach((entry, index) => {
+    rankingPositions.set(entry.key, index + 1);
+  });
+
+  // Usar ranking del servidor (persistido en BD) si existe, sino usar el calculado
+  let playerRankingPosition =
+    typeof (match as any).ranking_position === "number" &&
+    (match as any).ranking_position > 0
+      ? (match as any).ranking_position
+      : null;
+
+  // Fallback: usar ranking calculado si no está en BD
+  if (playerRankingPosition === null) {
+    const playerKey = currentParticipant
+      ? getParticipantKeyUtil(currentParticipant)
+      : null;
+    playerRankingPosition = playerKey
+      ? rankingPositions.get(playerKey) ?? null
+      : null;
+  }
 
   // Queue name
   const queueName = getQueueName(match.matches.queue_id);
@@ -241,9 +290,19 @@ export function CompactMobileMatchCard({
           </div>
 
           {/* Runas (vertical a la derecha del campeón) */}
-          <div className="flex flex-col gap-0.5 mt-0.5">
+          <div className="flex flex-col gap-0.5 mt-0.5 items-center">
             {renderKeystoneIcon()}
             {renderSecondaryRune()}
+            {playerRankingPosition && playerRankingPosition > 0 && (
+              <span
+                className={`text-[8px] font-bold px-1 py-0.5 rounded-full shadow mt-0.5 ${getRankingBadgeClass(
+                  playerRankingPosition
+                )}`}
+                title={`Ranking global #${playerRankingPosition}`}
+              >
+                #{playerRankingPosition}
+              </span>
+            )}
           </div>
         </div>
 

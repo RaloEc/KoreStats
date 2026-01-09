@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, X, Users } from "lucide-react";
 import { Button, Card, CardBody } from "@nextui-org/react";
 // import UserActivityFeedContainer from "./UserActivityFeedContainer";
 import StatusFeed from "@/components/social/StatusFeed";
@@ -65,13 +65,7 @@ export default function MobileProfileLayout({
   onInvalidateCache,
 }: MobileProfileLayoutProps) {
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarX, setSidebarX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState(0);
   const searchParams = useSearchParams();
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   const activeTabFromUrl = (searchParams.get("tab") as ProfileTab) || "posts";
   const [currentTab, setCurrentTab] = useState<ProfileTab>(activeTabFromUrl);
@@ -96,83 +90,9 @@ export default function MobileProfileLayout({
     cooldownSeconds: unifiedSyncCooldown,
   } = useUnifiedRiotSync();
 
-  // Manejo de drag del sidebar
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    setDragStart(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - dragStart;
-    const screenWidth = window.innerWidth;
-
-    // Si el menú está cerrado, permitir deslizar desde el borde derecho para abrir
-    if (!sidebarOpen) {
-      // Solo activar si se empieza desde el borde derecho (últimos 30px)
-      if (dragStart > screenWidth - 30) {
-        // Permitir arrastrar hacia la izquierda (abrir)
-        if (diff < 0) {
-          const pullDistance = Math.abs(diff);
-          // Limitar la distancia máxima de arrastre
-          setSidebarX(Math.min(pullDistance, 320));
-        }
-      }
-    } else {
-      // Si el menú está abierto, permitir arrastrar hacia la derecha (cerrar)
-      if (diff > 0) {
-        setSidebarX(diff);
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-
-    if (!sidebarOpen) {
-      // Si se arrastró más de 100px desde el borde derecho, abrir el menú
-      if (sidebarX > 100) {
-        setSidebarOpen(true);
-      }
-    } else {
-      // Si se arrastró más de 100px hacia la derecha, cerrar el menú
-      if (sidebarX > 100) {
-        setSidebarOpen(false);
-      }
-    }
-
-    setSidebarX(0);
-  };
-
-  // Cerrar sidebar al hacer click en overlay
-  const handleOverlayClick = () => {
-    setSidebarOpen(false);
-    setSidebarX(0);
-  };
-
-  // Cerrar sidebar con ESC
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && sidebarOpen) {
-        setSidebarOpen(false);
-        setSidebarX(0);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [sidebarOpen]);
-
   return (
-    <div
-      className="relative w-full h-screen overflow-hidden bg-white dark:bg-black amoled:bg-black"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Contenido principal - Feed de actividad */}
+    <div className="relative w-full h-screen overflow-hidden bg-white dark:bg-black amoled:bg-black">
+      {/* Contenido principal */}
       <div className="w-full h-full overflow-y-auto">
         {/* Header del perfil con banner */}
         <div className="bg-white dark:bg-black amoled:bg-black">
@@ -202,20 +122,21 @@ export default function MobileProfileLayout({
             hasRiotAccount={!!riotAccount}
             currentTab={currentTab}
             onTabChange={handleTabChange}
+            isMobile={true}
           />
         </div>
 
-        {/* Contenido según pestaña - Renderizado condicional con display para mantener estado */}
+        {/* Contenido según pestaña */}
         <div className={currentTab === "posts" ? "block" : "hidden"}>
-          {/* Indicador de deslizar + Título */}
+          {/* Título de sección */}
           <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800 mt-2">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
-              Actividad
+              Actividad Reciente
             </h2>
           </div>
 
-          {/* Feed de actividad con scroll infinit */}
-          <div className="px-4 py-4 pb-20">
+          {/* Feed de actividad */}
+          <div className="px-4 py-4 pb-24">
             <StatusFeed
               profileId={perfil.id}
               profileUsername={perfil.username}
@@ -224,8 +145,9 @@ export default function MobileProfileLayout({
           </div>
         </div>
 
-        <div className={currentTab !== "posts" ? "block" : "hidden"}>
-          <div className="px-4 py-4 pb-20 space-y-6">
+        {/* Pestaña League of Legends */}
+        <div className={currentTab === "lol" ? "block" : "hidden"}>
+          <div className="px-4 py-4 pb-24 space-y-6">
             {!riotAccount && isOwnProfile ? (
               <RiotEmptyState
                 isOwnProfile
@@ -233,14 +155,11 @@ export default function MobileProfileLayout({
                   window.location.href = "/api/riot/login";
                 }}
                 onManualLinkSuccess={async () => {
-                  // Invalidar caché de React Query para recargar datos de Riot
                   await onInvalidateCache?.();
                 }}
               />
             ) : riotAccount ? (
               <>
-                {/* Botón unificado de sincronización - ahora está dentro de la tarjeta */}
-
                 <RiotAccountCardVisual
                   account={riotAccount}
                   hideSync={false}
@@ -250,13 +169,8 @@ export default function MobileProfileLayout({
                 />
 
                 <div className="grid grid-cols-1 gap-6">
-                  {/* Estadísticas de campeones */}
                   <ChampionStatsSummary puuid={riotAccount.puuid} />
-
-                  {/* Builds guardadas */}
                   <SavedBuildsPanel />
-
-                  {/* Historial de partidas */}
                   <div>
                     <MatchHistoryList
                       userId={perfil.id}
@@ -276,72 +190,28 @@ export default function MobileProfileLayout({
             )}
           </div>
         </div>
-      </div>
 
-      {/* Indicador visual fijo en la pantalla - Flecha para deslizar */}
-      <div
-        onClick={() => setSidebarOpen(true)}
-        className="fixed right-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 amoled:hover:bg-gray-900 transition-all cursor-pointer group backdrop-blur-sm bg-white/80 dark:bg-black/80 amoled:bg-black/80 shadow-lg hover:shadow-xl"
-        aria-label="Deslizar para abrir panel"
-        title="Desliza para abrir más opciones"
-      >
-        <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400 amoled:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 amoled:group-hover:text-gray-200 transition-colors animate-pulse" />
-      </div>
+        {/* Pestaña Amigos */}
+        <div className={currentTab === "friends" ? "block" : "hidden"}>
+          <div className="px-4 py-4 pb-24 space-y-6">
+            {/* Solicitudes de amistad */}
+            <FriendRequestsList userColor={perfil.color} hideHeader={true} />
 
-      {/* Overlay semitransparente */}
-      {sidebarOpen && (
-        <div
-          ref={overlayRef}
-          onClick={handleOverlayClick}
-          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-          style={{
-            opacity: sidebarOpen ? 1 : 0,
-            pointerEvents: sidebarOpen ? "auto" : "none",
-          }}
-        />
-      )}
-
-      {/* Sidebar deslizable desde la derecha */}
-      <div
-        ref={sidebarRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className="fixed top-0 right-0 z-40 h-screen w-80 max-w-[90vw] bg-white dark:bg-black amoled:bg-black shadow-2xl transition-transform duration-300 ease-out overflow-y-auto"
-        style={{
-          transform: sidebarOpen
-            ? `translateX(${sidebarX}px)`
-            : "translateX(100%)",
-        }}
-      >
-        {/* Header del sidebar */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-4 bg-white dark:bg-black amoled:bg-black border-b border-gray-200 dark:border-gray-800 amoled:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 amoled:text-gray-100">
-            Más
-          </h3>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 amoled:hover:bg-gray-900 transition-colors"
-            aria-label="Cerrar panel"
-          >
-            <X className="w-5 h-5 text-gray-600 dark:text-gray-400 amoled:text-gray-400" />
-          </button>
+            {/* Lista de amigos */}
+            <FriendsListCompact
+              userId={userId}
+              userColor={perfil.color}
+              limit={16}
+              hideHeader={true}
+            />
+          </div>
         </div>
 
-        {/* Contenido del sidebar */}
-        <div className="p-4 space-y-6">
-          {/* Solicitudes de amistad */}
-          <FriendRequestsList userColor={perfil.color} />
-
-          {/* Lista de amigos */}
-          <FriendsListCompact
-            userId={userId}
-            userColor={perfil.color}
-            limit={6}
-          />
-
-          {/* Estadísticas */}
-          <ProfileStats estadisticas={estadisticas} />
+        {/* Pestaña Estadísticas */}
+        <div className={currentTab === "stats" ? "block" : "hidden"}>
+          <div className="px-4 py-4 pb-24">
+            <ProfileStats estadisticas={estadisticas} />
+          </div>
         </div>
       </div>
     </div>

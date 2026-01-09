@@ -1,61 +1,71 @@
-'use client'
+"use client";
 
-import type { CSSProperties } from 'react'
-import { Card, CardBody, CardHeader } from '@nextui-org/react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useFriendRequests, useRespondFriendRequestMutation } from '@/hooks/useSocialFeatures'
-import { Check, X, Mail } from 'lucide-react'
-import Link from 'next/link'
+import type { CSSProperties } from "react";
+import { Card, CardBody, CardHeader } from "@nextui-org/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useFriendRequests,
+  useRespondFriendRequestMutation,
+} from "@/hooks/useSocialFeatures";
+import { Check, X, Mail } from "lucide-react";
+import Link from "next/link";
 
 interface FriendRequestsListProps {
-  userColor?: string
+  userColor?: string;
+  hideHeader?: boolean;
 }
 
-export const FriendRequestsList = ({ userColor = '#3b82f6' }: FriendRequestsListProps) => {
-  const { data: receivedData, isLoading: receivedLoading } = useFriendRequests('received')
-  const respondMutation = useRespondFriendRequestMutation()
-  
-  const colorStyle = {
-    '--user-color': userColor,
-  } as CSSProperties
+export const FriendRequestsList = ({
+  userColor = "#3b82f6",
+  hideHeader = false,
+}: FriendRequestsListProps) => {
+  const { data: receivedData, isLoading: receivedLoading } =
+    useFriendRequests("received");
+  const respondMutation = useRespondFriendRequestMutation();
 
-  const handleRespond = (requestId: string, action: 'accept' | 'reject') => {
-    respondMutation.mutate({ requestId, action })
-  }
+  const colorStyle = {
+    "--user-color": userColor,
+  } as CSSProperties;
+
+  const handleRespond = (requestId: string, action: "accept" | "reject") => {
+    respondMutation.mutate({ requestId, action });
+  };
 
   const RequestItem = ({ request }: { request: any }) => {
-    const otherUser = request.other_user
-    
+    const otherUser = request.other_user;
+
     return (
       <div className="flex items-center gap-2 py-2 px-1 hover:bg-gray-100 dark:hover:bg-gray-800 amoled:hover:bg-gray-800 rounded-md transition-colors group">
         <Link href={`/perfil/${otherUser.public_id}`} className="flex-shrink-0">
           <Avatar className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform">
             <AvatarImage src={otherUser.avatar_url || undefined} />
-            <AvatarFallback 
+            <AvatarFallback
               style={{
-                backgroundColor: `color-mix(in srgb, ${otherUser.color || userColor} 15%, transparent)`,
-                color: otherUser.color || userColor
+                backgroundColor: `color-mix(in srgb, ${
+                  otherUser.color || userColor
+                } 15%, transparent)`,
+                color: otherUser.color || userColor,
               }}
             >
               {otherUser.username.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Link>
-        
-        <Link 
+
+        <Link
           href={`/perfil/${otherUser.public_id}`}
           className="flex-1 min-w-0 font-medium text-sm hover:underline truncate text-gray-900 dark:text-gray-100 amoled:text-gray-100"
         >
           {otherUser.username}
         </Link>
-        
+
         <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleRespond(request.id, 'accept')}
+            onClick={() => handleRespond(request.id, "accept")}
             disabled={respondMutation.isPending}
             className="h-7 w-7 p-0 hover:bg-green-500/20"
             title="Aceptar"
@@ -65,7 +75,7 @@ export const FriendRequestsList = ({ userColor = '#3b82f6' }: FriendRequestsList
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleRespond(request.id, 'reject')}
+            onClick={() => handleRespond(request.id, "reject")}
             disabled={respondMutation.isPending}
             className="h-7 w-7 p-0 hover:bg-red-500/20"
             title="Rechazar"
@@ -74,8 +84,8 @@ export const FriendRequestsList = ({ userColor = '#3b82f6' }: FriendRequestsList
           </Button>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   const LoadingSkeleton = () => (
     <div className="space-y-2">
@@ -88,46 +98,59 @@ export const FriendRequestsList = ({ userColor = '#3b82f6' }: FriendRequestsList
         </div>
       ))}
     </div>
-  )
+  );
 
   if (receivedLoading) {
     return (
-      <Card className="bg-white dark:bg-black amoled:bg-black">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white amoled:text-white flex items-center gap-2">
-            <Mail className="w-5 h-5" />
-            Solicitudes de amistad
-          </h2>
-        </CardHeader>
-        <CardBody>
+      <Card
+        className={`${
+          hideHeader
+            ? "bg-transparent shadow-none border-none"
+            : "bg-white dark:bg-black amoled:bg-black"
+        }`}
+      >
+        {!hideHeader && (
+          <CardHeader>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white amoled:text-white flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Solicitudes de amistad
+            </h2>
+          </CardHeader>
+        )}
+        <CardBody className={hideHeader ? "p-0" : ""}>
           <LoadingSkeleton />
         </CardBody>
       </Card>
-    )
+    );
   }
 
-  const hasRequests = (receivedData?.requests?.length ?? 0) > 0
+  const hasRequests = (receivedData?.requests?.length ?? 0) > 0;
 
   if (!hasRequests) {
-    return null
+    return null;
   }
 
   return (
-    <Card className="bg-white dark:bg-black amoled:bg-black">
-      <CardHeader>
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white amoled:text-white flex items-center gap-2">
-          <Mail className="w-5 h-5" />
-          Solicitudes de amistad ({receivedData?.total || 0})
-        </h2>
-      </CardHeader>
-      <CardBody className="space-y-1">
+    <Card
+      className={`${
+        hideHeader
+          ? "bg-transparent shadow-none border-none"
+          : "bg-white dark:bg-black amoled:bg-black"
+      }`}
+    >
+      {!hideHeader && (
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white amoled:text-white flex items-center gap-2">
+            <Mail className="w-5 h-5" />
+            Solicitudes de amistad ({receivedData?.total || 0})
+          </h2>
+        </CardHeader>
+      )}
+      <CardBody className={`space-y-1 ${hideHeader ? "p-0" : ""}`}>
         {receivedData?.requests.map((request) => (
-          <RequestItem 
-            key={request.id} 
-            request={request}
-          />
+          <RequestItem key={request.id} request={request} />
         ))}
       </CardBody>
     </Card>
-  )
-}
+  );
+};

@@ -21,6 +21,10 @@ const DEFAULT_COLOR = "#6366F1"; // Indigo default
 const TRANSPARENT_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
+// Cache global para evitar re-procesar las mismas imágenes a Base64 múltiples veces
+const imageCache: Record<string, string> = {};
+const pendingLoads: Record<string, Promise<string>> = {};
+
 /**
  * Convierte URLs externas a URLs del proxy local
  */
@@ -76,7 +80,13 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
  * Usa el proxy local para imágenes de DDragon para evitar CORS
  */
 async function imageToBase64(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
+  // Si ya está en caché, devolverlo
+  if (imageCache[url]) return imageCache[url];
+
+  // Si ya se está cargando, esperar a esa promesa
+  if (pendingLoads[url]) return pendingLoads[url];
+
+  pendingLoads[url] = new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
 
@@ -92,13 +102,17 @@ async function imageToBase64(url: string): Promise<string> {
         }
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL("image/png");
+        imageCache[url] = dataUrl; // Guardar en caché
+        delete pendingLoads[url];
         resolve(dataUrl);
       } catch (err) {
+        delete pendingLoads[url];
         reject(err);
       }
     };
 
     img.onerror = () => {
+      delete pendingLoads[url];
       reject(new Error(`Error al cargar la imagen: ${url}`));
     };
 
@@ -113,6 +127,8 @@ async function imageToBase64(url: string): Promise<string> {
 
     img.src = finalUrl;
   });
+
+  return pendingLoads[url];
 }
 
 /**
@@ -185,22 +201,24 @@ function ProxiedImage({
     <img
       src={imgSrc}
       alt={alt}
+      loading="lazy"
       style={{
         ...style,
         backgroundColor: hasError ? "rgba(30, 41, 59, 0.5)" : undefined,
-        opacity: isLoading ? 0.5 : 1,
+        opacity: isLoading ? 0.3 : 1,
+        transition: "opacity 0.2s ease-in-out",
       }}
       onError={() => setHasError(true)}
     />
   );
 }
 
-export function MatchShareCard({
+const MatchShareCardComponent = ({
   participant,
   match,
   gameVersion,
   userColor,
-}: MatchShareCardProps) {
+}: MatchShareCardProps) => {
   const isWin = participant.win;
   const championName = participant.championName || "Unknown";
   const accentColor = userColor || DEFAULT_COLOR;
@@ -957,4 +975,7 @@ export function MatchShareCard({
       </div>
     </div>
   );
-}
+};
+
+// Memoize to prevent unnecessary re-renders
+export const MatchShareCard = React.memo(MatchShareCardComponent);

@@ -12,7 +12,7 @@ import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
 // Componentes de perfil
 import ProfileHeader from "@/components/perfil/profile-header";
 import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
-import { ProfileTabs } from "@/components/perfil/ProfileTabs";
+import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import { ProfilePageSkeleton } from "@/components/perfil/ProfilePageSkeleton";
 import { EditProfileModal } from "@/components/perfil/EditProfileModal";
 import { ProfilePostsTabContent } from "@/components/perfil/ProfilePostsTabContent";
@@ -97,8 +97,8 @@ export default function PerfilPageClient({
   const isOwnProfile = user?.id === perfil?.id;
 
   // Lee el tab activo desde la URL inicialmente
-  const initialTab = (searchParams.get("tab") as "posts" | "lol") || "posts";
-  const [activeTab, setActiveTab] = useState<"posts" | "lol">(initialTab);
+  const initialTab = (searchParams.get("tab") as ProfileTab) || "posts";
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
 
   // Sincronizar URL silenciosamente cuando cambia el tab
   useEffect(() => {

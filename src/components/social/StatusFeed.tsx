@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, memo } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import { useQueryClient } from "@tanstack/react-query";
 import CreateStatus from "./CreateStatus";
 import ActivityItem from "./ActivityItem";
 import { Loader2 } from "lucide-react";
@@ -44,6 +45,7 @@ export default function StatusFeed({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const queryClient = useQueryClient();
 
   // Virtualization state
   const parentRef = useRef<HTMLDivElement>(null);
@@ -158,6 +160,54 @@ export default function StatusFeed({
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [posts.length]);
+
+  // Escuchar invalidaciones de queries para recargar el feed
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      // Detectar cuando se invalidan las queries de actividades
+      if (event.type === "updated" && event.query.state.isInvalidated) {
+        const queryKey = event.query.queryKey;
+
+        // Verificar si es una query relacionada con el perfil o actividades
+        if (
+          queryKey[0] === "perfil" ||
+          (Array.isArray(queryKey) && queryKey.includes("actividades"))
+        ) {
+          console.log("🔄 Feed invalidado, recargando...", queryKey);
+          // Invalidar caché y recargar
+          feedCacheManager.invalidate(profileId);
+          setPosts([]);
+          setPage(1);
+          fetchPosts(1, false, true);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [profileId, fetchPosts, queryClient]);
+
+  // Listener adicional para eventos personalizados de eliminación
+  useEffect(() => {
+    const handleActivityDeleted = (event: CustomEvent) => {
+      console.log("🗑️ Actividad eliminada, recargando feed...", event.detail);
+      feedCacheManager.invalidate(profileId);
+      setPosts([]);
+      setPage(1);
+      fetchPosts(1, false, true);
+    };
+
+    window.addEventListener(
+      "activityDeleted",
+      handleActivityDeleted as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "activityDeleted",
+        handleActivityDeleted as EventListener
+      );
+    };
+  }, [profileId, fetchPosts]);
 
   const handlePostCreated = useCallback(() => {
     // Invalidate cache and refresh

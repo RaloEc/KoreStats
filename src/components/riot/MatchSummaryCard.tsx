@@ -4,6 +4,14 @@ import React, { useState, useEffect } from "react";
 import { getQueueName } from "@/components/riot/match-card/helpers";
 import { getSpellImg, getPerkImg } from "@/lib/riot/helpers";
 import { usePerkAssets } from "@/components/riot/match-card/RunesTooltip";
+import {
+  computeParticipantScores,
+  getParticipantKey,
+} from "@/components/riot/match-card/performance-utils";
+import {
+  organizeMatchParticipants,
+  type RiotParticipant,
+} from "@/lib/riot/organize-participants";
 
 interface MatchSummaryCardProps {
   match: any;
@@ -12,6 +20,10 @@ interface MatchSummaryCardProps {
 
 const TRANSPARENT_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+// Cache global para evitar re-procesar las mismas imágenes a Base64 múltiples veces
+const imageCache: Record<string, string> = {};
+const pendingLoads: Record<string, Promise<string>> = {};
 
 // --- Helper Functions ---
 
@@ -28,7 +40,10 @@ function getItemUrl(itemId: number, version: string): string | null {
 }
 
 async function imageToBase64(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
+  if (imageCache[url]) return imageCache[url];
+  if (pendingLoads[url]) return pendingLoads[url];
+
+  pendingLoads[url] = new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -37,14 +52,24 @@ async function imageToBase64(url: string): Promise<string> {
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("No ctx"));
+        if (!ctx) {
+          delete pendingLoads[url];
+          return reject(new Error("No ctx"));
+        }
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
+        const dataUrl = canvas.toDataURL("image/png");
+        imageCache[url] = dataUrl;
+        delete pendingLoads[url];
+        resolve(dataUrl);
       } catch (err) {
+        delete pendingLoads[url];
         reject(err);
       }
     };
-    img.onerror = () => reject(new Error(`Error loading ${url}`));
+    img.onerror = () => {
+      delete pendingLoads[url];
+      reject(new Error(`Error loading ${url}`));
+    };
 
     let finalUrl = url;
     if (
@@ -56,6 +81,8 @@ async function imageToBase64(url: string): Promise<string> {
     }
     img.src = finalUrl;
   });
+
+  return pendingLoads[url];
 }
 
 function ProxiedImage({
@@ -70,6 +97,7 @@ function ProxiedImage({
   className?: string;
 }) {
   const [imgSrc, setImgSrc] = useState(TRANSPARENT_PIXEL);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -87,8 +115,13 @@ function ProxiedImage({
           } catch (e) {}
         }
         const base64 = await imageToBase64(finalUrl);
-        if (isMounted) setImgSrc(base64);
-      } catch (e) {}
+        if (isMounted) {
+          setImgSrc(base64);
+          setIsLoading(false);
+        }
+      } catch (e) {
+        if (isMounted) setIsLoading(false);
+      }
     };
     load();
     return () => {
@@ -96,13 +129,25 @@ function ProxiedImage({
     };
   }, [src]);
 
-  return <img src={imgSrc} alt={alt} style={style} className={className} />;
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      loading="lazy"
+      style={{
+        ...style,
+        opacity: isLoading ? 0.3 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      className={className}
+    />
+  );
 }
 
-export function MatchSummaryCard({
+const MatchSummaryCardComponent = ({
   match,
   gameVersion,
-}: MatchSummaryCardProps) {
+}: MatchSummaryCardProps) => {
   // Normalize Version
   const normalizeVersion = (v: string): string => {
     if (!v) return "15.24.1";
@@ -127,32 +172,83 @@ export function MatchSummaryCard({
     year: "2-digit",
   });
 
-  // Participants
-  const participants =
-    match.full_json?.info?.participants || match.participants || [];
-  const team1 = participants.filter((p: any) => p.win); // Winners
-  const team2 = participants.filter((p: any) => !p.win); // Losers
-
-  // Ranking Logic
-  const calculateScore = (p: any) => {
-    const kdaScore = p.kills * 3 + p.assists * 1.5 - p.deaths * 2;
-    const damageScore = (p.totalDamageDealtToChampions || 0) / 1000;
-    const visionScore = p.visionScore || 0;
-    const goldScore = (p.goldEarned || 0) / 1000;
-    return kdaScore + damageScore + visionScore + goldScore;
+  // Helper for sorting by lane
+  const laneOrder: Record<string, number> = {
+    TOP: 0,
+    JUNGLE: 1,
+    MIDDLE: 2,
+    MID: 2,
+    BOTTOM: 3,
+    BOT: 3,
+    ADC: 3,
+    UTILITY: 4,
+    SUPPORT: 4,
+    SUP: 4,
   };
 
-  const rankedParticipants = [...participants].sort(
-    (a, b) => calculateScore(b) - calculateScore(a)
+  const sortByLane = (list: any[]) => {
+    return [...list].sort((a, b) => {
+      const laneA = (
+        a.lane ||
+        a.teamPosition ||
+        a.individualPosition ||
+        a.role ||
+        ""
+      ).toUpperCase();
+      const laneB = (
+        b.lane ||
+        b.teamPosition ||
+        b.individualPosition ||
+        b.role ||
+        ""
+      ).toUpperCase();
+      return (laneOrder[laneA] ?? 999) - (laneOrder[laneB] ?? 999);
+    });
+  };
+
+  // Participants & Sorting
+  const rawParticipants = (match.full_json?.info?.participants ||
+    match.participants ||
+    []) as RiotParticipant[];
+
+  const { blueTeam, redTeam } = organizeMatchParticipants(rawParticipants);
+
+  // Determine winners/losers for display (Team 1 = Winners, Team 2 = Losers)
+  const isBlueWin = blueTeam.length > 0 && blueTeam[0].win;
+  const team1 = isBlueWin ? blueTeam : redTeam;
+  const team2 = isBlueWin ? redTeam : blueTeam;
+
+  // Re-unified list for ranking calculations (now sorted by team then role)
+  const participants = [...team1, ...team2];
+
+  // Ranking Logic Standardized
+  const scoreEntries = computeParticipantScores(
+    participants,
+    match.game_duration || 0,
+    match.full_json?.info
   );
-  const getRank = (p: any) =>
-    rankedParticipants.findIndex((rp) => rp.puuid === p.puuid) + 1;
+
+  const sortedEntries = [...scoreEntries].sort((a, b) => b.score - a.score);
+  const rankingMap = new Map<string, number>();
+  sortedEntries.forEach((entry, index) => {
+    rankingMap.set(entry.key, index + 1);
+  });
+
+  const getRank = (p: any) => {
+    const key = getParticipantKey(p);
+    return rankingMap.get(key) || 10;
+  };
 
   // Highlight Logic
   const maxDamage = Math.max(
     ...participants.map((p: any) => p.totalDamageDealtToChampions)
   );
-  const mvp = rankedParticipants[0]; // Best score is MVP
+
+  // MVP is the highest score
+  const mvpKey = sortedEntries[0]?.key;
+  const mvp =
+    participants.find((p: any) => getParticipantKey(p) === mvpKey) ||
+    participants[0];
 
   // Bulk Load Rune Assets
   // We extract all valid rune IDs to prime the hook
@@ -742,4 +838,7 @@ export function MatchSummaryCard({
       </div>
     </div>
   );
-}
+};
+
+// Memoize to prevent unnecessary re-renders
+export const MatchSummaryCard = React.memo(MatchSummaryCardComponent);

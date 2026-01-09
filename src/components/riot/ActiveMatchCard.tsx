@@ -100,8 +100,15 @@ function assignParticipantsToRoles(
   const byRole = new Map<string, ActiveParticipant>();
   const leftovers: ActiveParticipant[] = [];
 
+  // 1. Intentar asignar jugadores que tienen una posición clara (de API o por Smite)
   for (const p of participants) {
-    const pos = normalizePosition(p.position);
+    let pos = normalizePosition(p.position);
+
+    // Heurística de Smite (ID 11) -> JUNGLE
+    if (!pos && (p.spell1Id === 11 || p.spell2Id === 11)) {
+      pos = "JUNGLE";
+    }
+
     if (pos && roles.some((r) => r.key === pos) && !byRole.has(pos)) {
       byRole.set(pos, p);
     } else {
@@ -109,6 +116,7 @@ function assignParticipantsToRoles(
     }
   }
 
+  // 2. Llenar los huecos restantes con los jugadores sin posición definida
   for (const role of roles) {
     if (byRole.has(role.key)) continue;
     const next = leftovers.shift();

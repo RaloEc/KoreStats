@@ -553,53 +553,43 @@ export function MatchCard({
   const playerVisionScore =
     currentParticipant?.visionScore ?? match.vision_score ?? undefined;
 
-  // Usar ranking y performance score del servidor (persistidos en BD)
-  // IMPORTANTE: No recalcular localmente para mantener consistencia con scoreboards
+  // Calcular ranking de todos los participantes para mostrar tanto el del jugador como el del oponente
+  const scoreEntries = computeParticipantScores(
+    allParticipants,
+    match.matches.game_duration,
+    match.matches.full_json?.info
+  );
+
+  const sortedByScore = [...scoreEntries].sort(
+    (a, b) => (b.score ?? 0) - (a.score ?? 0)
+  );
+  const rankingPositions = new Map<string, number>();
+  sortedByScore.forEach((entry, index) => {
+    rankingPositions.set(entry.key, index + 1);
+  });
+
+  // Usar ranking del servidor (persistido en BD) si existe, sino usar el calculado
   let playerRankingPosition =
     typeof (match as any).ranking_position === "number" &&
     (match as any).ranking_position > 0
       ? (match as any).ranking_position
       : null;
-  let playerScore =
-    typeof (match as any).performance_score === "number"
-      ? (match as any).performance_score
-      : 0;
 
-  // Fallback: recalcular SOLO si ambos están ausentes (datos muy antiguos)
-  if (playerRankingPosition === null && playerScore === 0) {
-    const scoreEntries = computeParticipantScores(
-      allParticipants,
-      match.matches.game_duration,
-      match.matches.full_json?.info
-    );
-
-    const sortedByScore = [...scoreEntries].sort(
-      (a, b) => (b.score ?? 0) - (a.score ?? 0)
-    );
-    const rankingPositions = new Map<string, number>();
-    sortedByScore.forEach((entry, index) => {
-      rankingPositions.set(entry.key, index + 1);
-    });
+  // Fallback: usar ranking calculado si no está en BD
+  if (playerRankingPosition === null) {
     const playerKey = currentParticipant
       ? getParticipantKeyUtil(currentParticipant)
-      : null;
-    const playerScoreEntry = playerKey
-      ? scoreEntries.find((entry) => entry.key === playerKey)
       : null;
     playerRankingPosition = playerKey
       ? rankingPositions.get(playerKey) ?? null
       : null;
-    playerScore = playerScoreEntry?.score ?? 0;
+  }
 
-    if (
-      !playerRankingPosition &&
-      playerScoreEntry &&
-      sortedByScore.length > 0 &&
-      typeof sortedByScore[0]?.score === "number" &&
-      Math.abs(playerScoreEntry.score - (sortedByScore[0]?.score ?? 0)) < 0.01
-    ) {
-      playerRankingPosition = 1;
-    }
+  // Calcular ranking del oponente
+  let opponentRankingPosition: number | null = null;
+  if (laneOpponentParticipant) {
+    const opponentKey = getParticipantKeyUtil(laneOpponentParticipant);
+    opponentRankingPosition = rankingPositions.get(opponentKey) ?? null;
   }
 
   const playerSummary: PlayerSummaryData = {
@@ -638,6 +628,7 @@ export function MatchCard({
         csTotal: opponentCs ?? undefined,
         csPerMinute: opponentCsPerMinute ?? undefined,
         label: "Rival",
+        rankingPosition: opponentRankingPosition,
       }
     : null;
 

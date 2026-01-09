@@ -143,7 +143,7 @@ export function MatchShareModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-[95vw] md:max-w-7xl w-full bg-slate-950/95 border-slate-800 p-0 overflow-hidden flex flex-col h-[90vh] md:h-auto backdrop-blur-xl"
+        className="max-w-[95vw] md:max-w-4xl w-full md:w-full bg-black border-slate-800/60 p-0 overflow-hidden flex flex-col h-[85vh] md:h-auto backdrop-blur-xl shadow-2xl"
       >
         {/* Hidden Full-Res Containers for Capture */}
         <div className="fixed left-[-9999px] top-0 pointer-events-none">
@@ -161,7 +161,7 @@ export function MatchShareModal({
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-800/60">
+        <div className="flex items-center justify-between p-3 md:p-4 border-b border-slate-800/40 shrink-0">
           <div>
             <DialogTitle className="text-xl md:text-2xl font-bold text-white">
               Compartir Estadísticas
@@ -182,38 +182,28 @@ export function MatchShareModal({
         </div>
 
         {/* Scrollable Preview Area */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden bg-slate-900/40 p-6 md:p-10 scrollbar-hide snap-x snap-mandatory">
-          <div className="flex flex-row gap-6 md:gap-12 xl:gap-16 items-center min-w-max px-[calc(50vw-150px)] md:px-0 md:justify-center min-h-[500px]">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden bg-black/40 p-4 md:p-6 scrollbar-hide snap-x snap-mandatory">
+          <div className="flex flex-row gap-4 md:gap-8 items-center min-w-max px-[calc(50vw-150px)] md:px-0 justify-start md:justify-center min-h-0 mx-auto">
             {/* 1. Personal Card Preview */}
-            <div className="snap-center flex flex-col items-center gap-6 animate-in fade-in slide-in-from-right-6 duration-700 w-[300px] md:w-auto shrink-0">
-              <div className="relative group rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-slate-700/50 bg-[#0a101a] transition-transform hover:scale-[1.02] duration-300">
+            <div className="snap-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-right-6 duration-700 w-[300px] md:w-auto shrink-0">
+              <div
+                className="relative group rounded-2xl overflow-hidden shadow-xl border border-slate-700/50 bg-[#0a101a] transition-all duration-300 hover:scale-[1.02] will-change-transform"
+                style={{ transform: "translateZ(0)" }}
+              >
                 {/* Scaled Preview Wrapper */}
                 <div className="w-[300px] h-[533px] md:w-[320px] md:h-[569px] relative overflow-hidden bg-[#0a101a]">
                   <div
                     style={{
-                      transform: `scale(${300 / 450})`,
+                      transform: `scale(${
+                        typeof window !== "undefined" &&
+                        window.innerWidth >= 768
+                          ? 320 / 450
+                          : 300 / 450
+                      })`,
                       transformOrigin: "top left",
                       width: "450px",
                       height: "800px",
                     }}
-                    className="md:hidden"
-                  >
-                    <MatchShareCard
-                      participant={focusParticipant}
-                      match={match}
-                      gameVersion={gameVersion}
-                      userColor={userColor}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      transform: `scale(${320 / 450})`,
-                      transformOrigin: "top left",
-                      width: "450px",
-                      height: "800px",
-                    }}
-                    className="hidden md:block"
                   >
                     <MatchShareCard
                       participant={focusParticipant}
@@ -224,8 +214,8 @@ export function MatchShareModal({
                   </div>
                 </div>
 
-                {/* Overlay with Button */}
-                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-4 backdrop-blur-sm">
+                {/* Overlay with Button - Removed backdrop-blur for performance */}
+                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-4">
                   <span className="text-white font-bold text-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     Tarjeta Individual
                   </span>
@@ -300,37 +290,30 @@ export function MatchShareModal({
             </div>
 
             {/* 2. Match Summary Preview */}
-            <div className="snap-center flex flex-col items-center gap-6 animate-in fade-in slide-in-from-right-6 duration-700 delay-150 w-[300px] md:w-auto shrink-0">
-              <div className="relative group rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-slate-700/50 bg-[#0a101a] transition-transform hover:scale-[1.02] duration-300">
+            <div className="snap-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-right-6 duration-700 delay-150 w-[300px] md:w-auto shrink-0">
+              <div
+                className="relative group rounded-2xl overflow-hidden shadow-xl border border-slate-700/50 bg-[#0a101a] transition-all duration-300 hover:scale-[1.02] will-change-transform"
+                style={{ transform: "translateZ(0)" }}
+              >
                 <div className="w-[300px] h-[533px] md:w-[320px] md:h-[569px] relative overflow-hidden bg-[#0a101a]">
-                  {/* Mobile Scale */}
                   <div
                     style={{
-                      transform: `scale(${300 / 450})`,
+                      transform: `scale(${
+                        typeof window !== "undefined" &&
+                        window.innerWidth >= 768
+                          ? 320 / 450
+                          : 300 / 450
+                      })`,
                       transformOrigin: "top left",
                       width: "450px",
                       height: "800px",
                     }}
-                    className="md:hidden"
-                  >
-                    <MatchSummaryCard match={match} gameVersion={gameVersion} />
-                  </div>
-
-                  {/* Desktop Scale */}
-                  <div
-                    style={{
-                      transform: `scale(${320 / 450})`,
-                      transformOrigin: "top left",
-                      width: "450px",
-                      height: "800px",
-                    }}
-                    className="hidden md:block"
                   >
                     <MatchSummaryCard match={match} gameVersion={gameVersion} />
                   </div>
                 </div>
 
-                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-4 backdrop-blur-sm">
+                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-4">
                   <span className="text-white font-bold text-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     Resumen de Partida
                   </span>

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { feedCacheManager } from "@/lib/cache/feedCache";
 
 interface ActivityActionOptions {
   activityType: string;
@@ -8,6 +11,8 @@ interface ActivityActionOptions {
 
 export function useActivityActions() {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const hideActivity = async (options: ActivityActionOptions) => {
     setIsLoading(true);
@@ -76,6 +81,26 @@ export function useActivityActions() {
       }
 
       toast.success("Actividad eliminada");
+
+      // Invalidar cachés para que la actividad desaparezca inmediatamente
+      queryClient.invalidateQueries({ queryKey: ["perfil"] });
+      queryClient.invalidateQueries({ queryKey: ["perfil", "actividades"] });
+
+      // Invalidar caché del feed personalizado
+      if (user?.id) {
+        feedCacheManager.invalidate(user.id);
+      }
+
+      // Disparar evento personalizado para que el feed recargue
+      window.dispatchEvent(
+        new CustomEvent("activityDeleted", {
+          detail: {
+            activityType: options.activityType,
+            activityId: options.activityId,
+          },
+        })
+      );
+
       return true;
     } catch (error) {
       const message =

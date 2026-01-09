@@ -340,8 +340,13 @@ function sortByRoleOrder(a: ActiveParticipant, b: ActiveParticipant): number {
   const bKey = b.position ? order[b.position] ?? 99 : 99;
 
   if (aKey !== bKey) return aKey - bKey;
-  if (aKey !== bKey) return aKey - bKey;
-  // If positions are the same (or both null), preserve original order (stable sort)
+
+  // Secondary sort by Smite if positions are null
+  const hasSmiteA = a.spell1Id === 11 || a.spell2Id === 11;
+  const hasSmiteB = b.spell1Id === 11 || b.spell2Id === 11;
+  if (hasSmiteA && !hasSmiteB) return -1;
+  if (!hasSmiteA && hasSmiteB) return 1;
+
   return 0;
 }
 
