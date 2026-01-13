@@ -29,10 +29,6 @@ async function getPlayerStatsOptimized(
     .single();
 
   if (cachedStats) {
-    console.log("[GET /api/riot/matches] Stats desde caché:", {
-      totalGames: cachedStats.total_games,
-      winrate: cachedStats.winrate,
-    });
     return {
       totalGames: cachedStats.total_games,
       wins: cachedStats.wins,
@@ -45,7 +41,6 @@ async function getPlayerStatsOptimized(
   }
 
   // Si no hay caché, calcular y guardar
-  console.log("[GET /api/riot/matches] Stats calculadas (sin caché)");
   const stats = await getPlayerStats(puuid, options);
 
   // Guardar en caché sin esperar (fire and forget)
@@ -70,7 +65,7 @@ async function getPlayerStatsOptimized(
           avg_gold: stats.avgGold,
           updated_at: new Date().toISOString(),
         });
-        console.log("[GET /api/riot/matches] Stats cacheadas");
+        // Stats cacheadas silenciosamente
       }
     } catch (err) {
       console.error("[GET /api/riot/matches] Error cacheando stats:", err);
@@ -100,7 +95,6 @@ export async function GET(request: NextRequest) {
 
     // Obtener user_id del query param (userId)
     const userId = request.nextUrl.searchParams.get("userId");
-    console.log("[GET /api/riot/matches] 🔍 REQUEST - userId:", userId);
     if (!userId) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -156,23 +150,6 @@ export async function GET(request: NextRequest) {
         queueIds,
       }),
     ]);
-
-    console.log(
-      "[GET /api/riot/matches] ✅ RESPONSE - matches:",
-      matchHistory.matches.length,
-      "hasMore:",
-      matchHistory.hasMore,
-      "nextCursor:",
-      matchHistory.nextCursor
-    );
-    if (matchHistory.matches.length > 0) {
-      console.log(
-        "[GET /api/riot/matches] 🎮 FIRST MATCH:",
-        matchHistory.matches[0].match_id,
-        "game_creation:",
-        matchHistory.matches[0].matches?.game_creation
-      );
-    }
 
     return NextResponse.json({
       success: true,

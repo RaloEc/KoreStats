@@ -56,7 +56,6 @@ export function useUserStatusSync(options: UseUserStatusSyncOptions = {}) {
         }
 
         lastStatusRef.current = status;
-        console.log("[useUserStatusSync] Status updated to:", status);
       } catch (error) {
         console.error("[useUserStatusSync] Error updating status:", error);
       }

@@ -24,12 +24,7 @@ export function UserStatusSyncProvider({
 }: UserStatusSyncProviderProps) {
   const { user } = useAuth();
 
-  useEffect(() => {
-    console.log("[UserStatusSyncProvider] Component mounted/updated", {
-      autoDetectMatch,
-      userId: user?.id,
-    });
-  }, [autoDetectMatch, user?.id]);
+  useEffect(() => {}, [autoDetectMatch, user?.id]);
 
   const { updateStatus } = useUserStatusSync({
     enabled: true,
@@ -40,7 +35,6 @@ export function UserStatusSyncProvider({
   // Callback estable para evitar re-renders innecesarios
   const handleStatusChange = useCallback(
     (status: StatusType) => {
-      console.log("[UserStatusSyncProvider] Status change detected:", status);
       updateStatus(status);
     },
     [updateStatus]

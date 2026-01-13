@@ -67,8 +67,8 @@ export const RUNE_STYLE_MAP: Record<number, string> = {
   8000: "7201_Precision",
   8100: "7200_Domination",
   8200: "7202_Sorcery",
-  8300: "7204_Resolve",
-  8400: "7203_Whimsy",
+  8300: "7203_Whimsy", // Inspiración
+  8400: "7204_Resolve", // Valor/Resolve
 };
 
 export function getQueueName(queueId: number): string {

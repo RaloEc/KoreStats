@@ -21,9 +21,15 @@ interface MatchSummaryCardProps {
 const TRANSPARENT_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
+// Pixel de error rojo para indicar que la imagen falló
+const ERROR_PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAgQHFUgAAAABJRU5ErkJggg==";
+
 // Cache global para evitar re-procesar las mismas imágenes a Base64 múltiples veces
-const imageCache: Record<string, string> = {};
-const pendingLoads: Record<string, Promise<string>> = {};
+// Usamos un Map para poder limpiar entradas fallidas
+const imageCache: Map<string, string> = new Map();
+const pendingLoads: Map<string, Promise<string>> = new Map();
+const failedUrls: Set<string> = new Set(); // Track URLs que han fallado
 
 // --- Helper Functions ---
 
@@ -40,35 +46,64 @@ function getItemUrl(itemId: number, version: string): string | null {
 }
 
 async function imageToBase64(url: string): Promise<string> {
-  if (imageCache[url]) return imageCache[url];
-  if (pendingLoads[url]) return pendingLoads[url];
+  // Si la URL ya falló antes, no reintentar
+  if (failedUrls.has(url)) {
+    return ERROR_PIXEL;
+  }
 
-  pendingLoads[url] = new Promise((resolve, reject) => {
+  // Si ya está en caché, devolverlo
+  const cached = imageCache.get(url);
+  if (cached) return cached;
+
+  // Si ya se está cargando, esperar a esa promesa
+  const pending = pendingLoads.get(url);
+  if (pending) return pending;
+
+  const loadPromise = new Promise<string>((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
+
+    // Timeout para evitar que imágenes se queden cargando indefinidamente
+    const timeoutId = setTimeout(() => {
+      console.warn(`[MatchSummaryCard] Timeout loading image: ${url}`);
+      failedUrls.add(url);
+      pendingLoads.delete(url);
+      resolve(ERROR_PIXEL);
+    }, 10000); // 10 segundos timeout
+
     img.onload = () => {
+      clearTimeout(timeoutId);
       try {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          delete pendingLoads[url];
-          return reject(new Error("No ctx"));
+          console.error(`[MatchSummaryCard] No canvas context for: ${url}`);
+          failedUrls.add(url);
+          pendingLoads.delete(url);
+          resolve(ERROR_PIXEL);
+          return;
         }
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL("image/png");
-        imageCache[url] = dataUrl;
-        delete pendingLoads[url];
+        imageCache.set(url, dataUrl);
+        pendingLoads.delete(url);
         resolve(dataUrl);
       } catch (err) {
-        delete pendingLoads[url];
-        reject(err);
+        console.error(`[MatchSummaryCard] Canvas error for ${url}:`, err);
+        failedUrls.add(url);
+        pendingLoads.delete(url);
+        resolve(ERROR_PIXEL);
       }
     };
-    img.onerror = () => {
-      delete pendingLoads[url];
-      reject(new Error(`Error loading ${url}`));
+
+    img.onerror = (e) => {
+      clearTimeout(timeoutId);
+      console.error(`[MatchSummaryCard] Image load error for ${url}:`, e);
+      failedUrls.add(url);
+      pendingLoads.delete(url);
+      resolve(ERROR_PIXEL);
     };
 
     let finalUrl = url;
@@ -82,7 +117,8 @@ async function imageToBase64(url: string): Promise<string> {
     img.src = finalUrl;
   });
 
-  return pendingLoads[url];
+  pendingLoads.set(url, loadPromise);
+  return loadPromise;
 }
 
 function ProxiedImage({
@@ -150,10 +186,10 @@ const MatchSummaryCardComponent = ({
 }: MatchSummaryCardProps) => {
   // Normalize Version
   const normalizeVersion = (v: string): string => {
-    if (!v) return "15.24.1";
+    if (!v) return "16.1.1";
     const parts = v.split(".");
     if (parts.length >= 2) return `${parts[0]}.${parts[1]}.1`;
-    return "15.24.1";
+    return "16.1.1";
   };
   const version = normalizeVersion(gameVersion || match?.game_version);
 

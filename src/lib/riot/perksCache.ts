@@ -31,8 +31,9 @@ const PERKS_URL =
 function iconPathToUrl(iconPath: string): string {
   if (!iconPath) return "";
   // Formato: /lol-game-data/assets/v1/perk-images/Styles/...
-  const cleaned = iconPath.replace("/lol-game-data/assets/", "").toLowerCase();
-  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${cleaned}`;
+  // DataDragon espera: https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/...
+  const cleaned = iconPath.replace("/lol-game-data/assets/v1/", "");
+  return `https://ddragon.leagueoflegends.com/cdn/img/${cleaned}`;
 }
 
 /**

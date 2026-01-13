@@ -63,16 +63,7 @@ export function useMatchStatusDetector(
   const lastErrorLogAtRef = useRef<number>(0);
 
   useEffect(() => {
-    console.log("[useMatchStatusDetector] Hook mounted", {
-      enabled,
-      userId: user?.id,
-    });
-
     if (!enabled || !user?.id) {
-      console.log(
-        "[useMatchStatusDetector] Skipping - not enabled or no user",
-        { enabled, userId: user?.id }
-      );
       return;
     }
 
@@ -149,13 +140,8 @@ export function useMatchStatusDetector(
 
         // Si hay una partida activa, estado es "in-game"
         if (data.hasActiveMatch && lastStatusRef.current !== "in-game") {
-          console.log("[useMatchStatusDetector] Changing status to in-game");
-
           // Encolar snapshot PRE-GAME
           if (data.hasActiveMatch && data.gameId) {
-            console.log(
-              "[useMatchStatusDetector] Queueing pre-game LP snapshot"
-            );
             fetch("/api/riot/lp/snapshot", {
               method: "POST",
               headers: {
@@ -199,10 +185,6 @@ export function useMatchStatusDetector(
           !data.hasActiveMatch &&
           lastStatusRef.current === "in-game"
         ) {
-          console.log(
-            "[useMatchStatusDetector] Changing status to online (game ended)"
-          );
-
           // Encolar snapshot POST-GAME y sincronización con delay
           // Riot tarda ~20-30 segundos en actualizar LP y hacer disponible la partida
           const lastGameId =
@@ -211,19 +193,7 @@ export function useMatchStatusDetector(
               : null;
 
           if (lastGameId) {
-            console.log(
-              "[useMatchStatusDetector] Scheduling post-game actions in 30 seconds..."
-            );
-
             setTimeout(() => {
-              console.log(
-                "[useMatchStatusDetector] Executing delayed post-game actions"
-              );
-
-              // 1. Encolar snapshot POST-GAME
-              console.log(
-                "[useMatchStatusDetector] Queueing post-game LP snapshot"
-              );
               fetch("/api/riot/lp/snapshot", {
                 method: "POST",
                 headers: {
@@ -242,10 +212,6 @@ export function useMatchStatusDetector(
                 );
               });
 
-              // 2. Sincronizar partidas automáticamente
-              console.log(
-                "[useMatchStatusDetector] Auto-syncing match history after game ended"
-              );
               fetch("/api/riot/matches/sync", {
                 method: "POST",
                 headers: {
@@ -286,7 +252,6 @@ export function useMatchStatusDetector(
           lastStatusRef.current !== "online" &&
           lastStatusRef.current !== "in-game"
         ) {
-          console.log("[useMatchStatusDetector] Changing status to online");
           lastStatusRef.current = "online";
           onStatusChange?.("online");
         }
@@ -303,7 +268,6 @@ export function useMatchStatusDetector(
     };
 
     // Verificar inmediatamente
-    console.log("[useMatchStatusDetector] Starting initial check and polling");
     void checkActiveMatch();
 
     // Verificar cada 10 segundos

@@ -33,8 +33,13 @@ export function useMatchDetails(
     queryKey: ["match-details", matchId],
     queryFn: () => fetchMatchDetails(matchId),
     enabled: Boolean(matchId) && (options?.enabled ?? true),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    // OPTIMIZACIÓN: Las partidas terminadas son inmutables, cachear agresivamente
+    staleTime: 30 * 60 * 1000, // 30 minutos - los datos de partida no cambian
+    gcTime: 60 * 60 * 1000, // 1 hora en memoria
+    refetchOnMount: false, // No refetch si ya hay datos frescos
+    refetchOnWindowFocus: false, // Evitar refetches al cambiar de pestaña
+    // OPTIMIZACIÓN: Mostrar datos anteriores mientras se revalida (evita spinner flash)
+    placeholderData: (previousData) => previousData,
     retry: (failureCount, error) => {
       if (error.message === "Partida no encontrada") {
         return false;

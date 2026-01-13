@@ -1105,6 +1105,7 @@ export async function syncMatchHistory(
 
 /**
  * Obtiene el historial de partidas de un jugador desde la BD
+ * OPTIMIZADO: Reduce queries innecesarias y logs verbosos
  *
  * @param puuid - PUUID del jugador
  * @param options.limit - Número máximo de partidas a retornar (default: 10)
@@ -1200,44 +1201,30 @@ export async function getMatchHistory(
       return { matches: [], hasMore: false, nextCursor: null };
     }
 
-    // Debug logging
-    if (data && data.length > 0) {
-      console.log("[getMatchHistory] Primera partida:", {
-        match_id: data[0].match_id,
-        game_creation: data[0].matches?.game_creation,
-        game_time: new Date(data[0].matches?.game_creation).toISOString(),
-      });
-      console.log("[getMatchHistory] Última partida:", {
-        match_id: data[data.length - 1].match_id,
-        game_creation: data[data.length - 1].matches?.game_creation,
-        game_time: new Date(
-          data[data.length - 1].matches?.game_creation
-        ).toISOString(),
-      });
+    // OPTIMIZACIÓN: Skip ranking queries si no hay datos (early return)
+    if (!data || data.length === 0) {
+      return { matches: [], hasMore: false, nextCursor: null };
     }
 
     // Obtener rankings para todas las partidas
-    const matchIds = (data || []).map((p: any) => p.match_id);
+    const matchIds = data.map((p: any) => p.match_id);
     let rankingMap = new Map();
 
-    if (matchIds.length > 0) {
-      const { data: rankings, error: rankingsError } = await supabase
-        .from("match_participant_ranks")
-        .select(
-          "summoner_id, match_id, tier, rank, league_points, wins, losses"
-        )
-        .in("match_id", matchIds);
+    // OPTIMIZACIÓN: Solo hacer query de rankings si hay match_ids
+    const { data: rankings, error: rankingsError } = await supabase
+      .from("match_participant_ranks")
+      .select("summoner_id, match_id, tier, rank, league_points, wins, losses")
+      .in("match_id", matchIds);
 
-      if (!rankingsError && rankings) {
-        // Crear mapa con clave "summoner_id-match_id"
-        rankingMap = new Map(
-          rankings.map((r: any) => [`${r.summoner_id}-${r.match_id}`, r])
-        );
-      }
+    if (!rankingsError && rankings) {
+      // Crear mapa con clave "summoner_id-match_id"
+      rankingMap = new Map(
+        rankings.map((r: any) => [`${r.summoner_id}-${r.match_id}`, r])
+      );
     }
 
     // Mapear datos de ranking
-    const enrichedData = (data || []).map((p: any) => {
+    const enrichedData = data.map((p: any) => {
       const rankData = rankingMap.get(`${p.summoner_id}-${p.match_id}`) as any;
       return {
         ...p,

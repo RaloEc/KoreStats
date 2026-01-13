@@ -2,7 +2,7 @@
  * Helper functions for Riot API Data Dragon URLs
  */
 
-export const FALLBACK_VERSION = "15.23.1";
+export const FALLBACK_VERSION = "16.1.1";
 
 /**
  * Obtiene la última versión disponible de DataDragon

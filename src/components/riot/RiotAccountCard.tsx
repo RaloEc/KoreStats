@@ -65,28 +65,18 @@ export function RiotAccountCard({
     queryFn: async () => {
       if (!user?.id) throw new Error("No user");
 
-      console.log("[RiotAccountCard] Fetching Riot account for user", user.id);
       const response = await fetch("/api/riot/account");
 
       if (response.status === 404) {
-        console.log(
-          "[RiotAccountCard] No Riot account linked for user",
-          user.id
-        );
         return null; // No hay cuenta vinculada
       }
 
       if (!response.ok) {
-        console.error(
-          "[RiotAccountCard] Failed fetching Riot account",
-          response.status,
-          await response.text()
-        );
         throw new Error("Failed to fetch riot account");
       }
 
       const data = await response.json();
-      console.log("[RiotAccountCard] Riot account payload", data);
+
       return data.account as LinkedAccountRiot;
     },
     enabled: !!user?.id,

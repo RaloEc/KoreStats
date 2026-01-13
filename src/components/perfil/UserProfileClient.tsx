@@ -18,6 +18,7 @@ import { LinkedAccountRiot } from "@/types/riot";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
 import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
+import { FriendsListCompact } from "@/components/social/FriendsListCompact";
 
 import { ProfileData } from "@/hooks/use-perfil-usuario";
 
@@ -271,8 +272,8 @@ export default function UserProfileClient({
         {currentTab === "posts" ? (
           // Pestaña Actividad
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-            {/* Columna única - Feed de actividad (antes ocupaba 2 col, ahora 3) */}
-            <div className="lg:col-span-3 space-y-6 sm:space-y-8">
+            {/* Columna única - Feed de actividad (antes ocupaba 2 col, ahora 3) -> Vuelve a 2 col para mostrar sidebar */}
+            <div className="lg:col-span-2 space-y-6 sm:space-y-8">
               {/* Feed unificado de hilos, respuestas y partidas */}
               {/* Feed de estado social */}
               <StatusFeed
@@ -282,15 +283,14 @@ export default function UserProfileClient({
               />
             </div>
 
-            {/* Columna derecha - Estadísticas unificadas (Oculto por ahora) */}
-            {/* 
+            {/* Columna derecha - Sidebar con componente de amigos */}
             <div className="lg:col-span-1 space-y-6">
-              <EstadisticasUnificadas
-                stats={profile.stats}
+              <FriendsListCompact
+                userId={profile.id}
                 userColor={profile.color}
+                limit={8}
               />
             </div>
-            */}
           </div>
         ) : (
           // Pestaña League of Legends

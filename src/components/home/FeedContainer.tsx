@@ -476,9 +476,7 @@ export default function FeedContainer() {
               gameDuration: m?.game_duration ?? toNumber(meta.gameDuration),
               gameCreation: m?.game_creation ?? toNumber(meta.gameCreation),
               dataVersion:
-                m?.data_version ??
-                toStringOrNull(meta.dataVersion) ??
-                "14.23.1",
+                m?.data_version ?? toStringOrNull(meta.dataVersion) ?? "16.1.1",
               tier: null,
               rank: null,
               leaguePoints: 0,

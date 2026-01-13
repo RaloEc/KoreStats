@@ -31,7 +31,7 @@ export function getRankEmblemUrl(tier: RiotTier | string): string {
   }
 
   const tierLower = normalizedTier.toLowerCase();
-  // Nueva fuente de imágenes con menos padding
+  // Esta fuente está mejor recortada (llena más el lienzo)
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-shared-components/global/default/images/${tierLower}.png`;
 }
 

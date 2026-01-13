@@ -331,7 +331,6 @@ export function ActiveMatchCard({
   // Mutación para sincronizar historial
   const syncMutation = useMutation({
     mutationFn: async () => {
-      console.log("[ActiveMatchCard] 🔄 Auto-syncing match history...");
       const response = await fetch("/api/riot/matches/sync", {
         method: "POST",
         headers: {
@@ -363,8 +362,6 @@ export function ActiveMatchCard({
   const { data, isLoading } = useQuery<ActiveMatchResponse>({
     queryKey: ["active-match", userId || "local"],
     queryFn: async () => {
-      console.log("[ActiveMatchCard] 🟡 Starting fetch. userId prop:", userId);
-
       const debugParam =
         process.env.NODE_ENV !== "production" ? "&debug=1" : "";
 
@@ -435,10 +432,6 @@ export function ActiveMatchCard({
   useEffect(() => {
     // Si antes estábamos en partida (true) y ahora no (false)
     if (wasInGameRef.current && !hasMatch) {
-      console.log(
-        "[ActiveMatchCard] 🏁 Match ended detected! Scheduling sync in 5s..."
-      );
-
       // Esperar un poco para asegurar que Riot API tenga los datos (Spectator vs Match-V5)
       const timer = setTimeout(() => {
         syncMutation.mutate();

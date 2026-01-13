@@ -16,6 +16,8 @@ import {
   UserCheck,
   Clock,
   Shield,
+  Users,
+  Handshake,
 } from "lucide-react";
 import {
   useFollowMutation,
@@ -139,6 +141,16 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
     }
   }, [socialStats.friendship_status, profile.public_id, queryClient]);
 
+  // Refrescar estado social cuando cambia el contador de amigos
+  useEffect(() => {
+    // Si el contador de amigos cambió, es probable que se haya aceptado/rechazado una solicitud
+    // Refrescar el estado social para actualizar el botón
+    const timer = setTimeout(() => {
+      refetchSocialStatus();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [socialStats.friends_count, refetchSocialStatus]);
+
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "admin":
@@ -253,7 +265,7 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
         </Button>
       );
 
-      // Botón de amistad
+      // Botón de amistad con iconos distintivos
       const friendButton = (() => {
         switch (socialStats.friendship_status) {
           case "friends":
@@ -268,7 +280,7 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
                 title="Click para remover de amigos"
                 style={{ backgroundColor: `var(--user-color)`, ...colorStyle }}
               >
-                <UserCheck className="w-4 h-4" />
+                <Handshake className="w-4 h-4" />
                 <span className="hidden sm:inline">Amigos</span>
               </Button>
             );
@@ -321,7 +333,7 @@ export const PerfilHeader = ({ profile, riotAccount }: PerfilHeaderProps) => {
                   ...colorStyle,
                 }}
               >
-                <UserPlus className="w-4 h-4" />
+                <Users className="w-4 h-4" />
                 <span className="hidden sm:inline">Agregar</span>
               </Button>
             );

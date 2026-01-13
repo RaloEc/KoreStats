@@ -97,9 +97,6 @@ export function GoogleAdsenseScript({ clientId }: { clientId: string }) {
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`}
         crossOrigin="anonymous"
         suppressHydrationWarning
-        onError={(e) => {
-          console.error("Error al cargar el script de AdSense:", e);
-        }}
       />
     </>
   );

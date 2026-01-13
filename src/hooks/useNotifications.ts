@@ -48,10 +48,6 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log(
-            "🔔 [Notifications] Nueva notificación recibida:",
-            payload
-          );
           const newNotification = payload.new as Notification;
 
           // Disparar toast
@@ -83,10 +79,6 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log(
-            "🗑️ [Notifications] Notificación borrada (Realtime):",
-            payload
-          );
           const deletedId = (payload.old as any).id;
           queryClient.setQueryData(
             ["notifications", user.id],
@@ -95,9 +87,7 @@ export const useNotifications = () => {
           );
         }
       )
-      .subscribe((status) => {
-        console.log("🔔 [Notifications] Estado de suscripción:", status);
-      });
+      .subscribe((status) => {});
 
     return () => {
       supabase.removeChannel(channel);
@@ -140,7 +130,6 @@ export const useNotifications = () => {
   // 4. Mutación para eliminar notificación
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      console.log("🗑️ [useNotifications] Intentando borrar:", notificationId);
       const { error } = await supabase
         .from("notifications")
         .delete()
@@ -169,8 +158,6 @@ export const useNotifications = () => {
           previousNotifications.filter((n) => n.id !== notificationId)
         );
       }
-
-      console.log("✨ [useNotifications] Cache actualizado optimista");
 
       return { previousNotifications };
     },

@@ -290,7 +290,7 @@ export const UserActivityFeed = ({
             queueId: item.queueId || 0,
             gameDuration: item.gameDuration || 0,
             gameCreation: item.gameCreation || 0,
-            dataVersion: item.dataVersion || "14.23.1",
+            dataVersion: item.dataVersion || "16.1.1",
             tier: item.tier || null,
             rank: item.rank || null,
             leaguePoints: item.leaguePoints || 0,

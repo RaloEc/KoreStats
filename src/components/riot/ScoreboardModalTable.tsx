@@ -330,24 +330,22 @@ const PlayerRow = React.memo(
                       />
                     </div>
                   )}
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span
-                          className={`mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow cursor-help ${rankingBadgeClass}`}
-                        >
-                          #{rankingPosition || "-"}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="p-3 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-xl">
-                        <PerformanceTooltipContent
-                          score={playerScore}
-                          ranking={rankingPosition}
-                          breakdown={breakdownMap?.get(playerKey)}
-                        />
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={`mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow cursor-help ${rankingBadgeClass}`}
+                      >
+                        #{rankingPosition || "-"}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="p-3 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-xl">
+                      <PerformanceTooltipContent
+                        score={playerScore}
+                        ranking={rankingPosition}
+                        breakdown={breakdownMap?.get(playerKey)}
+                      />
+                    </TooltipContent>
+                  </Tooltip>
                 </>
               );
             })()}
@@ -689,110 +687,119 @@ export function ScoreboardModalTable({
   }, [participants, gameDuration, matchInfo]);
 
   return (
-    <div className="space-y-4">
-      {isDesktop ? (
-        <div className="hidden lg:grid lg:grid-cols-2 gap-4 my-4">
-          <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-500/5 border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 bg-blue-500 rounded-full" />
-                <h3 className="text-sm font-bold text-blue-600 dark:text-blue-300 uppercase tracking-wider">
-                  Victoria
-                </h3>
+    <TooltipProvider delayDuration={100}>
+      <div className="space-y-4">
+        {isDesktop ? (
+          <div className="hidden lg:grid lg:grid-cols-2 gap-4 my-4">
+            <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-500/5 border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 bg-blue-500 rounded-full" />
+                  <h3 className="text-sm font-bold text-blue-600 dark:text-blue-300 uppercase tracking-wider">
+                    Victoria
+                  </h3>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      K:
+                    </span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {team1Kills}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      O:
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {(team1Gold / 1000).toFixed(1)}k
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-[11px]">
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 dark:text-slate-400">K:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {team1Kills}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 dark:text-slate-400">O:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {(team1Gold / 1000).toFixed(1)}k
-                  </span>
-                </div>
+
+              <div>
+                {team1.map((p: any) => (
+                  <PlayerRow
+                    key={p.puuid}
+                    player={p}
+                    isCurrentUser={p.puuid === currentUserPuuid}
+                    isWinner={true}
+                    matchId={matchId}
+                    rankingMap={rankingMap}
+                    scoreMap={scoreMap}
+                    breakdownMap={breakdownMap}
+                    linkedAccountsMap={linkedAccountsMap}
+                    gameVersion={gameVersion}
+                    maxDamage={maxDamage}
+                    savedBuildKeys={savedBuildKeys}
+                    isSaving={isSaving}
+                    saveBuild={saveBuild}
+                    notes={notes}
+                    saveNote={saveNote}
+                    deleteNote={deleteNote}
+                  />
+                ))}
               </div>
             </div>
 
-            <div>
-              {team1.map((p: any) => (
-                <PlayerRow
-                  key={p.puuid}
-                  player={p}
-                  isCurrentUser={p.puuid === currentUserPuuid}
-                  isWinner={true}
-                  matchId={matchId}
-                  rankingMap={rankingMap}
-                  scoreMap={scoreMap}
-                  breakdownMap={breakdownMap}
-                  linkedAccountsMap={linkedAccountsMap}
-                  gameVersion={gameVersion}
-                  maxDamage={maxDamage}
-                  savedBuildKeys={savedBuildKeys}
-                  isSaving={isSaving}
-                  saveBuild={saveBuild}
-                  notes={notes}
-                  saveNote={saveNote}
-                  deleteNote={deleteNote}
-                />
-              ))}
+            <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
+              <div className="bg-gradient-to-r from-rose-50 to-rose-100 dark:from-red-500/20 dark:to-red-500/5 border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 bg-red-500 rounded-full" />
+                  <h3 className="text-sm font-bold text-rose-600 dark:text-red-300 uppercase tracking-wider">
+                    Derrota
+                  </h3>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      K:
+                    </span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {team2Kills}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      O:
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {(team2Gold / 1000).toFixed(1)}k
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                {team2.map((p: any) => (
+                  <PlayerRow
+                    key={p.puuid}
+                    player={p}
+                    isCurrentUser={p.puuid === currentUserPuuid}
+                    isWinner={false}
+                    matchId={matchId}
+                    rankingMap={rankingMap}
+                    scoreMap={scoreMap}
+                    breakdownMap={breakdownMap}
+                    linkedAccountsMap={linkedAccountsMap}
+                    gameVersion={gameVersion}
+                    maxDamage={maxDamage}
+                    savedBuildKeys={savedBuildKeys}
+                    isSaving={isSaving}
+                    saveBuild={saveBuild}
+                    notes={notes}
+                    saveNote={saveNote}
+                    deleteNote={deleteNote}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
-            <div className="bg-gradient-to-r from-rose-50 to-rose-100 dark:from-red-500/20 dark:to-red-500/5 border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 bg-red-500 rounded-full" />
-                <h3 className="text-sm font-bold text-rose-600 dark:text-red-300 uppercase tracking-wider">
-                  Derrota
-                </h3>
-              </div>
-              <div className="flex items-center gap-3 text-[11px]">
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 dark:text-slate-400">K:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {team2Kills}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 dark:text-slate-400">O:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {(team2Gold / 1000).toFixed(1)}k
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              {team2.map((p: any) => (
-                <PlayerRow
-                  key={p.puuid}
-                  player={p}
-                  isCurrentUser={p.puuid === currentUserPuuid}
-                  isWinner={false}
-                  matchId={matchId}
-                  rankingMap={rankingMap}
-                  scoreMap={scoreMap}
-                  breakdownMap={breakdownMap}
-                  linkedAccountsMap={linkedAccountsMap}
-                  gameVersion={gameVersion}
-                  maxDamage={maxDamage}
-                  savedBuildKeys={savedBuildKeys}
-                  isSaving={isSaving}
-                  saveBuild={saveBuild}
-                  notes={notes}
-                  saveNote={saveNote}
-                  deleteNote={deleteNote}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="lg:hidden">
-          {/* <div className="flex items-center justify-between mb-3 px-1 text-[11px] uppercase tracking-wide text-slate-400">
+        ) : (
+          <div className="lg:hidden">
+            {/* <div className="flex items-center justify-between mb-3 px-1 text-[11px] uppercase tracking-wide text-slate-400">
             <span>Desliza para ver ambos equipos</span>
             <div className="flex gap-2">
               <button
@@ -814,121 +821,122 @@ export function ScoreboardModalTable({
             </div>
           </div> */}
 
-          <div
-            ref={mobileCarouselRef}
-            className="flex gap-4 overflow-x-auto snap-x pb-2 -mx-2 px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth touch-pan-x"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <div className="min-w-[92%] snap-start">
-              <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-500/5 border-b border-slate-200/80 dark:border-slate-800 px-4 py-2 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-6 bg-blue-500 rounded-full" />
-                    <h3 className="text-sm font-bold text-blue-600 dark:text-blue-300 uppercase tracking-wider">
-                      Victoria
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 dark:text-slate-400">
-                        Kills:
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {team1Kills}
-                      </span>
+            <div
+              ref={mobileCarouselRef}
+              className="flex gap-4 overflow-x-auto snap-x pb-2 -mx-2 px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth touch-pan-x"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              <div className="min-w-[92%] snap-start">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-500/5 border-b border-slate-200/80 dark:border-slate-800 px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-6 bg-blue-500 rounded-full" />
+                      <h3 className="text-sm font-bold text-blue-600 dark:text-blue-300 uppercase tracking-wider">
+                        Victoria
+                      </h3>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 dark:text-slate-400">
-                        Oro:
-                      </span>
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {(team1Gold / 1000).toFixed(1)}k
-                      </span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Kills:
+                        </span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {team1Kills}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Oro:
+                        </span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {(team1Gold / 1000).toFixed(1)}k
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  {team1.map((p) => (
-                    <PlayerRow
-                      key={p.puuid}
-                      player={p}
-                      isCurrentUser={p.puuid === currentUserPuuid}
-                      isWinner={true}
-                      matchId={matchId}
-                      rankingMap={rankingMap}
-                      scoreMap={scoreMap}
-                      breakdownMap={breakdownMap}
-                      linkedAccountsMap={linkedAccountsMap}
-                      gameVersion={gameVersion}
-                      maxDamage={maxDamage}
-                      savedBuildKeys={savedBuildKeys}
-                      isSaving={isSaving}
-                      saveBuild={saveBuild}
-                      notes={notes}
-                      saveNote={saveNote}
-                      deleteNote={deleteNote}
-                    />
-                  ))}
+                  <div>
+                    {team1.map((p) => (
+                      <PlayerRow
+                        key={p.puuid}
+                        player={p}
+                        isCurrentUser={p.puuid === currentUserPuuid}
+                        isWinner={true}
+                        matchId={matchId}
+                        rankingMap={rankingMap}
+                        scoreMap={scoreMap}
+                        breakdownMap={breakdownMap}
+                        linkedAccountsMap={linkedAccountsMap}
+                        gameVersion={gameVersion}
+                        maxDamage={maxDamage}
+                        savedBuildKeys={savedBuildKeys}
+                        isSaving={isSaving}
+                        saveBuild={saveBuild}
+                        notes={notes}
+                        saveNote={saveNote}
+                        deleteNote={deleteNote}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="min-w-[92%] snap-center">
-              <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
-                <div className="bg-gradient-to-r from-rose-50 to-rose-100 dark:from-red-500/20 dark:to-red-500/5 border-b border-slate-200/80 dark:border-slate-800 px-4 py-2 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-6 bg-red-500 rounded-full" />
-                    <h3 className="text-sm font-bold text-rose-600 dark:text-red-300 uppercase tracking-wider">
-                      Derrota
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 dark:text-slate-400">
-                        Kills:
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {team2Kills}
-                      </span>
+              <div className="min-w-[92%] snap-center">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/30 shadow-sm">
+                  <div className="bg-gradient-to-r from-rose-50 to-rose-100 dark:from-red-500/20 dark:to-red-500/5 border-b border-slate-200/80 dark:border-slate-800 px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-6 bg-red-500 rounded-full" />
+                      <h3 className="text-sm font-bold text-rose-600 dark:text-red-300 uppercase tracking-wider">
+                        Derrota
+                      </h3>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 dark:text-slate-400">
-                        Oro:
-                      </span>
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {(team2Gold / 1000).toFixed(1)}k
-                      </span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Kills:
+                        </span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {team2Kills}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Oro:
+                        </span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {(team2Gold / 1000).toFixed(1)}k
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  {team2.map((p) => (
-                    <PlayerRow
-                      key={p.puuid}
-                      player={p}
-                      isCurrentUser={p.puuid === currentUserPuuid}
-                      isWinner={false}
-                      matchId={matchId}
-                      rankingMap={rankingMap}
-                      scoreMap={scoreMap}
-                      breakdownMap={breakdownMap}
-                      linkedAccountsMap={linkedAccountsMap}
-                      gameVersion={gameVersion}
-                      maxDamage={maxDamage}
-                      savedBuildKeys={savedBuildKeys}
-                      isSaving={isSaving}
-                      saveBuild={saveBuild}
-                      notes={notes}
-                      saveNote={saveNote}
-                      deleteNote={deleteNote}
-                    />
-                  ))}
+                  <div>
+                    {team2.map((p) => (
+                      <PlayerRow
+                        key={p.puuid}
+                        player={p}
+                        isCurrentUser={p.puuid === currentUserPuuid}
+                        isWinner={false}
+                        matchId={matchId}
+                        rankingMap={rankingMap}
+                        scoreMap={scoreMap}
+                        breakdownMap={breakdownMap}
+                        linkedAccountsMap={linkedAccountsMap}
+                        gameVersion={gameVersion}
+                        maxDamage={maxDamage}
+                        savedBuildKeys={savedBuildKeys}
+                        isSaving={isSaving}
+                        saveBuild={saveBuild}
+                        notes={notes}
+                        saveNote={saveNote}
+                        deleteNote={deleteNote}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

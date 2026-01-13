@@ -45,7 +45,31 @@ export function MatchShareModal({
   const getBlob = async (ref: React.RefObject<HTMLDivElement>) => {
     if (!ref.current) return null;
     try {
-      const blob = await toPng(ref.current, {
+      const element = ref.current;
+
+      // Esperar a que todas las imágenes dentro del elemento estén completamente cargadas
+      const images = element.querySelectorAll("img");
+      const imagePromises = Array.from(images).map((img) => {
+        if (img.complete && img.src.startsWith("data:")) {
+          return Promise.resolve();
+        }
+        return new Promise<void>((resolve) => {
+          const checkImage = () => {
+            if (img.src.startsWith("data:") && img.complete) {
+              resolve();
+            } else {
+              setTimeout(checkImage, 100);
+            }
+          };
+          setTimeout(resolve, 5000);
+          checkImage();
+        });
+      });
+
+      await Promise.all(imagePromises);
+      await new Promise((r) => setTimeout(r, 500));
+
+      const blob = await toPng(element, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#0a101a",
@@ -99,8 +123,36 @@ export function MatchShareModal({
 
     try {
       const element = ref.current;
-      // Basic wait for images might be needed if they are not cached,
-      // but since we render them on mount (even hidden), they likely start loading immediately.
+
+      // Esperar a que todas las imágenes dentro del elemento estén completamente cargadas
+      const images = element.querySelectorAll("img");
+      const imagePromises = Array.from(images).map((img) => {
+        // Si la imagen ya está cargada y su src es un data URL, está lista
+        if (img.complete && img.src.startsWith("data:")) {
+          return Promise.resolve();
+        }
+        // Si está cargada pero no es data URL (aún cargando conversión)
+        // o si no está cargada, esperar un poco
+        return new Promise<void>((resolve) => {
+          const checkImage = () => {
+            if (img.src.startsWith("data:") && img.complete) {
+              resolve();
+            } else {
+              // Verificar cada 100ms, máximo 5 segundos
+              setTimeout(checkImage, 100);
+            }
+          };
+          // Timeout máximo de 5 segundos
+          setTimeout(resolve, 5000);
+          checkImage();
+        });
+      });
+
+      // Esperar a que todas las imágenes estén listas
+      await Promise.all(imagePromises);
+
+      // Pequeño delay adicional para asegurar que el DOM esté actualizado
+      await new Promise((r) => setTimeout(r, 500));
 
       const dataUrl = await toPng(element, {
         cacheBust: true,

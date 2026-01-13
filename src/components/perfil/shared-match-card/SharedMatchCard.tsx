@@ -129,7 +129,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
         ? userColor.trim()
         : "#3b82f6";
 
-    const ddragonVersion = partida.dataVersion || "14.23.1";
+    const ddragonVersion = partida.dataVersion || "16.1.1";
 
     const rankingBadgeClass =
       partida.rankingPosition && partida.rankingPosition <= 3

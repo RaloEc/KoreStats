@@ -28,10 +28,11 @@ const isPerkJsonEntry = (value: unknown): value is PerkJsonEntry => {
 };
 
 const iconPathToUrl = (iconPath: string): string | null => {
-  const prefix = "/lol-game-data/assets/";
-  if (!iconPath.startsWith(prefix)) return null;
-  const relative = iconPath.slice(prefix.length).toLowerCase();
-  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${relative}`;
+  // Formato: /lol-game-data/assets/v1/perk-images/Styles/...
+  // DataDragon espera: https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/...
+  // Removemos el prefijo de cliente y apuntamos a DDragon
+  const relative = iconPath.replace("/lol-game-data/assets/v1/", "");
+  return `https://ddragon.leagueoflegends.com/cdn/img/${relative}`;
 };
 
 let perkIndexPromise: Promise<{

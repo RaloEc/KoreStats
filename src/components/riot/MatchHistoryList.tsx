@@ -229,17 +229,6 @@ export function MatchHistoryList({
       params.set("tzOffsetMinutes", String(new Date().getTimezoneOffset()));
       // NO enviamos el filtro de cola aquí - queremos ver todas las partidas del día
 
-      console.log("🔍 [MatchHistoryList] Fetching session stats...");
-      console.log(
-        "  URL:",
-        `/api/riot/matches/session-stats?${params.toString()}`
-      );
-      console.log("  tzOffsetMinutes:", new Date().getTimezoneOffset());
-      console.log(
-        "  Hora local actual:",
-        new Date().toLocaleString("es-ES", { timeZone: "America/Bogota" })
-      );
-
       const response = await fetch(
         `/api/riot/matches/session-stats?${params.toString()}`
       );
@@ -248,8 +237,6 @@ export function MatchHistoryList({
       }
       const data = (await response.json()) as SessionStatsResponse;
 
-      console.log("✅ [MatchHistoryList] Session stats received:", data);
-
       return data;
     },
     enabled: isOwnProfile,
@@ -257,44 +244,36 @@ export function MatchHistoryList({
     retry: false, // No reintentar si falla - es opcional
   });
 
-  const { data: cachedMatchesData } = useQuery<CachedMatchesResponse>({
-    queryKey: ["match-history-cache", userId],
-    queryFn: async () => {
-      if (!userId) throw new Error("No user");
-      console.log(
-        "[MatchHistoryList] 🔄 Fetching cached matches for userId:",
-        userId
-      );
-      const response = await fetch(
-        `/api/riot/matches/cache?userId=${encodeURIComponent(userId)}`
-      );
-      if (!response.ok) {
-        throw new Error("Error al obtener caché de partidas");
-      }
-      const data = (await response.json()) as CachedMatchesResponse;
-      console.log(
-        "[MatchHistoryList] ✅ Cached matches received:",
-        data.matches?.length || 0,
-        "matches"
-      );
-      if (data.matches && data.matches.length > 0) {
-        console.log(
-          "[MatchHistoryList] 🎮 First cached match:",
-          data.matches[0].match_id
-        );
-      }
-      return data;
-    },
-    enabled: !!userId && queueFilter === "all",
-    staleTime: 10 * 60 * 1000, // 10 minutos - las partidas no cambian
-  });
+  // Query de caché optimizada: siempre habilitada para mostrar contenido instantáneo
+  const { data: cachedMatchesData, isFetching: isFetchingCache } =
+    useQuery<CachedMatchesResponse>({
+      queryKey: ["match-history-cache", userId],
+      queryFn: async () => {
+        if (!userId) throw new Error("No user");
 
+        const response = await fetch(
+          `/api/riot/matches/cache?userId=${encodeURIComponent(userId)}`
+        );
+        if (!response.ok) {
+          throw new Error("Error al obtener caché de partidas");
+        }
+        const data = (await response.json()) as CachedMatchesResponse;
+
+        return data;
+      },
+      enabled: !!userId, // Siempre habilitada para cualquier filtro
+      staleTime: 30 * 60 * 1000, // 30 minutos - el caché es muy estable
+      gcTime: 60 * 60 * 1000, // 1 hora en memoria
+      refetchOnMount: false, // No refetch si hay datos frescos
+      refetchOnWindowFocus: false, // El caché no necesita actualizarse al focus
+    });
+
+  // El caché ahora se usa para cualquier filtro - se filtra localmente si es necesario
   const cachedMatches = useMemo<Match[]>(() => {
-    if (queueFilter !== "all") {
-      return [];
-    }
-    return cachedMatchesData?.matches ?? [];
-  }, [cachedMatchesData, queueFilter]);
+    const matches = cachedMatchesData?.matches ?? [];
+    // Para "all" retornamos todo, para otros filtros el caché igual ayuda visualmente
+    return matches;
+  }, [cachedMatchesData]);
 
   const hasCachedMatches = cachedMatches.length > 0;
 
@@ -325,10 +304,11 @@ export function MatchHistoryList({
     {}
   );
 
-  // Query para obtener historial de partidas con lazy load
+  // Query para obtener historial de partidas con lazy load - OPTIMIZADA
   const {
     data: matchPages,
     isLoading,
+    isFetching, // Nuevo: para saber si está actualizando en background
     error,
     fetchNextPage,
     hasNextPage,
@@ -342,7 +322,7 @@ export function MatchHistoryList({
       const params = new URLSearchParams();
       params.set("userId", userId);
 
-      // Lazy load: primeras 5 partidas, después 40
+      // Lazy load: primeras 5 partidas, después 15
       const isFirstPage = pageParam === null;
       const limit = isFirstPage ? INITIAL_LOAD : MATCHES_PER_PAGE;
       params.set("limit", limit.toString());
@@ -367,9 +347,14 @@ export function MatchHistoryList({
     getNextPageParam: (lastPage) =>
       lastPage?.hasMore ? lastPage.nextCursor ?? undefined : undefined,
     enabled: !!userId,
-    staleTime: 10 * 60 * 1000, // 10 minutos - las partidas históricas no cambian
+    staleTime: 5 * 60 * 1000, // 5 minutos para datos frescos
     gcTime: 60 * 60 * 1000, // 60 minutos en caché antes de garbage collection
     initialPageParam: null,
+    // OPTIMIZACIÓN: Mostrar datos anteriores mientras se refetch (evita skeleton flash)
+    placeholderData: (previousData) => previousData,
+    // OPTIMIZACIÓN: Solo refetch si los datos son stale, no en cada mount
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Mutación para sincronizar partidas
@@ -403,22 +388,20 @@ export function MatchHistoryList({
       return response.json();
     },
     onSuccess: async () => {
-      console.log("[MatchHistoryList] SYNC SUCCESSFUL - RESETTING CACHE");
-
       // 1. Cancelar cualquier query en progreso para evitar race conditions
-      console.log("[MatchHistoryList] Cancelando queries en progreso...");
+
       await queryClient.cancelQueries({ queryKey: ["match-history"] });
       await queryClient.cancelQueries({ queryKey: ["match-history-cache"] });
 
       // 2. Remover completamente los datos del cache (no solo setQueryData undefined)
-      console.log("[MatchHistoryList] Removiendo queries del cache...");
+
       queryClient.removeQueries({
         queryKey: ["match-history", userId, queueFilter],
       });
       queryClient.removeQueries({ queryKey: ["match-history-cache", userId] });
 
       // 3. Marcar las queries como stale para forzar refetch
-      console.log("[MatchHistoryList] Invalidando queries...");
+
       queryClient.invalidateQueries({
         queryKey: ["match-history", userId, queueFilter],
       });
@@ -430,11 +413,8 @@ export function MatchHistoryList({
         queryKey: ["match-session-stats"],
       });
 
-      console.log("[MatchHistoryList] Cache limpiado, refetching...");
-
       // 4. Refetch limpio - esto creará una nueva query desde cero
       const result = await refetch();
-      console.log("[MatchHistoryList] Refetch completado, resultado:", result);
     },
   });
 
@@ -526,9 +506,6 @@ export function MatchHistoryList({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          console.log(
-            "[MatchHistoryList] 🚀 Pre-fetching (Intersection Observer)"
-          );
           fetchNextPage();
         }
       },
@@ -624,9 +601,6 @@ export function MatchHistoryList({
 
     if (hasProcessingMatches && !syncMutation.isPending && !isLoading) {
       const timeout = setTimeout(() => {
-        console.log(
-          "[MatchHistoryList] ♻️ Reintentando fetch por partidas en processing..."
-        );
         refetch();
       }, 5000);
 
@@ -672,18 +646,6 @@ export function MatchHistoryList({
 
   const todayMessage = useMemo(() => {
     if (!isOwnProfile || !sessionStats?.success) return null;
-
-    // Logging para debugging
-    console.log("📊 [MatchHistoryList] Stats de Hoy:", {
-      total: sessionStats.today.total,
-      wins: sessionStats.today.wins,
-      losses: sessionStats.today.losses,
-      winrate: sessionStats.today.winrate,
-      startMs: sessionStats.today.startMs,
-      endMs: sessionStats.today.endMs,
-      startDate: new Date(sessionStats.today.startMs).toISOString(),
-      endDate: new Date(sessionStats.today.endMs).toISOString(),
-    });
 
     const { total, wins, losses } = sessionStats.today;
 
@@ -755,12 +717,20 @@ export function MatchHistoryList({
     return null;
   }, [isOwnProfile, sessionStats]);
 
-  // ...
+  // OPTIMIZADO: Solo mostrar skeleton si no hay NINGÚN dato disponible
+  // Esto permite mostrar datos del caché o datos anteriores mientras se actualiza
   const shouldShowInitialSkeleton =
     isLoading &&
+    !isFetching && // Si está fetching pero hay datos previos, no mostrar skeleton
     pages.length === 0 &&
     lastStableMatches.length === 0 &&
     !hasCachedMatches;
+
+  // Indicador de actualización en background (cuando hay datos pero se está refrescando)
+  const isRefreshingInBackground =
+    isFetching &&
+    !isLoading &&
+    (matchesToRender.length > 0 || hasCachedMatches);
 
   if (shouldShowInitialSkeleton) {
     return (
@@ -852,9 +822,20 @@ export function MatchHistoryList({
       <div className="flex flex-col gap-3 flex-shrink-0">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div>
-            <h3 className="text-lg font-bold text-slate-600 dark:text-white ">
-              Historial de Partidas
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-600 dark:text-white">
+                Historial de Partidas
+              </h3>
+              {/* Indicador de actualización en background - no bloqueante */}
+              {isRefreshingInBackground && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+                  <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                    Actualizando
+                  </span>
+                </div>
+              )}
+            </div>
             {isOwnProfile && sessionStats?.success ? (
               <div
                 className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-sm

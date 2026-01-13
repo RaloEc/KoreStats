@@ -13,27 +13,31 @@ export interface PlayerNote {
   updated_at: string;
 }
 
-interface UsePlayerNotesProps {
-  currentUserPuuid?: string;
-}
+// OPTIMIZACIÓN: Caché global singleton para evitar múltiples fetches
+// cuando el hook se usa en múltiples componentes simultáneamente
+let globalNotesCache: Record<string, PlayerNote> = {};
+let globalFetchPromise: Promise<void> | null = null;
+let globalFetchedAt: number = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos de caché
 
-export function usePlayerNotes() {
-  const [notes, setNotes] = useState<Record<string, PlayerNote>>({});
-  const [loading, setLoading] = useState(false);
-  const fetchedRef = useRef(false);
+async function fetchNotesGlobal(): Promise<Record<string, PlayerNote>> {
+  // Si hay un fetch en progreso, esperar a que termine
+  if (globalFetchPromise) {
+    await globalFetchPromise;
+    return globalNotesCache;
+  }
 
-  const fetchNotes = useCallback(async () => {
-    // Basic caching/deduping to prevent strict mode double-fetch or rapid re-fetches
-    // Ideally use React Query, but this suffices for now
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
+  // Si el caché es reciente, usarlo
+  if (globalFetchedAt > 0 && Date.now() - globalFetchedAt < CACHE_TTL_MS) {
+    return globalNotesCache;
+  }
 
+  // Hacer el fetch
+  globalFetchPromise = (async () => {
     try {
-      setLoading(true);
       const res = await fetch("/api/riot/notes");
 
       if (!res.ok) {
-        // If 404/500, likely table missing. Don't throw to avoid loop spam, just log.
         console.warn("Failed to fetch notes (API error)", res.status);
         return;
       }
@@ -45,16 +49,39 @@ export function usePlayerNotes() {
           notesMap[note.target_puuid] = note;
         });
       }
-      setNotes(notesMap);
+      globalNotesCache = notesMap;
+      globalFetchedAt = Date.now();
     } catch (error) {
       console.error("Error fetching notes:", error);
     } finally {
-      setLoading(false);
+      globalFetchPromise = null;
+    }
+  })();
+
+  await globalFetchPromise;
+  return globalNotesCache;
+}
+
+export function usePlayerNotes() {
+  const [notes, setNotes] =
+    useState<Record<string, PlayerNote>>(globalNotesCache);
+  const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  const fetchNotes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const freshNotes = await fetchNotesGlobal();
+      if (mountedRef.current) {
+        setNotes(freshNotes);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
-  // Fetch only a specific note if needed, but for now we fetch all
-  // Optimization: Could fetch single note on modal open if list is huge
   const getNote = (targetPuuid: string) => notes[targetPuuid];
 
   const saveNote = async (data: {
@@ -76,10 +103,12 @@ export function usePlayerNotes() {
         throw new Error(json.error || "Failed to save note");
       }
 
-      setNotes((prev) => ({
-        ...prev,
+      // Actualizar caché global y local
+      globalNotesCache = {
+        ...globalNotesCache,
         [data.target_puuid]: json.data,
-      }));
+      };
+      setNotes(globalNotesCache);
 
       toast.success("Nota guardada");
       return json.data;
@@ -98,11 +127,11 @@ export function usePlayerNotes() {
 
       if (!res.ok) throw new Error("Failed to delete note");
 
-      setNotes((prev) => {
-        const next = { ...prev };
-        delete next[targetPuuid];
-        return next;
-      });
+      // Actualizar caché global y local
+      const next = { ...globalNotesCache };
+      delete next[targetPuuid];
+      globalNotesCache = next;
+      setNotes(next);
 
       toast.success("Nota eliminada");
     } catch (error) {
@@ -113,7 +142,24 @@ export function usePlayerNotes() {
   };
 
   useEffect(() => {
-    fetchNotes();
+    mountedRef.current = true;
+
+    // Si ya hay datos en caché, usarlos inmediatamente sin bloquear
+    if (Object.keys(globalNotesCache).length > 0) {
+      setNotes(globalNotesCache);
+    }
+
+    // Fetch en background solo si el caché está vacío o expirado
+    if (
+      Object.keys(globalNotesCache).length === 0 ||
+      Date.now() - globalFetchedAt >= CACHE_TTL_MS
+    ) {
+      fetchNotes();
+    }
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchNotes]);
 
   return {

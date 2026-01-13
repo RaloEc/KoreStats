@@ -21,9 +21,15 @@ const DEFAULT_COLOR = "#6366F1"; // Indigo default
 const TRANSPARENT_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
+// Pixel de error rojo para indicar que la imagen falló
+const ERROR_PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAgQHFUgAAAABJRU5ErkJggg==";
+
 // Cache global para evitar re-procesar las mismas imágenes a Base64 múltiples veces
-const imageCache: Record<string, string> = {};
-const pendingLoads: Record<string, Promise<string>> = {};
+// Usamos un Map para poder limpiar entradas fallidas
+const imageCache: Map<string, string> = new Map();
+const pendingLoads: Map<string, Promise<string>> = new Map();
+const failedUrls: Set<string> = new Set(); // Track URLs que han fallado
 
 /**
  * Convierte URLs externas a URLs del proxy local
@@ -80,40 +86,64 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
  * Usa el proxy local para imágenes de DDragon para evitar CORS
  */
 async function imageToBase64(url: string): Promise<string> {
+  // Si la URL ya falló antes, no reintentar
+  if (failedUrls.has(url)) {
+    return ERROR_PIXEL;
+  }
+
   // Si ya está en caché, devolverlo
-  if (imageCache[url]) return imageCache[url];
+  const cached = imageCache.get(url);
+  if (cached) return cached;
 
   // Si ya se está cargando, esperar a esa promesa
-  if (pendingLoads[url]) return pendingLoads[url];
+  const pending = pendingLoads.get(url);
+  if (pending) return pending;
 
-  pendingLoads[url] = new Promise((resolve, reject) => {
+  const loadPromise = new Promise<string>((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
 
+    // Timeout para evitar que imágenes se queden cargando indefinidamente
+    const timeoutId = setTimeout(() => {
+      console.warn(`[MatchShareCard] Timeout loading image: ${url}`);
+      failedUrls.add(url);
+      pendingLoads.delete(url);
+      resolve(ERROR_PIXEL);
+    }, 10000); // 10 segundos timeout
+
     img.onload = () => {
+      clearTimeout(timeoutId);
       try {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error("No se pudo obtener el contexto del canvas"));
+          console.error(`[MatchShareCard] No canvas context for: ${url}`);
+          failedUrls.add(url);
+          pendingLoads.delete(url);
+          resolve(ERROR_PIXEL);
           return;
         }
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL("image/png");
-        imageCache[url] = dataUrl; // Guardar en caché
-        delete pendingLoads[url];
+        imageCache.set(url, dataUrl); // Guardar en caché
+        pendingLoads.delete(url);
         resolve(dataUrl);
       } catch (err) {
-        delete pendingLoads[url];
-        reject(err);
+        console.error(`[MatchShareCard] Canvas error for ${url}:`, err);
+        failedUrls.add(url);
+        pendingLoads.delete(url);
+        resolve(ERROR_PIXEL);
       }
     };
 
-    img.onerror = () => {
-      delete pendingLoads[url];
-      reject(new Error(`Error al cargar la imagen: ${url}`));
+    img.onerror = (e) => {
+      clearTimeout(timeoutId);
+      console.error(`[MatchShareCard] Image load error for ${url}:`, e);
+      failedUrls.add(url);
+      pendingLoads.delete(url);
+      resolve(ERROR_PIXEL);
     };
 
     // Usar el proxy para URLs de DDragon o CommunityDragon
@@ -128,7 +158,8 @@ async function imageToBase64(url: string): Promise<string> {
     img.src = finalUrl;
   });
 
-  return pendingLoads[url];
+  pendingLoads.set(url, loadPromise);
+  return loadPromise;
 }
 
 /**
@@ -225,9 +256,9 @@ const MatchShareCardComponent = ({
   const rgb = hexToRgb(accentColor);
 
   // Normalizar la versión del parche para DDragon
-  // DDragon usa versiones como "15.24.1", no "15.24.734.7485"
+  // DDragon usa versiones como "16.1.1", no "15.24.734.7485"
   const normalizeVersion = (v: string): string => {
-    if (!v) return "15.24.1";
+    if (!v) return "16.1.1";
     const parts = v.split(".");
     // Si tiene más de 3 partes o la tercera parte es muy larga, normalizar
     if (parts.length >= 2) {
@@ -236,10 +267,10 @@ const MatchShareCardComponent = ({
       // Usar "1" como tercer dígito por defecto
       return `${major}.${minor}.1`;
     }
-    return "15.24.1";
+    return "16.1.1";
   };
 
-  const rawVersion = gameVersion || match.game_version || "15.24.1";
+  const rawVersion = gameVersion || match.game_version || "16.1.1";
   const version = normalizeVersion(rawVersion);
 
   // Metadata
