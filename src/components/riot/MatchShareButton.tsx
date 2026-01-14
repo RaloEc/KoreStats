@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MatchShareModal } from "@/components/riot/MatchShareModal";
+import { useSiteSetting } from "@/hooks/useSiteSettings";
 
 interface MatchShareButtonProps {
   match: any;
@@ -19,6 +20,11 @@ export function MatchShareButton({
   userColor,
 }: MatchShareButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isPngEnabled = useSiteSetting("match_share_png_enabled");
+
+  // Si está cargando (null), no mostrar nada temporalmente
+  // Si está deshabilitado, no renderizar el botón
+  if (isPngEnabled === null || isPngEnabled === false) return null;
 
   if (!focusParticipant) return null;
 

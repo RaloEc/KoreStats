@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 
 import UsuariosStats from "@/components/admin/UsuariosStats";
 import { RankSyncPanel } from "@/components/admin/RankSyncPanel";
+import { SiteSettingsPanel } from "@/components/admin/SiteSettingsPanel";
 import { Button } from "@/components/ui/button";
 
 // Componente interno del dashboard
@@ -471,6 +472,9 @@ export default function DashboardContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Configuración del sitio */}
+      <SiteSettingsPanel />
     </div>
   );
 }

@@ -222,7 +222,9 @@ export function getRuneStyleImg(perkId: number | null): string | null {
 
 export function getPerkImg(perkId: number | null): string | null {
   if (!perkId) return null;
-  return `https://cdn.communitydragon.org/latest/perk/${perkId}`;
+  // CommunityDragon CDN endpoint que devuelve PNG directamente
+  // Este endpoint hace redirect al archivo correcto con extensión
+  return `https://cdn.communitydragon.org/latest/perk/${perkId}/icon.png`;
 }
 
 /**

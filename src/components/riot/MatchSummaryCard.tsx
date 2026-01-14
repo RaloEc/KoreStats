@@ -12,43 +12,11 @@ import {
   organizeMatchParticipants,
   type RiotParticipant,
 } from "@/lib/riot/organize-participants";
+import { loadImageAsBase64, TRANSPARENT_PIXEL } from "@/lib/image-loader";
 
 interface MatchSummaryCardProps {
   match: any;
   gameVersion: string;
-}
-
-const TRANSPARENT_PIXEL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-
-// Pixel de error (gris oscuro)
-const ERROR_PIXEL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
-// Cache robusto con TTL para evitar contaminación
-interface CacheEntry {
-  data: string;
-  timestamp: number;
-}
-
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-const imageCache: Map<string, CacheEntry> = new Map();
-const pendingLoads: Map<string, Promise<string>> = new Map();
-
-// Limpiar entradas expiradas del cache periódicamente
-function cleanExpiredCache() {
-  const now = Date.now();
-  const entries = Array.from(imageCache.entries());
-  for (const [key, entry] of entries) {
-    if (now - entry.timestamp > CACHE_TTL) {
-      imageCache.delete(key);
-    }
-  }
-}
-
-// Limpiar cada minuto
-if (typeof window !== "undefined") {
-  setInterval(cleanExpiredCache, 60000);
 }
 
 // --- Helper Functions ---
@@ -65,132 +33,11 @@ function getItemUrl(itemId: number, version: string): string | null {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
 }
 
-/**
- * Convierte una imagen a base64 usando un canvas
- * Versión robusta para producción con manejo de errores mejorado
- */
-async function imageToBase64(originalUrl: string): Promise<string> {
-  if (!originalUrl || originalUrl === "null" || originalUrl === "undefined") {
-    return TRANSPARENT_PIXEL;
-  }
-
-  // Verificar cache válido
-  const cached = imageCache.get(originalUrl);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-
-  // Si ya se está cargando esta URL específica, esperar
-  const pending = pendingLoads.get(originalUrl);
-  if (pending) {
-    return pending;
-  }
-
-  // Crear promesa de carga única para esta URL
-  const loadPromise = new Promise<string>((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    let resolved = false;
-    const safeResolve = (result: string) => {
-      if (resolved) return;
-      resolved = true;
-      pendingLoads.delete(originalUrl);
-
-      // Solo cachear si es un resultado exitoso (no error pixel)
-      if (result !== ERROR_PIXEL && result !== TRANSPARENT_PIXEL) {
-        imageCache.set(originalUrl, { data: result, timestamp: Date.now() });
-      }
-      resolve(result);
-    };
-
-    // Timeout para fallar rápido
-    const timeoutId = setTimeout(() => {
-      console.warn(
-        `[MatchSummaryCard] Timeout: ${originalUrl.substring(0, 60)}...`
-      );
-      safeResolve(ERROR_PIXEL);
-    }, 8000);
-
-    img.onload = () => {
-      clearTimeout(timeoutId);
-      try {
-        // Verificar que la imagen tenga dimensiones válidas
-        if (img.width === 0 || img.height === 0) {
-          console.warn(
-            `[MatchSummaryCard] Zero dimensions for: ${originalUrl}`
-          );
-          safeResolve(ERROR_PIXEL);
-          return;
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          console.error(`[MatchSummaryCard] No canvas context`);
-          safeResolve(ERROR_PIXEL);
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0);
-
-        // Verificar que el canvas no esté vacío
-        try {
-          const dataUrl = canvas.toDataURL("image/png");
-          if (dataUrl && dataUrl.length > 100) {
-            safeResolve(dataUrl);
-          } else {
-            safeResolve(ERROR_PIXEL);
-          }
-        } catch (e) {
-          // Error de seguridad (tainted canvas)
-          console.error(`[MatchSummaryCard] Canvas tainted:`, e);
-          safeResolve(ERROR_PIXEL);
-        }
-      } catch (err) {
-        console.error(`[MatchSummaryCard] Canvas error:`, err);
-        safeResolve(ERROR_PIXEL);
-      }
-    };
-
-    img.onerror = () => {
-      clearTimeout(timeoutId);
-      console.warn(
-        `[MatchSummaryCard] Image load failed: ${originalUrl.substring(
-          0,
-          60
-        )}...`
-      );
-      safeResolve(ERROR_PIXEL);
-    };
-
-    // Construir URL del proxy
-    let finalUrl = originalUrl;
-    if (
-      originalUrl.includes("ddragon.leagueoflegends.com") ||
-      originalUrl.includes("communitydragon.org") ||
-      originalUrl.includes("raw.communitydragon.org")
-    ) {
-      // Añadir cachebuster para evitar cache problemático
-      const cacheBuster = Date.now().toString(36);
-      finalUrl = `/api/proxy-image?url=${encodeURIComponent(
-        originalUrl
-      )}&_=${cacheBuster}`;
-    }
-
-    img.src = finalUrl;
-  });
-
-  pendingLoads.set(originalUrl, loadPromise);
-  return loadPromise;
-}
+// Función de utilidad movida a @/lib/image-loader
 
 /**
  * Imagen con fallback robusto para html-to-image
- * NOTA: No usar loading="lazy" ya que las imágenes se renderizan off-screen
+ * Usa el módulo centralizado de carga de imágenes
  */
 function ProxiedImage({
   src,
@@ -205,47 +52,25 @@ function ProxiedImage({
 }) {
   const [imgSrc, setImgSrc] = useState(TRANSPARENT_PIXEL);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentSrc, setCurrentSrc] = useState(src);
-
-  // Reset state when src changes
-  useEffect(() => {
-    if (src !== currentSrc) {
-      setCurrentSrc(src);
-      setImgSrc(TRANSPARENT_PIXEL);
-      setIsLoading(true);
-    }
-  }, [src, currentSrc]);
 
   useEffect(() => {
     let isMounted = true;
-    const load = async () => {
-      if (!src) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        let finalUrl = src;
-        if (src.includes("/api/proxy-image?url=")) {
-          try {
-            const urlParam = new URL(
-              src,
-              typeof window !== "undefined"
-                ? window.location.origin
-                : "https://korestats.com"
-            ).searchParams.get("url");
-            if (urlParam) finalUrl = decodeURIComponent(urlParam);
-          } catch (e) {}
-        }
-        const base64 = await imageToBase64(finalUrl);
+    if (!src) {
+      setIsLoading(false);
+      return;
+    }
+
+    loadImageAsBase64(src)
+      .then((base64) => {
         if (isMounted) {
           setImgSrc(base64);
           setIsLoading(false);
         }
-      } catch (e) {
+      })
+      .catch(() => {
         if (isMounted) setIsLoading(false);
-      }
-    };
-    load();
+      });
+
     return () => {
       isMounted = false;
     };
@@ -255,11 +80,10 @@ function ProxiedImage({
     <img
       src={imgSrc}
       alt={alt}
-      // NO usar loading="lazy" - rompe la captura off-screen
       style={{
         ...style,
         opacity: isLoading ? 0.3 : 1,
-        transition: "opacity 0.2s ease-in-out",
+        transition: "opacity 0.15s ease-out",
       }}
       className={className}
     />

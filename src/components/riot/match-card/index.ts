@@ -1,4 +1,5 @@
 export { MatchCard } from "./MatchCard";
+export { MatchCardLite } from "./MatchCardLite";
 export { MobileMatchCard } from "./MobileMatchCard";
 export { CompactMobileMatchCard } from "./CompactMobileMatchCard";
 export { TeamPlayerList } from "./TeamPlayerList";

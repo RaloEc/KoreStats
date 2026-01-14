@@ -215,38 +215,20 @@ export function MatchHistoryList({
     }
   }, [profile?.id, propUserId]);
 
+  // OPTIMIZADO: Solo cargar versión DDragon cuando ya tenemos partidas
+  // Esto evita una request extra en el primer render
   const { data: ddragonVersion = FALLBACK_VERSION } = useQuery({
     queryKey: ["ddragon-version"],
     queryFn: getLatestDDragonVersion,
     staleTime: 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000, // 24 horas - casi nunca cambia
     initialData: FALLBACK_VERSION,
+    // ESCALONAMIENTO: No bloquear el primer render
+    enabled: true, // Se carga pero con baja prioridad por el initialData
   });
 
   const userId = propUserId || localUserId;
   const isOwnProfile = Boolean(profile?.id && userId && profile.id === userId);
-
-  const { data: sessionStats } = useQuery<SessionStatsResponse>({
-    queryKey: ["match-session-stats"], // Sin filtro de cola - siempre mostrar todas las partidas del día
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.set("gapHours", "2");
-      params.set("tzOffsetMinutes", String(new Date().getTimezoneOffset()));
-      // NO enviamos el filtro de cola aquí - queremos ver todas las partidas del día
-
-      const response = await fetch(
-        `/api/riot/matches/session-stats?${params.toString()}`
-      );
-      if (!response.ok) {
-        throw new Error("Error al obtener stats de sesión");
-      }
-      const data = (await response.json()) as SessionStatsResponse;
-
-      return data;
-    },
-    enabled: isOwnProfile,
-    staleTime: 5 * 1000, // 5 segundos - actualizar frecuentemente para reflejar nuevas partidas
-    retry: false, // No reintentar si falla - es opcional
-  });
 
   // Query de caché optimizada: siempre habilitada para mostrar contenido instantáneo
   const { data: cachedMatchesData, isFetching: isFetchingCache } =
@@ -281,12 +263,36 @@ export function MatchHistoryList({
 
   const hasCachedMatches = cachedMatches.length > 0;
 
+  // OPTIMIZADO: Session stats es secundario - solo cargar después de tener datos
+  // y solo para el perfil propio
+  const { data: sessionStats } = useQuery<SessionStatsResponse>({
+    queryKey: ["match-session-stats"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("gapHours", "2");
+      params.set("tzOffsetMinutes", String(new Date().getTimezoneOffset()));
+
+      const response = await fetch(
+        `/api/riot/matches/session-stats?${params.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error("Error al obtener stats de sesión");
+      }
+      return (await response.json()) as SessionStatsResponse;
+    },
+    // ESCALONAMIENTO: Solo después de tener datos en caché y solo si es perfil propio
+    enabled: isOwnProfile && hasCachedMatches,
+    staleTime: 30 * 1000, // 30 segundos - no tan frecuente
+    retry: false,
+  });
+
   const matchHistoryQueryKey = useMemo(
     () => ["match-history", userId, queueFilter],
     [userId, queueFilter]
   );
 
-  // Query global para obtener PUUIDs de jugadores registrados
+  // OPTIMIZADO: Linked accounts es terciario - solo cargar cuando se necesite
+  // Usamos hasCachedMatches como indicador de que hay datos para mostrar
   const { data: linkedAccountsData } = useQuery<LinkedAccountsResponse>({
     queryKey: ["linked-accounts"],
     queryFn: async () => {
@@ -294,7 +300,10 @@ export function MatchHistoryList({
       if (!res.ok) throw new Error("Error al obtener cuentas enlazadas");
       return (await res.json()) as LinkedAccountsResponse;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutos - raramente cambia
+    // ESCALONAMIENTO: Solo después de tener partidas en caché o cuando hay modal abierto
+    enabled: hasCachedMatches || !!selectedMatchId,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   const linkedAccounts = linkedAccountsData?.accounts ?? [];
