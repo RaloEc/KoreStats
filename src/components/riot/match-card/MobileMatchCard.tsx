@@ -128,6 +128,7 @@ interface MobileMatchCardProps {
   onSelectMatch?: (matchId: string) => void;
   /** Callback para prefetch al tocar (móvil) */
   onHoverMatch?: (matchId: string) => void;
+  linkedAccountsMap?: Record<string, string>;
 }
 
 export type { MobileMatchCardProps };
@@ -142,6 +143,7 @@ export function MobileMatchCard({
   priority = false,
   onSelectMatch,
   onHoverMatch,
+  linkedAccountsMap = {},
 }: MobileMatchCardProps) {
   const { shareMatch, isSharing, sharedMatches } = useShareMatch();
 
@@ -621,6 +623,7 @@ export function MobileMatchCard({
             currentPuuid={match.puuid}
             className="text-[11px]"
             showInline={true}
+            linkedAccountsMap={linkedAccountsMap}
           />
         </div>
       </div>

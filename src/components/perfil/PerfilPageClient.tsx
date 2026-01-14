@@ -346,6 +346,7 @@ export default function PerfilPageClient({
               unifiedSyncPending={unifiedSyncPending}
               unifiedSyncCooldown={unifiedSyncCooldown}
               onInvalidateCache={invalidateAndRefetchStatic}
+              profileColor={perfil.color}
             />
           </div>
         )}

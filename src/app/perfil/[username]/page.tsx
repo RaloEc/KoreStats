@@ -5,6 +5,7 @@ import { getProfileInitialData } from "@/lib/perfil/server-data";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getServiceClient } from "@/lib/supabase/server";
+import { getMatchHistory, getPlayerStats } from "@/lib/riot/matches";
 
 // Forzar renderizado dinámico para evitar errores 500
 export const dynamic = "force-dynamic";
@@ -76,6 +77,18 @@ export default async function UserProfilePage({
       params.username
     );
 
+    let initialMatchesData = null;
+    let initialStats = null;
+
+    if (riotAccount) {
+      const [matchesResult, statsResult] = await Promise.all([
+        getMatchHistory(riotAccount.puuid, { limit: 10 }),
+        getPlayerStats(riotAccount.puuid, { limit: 40 }),
+      ]);
+      initialMatchesData = matchesResult;
+      initialStats = statsResult;
+    }
+
     if (!profile) {
       return notFound();
     }
@@ -85,6 +98,8 @@ export default async function UserProfilePage({
         <UserProfileClient
           initialProfile={profile}
           initialRiotAccount={riotAccount}
+          initialMatchesData={initialMatchesData}
+          initialStats={initialStats}
         />
       </Suspense>
     );

@@ -54,6 +54,8 @@ interface MatchHistoryListProps {
   externalSyncPending?: boolean;
   externalCooldownSeconds?: number;
   hideShareButton?: boolean;
+  initialMatchesData?: any;
+  initialStats?: any;
 }
 
 interface PlayerStats {
@@ -145,6 +147,8 @@ export function MatchHistoryList({
   externalSyncPending = false,
   externalCooldownSeconds = 0,
   hideShareButton = false,
+  initialMatchesData,
+  initialStats,
 }: MatchHistoryListProps = {}) {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
@@ -355,6 +359,18 @@ export function MatchHistoryList({
     // OPTIMIZACIÓN: Solo refetch si los datos son stale, no en cada mount
     refetchOnMount: true,
     refetchOnWindowFocus: false,
+    initialData:
+      (initialMatchesData && !queueFilter) || queueFilter === "all"
+        ? {
+            pages: [
+              {
+                ...initialMatchesData,
+                stats: initialStats || DEFAULT_STATS,
+              },
+            ],
+            pageParams: [null],
+          }
+        : undefined,
   });
 
   // Mutación para sincronizar partidas
@@ -602,7 +618,7 @@ export function MatchHistoryList({
     if (hasProcessingMatches && !syncMutation.isPending && !isLoading) {
       const timeout = setTimeout(() => {
         refetch();
-      }, 5000);
+      }, 15000); // Aumentado de 5s a 15s para ser menos agresivo
 
       return () => clearTimeout(timeout);
     }
@@ -727,10 +743,13 @@ export function MatchHistoryList({
     !hasCachedMatches;
 
   // Indicador de actualización en background (cuando hay datos pero se está refrescando)
+  // No mostramos el indicador si solo estamos cargando la siguiente página (paginación)
   const isRefreshingInBackground =
-    isFetching &&
-    !isLoading &&
-    (matchesToRender.length > 0 || hasCachedMatches);
+    (isFetching &&
+      !isFetchingNextPage &&
+      !isLoading &&
+      (matchesToRender.length > 0 || hasCachedMatches)) ||
+    syncMutation.isPending;
 
   if (shouldShowInitialSkeleton) {
     return (
@@ -826,15 +845,7 @@ export function MatchHistoryList({
               <h3 className="text-lg font-bold text-slate-600 dark:text-white">
                 Historial de Partidas
               </h3>
-              {/* Indicador de actualización en background - no bloqueante */}
-              {isRefreshingInBackground && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-                  <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                    Actualizando
-                  </span>
-                </div>
-              )}
+              {/* Indicador de actualización en background eliminado a petición del usuario */}
             </div>
             {isOwnProfile && sessionStats?.success ? (
               <div
@@ -1011,6 +1022,7 @@ export function MatchHistoryList({
                           priority={idx < 2}
                           onSelectMatch={handleSelectMatch}
                           onHoverMatch={handlePrefetchMatch}
+                          linkedAccountsMap={linkedAccountsMap}
                         />
                       )
                     ) : (

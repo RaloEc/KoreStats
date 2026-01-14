@@ -349,7 +349,7 @@ export const patchService = {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
         imagenPrincipal = `${baseUrl}/api/og/patch?version=${latestVersion}&bg=${encodeURIComponent(
           imagenPrincipal
-        )}`;
+        )}&ts=${Date.now()}`;
       }
 
       const season = parseInt(latestVersion.split(".")[0]);

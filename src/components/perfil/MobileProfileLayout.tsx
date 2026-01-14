@@ -166,6 +166,7 @@ export default function MobileProfileLayout({
                   onSync={unifiedSync}
                   isSyncing={unifiedSyncPending}
                   cooldownSeconds={unifiedSyncCooldown}
+                  profileColor={perfil.color}
                 />
 
                 <div className="grid grid-cols-1 gap-6">

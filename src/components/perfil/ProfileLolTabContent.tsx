@@ -56,6 +56,7 @@ interface ProfileLolTabContentProps {
   unifiedSyncPending: boolean;
   unifiedSyncCooldown: number;
   onInvalidateCache: () => Promise<unknown>;
+  profileColor?: string;
 }
 
 export function ProfileLolTabContent({
@@ -65,6 +66,7 @@ export function ProfileLolTabContent({
   unifiedSyncPending,
   unifiedSyncCooldown,
   onInvalidateCache,
+  profileColor,
 }: ProfileLolTabContentProps) {
   const { toast } = useToast();
 
@@ -109,6 +111,8 @@ export function ProfileLolTabContent({
           externalSyncPending={unifiedSyncPending}
           externalCooldownSeconds={unifiedSyncCooldown}
           onUnlink={handleUnlink}
+          initialAccount={riotAccount as any} // Casting seguro, interfaces compatibles
+          profileColor={profileColor}
         />
 
         {/* Resumen de campeones */}

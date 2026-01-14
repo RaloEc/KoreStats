@@ -25,11 +25,15 @@ import { ProfileData } from "@/hooks/use-perfil-usuario";
 interface UserProfileClientProps {
   initialProfile?: ProfileData | null;
   initialRiotAccount?: LinkedAccountRiot | null;
+  initialMatchesData?: any;
+  initialStats?: any;
 }
 
 export default function UserProfileClient({
   initialProfile,
   initialRiotAccount,
+  initialMatchesData,
+  initialStats,
 }: UserProfileClientProps) {
   const router = useRouter();
   const params = useParams();
@@ -67,6 +71,16 @@ export default function UserProfileClient({
     initialProfile?.id ?? null
   );
 
+  // Sincronizar estado local con props iniciales cuando estas cambian
+  useEffect(() => {
+    if (initialRiotAccount !== undefined) {
+      setRiotAccount(initialRiotAccount);
+    }
+    if (initialProfile !== undefined) {
+      setRiotUserId(initialProfile?.id ?? null);
+    }
+  }, [initialRiotAccount, initialProfile]);
+
   // Cargar cuenta de Riot vinculada del usuario público
   useEffect(() => {
     // Si ya tenemos datos iniciales y coinciden con el ID actual, no recargar inmediatamente
@@ -90,7 +104,7 @@ export default function UserProfileClient({
       setLoadingRiotAccount(true);
       try {
         const response = await fetch(
-          `/api/riot/account/public?publicId=${publicId}`
+          `/api/riot/account/public?publicId=${publicId}&_t=${Date.now()}`
         );
         if (response.ok) {
           const data = await response.json();
@@ -126,7 +140,7 @@ export default function UserProfileClient({
     };
 
     loadRiotAccount();
-  }, [publicId]);
+  }, [publicId, initialRiotAccount]); // Añadido initialRiotAccount a dependencias para re-verificar
 
   // Mutación para sincronizar cuenta + partidas
   const syncMutation = useMutation({
@@ -304,6 +318,7 @@ export default function UserProfileClient({
                   isSyncing={syncMutation.isPending}
                   syncError={syncError}
                   onSync={() => syncMutation.mutate()}
+                  profileColor={profile.color}
                 />
 
                 {/* Resumen de campeones */}
@@ -317,6 +332,8 @@ export default function UserProfileClient({
                     userId={riotUserId ?? profile.id}
                     puuid={riotAccount.puuid}
                     hideShareButton={true}
+                    initialMatchesData={initialMatchesData}
+                    initialStats={initialStats}
                   />
                 )}
               </>

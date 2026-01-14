@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Users } from "lucide-react";
+import { Users, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import type { Match } from "./match-card/MatchCard";
 import {
   Tooltip,
@@ -85,6 +86,7 @@ interface TeammateTrackerProps {
   minGames?: number;
   className?: string;
   showInline?: boolean;
+  linkedAccountsMap?: Record<string, string>;
 }
 
 export function TeammateTracker({
@@ -94,6 +96,7 @@ export function TeammateTracker({
   minGames = 2,
   className = "",
   showInline = false,
+  linkedAccountsMap = {},
 }: TeammateTrackerProps) {
   const teammates = useMemo(() => {
     const allFrequentTeammates = getFrequentTeammates(
@@ -133,6 +136,25 @@ export function TeammateTracker({
     return null;
   }
 
+  const renderTeammateName = (teammate: FrequentTeammate) => {
+    const linkedProfileId = linkedAccountsMap[teammate.puuid];
+
+    if (linkedProfileId) {
+      return (
+        <Link
+          href={`/perfil/${linkedProfileId}?tab=lol`}
+          className="cursor-pointer text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium inline-flex items-center gap-0.5"
+          onClick={(e) => e.stopPropagation()}
+          title="Ver perfil de la comunidad"
+        >
+          {teammate.name}
+          <ExternalLink className="w-3 h-3 opacity-70" />
+        </Link>
+      );
+    }
+    return teammate.name;
+  };
+
   // Modo inline: mostrar jugadores directamente sin tooltip (para móvil)
   if (showInline) {
     return (
@@ -145,9 +167,9 @@ export function TeammateTracker({
           {teammates.slice(0, 3).map((teammate, index) => (
             <span
               key={teammate.puuid}
-              className="text-slate-600 dark:text-slate-300"
+              className="text-slate-600 dark:text-slate-300 flex items-center gap-1"
             >
-              {teammate.name}
+              {renderTeammateName(teammate)}
               {index < Math.min(teammates.length, 3) - 1 && ","}
             </span>
           ))}
@@ -164,21 +186,29 @@ export function TeammateTracker({
   // Modo tooltip: comportamiento original (para desktop)
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>
           <button
             type="button"
             className={`flex items-center justify-center rounded-full p-1.5 text-slate-900 dark:text-slate-200 transition-colors hover:text-black dark:hover:text-white ${className}`}
+            onClick={(e) => e.stopPropagation()} // Evitar click en la carta
           >
-            <Users className="h-4 w-4" aria-hidden="true" />
+            <Users
+              className={`h-4 w-4 ${
+                teammates.some((t) => linkedAccountsMap[t.puuid])
+                  ? "text-emerald-500 dark:text-emerald-400"
+                  : ""
+              }`}
+              aria-hidden="true"
+            />
           </button>
         </TooltipTrigger>
-        <TooltipContent className="bg-white/90 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800/60 text-slate-800 dark:text-slate-100 backdrop-blur-sm">
+        <TooltipContent className="bg-white/95 dark:bg-slate-900/90 border border-slate-200/70 dark:border-slate-800/60 text-slate-800 dark:text-slate-100 backdrop-blur-sm z-50 pointer-events-auto">
           <div className="flex flex-col gap-1 text-xs text-center">
             {teammates.map((teammate) => (
-              <div key={teammate.puuid}>
+              <div key={teammate.puuid} className="flex justify-center">
                 <span className="text-slate-700 dark:text-slate-200">
-                  {teammate.name}
+                  {renderTeammateName(teammate)}
                 </span>
               </div>
             ))}

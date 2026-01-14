@@ -289,3 +289,31 @@ export async function getChampionNameById(
     return null;
   }
 }
+
+/**
+ * Obtiene el nombre legible de la cola (queue) basado en su ID
+ *
+ * @param queueId - ID de la cola (ej: 420 para SoloQ)
+ * @returns Nombre legible de la cola (SoloQ, Flex, ARAM, URF, Evento, etc.)
+ */
+export function getQueueName(queueId: number): string {
+  const queueMap: Record<number, string> = {
+    420: "SoloQ",
+    440: "Flex",
+    450: "ARAM",
+    400: "Normal Draft",
+    430: "Normal Blind",
+    490: "Quickplay",
+    700: "Clash",
+    900: "URF",
+    1010: "URF",
+    1900: "URF",
+    1700: "Arena",
+    // Bots
+    830: "Co-op vs AI (Intro)",
+    840: "Co-op vs AI (Beginner)",
+    850: "Co-op vs AI (Intermediate)",
+  };
+
+  return queueMap[queueId] || "Evento";
+}

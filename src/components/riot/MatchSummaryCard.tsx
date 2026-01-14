@@ -21,15 +21,35 @@ interface MatchSummaryCardProps {
 const TRANSPARENT_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
-// Pixel de error rojo para indicar que la imagen falló
+// Pixel de error (gris oscuro)
 const ERROR_PIXEL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAgQHFUgAAAABJRU5ErkJggg==";
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-// Cache global para evitar re-procesar las mismas imágenes a Base64 múltiples veces
-// Usamos un Map para poder limpiar entradas fallidas
-const imageCache: Map<string, string> = new Map();
+// Cache robusto con TTL para evitar contaminación
+interface CacheEntry {
+  data: string;
+  timestamp: number;
+}
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const imageCache: Map<string, CacheEntry> = new Map();
 const pendingLoads: Map<string, Promise<string>> = new Map();
-const failedUrls: Set<string> = new Set(); // Track URLs que han fallado
+
+// Limpiar entradas expiradas del cache periódicamente
+function cleanExpiredCache() {
+  const now = Date.now();
+  const entries = Array.from(imageCache.entries());
+  for (const [key, entry] of entries) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      imageCache.delete(key);
+    }
+  }
+}
+
+// Limpiar cada minuto
+if (typeof window !== "undefined") {
+  setInterval(cleanExpiredCache, 60000);
+}
 
 // --- Helper Functions ---
 
@@ -45,82 +65,133 @@ function getItemUrl(itemId: number, version: string): string | null {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
 }
 
-async function imageToBase64(url: string): Promise<string> {
-  // Si la URL ya falló antes, no reintentar
-  if (failedUrls.has(url)) {
-    return ERROR_PIXEL;
+/**
+ * Convierte una imagen a base64 usando un canvas
+ * Versión robusta para producción con manejo de errores mejorado
+ */
+async function imageToBase64(originalUrl: string): Promise<string> {
+  if (!originalUrl || originalUrl === "null" || originalUrl === "undefined") {
+    return TRANSPARENT_PIXEL;
   }
 
-  // Si ya está en caché, devolverlo
-  const cached = imageCache.get(url);
-  if (cached) return cached;
+  // Verificar cache válido
+  const cached = imageCache.get(originalUrl);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
 
-  // Si ya se está cargando, esperar a esa promesa
-  const pending = pendingLoads.get(url);
-  if (pending) return pending;
+  // Si ya se está cargando esta URL específica, esperar
+  const pending = pendingLoads.get(originalUrl);
+  if (pending) {
+    return pending;
+  }
 
+  // Crear promesa de carga única para esta URL
   const loadPromise = new Promise<string>((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
 
-    // Timeout para evitar que imágenes se queden cargando indefinidamente
+    let resolved = false;
+    const safeResolve = (result: string) => {
+      if (resolved) return;
+      resolved = true;
+      pendingLoads.delete(originalUrl);
+
+      // Solo cachear si es un resultado exitoso (no error pixel)
+      if (result !== ERROR_PIXEL && result !== TRANSPARENT_PIXEL) {
+        imageCache.set(originalUrl, { data: result, timestamp: Date.now() });
+      }
+      resolve(result);
+    };
+
+    // Timeout para fallar rápido
     const timeoutId = setTimeout(() => {
-      console.warn(`[MatchSummaryCard] Timeout loading image: ${url}`);
-      failedUrls.add(url);
-      pendingLoads.delete(url);
-      resolve(ERROR_PIXEL);
-    }, 10000); // 10 segundos timeout
+      console.warn(
+        `[MatchSummaryCard] Timeout: ${originalUrl.substring(0, 60)}...`
+      );
+      safeResolve(ERROR_PIXEL);
+    }, 8000);
 
     img.onload = () => {
       clearTimeout(timeoutId);
       try {
+        // Verificar que la imagen tenga dimensiones válidas
+        if (img.width === 0 || img.height === 0) {
+          console.warn(
+            `[MatchSummaryCard] Zero dimensions for: ${originalUrl}`
+          );
+          safeResolve(ERROR_PIXEL);
+          return;
+        }
+
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
+
         if (!ctx) {
-          console.error(`[MatchSummaryCard] No canvas context for: ${url}`);
-          failedUrls.add(url);
-          pendingLoads.delete(url);
-          resolve(ERROR_PIXEL);
+          console.error(`[MatchSummaryCard] No canvas context`);
+          safeResolve(ERROR_PIXEL);
           return;
         }
+
         ctx.drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL("image/png");
-        imageCache.set(url, dataUrl);
-        pendingLoads.delete(url);
-        resolve(dataUrl);
+
+        // Verificar que el canvas no esté vacío
+        try {
+          const dataUrl = canvas.toDataURL("image/png");
+          if (dataUrl && dataUrl.length > 100) {
+            safeResolve(dataUrl);
+          } else {
+            safeResolve(ERROR_PIXEL);
+          }
+        } catch (e) {
+          // Error de seguridad (tainted canvas)
+          console.error(`[MatchSummaryCard] Canvas tainted:`, e);
+          safeResolve(ERROR_PIXEL);
+        }
       } catch (err) {
-        console.error(`[MatchSummaryCard] Canvas error for ${url}:`, err);
-        failedUrls.add(url);
-        pendingLoads.delete(url);
-        resolve(ERROR_PIXEL);
+        console.error(`[MatchSummaryCard] Canvas error:`, err);
+        safeResolve(ERROR_PIXEL);
       }
     };
 
-    img.onerror = (e) => {
+    img.onerror = () => {
       clearTimeout(timeoutId);
-      console.error(`[MatchSummaryCard] Image load error for ${url}:`, e);
-      failedUrls.add(url);
-      pendingLoads.delete(url);
-      resolve(ERROR_PIXEL);
+      console.warn(
+        `[MatchSummaryCard] Image load failed: ${originalUrl.substring(
+          0,
+          60
+        )}...`
+      );
+      safeResolve(ERROR_PIXEL);
     };
 
-    let finalUrl = url;
+    // Construir URL del proxy
+    let finalUrl = originalUrl;
     if (
-      url.includes("ddragon.leagueoflegends.com") ||
-      url.includes("communitydragon.org") ||
-      url.includes("raw.communitydragon.org")
+      originalUrl.includes("ddragon.leagueoflegends.com") ||
+      originalUrl.includes("communitydragon.org") ||
+      originalUrl.includes("raw.communitydragon.org")
     ) {
-      finalUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      // Añadir cachebuster para evitar cache problemático
+      const cacheBuster = Date.now().toString(36);
+      finalUrl = `/api/proxy-image?url=${encodeURIComponent(
+        originalUrl
+      )}&_=${cacheBuster}`;
     }
+
     img.src = finalUrl;
   });
 
-  pendingLoads.set(url, loadPromise);
+  pendingLoads.set(originalUrl, loadPromise);
   return loadPromise;
 }
 
+/**
+ * Imagen con fallback robusto para html-to-image
+ * NOTA: No usar loading="lazy" ya que las imágenes se renderizan off-screen
+ */
 function ProxiedImage({
   src,
   alt,
@@ -134,18 +205,33 @@ function ProxiedImage({
 }) {
   const [imgSrc, setImgSrc] = useState(TRANSPARENT_PIXEL);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  // Reset state when src changes
+  useEffect(() => {
+    if (src !== currentSrc) {
+      setCurrentSrc(src);
+      setImgSrc(TRANSPARENT_PIXEL);
+      setIsLoading(true);
+    }
+  }, [src, currentSrc]);
 
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
-      if (!src) return;
+      if (!src) {
+        setIsLoading(false);
+        return;
+      }
       try {
         let finalUrl = src;
         if (src.includes("/api/proxy-image?url=")) {
           try {
             const urlParam = new URL(
               src,
-              window.location.origin
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "https://korestats.com"
             ).searchParams.get("url");
             if (urlParam) finalUrl = decodeURIComponent(urlParam);
           } catch (e) {}
@@ -169,7 +255,7 @@ function ProxiedImage({
     <img
       src={imgSrc}
       alt={alt}
-      loading="lazy"
+      // NO usar loading="lazy" - rompe la captura off-screen
       style={{
         ...style,
         opacity: isLoading ? 0.3 : 1,

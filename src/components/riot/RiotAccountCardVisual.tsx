@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinkedAccountRiot } from "@/types/riot";
@@ -73,6 +74,50 @@ const LOG_REGIONS: Record<string, string> = {
   vn2: "vn",
 };
 
+// Helper para convertir HEX a RGB
+function hexToRgb(hex: string): string | null {
+  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, (m, r, g, b) => {
+    return r + r + g + g + b + b;
+  });
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
+        result[3],
+        16
+      )}`
+    : null;
+}
+
+interface MatchSimple {
+  match_id: string;
+  game_creation: number;
+  game_duration: number;
+  game_mode: string;
+  queue_id: number;
+  champion_id: number;
+  champion_name: string;
+  win: boolean;
+  kda?: number;
+  matches?: {
+    full_json?: {
+      info?: {
+        participants: {
+          puuid: string;
+          teamId: number;
+          riotIdGameName: string;
+          riotIdTagline: string;
+          profileIcon: number;
+          win: boolean;
+          pentaKills?: number;
+          quadraKills?: number;
+          tripleKills?: number;
+        }[];
+      };
+    };
+  };
+}
+
 interface RiotAccountCardVisualProps {
   account: LinkedAccountRiot;
   userId?: string;
@@ -83,30 +128,10 @@ interface RiotAccountCardVisualProps {
   onUnlink?: () => void;
   cooldownSeconds?: number;
   hideSync?: boolean;
+  profileColor?: string;
 }
 
-interface MatchSimple {
-  match_id: string;
-  champion_id: number;
-  champion_name: string;
-  win: boolean;
-  kda: number;
-  matches?: {
-    full_json?: {
-      info: {
-        participants: Array<{
-          puuid: string;
-          riotIdGameName: string;
-          riotIdTagline: string;
-          profileIcon: number;
-          teamId: number;
-          win: boolean;
-          summonerLevel: number;
-        }>;
-      };
-    };
-  };
-}
+// ... existing interfaces ...
 
 export function RiotAccountCardVisual({
   account,
@@ -118,7 +143,9 @@ export function RiotAccountCardVisual({
   onUnlink,
   cooldownSeconds = 0,
   hideSync = false,
+  profileColor,
 }: RiotAccountCardVisualProps) {
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(
     propUserId ?? account.user_id ?? null
   );
@@ -190,12 +217,34 @@ export function RiotAccountCardVisual({
   // --- Queries de Datos - OPTIMIZADAS para carga instantánea ---
   const queryClient = useQueryClient();
 
+  // Query global para obtener PUUIDs de jugadores registrados
+  const { data: linkedAccountsData } = useQuery<{
+    accounts: { puuid: string; publicId: string }[];
+  }>({
+    queryKey: ["linked-accounts"],
+    queryFn: async () => {
+      const res = await fetch("/api/riot/linked-accounts");
+      if (!res.ok) return { accounts: [] };
+      return res.json();
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const linkedAccountsMap = useMemo(() => {
+    const accs = linkedAccountsData?.accounts ?? [];
+    return accs.reduce<Record<string, string>>((acc, curr) => {
+      if (curr.publicId) acc[curr.puuid] = curr.publicId;
+      return acc;
+    }, {});
+  }, [linkedAccountsData]);
+
   // Intentar obtener datos del caché del historial de partidas (compartido)
   const cachedHistoryData = queryClient.getQueryData<any>([
     "match-history",
     userId,
     "all",
   ]);
+  // ... rest of the code ...
   const cachedMatchesFromHistory =
     cachedHistoryData?.pages?.flatMap((p: any) => p.matches ?? []) ?? [];
 
@@ -995,29 +1044,133 @@ export function RiotAccountCardVisual({
                   Dúo Frecuente
                 </h4>
                 {frequentDuo ? (
-                  <div className="flex items-center gap-3 p-2 bg-slate-200/60 dark:bg-white/5 rounded-xl border-2 border-slate-300 dark:border-white/5 h-full">
-                    <div className="relative w-10 h-10 rounded-full border-2 border-slate-300 dark:border-white/10 overflow-hidden bg-slate-200 dark:bg-slate-800">
-                      <Image
-                        src={`https://cdn.communitydragon.org/latest/profile-icon/${frequentDuo.icon}`}
-                        alt={frequentDuo.name}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-                        {frequentDuo.name}
+                  (() => {
+                    const linkedProfileId =
+                      linkedAccountsMap[frequentDuo.puuid];
+
+                    // Usar profileColor directamente con color-mix para soporte robusto de cualquier formato (hex, rgb, nombres)
+                    const customStyle =
+                      linkedProfileId && profileColor
+                        ? ({
+                            "--duo-color": profileColor,
+                            backgroundColor: `color-mix(in srgb, var(--duo-color) 3%, transparent)`,
+                            borderColor: `color-mix(in srgb, var(--duo-color) 20%, transparent)`,
+                          } as React.CSSProperties)
+                        : {};
+
+                    return (
+                      <div
+                        onClick={() =>
+                          linkedProfileId &&
+                          router.push(`/perfil/${linkedProfileId}?tab=lol`)
+                        }
+                        style={customStyle}
+                        className={`flex items-center gap-3 p-2 rounded-xl border-2 h-full transition-all ${
+                          linkedProfileId
+                            ? profileColor
+                              ? "hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer group/duo"
+                              : "bg-emerald-500/10 border-emerald-500/50 hover:bg-emerald-500/20 cursor-pointer group/duo"
+                            : "bg-slate-200/60 dark:bg-white/5 border-slate-300 dark:border-white/5"
+                        }`}
+                      >
+                        <div
+                          className={`relative w-10 h-10 rounded-full border-2 overflow-hidden bg-slate-200 dark:bg-slate-800 flex-shrink-0 ${
+                            linkedProfileId
+                              ? "" // Border styling handled by inline style or fallback class
+                              : "border-slate-300 dark:border-white/10"
+                          }`}
+                          style={
+                            linkedProfileId && profileColor
+                              ? {
+                                  borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
+                                }
+                              : linkedProfileId
+                              ? {}
+                              : {}
+                          }
+                        >
+                          <div
+                            className={`absolute inset-0 border-2 rounded-full ${
+                              !profileColor && linkedProfileId
+                                ? "border-emerald-500"
+                                : ""
+                            }`}
+                            style={
+                              profileColor
+                                ? {
+                                    borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
+                                  }
+                                : {}
+                            }
+                          />
+                          <Image
+                            src={`https://cdn.communitydragon.org/latest/profile-icon/${frequentDuo.icon}`}
+                            alt={frequentDuo.name}
+                            fill
+                            unoptimized
+                            className="object-cover relative z-10"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={`text-xs font-black truncate flex items-center gap-1 ${
+                              linkedProfileId
+                                ? "group-hover/duo:underline"
+                                : "text-slate-900 dark:text-white"
+                            }`}
+                            style={
+                              linkedProfileId && profileColor
+                                ? { color: profileColor }
+                                : {}
+                            }
+                          >
+                            <span
+                              className={
+                                !profileColor && linkedProfileId
+                                  ? "text-emerald-700 dark:text-emerald-400"
+                                  : ""
+                              }
+                            >
+                              {frequentDuo.name}
+                            </span>
+                            {linkedProfileId && (
+                              <ExternalLink
+                                size={10}
+                                className={
+                                  !profileColor ? "text-emerald-600" : ""
+                                }
+                                style={
+                                  profileColor ? { color: profileColor } : {}
+                                }
+                              />
+                            )}
+                          </div>
+                          <div
+                            className={`text-[9px] font-medium ${
+                              linkedProfileId
+                                ? ""
+                                : "text-slate-600 dark:text-white/30"
+                            }`}
+                            style={{}}
+                          >
+                            <span
+                              className={
+                                !profileColor && linkedProfileId
+                                  ? "text-emerald-600/80 dark:text-emerald-400/80"
+                                  : ""
+                              }
+                            >
+                              {frequentDuo.count} partidas /{" "}
+                              {Math.round(
+                                (frequentDuo.wins / frequentDuo.count) * 100
+                              )}
+                              % WR
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-[9px] font-medium text-slate-600 dark:text-white/30">
-                        {frequentDuo.count} partidas /{" "}
-                        {Math.round(
-                          (frequentDuo.wins / frequentDuo.count) * 100
-                        )}
-                        % WR
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center opacity-30 text-slate-500 dark:text-white/20 text-center p-2">
                     <Users className="w-6 h-6 mb-1 opacity-50" />

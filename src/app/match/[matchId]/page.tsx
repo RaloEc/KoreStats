@@ -14,6 +14,7 @@ import {
   getChampionImg,
   getItemImg,
   formatGameVersion,
+  getQueueName,
 } from "@/lib/riot/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { MatchShareButton } from "@/components/riot/MatchShareButton";
@@ -235,7 +236,7 @@ export default async function MatchPage({
           <div className="space-y-2">
             {/* Queue Type */}
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              {match.game_mode}
+              {getQueueName(match.queue_id)}
             </h1>
 
             {/* Match Info */}
@@ -263,12 +264,6 @@ export default async function MatchPage({
                 </svg>
                 <span>{formatDuration(match.game_duration)}</span>
               </div>
-
-              <span className="text-slate-300 dark:text-slate-700">•</span>
-
-              <span className="text-slate-500 dark:text-slate-500 text-xs font-mono">
-                {matchId}
-              </span>
             </div>
           </div>
         </div>

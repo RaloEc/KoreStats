@@ -96,6 +96,7 @@ export default function MobileUserProfileLayout({
                   isSyncing={isSyncing}
                   syncError={syncError}
                   onSync={onSync}
+                  profileColor={profile.color}
                 />
 
                 <div className="grid grid-cols-1 gap-6">

@@ -13,20 +13,44 @@ export async function GET(req: NextRequest) {
   }
 
   // Cargamos Cinzel desde Google Fonts (una de las mejores alternativas gratuitas a Beaufort/Spiegel de LoL)
-  const [fontRegular, fontBold] = await Promise.all([
-    fetch(
-      new URL(
-        "https://github.com/google/fonts/raw/main/ofl/cinzel/Cinzel-Regular.ttf",
-        import.meta.url
-      )
-    ).then((res) => res.arrayBuffer()),
-    fetch(
-      new URL(
-        "https://github.com/google/fonts/raw/main/ofl/cinzel/Cinzel-Bold.ttf",
-        import.meta.url
-      )
-    ).then((res) => res.arrayBuffer()),
-  ]);
+  // Cargamos Cinzel desde jsDelivr (más robusto que GitHub raw)
+  // Usamos un try/catch para evitar que falle toda la imagen si la fuente no carga
+  let fontRegular: ArrayBuffer | null = null;
+  let fontBold: ArrayBuffer | null = null;
+
+  try {
+    [fontRegular, fontBold] = await Promise.all([
+      fetch(
+        "https://cdn.jsdelivr.net/npm/@fontsource/cinzel@5.0.8/files/cinzel-latin-400-normal.woff"
+      ).then((res) => res.arrayBuffer()),
+      fetch(
+        "https://cdn.jsdelivr.net/npm/@fontsource/cinzel@5.0.8/files/cinzel-latin-700-normal.woff"
+      ).then((res) => res.arrayBuffer()),
+    ]);
+  } catch (e) {
+    console.warn(
+      "Failed to load custom fonts, falling back to system fonts",
+      e
+    );
+  }
+
+  const fonts: any[] = [];
+  if (fontRegular) {
+    fonts.push({
+      name: "Cinzel",
+      data: fontRegular,
+      style: "normal",
+      weight: 400,
+    });
+  }
+  if (fontBold) {
+    fonts.push({
+      name: "Cinzel",
+      data: fontBold,
+      style: "normal",
+      weight: 700,
+    });
+  }
 
   return new ImageResponse(
     (
@@ -133,20 +157,7 @@ export async function GET(req: NextRequest) {
     {
       width: 1200,
       height: 630,
-      fonts: [
-        {
-          name: "Cinzel",
-          data: fontRegular,
-          style: "normal",
-          weight: 400,
-        },
-        {
-          name: "Cinzel",
-          data: fontBold,
-          style: "normal",
-          weight: 700,
-        },
-      ],
+      fonts: fonts.length > 0 ? fonts : undefined,
     }
   );
 }
