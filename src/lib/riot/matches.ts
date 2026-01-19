@@ -227,6 +227,8 @@ interface ParticipantData {
   onMyWayPings?: number;
   pushPings?: number;
   visionClearedPings?: number;
+  teamId: number;
+  profileIcon: number;
 }
 
 /**
@@ -624,7 +626,7 @@ async function saveMatch(matchData: MatchData): Promise<boolean> {
       team_id: p.teamId,
       riot_id_game_name: p.riotIdGameName || null,
       riot_id_tagline: p.riotIdTagline || null,
-      profile_icon_id: p.profileIcon || null,
+      profile_icon_id: p.profileIcon || 29, // Default icon if missing
       champion_id: p.championId,
       champion_name: p.championName,
       win: p.win,

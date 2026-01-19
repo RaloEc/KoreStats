@@ -115,6 +115,15 @@ interface MatchSimple {
         }[];
       };
     };
+    match_participants?: {
+      puuid: string;
+      team_id: number;
+      riot_id_game_name: string | null;
+      riot_id_tagline: string | null;
+      summoner_name: string | null;
+      profile_icon_id: number;
+      win: boolean;
+    }[];
   };
 }
 
