@@ -93,14 +93,14 @@ function getRankingBadgeClass(position?: number | null) {
 
 function getParticipantRuneStyle(
   participant: RiotParticipant | null | undefined,
-  index: number
+  index: number,
 ): number | undefined {
   return participant?.perks?.styles?.[index]?.style;
 }
 
 function findLaneOpponent(
   participants: RiotParticipant[],
-  player?: RiotParticipant | null
+  player?: RiotParticipant | null,
 ): RiotParticipant | null {
   if (!player) return null;
   const playerLane = getParticipantLane(player);
@@ -109,7 +109,7 @@ function findLaneOpponent(
 
   if (playerLane) {
     const directMatch = enemyCandidates.find(
-      (candidate) => getParticipantLane(candidate) === playerLane
+      (candidate) => getParticipantLane(candidate) === playerLane,
     );
     if (directMatch) return directMatch;
   }
@@ -161,15 +161,16 @@ export function MobileMatchCard({
     gameEndedInEarlySurrender?: boolean;
     teamEarlySurrendered?: boolean;
   };
-  const remakeParticipants = (match.matches?.full_json?.info?.participants ??
-    []) as RemakeFlagsParticipant[];
   const isRemake = Boolean(
     (match.matches?.game_duration ?? 0) < REMAKE_DURATION_THRESHOLD ||
-      remakeParticipants.some(
-        (participant) =>
-          participant?.gameEndedInEarlySurrender ||
-          participant?.teamEarlySurrendered
-      )
+    (
+      (match.matches?.full_json?.info?.participants ??
+        []) as RemakeFlagsParticipant[]
+    ).some(
+      (participant) =>
+        participant?.gameEndedInEarlySurrender ||
+        participant?.teamEarlySurrendered,
+    ),
   );
   const items = [
     match.item0,
@@ -189,22 +190,54 @@ export function MobileMatchCard({
   const resultLabel = isFailed
     ? "❌ Error"
     : isRemake
-    ? "Remake"
-    : isVictory
-    ? "Victoria"
-    : "Derrota";
+      ? "Remake"
+      : isVictory
+        ? "Victoria"
+        : "Derrota";
   const resultBadgeClass = isProcessing
     ? "text-slate-700 dark:text-slate-200 bg-slate-100/70 dark:bg-slate-500/15 opacity-70"
     : isFailed
-    ? "text-slate-700 dark:text-slate-200 bg-slate-100/70 dark:bg-slate-500/15 opacity-50"
-    : isRemake
-    ? "text-slate-700 dark:text-slate-200 bg-slate-100/70 dark:bg-slate-500/15"
-    : isVictory
-    ? "text-emerald-700 dark:text-emerald-200 bg-emerald-100/80 dark:bg-emerald-500/15"
-    : "text-rose-700 dark:text-rose-200 bg-rose-100/80 dark:bg-rose-500/15";
+      ? "text-slate-700 dark:text-slate-200 bg-slate-100/70 dark:bg-slate-500/15 opacity-50"
+      : isRemake
+        ? "text-slate-700 dark:text-slate-200 bg-slate-100/70 dark:bg-slate-500/15"
+        : isVictory
+          ? "text-emerald-700 dark:text-emerald-200 bg-emerald-100/80 dark:bg-emerald-500/15"
+          : "text-rose-700 dark:text-rose-200 bg-rose-100/80 dark:bg-rose-500/15";
 
-  const participants = (match.matches?.full_json?.info?.participants ??
+  let participants = (match.matches?.full_json?.info?.participants ??
     []) as RiotParticipant[];
+
+  // Fallback: usar datos de la BD si no hay JSON
+  if (participants.length === 0 && match.matches.match_participants) {
+    participants = match.matches.match_participants.map(
+      (p: any, index: number) => ({
+        puuid: p.puuid,
+        summonerName: p.summoner_name || p.riotIdGameName,
+        championName: p.champion_name,
+        teamId: p.team_id || (index < 5 ? 100 : 200),
+        win: p.win,
+        kills: p.kills,
+        deaths: p.deaths,
+        assists: p.assists,
+        totalMinionsKilled: p.total_minions_killed,
+        neutralMinionsKilled: p.neutral_minions_killed,
+        teamPosition: p.team_position,
+        individualPosition: p.team_position,
+        lane: p.lane,
+        role: p.role,
+        perks: {
+          styles: [
+            { style: p.perk_primary_style },
+            { style: p.perk_sub_style },
+          ],
+        },
+        summoner1Id: p.summoner1_id,
+        summoner2Id: p.summoner2_id,
+        visionScore: p.vision_score,
+        totalDamageDealtToChampions: p.total_damage_dealt_to_champions, // Nota: esto podría faltar en DB si no se guardó
+      }),
+    ) as RiotParticipant[];
+  }
   const currentParticipant =
     participants.find((participant) => participant.puuid === match.puuid) ??
     null;
@@ -244,13 +277,13 @@ export function MobileMatchCard({
 
   const playerTeamParticipants = currentParticipant
     ? participants.filter(
-        (participant) => participant.teamId === currentParticipant.teamId
+        (participant) => participant.teamId === currentParticipant.teamId,
       )
     : [];
 
   const teamKills = playerTeamParticipants.reduce(
     (sum, participant) => sum + (participant.kills ?? 0),
-    0
+    0,
   );
 
   const killParticipation =
@@ -261,7 +294,7 @@ export function MobileMatchCard({
 
   const teamDamageToChampions = playerTeamParticipants.reduce(
     (sum, participant) => sum + (participant.totalDamageDealtToChampions ?? 0),
-    0
+    0,
   );
 
   const teamDamageShare =
@@ -277,11 +310,11 @@ export function MobileMatchCard({
   const scoreEntries = computeParticipantScores(
     participants,
     match.matches.game_duration,
-    match.matches.full_json?.info
+    match.matches.full_json?.info,
   );
 
   const sortedByScore = [...scoreEntries].sort(
-    (a, b) => (b.score ?? 0) - (a.score ?? 0)
+    (a, b) => (b.score ?? 0) - (a.score ?? 0),
   );
   const rankingPositions = new Map<string, number>();
   sortedByScore.forEach((entry, index) => {
@@ -301,7 +334,7 @@ export function MobileMatchCard({
       ? getParticipantKeyUtil(currentParticipant)
       : null;
     playerRankingPosition = playerKey
-      ? rankingPositions.get(playerKey) ?? null
+      ? (rankingPositions.get(playerKey) ?? null)
       : null;
   }
 
@@ -347,7 +380,7 @@ export function MobileMatchCard({
   const renderKeystoneIcon = (
     perkId: number | null,
     icons: Record<number, string>,
-    names: Record<number, string>
+    names: Record<number, string>,
   ) => {
     if (!perkId) return null;
     const icon = icons[perkId];
@@ -377,8 +410,8 @@ export function MobileMatchCard({
             isRemake
               ? "border-slate-200/80 dark:border-slate-600 bg-white/80 dark:bg-slate-500/10"
               : isVictory
-              ? "border-emerald-200 dark:border-emerald-500 bg-emerald-50/80 dark:bg-emerald-500/10"
-              : "border-rose-200 dark:border-rose-500 bg-rose-50/80 dark:bg-rose-500/10"
+                ? "border-emerald-200 dark:border-emerald-500 bg-emerald-50/80 dark:bg-emerald-500/10"
+                : "border-rose-200 dark:border-rose-500 bg-rose-50/80 dark:bg-rose-500/10"
           }
         `}
       >
@@ -441,7 +474,7 @@ export function MobileMatchCard({
                       {renderKeystoneIcon(
                         playerKeystonePerkId,
                         playerPerkIconById,
-                        playerPerkNameById
+                        playerPerkNameById,
                       ) ?? renderRuneIcon(playerPrimaryRune, "Primary Style")}
                       {renderRuneIcon(playerSecondaryRune, "Secondary Rune")}
                     </div>
@@ -449,7 +482,7 @@ export function MobileMatchCard({
                   {playerRankingPosition && playerRankingPosition > 0 && (
                     <span
                       className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
-                        playerRankingPosition
+                        playerRankingPosition,
                       )}`}
                       title={`Ranking global #${playerRankingPosition}`}
                     >
@@ -500,7 +533,7 @@ export function MobileMatchCard({
                       <Image
                         src={getChampionImageUrl(
                           laneOpponent.championName,
-                          version
+                          version,
                         )}
                         alt={laneOpponent.championName}
                         fill
@@ -515,15 +548,15 @@ export function MobileMatchCard({
                           {renderKeystoneIcon(
                             opponentKeystonePerkId,
                             opponentPerkIconById,
-                            opponentPerkNameById
+                            opponentPerkNameById,
                           ) ??
                             renderRuneIcon(
                               opponentPrimaryRune,
-                              "Enemy Primary Style"
+                              "Enemy Primary Style",
                             )}
                           {renderRuneIcon(
                             opponentSecondaryRune,
-                            "Enemy Secondary Rune"
+                            "Enemy Secondary Rune",
                           )}
                         </div>
                       </RunesTooltip>
@@ -531,7 +564,7 @@ export function MobileMatchCard({
                         opponentRankingPosition > 0 && (
                           <span
                             className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
-                              opponentRankingPosition
+                              opponentRankingPosition,
                             )}`}
                             title={`Ranking global #${opponentRankingPosition}`}
                           >

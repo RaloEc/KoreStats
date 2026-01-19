@@ -53,10 +53,10 @@ interface UseMatchStatusDetectorOptions {
  * y notifica cambios de estado automáticamente
  */
 export function useMatchStatusDetector(
-  options: UseMatchStatusDetectorOptions = {}
+  options: UseMatchStatusDetectorOptions = {},
 ) {
   const { enabled = true, onStatusChange, onSnapshotChange } = options;
-  const { user, supabase } = useAuth();
+  const { user, session } = useAuth();
   const pollIntervalRef = useRef<NodeJS.Timeout>();
   const lastStatusRef = useRef<StatusType>("offline");
   const lastSnapshotRef = useRef<ActiveMatchSnapshot | null>(null);
@@ -75,10 +75,7 @@ export function useMatchStatusDetector(
       if (abortController.signal.aborted) return;
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        // Usar la sesión del contexto en lugar de llamar getSession()
         if (!session?.access_token || abortController.signal.aborted) return;
 
         const debugParam =
@@ -129,7 +126,7 @@ export function useMatchStatusDetector(
               {
                 reason: data?.reason,
                 riotStatus: data?.riotStatus,
-              }
+              },
             );
           }
           return;
@@ -156,7 +153,7 @@ export function useMatchStatusDetector(
             }).catch((err) => {
               console.error(
                 "[useMatchStatusDetector] Error queueing pre-game snapshot:",
-                err
+                err,
               );
             });
           }
@@ -175,8 +172,8 @@ export function useMatchStatusDetector(
           }).catch((err) =>
             console.error(
               "[useMatchStatusDetector] Error updating server status:",
-              err
-            )
+              err,
+            ),
           );
 
           lastStatusRef.current = "in-game";
@@ -208,7 +205,7 @@ export function useMatchStatusDetector(
               }).catch((err) => {
                 console.error(
                   "[useMatchStatusDetector] Error queueing post-game snapshot:",
-                  err
+                  err,
                 );
               });
 
@@ -221,7 +218,7 @@ export function useMatchStatusDetector(
               }).catch((err) => {
                 console.error(
                   "[useMatchStatusDetector] Error auto-syncing matches:",
-                  err
+                  err,
                 );
               });
             }, 30000); // 30 segundos de delay
@@ -241,8 +238,8 @@ export function useMatchStatusDetector(
           }).catch((err) =>
             console.error(
               "[useMatchStatusDetector] Error updating server status:",
-              err
-            )
+              err,
+            ),
           );
 
           lastStatusRef.current = "online";
@@ -262,7 +259,7 @@ export function useMatchStatusDetector(
         }
         console.error(
           "[useMatchStatusDetector] Error checking active match:",
-          error
+          error,
         );
       }
     };
@@ -279,7 +276,7 @@ export function useMatchStatusDetector(
       }
       abortController.abort();
     };
-  }, [enabled, user?.id, onStatusChange, onSnapshotChange, supabase]);
+  }, [enabled, user?.id, onStatusChange, onSnapshotChange, session]);
 
   return {
     lastStatus: lastStatusRef.current,

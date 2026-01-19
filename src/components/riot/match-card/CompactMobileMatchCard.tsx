@@ -82,15 +82,16 @@ export function CompactMobileMatchCard({
     gameEndedInEarlySurrender?: boolean;
     teamEarlySurrendered?: boolean;
   };
-  const remakeParticipants = (match.matches?.full_json?.info?.participants ??
-    []) as RemakeFlagsParticipant[];
   const isRemake = Boolean(
     (match.matches?.game_duration ?? 0) < REMAKE_DURATION_THRESHOLD ||
-      remakeParticipants.some(
-        (participant) =>
-          participant?.gameEndedInEarlySurrender ||
-          participant?.teamEarlySurrendered
-      )
+    (
+      (match.matches?.full_json?.info?.participants ??
+        []) as RemakeFlagsParticipant[]
+    ).some(
+      (participant) =>
+        participant?.gameEndedInEarlySurrender ||
+        participant?.teamEarlySurrendered,
+    ),
   );
 
   // Items (todos los 7)
@@ -105,8 +106,37 @@ export function CompactMobileMatchCard({
   ];
 
   // Obtener participante actual para runas
-  const participants = (match.matches?.full_json?.info?.participants ??
+  let participants = (match.matches?.full_json?.info?.participants ??
     []) as RiotParticipant[];
+
+  // Fallback: usar datos de la BD si no hay JSON
+  if (participants.length === 0 && match.matches.match_participants) {
+    participants = match.matches.match_participants.map(
+      (p: any, index: number) => ({
+        puuid: p.puuid,
+        summonerName: p.summoner_name || p.riotIdGameName,
+        championName: p.champion_name,
+        teamId: p.team_id || (index < 5 ? 100 : 200),
+        win: p.win,
+        kills: p.kills,
+        deaths: p.deaths,
+        assists: p.assists,
+        totalMinionsKilled: p.total_minions_killed,
+        neutralMinionsKilled: p.neutral_minions_killed,
+        teamPosition: p.team_position,
+        individualPosition: p.team_position,
+        lane: p.lane,
+        role: p.role,
+        perks: {
+          styles: [
+            { style: p.perk_primary_style },
+            { style: p.perk_sub_style },
+          ],
+        },
+        champLevel: p.champ_level, // Nota: verificar si existe champ_level en DB, sino default
+      }),
+    ) as RiotParticipant[];
+  }
   const currentParticipant =
     participants.find((p) => p.puuid === match.puuid) ?? null;
 
@@ -120,11 +150,11 @@ export function CompactMobileMatchCard({
   const scoreEntries = computeParticipantScores(
     participants,
     match.matches.game_duration,
-    match.matches.full_json?.info
+    match.matches.full_json?.info,
   );
 
   const sortedByScore = [...scoreEntries].sort(
-    (a, b) => (b.score ?? 0) - (a.score ?? 0)
+    (a, b) => (b.score ?? 0) - (a.score ?? 0),
   );
   const rankingPositions = new Map<string, number>();
   sortedByScore.forEach((entry, index) => {
@@ -144,7 +174,7 @@ export function CompactMobileMatchCard({
       ? getParticipantKeyUtil(currentParticipant)
       : null;
     playerRankingPosition = playerKey
-      ? rankingPositions.get(playerKey) ?? null
+      ? (rankingPositions.get(playerKey) ?? null)
       : null;
   }
 
@@ -155,29 +185,29 @@ export function CompactMobileMatchCard({
   const resultLabel = isFailed
     ? "Error"
     : isRemake
-    ? "Remake"
-    : isVictory
-    ? "VICTORIA"
-    : "DERROTA";
+      ? "Remake"
+      : isVictory
+        ? "VICTORIA"
+        : "DERROTA";
 
   // Colores según resultado
   const borderAccent = isRemake
     ? "border-l-slate-400"
     : isVictory
-    ? "border-l-emerald-500"
-    : "border-l-rose-500";
+      ? "border-l-emerald-500"
+      : "border-l-rose-500";
 
   const bgClass = isRemake
     ? "bg-slate-100 dark:bg-zinc-900"
     : isVictory
-    ? "bg-emerald-50 dark:bg-zinc-900"
-    : "bg-rose-50 dark:bg-zinc-900";
+      ? "bg-emerald-50 dark:bg-zinc-900"
+      : "bg-rose-50 dark:bg-zinc-900";
 
   const resultClass = isRemake
     ? "text-slate-400 dark:text-slate-500"
     : isVictory
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-rose-600 dark:text-rose-400";
+      ? "text-emerald-600 dark:text-emerald-400"
+      : "text-rose-600 dark:text-rose-400";
 
   // Render helpers
   const renderSpellIcon = (spellId?: number, size: string = "w-4 h-4") => {
@@ -296,7 +326,7 @@ export function CompactMobileMatchCard({
             {playerRankingPosition && playerRankingPosition > 0 && (
               <span
                 className={`text-[8px] font-bold px-1 py-0.5 rounded-full shadow mt-0.5 ${getRankingBadgeClass(
-                  playerRankingPosition
+                  playerRankingPosition,
                 )}`}
                 title={`Ranking global #${playerRankingPosition}`}
               >

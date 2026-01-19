@@ -39,6 +39,8 @@ export interface Match {
     game_mode: string;
     queue_id: number;
     full_json?: any;
+    ingest_status?: string;
+    match_participants?: any[];
   };
 }
 
@@ -84,22 +86,22 @@ export function MatchCard({
 
   const isVictory = match.win;
   const REMAKE_DURATION_THRESHOLD = 300; // 5 minutos
-  const participants = (match.matches?.full_json?.info?.participants ??
+  const participantsJson = (match.matches?.full_json?.info?.participants ??
     []) as RiotParticipant[];
   const isRemake = Boolean(
     (match.matches?.game_duration ?? 0) < REMAKE_DURATION_THRESHOLD ||
-      participants.some(
-        (participant) =>
-          participant?.gameEndedInEarlySurrender ||
-          participant?.teamEarlySurrendered
-      )
+    participantsJson.some(
+      (participant) =>
+        participant?.gameEndedInEarlySurrender ||
+        participant?.teamEarlySurrendered,
+    ),
   );
 
   const cardStateClasses = isRemake
     ? "border-l-slate-500 bg-slate-500/5 hover:bg-slate-500/10"
     : isVictory
-    ? "border-l-green-500 bg-green-500/5 hover:bg-green-500/10"
-    : "border-l-red-500 bg-red-500/5 hover:bg-red-500/10";
+      ? "border-l-green-500 bg-green-500/5 hover:bg-green-500/10"
+      : "border-l-red-500 bg-red-500/5 hover:bg-red-500/10";
 
   return (
     <div
@@ -115,8 +117,8 @@ export function MatchCard({
       className={`
           hidden md:grid grid-cols-[60px,auto,180px,90px,200px] items-center gap-3 p-3 rounded-lg border-l-4 transition-all hover:shadow-lg hover:border-l-8 cursor-pointer
           ${isProcessing ? "opacity-70" : ""} ${
-        isFailed ? "opacity-50" : ""
-      } ${cardStateClasses}
+            isFailed ? "opacity-50" : ""
+          } ${cardStateClasses}
         `}
     >
       <MatchCardServer

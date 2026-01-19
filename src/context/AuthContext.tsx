@@ -58,6 +58,24 @@ export function AuthProvider({
 
   // Usar React Query para gestionar el estado de autenticación
   // Pasar la sesión inicial del servidor para evitar flash de "sin sesión"
+
+  // Limpieza de migración de auth: Asegurar que no quede basura del storageKey antiguo
+  React.useEffect(() => {
+    try {
+      if (
+        typeof window !== "undefined" &&
+        localStorage.getItem("korestats-auth")
+      ) {
+        logger.info(
+          "AuthProvider",
+          "Eliminando storageKey legacy korestats-auth",
+        );
+        localStorage.removeItem("korestats-auth");
+      }
+    } catch (e) {
+      // Ignorar error si no hay acceso a localStorage
+    }
+  }, []);
   const {
     session,
     user,
@@ -69,22 +87,6 @@ export function AuthProvider({
 
   // Suscribirse a cambios de autenticación de Supabase
   React.useEffect(() => {
-    logger.info(
-      "AuthProvider",
-      "Configurando listener de auth state change..."
-    );
-
-    // Sincronizar color del perfil con localStorage
-    if (profile?.color) {
-      try {
-        localStorage.setItem("korestats-color", profile.color);
-        // Actualizar variable CSS inmediatamente
-        document.documentElement.style.setProperty("--primary", profile.color);
-      } catch (e) {
-        console.error("Error saving color preference", e);
-      }
-    }
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -97,10 +99,6 @@ export function AuthProvider({
       // Solo actualizar el caché con los datos nuevos
       if (event === "SIGNED_OUT") {
         // En logout, limpiar todo inmediatamente
-        logger.info(
-          "AuthProvider",
-          "SIGNED_OUT: Limpiando caché de autenticación"
-        );
         queryClient.setQueryData(authKeys.session, null);
         queryClient.removeQueries({
           queryKey: ["auth", "profile"],
@@ -110,88 +108,68 @@ export function AuthProvider({
         // Limpiar preferencias guardadas
         try {
           localStorage.removeItem("korestats-color");
-          // No removemos el tema, eso es preferencia global del navegador/dispositivo
         } catch (e) {
           console.error("Error clearing localStorage", e);
         }
 
-        // CRÍTICO: Invalidar caché de Next.js
+        // Invalidar caché de Next.js solo en logout
         router.refresh();
-        logger.success(
-          "AuthProvider",
-          "Estado de auth limpiado y router refreshed"
-        );
-      } else if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
-        // Restauración de sesión o refresh de token: sincronizar sin refetch
-        logger.info("AuthProvider", `${event}: Sincronizando sesión y perfil`);
-
-        // ✅ Actualizar React Query directamente (sin refetch)
+      } else if (event === "INITIAL_SESSION") {
+        // Restauración de sesión inicial: sincronizar sin refetch
         queryClient.setQueryData(authKeys.session, newSession);
 
-        // Si hay sesión, invalidar perfil para que se recargue
         if (newSession?.user?.id) {
-          logger.info(
-            "AuthProvider",
-            `Invalidando perfil para usuario: ${newSession.user.id}`
-          );
           queryClient.invalidateQueries({
             queryKey: authKeys.profile(newSession.user.id),
           });
         }
-
-        // CRÍTICO: Invalidar caché de Next.js
-        router.refresh();
-        logger.success(
-          "AuthProvider",
-          "Sesión sincronizada, perfil invalidado, router refreshed"
-        );
+        // NO llamar router.refresh() para INITIAL_SESSION - evita reload innecesario
+      } else if (event === "TOKEN_REFRESHED") {
+        // Token refrescado: solo actualizar la sesión en React Query
+        // NO invalidar perfil ni hacer router.refresh() - el token nuevo es suficiente
+        queryClient.setQueryData(authKeys.session, newSession);
       } else if (event === "SIGNED_IN") {
         // Login nuevo: sincronizar sesión y perfil
-        logger.info("AuthProvider", "SIGNED_IN: Actualizando sesión y perfil");
-
-        // ✅ Actualizar React Query directamente
         queryClient.setQueryData(authKeys.session, newSession);
 
         if (newSession?.user?.id) {
-          // Invalidar perfil para que se recargue con datos nuevos
           queryClient.invalidateQueries({
             queryKey: authKeys.profile(newSession.user.id),
           });
         }
 
-        logger.success("AuthProvider", "Login completado, datos sincronizados");
-
-        // CRÍTICO: Invalidar caché de Next.js DESPUÉS de que los datos estén listos
         // Pequeño delay para asegurar que React Query haya actualizado el estado
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         router.refresh();
-        logger.info("AuthProvider", "Router refreshed");
       } else {
         // Para otros eventos (USER_UPDATED, PASSWORD_RECOVERY, etc.)
-        logger.info(
-          "AuthProvider",
-          `${event}: Sincronizando cambios de autenticación`
-        );
-        // ✅ Actualizar sesión si cambió
         queryClient.setQueryData(authKeys.session, newSession);
 
         if (newSession?.user?.id) {
-          // Invalidar perfil para que se recargue
           queryClient.invalidateQueries({
             queryKey: authKeys.profile(newSession.user.id),
           });
         }
-
-        // Invalidar caché de Next.js para otros eventos también
-        router.refresh();
+        // NO llamar router.refresh() para eventos menores
       }
     });
 
     return () => {
-      logger.info("AuthProvider", "Limpiando listener de auth state change");
       subscription.unsubscribe();
     };
-  }, [supabase, queryClient, router, profile]);
+  }, [supabase, queryClient, router]);
+
+  // Sincronizar color del perfil con localStorage (separado del listener de auth)
+  React.useEffect(() => {
+    if (profile?.color) {
+      try {
+        localStorage.setItem("korestats-color", profile.color);
+        document.documentElement.style.setProperty("--primary", profile.color);
+      } catch (e) {
+        console.error("Error saving color preference", e);
+      }
+    }
+  }, [profile?.color]);
 
   // Funciones de utilidad
   const signOut = React.useCallback(async () => {
@@ -211,7 +189,7 @@ export function AuthProvider({
       .then(() => {
         logger.success(
           "AuthProvider",
-          "Sesión cerrada exitosamente en Supabase"
+          "Sesión cerrada exitosamente en Supabase",
         );
       })
       .catch((error) => {
@@ -220,7 +198,7 @@ export function AuthProvider({
         logger.error(
           "AuthProvider",
           "Error al cerrar sesión en Supabase",
-          errorMessage
+          errorMessage,
         );
         // Aunque falle, el usuario ya fue redirigido y la caché limpiada
       });
@@ -256,7 +234,7 @@ export function AuthProvider({
       signOut,
       refreshAuth,
       refreshProfile,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

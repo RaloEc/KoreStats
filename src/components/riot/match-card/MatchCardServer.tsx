@@ -82,14 +82,14 @@ function calculateKda(kills = 0, deaths = 0, assists = 0): number {
 
 function getParticipantRuneStyle(
   participant: RiotParticipant | null | undefined,
-  index: number
+  index: number,
 ): number | undefined {
   return participant?.perks?.styles?.[index]?.style;
 }
 
 function findLaneOpponent(
   participants: RiotParticipant[],
-  player?: RiotParticipant | null
+  player?: RiotParticipant | null,
 ): RiotParticipant | null {
   if (!player) return null;
   const playerLane = getParticipantLane(player);
@@ -98,7 +98,7 @@ function findLaneOpponent(
 
   if (playerLane) {
     const directMatch = enemyCandidates.find(
-      (candidate) => getParticipantLane(candidate) === playerLane
+      (candidate) => getParticipantLane(candidate) === playerLane,
     );
     if (directMatch) return directMatch;
   }
@@ -122,15 +122,15 @@ export function MatchCardServer({
 
   const isVictory = match.win;
   const REMAKE_DURATION_THRESHOLD = 300; // 5 minutos
-  const participants = (match.matches?.full_json?.info?.participants ??
+  const participantsJson = (match.matches?.full_json?.info?.participants ??
     []) as RiotParticipant[];
   const isRemake = Boolean(
     (match.matches?.game_duration ?? 0) < REMAKE_DURATION_THRESHOLD ||
-      participants.some(
-        (participant) =>
-          participant?.gameEndedInEarlySurrender ||
-          participant?.teamEarlySurrendered
-      )
+    participantsJson.some(
+      (participant) =>
+        participant?.gameEndedInEarlySurrender ||
+        participant?.teamEarlySurrendered,
+    ),
   );
   const coreItems = [
     match.item0,
@@ -144,8 +144,46 @@ export function MatchCardServer({
   const trinketItem = match.item6 && match.item6 !== 0 ? match.item6 : null;
 
   // Datos de jugadores
-  const allParticipants = (match.matches?.full_json?.info?.participants ??
+  // Datos de jugadores - Priorizar JSON si existe (para remakes details), sino usar DB
+  let allParticipants = (match.matches?.full_json?.info?.participants ??
     []) as RiotParticipant[];
+
+  // Si no hay participantes del JSON, mapear desde la BD
+  if (allParticipants.length === 0 && match.matches.match_participants) {
+    allParticipants = match.matches.match_participants.map(
+      (p: any, index: number) => ({
+        puuid: p.puuid,
+        summonerName: p.summoner_name || p.riotIdGameName,
+        championName: p.champion_name,
+        teamId: p.team_id || (index < 5 ? 100 : 200),
+        win: p.win,
+        kills: p.kills,
+        deaths: p.deaths,
+        assists: p.assists,
+        totalMinionsKilled: p.total_minions_killed,
+        neutralMinionsKilled: p.neutral_minions_killed,
+        teamPosition: p.team_position,
+        individualPosition: p.team_position,
+        lane: p.lane,
+        role: p.role,
+        item0: p.item0,
+        item1: p.item1,
+        item2: p.item2,
+        item3: p.item3,
+        item4: p.item4,
+        item5: p.item5,
+        item6: p.item6,
+        summoner1Id: p.summoner1_id,
+        summoner2Id: p.summoner2_id,
+        perks: {
+          styles: [
+            { style: p.perk_primary_style },
+            { style: p.perk_sub_style },
+          ],
+        },
+      }),
+    ) as RiotParticipant[];
+  }
   const team1 = allParticipants
     .filter((p: any) => p.teamId === 100)
     .slice(0, 5);
@@ -157,7 +195,7 @@ export function MatchCardServer({
     allParticipants.find((p) => p.puuid === match.puuid) ?? null;
   const laneOpponentParticipant = findLaneOpponent(
     allParticipants,
-    currentParticipant
+    currentParticipant,
   );
 
   const playerCs = currentParticipant
@@ -182,11 +220,11 @@ export function MatchCardServer({
   const scoreEntries = computeParticipantScores(
     allParticipants,
     match.matches.game_duration,
-    match.matches.full_json?.info
+    match.matches.full_json?.info,
   );
 
   const sortedByScore = [...scoreEntries].sort(
-    (a, b) => (b.score ?? 0) - (a.score ?? 0)
+    (a, b) => (b.score ?? 0) - (a.score ?? 0),
   );
   const rankingPositions = new Map<string, number>();
   sortedByScore.forEach((entry, index) => {
@@ -206,7 +244,7 @@ export function MatchCardServer({
       ? getParticipantKeyUtil(currentParticipant)
       : null;
     playerRankingPosition = playerKey
-      ? rankingPositions.get(playerKey) ?? null
+      ? (rankingPositions.get(playerKey) ?? null)
       : null;
   }
 
@@ -248,7 +286,7 @@ export function MatchCardServer({
         kda: calculateKda(
           laneOpponentParticipant.kills,
           laneOpponentParticipant.deaths,
-          laneOpponentParticipant.assists
+          laneOpponentParticipant.assists,
         ),
         csTotal: opponentCs ?? undefined,
         csPerMinute: opponentCsPerMinute ?? undefined,
@@ -260,8 +298,8 @@ export function MatchCardServer({
   const outcomeTextClass = isRemake
     ? "text-slate-600 dark:text-slate-400"
     : isVictory
-    ? "text-green-600 dark:text-green-400"
-    : "text-red-600 dark:text-red-400";
+      ? "text-green-600 dark:text-green-400"
+      : "text-red-600 dark:text-red-400";
 
   const outcomeLabel = isRemake ? "Remake" : isVictory ? "Victoria" : "Derrota";
   const statusLabel = isFailed ? "❌ Error" : outcomeLabel;

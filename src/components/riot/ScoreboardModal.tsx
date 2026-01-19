@@ -93,7 +93,7 @@ export function ScoreboardModal({
       : null;
 
     const headerQueueLabel = queueId ? getQueueName(queueId) : "";
-    const headerTitle = m?.game_mode || headerQueueLabel || "Partida";
+    const headerTitle = headerQueueLabel || m?.game_mode || "Partida";
     const headerDuration = formatDuration(durationSeconds);
     const headerRelativeTime = createdAtIso
       ? getRelativeTime(createdAtIso)
@@ -140,10 +140,6 @@ export function ScoreboardModal({
                 </h2>
                 <p className="text-slate-500 dark:text-slate-400 text-sm flex flex-wrap items-center gap-2">
                   {headerInfo.headerRelativeTime}
-                  <span className="text-slate-700 dark:text-slate-600">|</span>
-                  <span className="text-slate-600 dark:text-slate-300">
-                    ID: {headerInfo.headerMatchId}
-                  </span>
                 </p>
               </div>
             )}

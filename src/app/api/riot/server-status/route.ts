@@ -28,7 +28,7 @@ const RIOT_REGIONS: Record<string, string> = {
 // Obtener contenido en español, con fallback a inglés
 function getLocalizedContent(
   contents: RiotLocaleContent[],
-  preferredLocales: string[] = ["es_MX", "es_AR", "es_ES", "en_US"]
+  preferredLocales: string[] = ["es_MX", "es_AR", "es_ES", "en_US"],
 ): string {
   for (const locale of preferredLocales) {
     const found = contents.find((c) => c.locale === locale);
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "Riot API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
       // Si Riot devuelve error, devolver cache si existe
       if (cachedStatus) {
         console.warn(
-          `Riot API error ${response.status}, returning stale cache`
+          `Riot API error ${response.status}, returning stale cache`,
         );
         return NextResponse.json(cachedStatus, {
           headers: {
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
 
       return NextResponse.json(
         { error: `Riot API error: ${response.status}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -198,7 +198,7 @@ export async function GET(request: Request) {
 
       if (hasChanges) {
         console.log(
-          `[RiotStatus] Detectado cambio de estado en ${region}. Actualizando DB...`
+          `[RiotStatus] Detectado cambio de estado en ${region}. Actualizando DB...`,
         );
 
         // 3. Guardar nuevo estado
@@ -208,13 +208,13 @@ export async function GET(request: Request) {
             key: settingKey,
             value: statusResponse,
             updated_at: new Date().toISOString(),
-            updated_by: "system_riot_monitor", // Identificador del sistema
+            updated_by: null, // Identificador del sistema (null porque no es un usuario real)
           });
 
         if (upsertError) {
           console.error(
             "[RiotStatus] Error updating admin_settings:",
-            upsertError
+            upsertError,
           );
         } else {
           // Lógica de notificaciones para usuarios con cuentas vinculadas
@@ -231,15 +231,15 @@ export async function GET(request: Request) {
             if (userError) {
               console.error(
                 "[RiotStatus] Error fetching affected users:",
-                userError
+                userError,
               );
             } else if (usersToNotify && usersToNotify.length > 0) {
               const uniqueUserIds = Array.from(
-                new Set(usersToNotify.map((u) => u.user_id))
+                new Set(usersToNotify.map((u) => u.user_id)),
               );
 
               console.log(
-                `[RiotStatus] Notificando a ${uniqueUserIds.length} usuarios afectados en región ${region}`
+                `[RiotStatus] Notificando a ${uniqueUserIds.length} usuarios afectados en región ${region}`,
               );
 
               // Determinar mensaje
@@ -290,18 +290,18 @@ export async function GET(request: Request) {
               if (notifyError) {
                 console.error(
                   "[RiotStatus] Error insertando notificaciones:",
-                  notifyError
+                  notifyError,
                 );
               } else {
                 console.log(
-                  "[RiotStatus] Notificaciones enviadas correctamente."
+                  "[RiotStatus] Notificaciones enviadas correctamente.",
                 );
               }
             }
           } catch (notifyErr) {
             console.error(
               "[RiotStatus] Excepción en lógica de notificaciones:",
-              notifyErr
+              notifyErr,
             );
           }
 
@@ -312,7 +312,7 @@ export async function GET(request: Request) {
       // No bloqueamos la respuesta si falla la persistencia (ej: falta service key)
       console.warn(
         "[RiotStatus] No se pudo persistir el estado (probablemente safe ignorable en dev):",
-        dbError
+        dbError,
       );
     }
     // -----------------------------------------------------
@@ -337,7 +337,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       { error: "Failed to fetch server status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

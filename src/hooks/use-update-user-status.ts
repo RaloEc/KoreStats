@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import createClient from "@/utils/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 type StatusType = "online" | "in-game" | "offline";
 
@@ -48,7 +48,7 @@ export function useUpdateUserStatus(): UseUpdateUserStatusReturn {
         });
       }
     },
-    [user?.id, supabase, toast]
+    [user?.id, supabase, toast],
   );
 
   return {

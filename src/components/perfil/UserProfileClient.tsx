@@ -63,84 +63,103 @@ export default function UserProfileClient({
     refetch,
   } = usePerfilUsuario(publicId, initialProfile);
   const [riotAccount, setRiotAccount] = useState<LinkedAccountRiot | null>(
-    initialRiotAccount || null
+    initialRiotAccount || null,
   );
   const [loadingRiotAccount, setLoadingRiotAccount] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [riotUserId, setRiotUserId] = useState<string | null>(
-    initialProfile?.id ?? null
+    initialProfile?.id ?? null,
   );
 
   // Sincronizar estado local con props iniciales cuando estas cambian
+  // OPTIMIZADO: No sobrescribir con null si ya tenemos datos y el usuario es el mismo
   useEffect(() => {
-    if (initialRiotAccount !== undefined) {
+    // Si cambio el perfil base (navegación a otro usuario), resetear todo
+    if (initialProfile?.id && initialProfile.id !== riotUserId) {
+      setRiotUserId(initialProfile.id);
+      if (initialRiotAccount !== undefined) {
+        setRiotAccount(initialRiotAccount);
+      }
+      return;
+    }
+
+    // Si es el mismo usuario, solo actualizar si viene informacion valida
+    // Esto evita que un re-render con initialRiotAccount=null (por SSR parcial) borre datos obtenidos via fetch client-side
+    if (initialRiotAccount) {
       setRiotAccount(initialRiotAccount);
     }
-    if (initialProfile !== undefined) {
-      setRiotUserId(initialProfile?.id ?? null);
-    }
-  }, [initialRiotAccount, initialProfile]);
+  }, [initialRiotAccount, initialProfile, riotUserId]);
 
   // Cargar cuenta de Riot vinculada del usuario público
   useEffect(() => {
-    // Si ya tenemos datos iniciales y coinciden con el ID actual, no recargar inmediatamente
-    // Pero si cambia el publicId, sí.
-    // Como simplificación: Si tenemos riotAccount y parece válido, omitir primera carga
+    // Si ya tenemos datos iniciales y conservamos el mismo riotUserId, no recargar
     if (
-      initialRiotAccount &&
-      !loadingRiotAccount &&
-      riotAccount === initialRiotAccount
+      riotAccount &&
+      riotUserId &&
+      (!initialProfile || initialProfile.id === riotUserId)
     ) {
-      // Ya tenemos datos iniciales. Podríamos validar si el publicId cambió,
-      // pero en un SSR page reload, publicId es nuevo.
       return;
     }
 
     const loadRiotAccount = async () => {
       if (!publicId) return;
-      // Evitar recarga si ya tenemos datos iniciales recientes (esto es un parche simple)
-      if (initialRiotAccount && riotAccount === initialRiotAccount) return;
+
+      // Si ya tenemos una cuenta cargada para este perfil, no recargar
+      if (riotAccount && riotUserId) {
+        return;
+      }
 
       setLoadingRiotAccount(true);
       try {
+        console.log(
+          "[UserProfilePage] Cargando cuenta de Riot para:",
+          publicId,
+        );
         const response = await fetch(
-          `/api/riot/account/public?publicId=${publicId}&_t=${Date.now()}`
+          `/api/riot/account/public?publicId=${publicId}&_t=${Date.now()}`,
         );
         if (response.ok) {
           const data = await response.json();
           console.log(
-            "[UserProfilePage] Respuesta de /api/riot/account/public:",
-            {
-              profileId: data.profile?.id,
-              profileUsername: data.profile?.username,
-              gameName: data.account?.game_name,
-            }
+            "[UserProfilePage] ✅ Cuenta encontrada (FULL):",
+            JSON.stringify(
+              {
+                id: data.account?.id,
+                puuid: data.account?.puuid?.substring(0, 10) + "...",
+                gameName: data.account?.game_name,
+                riotIdName: data.account?.riot_id_name,
+              },
+              null,
+              2,
+            ),
           );
           setRiotAccount(data.account);
-          const extractedUserId = data.profile?.id ?? null;
-          setRiotUserId(extractedUserId);
-          console.log(
-            "[UserProfilePage] Riot User ID establecido:",
-            extractedUserId
-          );
+          setRiotUserId(data.profile?.id ?? null);
         } else {
           console.log(
-            "[UserProfilePage] No hay cuenta Riot vinculada (404 o similar)"
+            "[UserProfilePage] ⚠️ No hay cuenta vinculada (Status:",
+            response.status,
+            ")",
           );
-          setRiotAccount(null);
-          setRiotUserId(null);
+          // Solo resetear si realmente no existe (404)
+          if (response.status === 404) {
+            setRiotAccount(null);
+            setRiotUserId(null);
+          }
         }
       } catch (error) {
-        console.error("[UserProfilePage] Error loading Riot account:", error);
-        setRiotAccount(null);
-        setRiotUserId(null);
+        console.error(
+          "[UserProfilePage] ❌ Error loading Riot account:",
+          error,
+        );
+        // No reseteamos a null en caso de error de red para evitar parpadeos
       } finally {
         setLoadingRiotAccount(false);
       }
     };
 
     loadRiotAccount();
-  }, [publicId, initialRiotAccount]); // Añadido initialRiotAccount a dependencias para re-verificar
+  }, [publicId]); // Solo re-ejecutar si cambia el usuario visitado
 
   // Mutación para sincronizar cuenta + partidas
   const syncMutation = useMutation({
@@ -207,20 +226,28 @@ export default function UserProfileClient({
 
       // Recargar datos de la cuenta
       const newResponse = await fetch(
-        `/api/riot/account/public?publicId=${publicId}`
+        `/api/riot/account/public?publicId=${publicId}`,
       );
       if (newResponse.ok) {
         const newData = await newResponse.json();
         console.log(
           "[UserProfilePage] Datos de cuenta recargados:",
-          newData.account
+          newData.account ? "OK" : "NULL",
         );
-        setRiotAccount(newData.account);
-        setRiotUserId(newData.profile?.id ?? null);
+        // IMPORTANTE: Solo actualizar si recibimos datos válidos.
+        // Si el endpoint devuelve null/undefined (por error momentáneo), NO borrar la cuenta existente.
+        if (newData.account) {
+          setRiotAccount(newData.account);
+          setRiotUserId(newData.profile?.id ?? null);
+        } else {
+          console.warn(
+            "[UserProfilePage] Recarga de cuenta devolvió null, manteniendo datos anteriores.",
+          );
+        }
       } else {
         console.error(
           "[UserProfilePage] Error recargando cuenta:",
-          newResponse.status
+          newResponse.status,
         );
       }
     },
@@ -246,7 +273,7 @@ export default function UserProfileClient({
 
   // isAdmin debe ser true si el usuario LOGUEADO es admin, no el perfil visitado
   const isCurrentUserAdmin = Boolean(
-    currentUserProfile && currentUserProfile.role === "admin"
+    currentUserProfile && currentUserProfile.role === "admin",
   );
 
   // Layout móvil

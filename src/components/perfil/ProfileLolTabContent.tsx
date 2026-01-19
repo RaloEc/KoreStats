@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 const MatchHistoryList = dynamic(
   () =>
     import("@/components/riot/MatchHistoryList").then(
-      (mod) => mod.MatchHistoryList
+      (mod) => mod.MatchHistoryList,
     ),
   {
     ssr: false,
@@ -25,7 +25,7 @@ const MatchHistoryList = dynamic(
         ))}
       </div>
     ),
-  }
+  },
 );
 
 interface RiotAccountData {
@@ -72,7 +72,7 @@ export function ProfileLolTabContent({
 
   const handleUnlink = async () => {
     const confirmed = window.confirm(
-      "¿Estás seguro de que deseas desvincular tu cuenta de Riot Games? Se eliminarán todos los datos asociados."
+      "¿Estás seguro de que deseas desvincular tu cuenta de Riot Games? Se eliminarán todos los datos asociados.",
     );
     if (!confirmed) return;
 
@@ -110,7 +110,7 @@ export function ProfileLolTabContent({
           useVisualDesign={true}
           externalSyncPending={unifiedSyncPending}
           externalCooldownSeconds={unifiedSyncCooldown}
-          onUnlink={handleUnlink}
+          onUnlink={isOwnProfile ? handleUnlink : undefined}
           initialAccount={riotAccount as any} // Casting seguro, interfaces compatibles
           profileColor={profileColor}
         />

@@ -7,11 +7,13 @@ const isBrowser = typeof window !== "undefined";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Singleton instance
+// Singleton instance - IMPORTAR DESDE @/lib/supabase/client para cliente del navegador
+// Este archivo solo existe por compatibilidad con código legacy
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let supabaseInstance: any = null;
 
 // Función para crear un cliente de Supabase
+// DEPRECATED: Usar createClient de @/lib/supabase/client en su lugar
 const createClient = () => {
   if (isBrowser && supabaseInstance) {
     return supabaseInstance;
@@ -22,7 +24,6 @@ const createClient = () => {
       persistSession: isBrowser,
       autoRefreshToken: isBrowser,
       detectSessionInUrl: isBrowser,
-      storageKey: "korestats-auth",
     },
     global: {
       headers: {

@@ -150,19 +150,29 @@ export function MatchHistoryList({
   initialMatchesData,
   initialStats,
 }: MatchHistoryListProps = {}) {
+  // DEBUG: Logs de inicialización
+  useEffect(() => {
+    console.log("[MatchHistoryList] 🟢 MOUNTED", {
+      propUserId,
+      localUserId: "calculated-inside",
+      puuid,
+      hasInitialMatches: !!initialMatchesData,
+    });
+  }, [propUserId, puuid, initialMatchesData]);
+
   const queryClient = useQueryClient();
-  const { profile } = useAuth();
+  const { profile, loading, session } = useAuth();
   const isMobile = useIsMobile();
   const [localUserId, setLocalUserId] = useState<string | null>(null);
   const [queueFilter, setQueueFilter] = useState<string>(
-    QUEUE_FILTERS[0].value
+    QUEUE_FILTERS[0].value,
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [lastStableMatches, setLastStableMatches] = useState<Match[]>([]);
   const [isFilterTransition, setIsFilterTransition] = useState(false);
   const lastAutoSyncAtRef = useRef<number>(0);
   const lastDetectedStatusRef = useRef<"online" | "in-game" | "offline">(
-    "offline"
+    "offline",
   );
   const lastActiveSnapshotRef = useRef<ActiveMatchSnapshot | null>(null);
   const [endedSnapshot, setEndedSnapshot] =
@@ -197,7 +207,7 @@ export function MatchHistoryList({
     (matchId: string) => {
       prefetchMatchDetails(queryClient, matchId);
     },
-    [queryClient]
+    [queryClient],
   );
 
   // Obtener user_id del contexto o localStorage si no se pasa por props
@@ -238,7 +248,7 @@ export function MatchHistoryList({
         if (!userId) throw new Error("No user");
 
         const response = await fetch(
-          `/api/riot/matches/cache?userId=${encodeURIComponent(userId)}`
+          `/api/riot/matches/cache?userId=${encodeURIComponent(userId)}`,
         );
         if (!response.ok) {
           throw new Error("Error al obtener caché de partidas");
@@ -273,7 +283,7 @@ export function MatchHistoryList({
       params.set("tzOffsetMinutes", String(new Date().getTimezoneOffset()));
 
       const response = await fetch(
-        `/api/riot/matches/session-stats?${params.toString()}`
+        `/api/riot/matches/session-stats?${params.toString()}`,
       );
       if (!response.ok) {
         throw new Error("Error al obtener stats de sesión");
@@ -281,14 +291,15 @@ export function MatchHistoryList({
       return (await response.json()) as SessionStatsResponse;
     },
     // ESCALONAMIENTO: Solo después de tener datos en caché y solo si es perfil propio
-    enabled: isOwnProfile && hasCachedMatches,
+    // CRÍTICO: Esperar a que la autenticación termine de cargar para evitar rate limits
+    enabled: isOwnProfile && hasCachedMatches && !loading && !!session,
     staleTime: 30 * 1000, // 30 segundos - no tan frecuente
     retry: false,
   });
 
   const matchHistoryQueryKey = useMemo(
     () => ["match-history", userId, queueFilter],
-    [userId, queueFilter]
+    [userId, queueFilter],
   );
 
   // OPTIMIZADO: Linked accounts es terciario - solo cargar cuando se necesite
@@ -314,7 +325,7 @@ export function MatchHistoryList({
       }
       return acc;
     },
-    {}
+    {},
   );
 
   // Query para obtener historial de partidas con lazy load - OPTIMIZADA
@@ -350,15 +361,30 @@ export function MatchHistoryList({
 
       const response = await fetch(`/api/riot/matches?${params.toString()}`);
 
+      console.log(
+        "[MatchHistoryList] Fetch URL:",
+        `/api/riot/matches?${params.toString()}`,
+      );
+
       if (!response.ok) {
+        console.error(
+          "[MatchHistoryList] ❌ Fetch Error:",
+          response.status,
+          response.statusText,
+        );
         throw new Error("Failed to fetch matches");
       }
 
       const data = (await response.json()) as MatchHistoryPage;
+      console.log("[MatchHistoryList] ✅ Data received:", {
+        matchesCount: data.matches?.length,
+        hasMore: data.hasMore,
+        success: data.success,
+      });
       return data;
     },
     getNextPageParam: (lastPage) =>
-      lastPage?.hasMore ? lastPage.nextCursor ?? undefined : undefined,
+      lastPage?.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutos para datos frescos
     gcTime: 60 * 60 * 1000, // 60 minutos en caché antes de garbage collection
@@ -369,7 +395,7 @@ export function MatchHistoryList({
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     initialData:
-      (initialMatchesData && !queueFilter) || queueFilter === "all"
+      initialMatchesData && (!queueFilter || queueFilter === "all")
         ? {
             pages: [
               {
@@ -403,7 +429,7 @@ export function MatchHistoryList({
         // Si es un error de PUUID inválido, sugerir reautenticación
         if (errorData.error?.includes("PUUID inválido")) {
           throw new Error(
-            `${errorMessage}\n\nIntenta reautenticarte: /api/riot/reauth`
+            `${errorMessage}\n\nIntenta reautenticarte: /api/riot/reauth`,
           );
         }
 
@@ -534,7 +560,7 @@ export function MatchHistoryList({
           fetchNextPage();
         }
       },
-      { root: scrollContainerRef.current, rootMargin: "400px" }
+      { root: scrollContainerRef.current, rootMargin: "400px" },
     );
 
     const sentinel = document.getElementById("match-list-sentinel");
@@ -569,7 +595,7 @@ export function MatchHistoryList({
   useEffect(() => {
     if (hasCachedMatches && matches.length === 0) {
       setLastStableMatches((prev) =>
-        prev === cachedMatches ? prev : cachedMatches
+        prev === cachedMatches ? prev : cachedMatches,
       );
     }
   }, [hasCachedMatches, cachedMatches, matches.length]);
@@ -578,8 +604,8 @@ export function MatchHistoryList({
     matches.length > 0
       ? matches
       : hasCachedMatches
-      ? cachedMatches
-      : lastStableMatches;
+        ? cachedMatches
+        : lastStableMatches;
 
   const [listOffset, setListOffset] = useState(0);
 
@@ -621,7 +647,7 @@ export function MatchHistoryList({
     }
 
     const hasProcessingMatches = matchesToRender.some(
-      (match) => (match.matches as any)?.ingest_status === "processing"
+      (match) => (match.matches as any)?.ingest_status === "processing",
     );
 
     if (hasProcessingMatches && !syncMutation.isPending && !isLoading) {
@@ -649,7 +675,7 @@ export function MatchHistoryList({
     const avgDamage =
       sourceMatches.reduce(
         (sum, match) => sum + (match.total_damage_dealt ?? 0),
-        0
+        0,
       ) / sourceMatches.length;
     const avgGold =
       sourceMatches.reduce((sum, match) => sum + (match.gold_earned ?? 0), 0) /
@@ -863,8 +889,8 @@ export function MatchHistoryList({
                     streakTone === "loss"
                       ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100"
                       : streakTone === "win"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
-                      : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
+                        : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
                   }
                 `}
               >
@@ -903,7 +929,7 @@ export function MatchHistoryList({
             <button
               onClick={() =>
                 setMobileViewMode(
-                  mobileViewMode === "full" ? "compact" : "full"
+                  mobileViewMode === "full" ? "compact" : "full",
                 )
               }
               className={`

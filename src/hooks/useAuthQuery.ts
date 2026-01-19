@@ -39,18 +39,39 @@ export function useSessionQuery() {
   return useQuery<Session | null>({
     queryKey: authKeys.session,
     queryFn: async () => {
-      logger.info("useSessionQuery", "Obteniendo sesión...");
-
       try {
+        // Primero verificar si hay sesión en caché válida para evitar llamadas innecesarias
+        const cachedSession = queryClient.getQueryData<Session | null>(
+          authKeys.session,
+        );
+
+        if (cachedSession?.expires_at) {
+          const expiresAt = new Date(cachedSession.expires_at * 1000);
+          const now = new Date();
+          // Si la sesión en caché aún es válida (con margen de 60 segundos), usarla
+          if (expiresAt.getTime() - now.getTime() > 60000) {
+            return cachedSession;
+          }
+        }
+
         // Llamada directa sin timeout - dejar que Supabase maneje el timeout
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
           logger.error("useSessionQuery", "Error al obtener sesión", error);
+          // Si hay error pero tenemos caché, usarla
+          if (cachedSession) {
+            return cachedSession;
+          }
           throw error;
         }
 
         // Validar si el token está expirado
+        if (!data.session?.access_token) {
+          // Silenciar warning, es normal si no hay sesión
+          return null;
+        }
+
         if (data.session?.expires_at) {
           const expiresAt = new Date(data.session.expires_at * 1000);
           const now = new Date();
@@ -58,7 +79,7 @@ export function useSessionQuery() {
           if (expiresAt < now) {
             logger.warn(
               "useSessionQuery",
-              "Token expirado, intentando refrescar"
+              "Token expirado, intentando refrescar",
             );
 
             // Intentar refrescar el token
@@ -69,20 +90,14 @@ export function useSessionQuery() {
               logger.error(
                 "useSessionQuery",
                 "No se pudo refrescar el token",
-                refreshError
+                refreshError,
               );
               return null;
             }
 
-            logger.success("useSessionQuery", "Token refrescado exitosamente");
             return refreshed.session;
           }
         }
-
-        logger.success("useSessionQuery", "Sesión obtenida", {
-          hasSession: !!data.session,
-          userId: data.session?.user?.id,
-        });
 
         return data.session ?? null;
       } catch (error) {
@@ -91,17 +106,17 @@ export function useSessionQuery() {
         logger.error(
           "useSessionQuery",
           "Error al obtener sesión",
-          errorMessage
+          errorMessage,
         );
 
         // CRÍTICO: Si falla, usar la sesión en caché
         const cachedSession = queryClient.getQueryData<Session | null>(
-          authKeys.session
+          authKeys.session,
         );
         if (cachedSession) {
           logger.info(
             "useSessionQuery",
-            "Usando sesión en caché debido a error"
+            "Usando sesión en caché debido a error",
           );
           return cachedSession;
         }
@@ -109,7 +124,7 @@ export function useSessionQuery() {
         // Si no hay caché, retornar null en lugar de throw
         logger.warn(
           "useSessionQuery",
-          "No hay sesión en caché, retornando null"
+          "No hay sesión en caché, retornando null",
         );
         return null;
       }
@@ -163,7 +178,7 @@ export function useProfileQuery(userId: string | null | undefined) {
                 "useProfileQuery",
                 `Intento ${attempt + 1}/${RETRY_CONFIG.MAX_RETRIES} falló: ${
                   lastError.message
-                }. Reintentando en ${delay}ms`
+                }. Reintentando en ${delay}ms`,
               );
 
               // Si no es el último intento, esperar antes de reintentar
@@ -195,7 +210,7 @@ export function useProfileQuery(userId: string | null | undefined) {
                 {
                   username: profile.username,
                   role: profile.role,
-                }
+                },
               );
 
               return profile;
@@ -215,17 +230,17 @@ export function useProfileQuery(userId: string | null | undefined) {
         logger.error(
           "useProfileQuery",
           "Error definitivo al obtener perfil",
-          errorMessage
+          errorMessage,
         );
 
         // CRÍTICO: Si falla, usar el perfil en caché
         const cachedProfile = queryClient.getQueryData<Profile | null>(
-          authKeys.profile(userId)
+          authKeys.profile(userId),
         );
         if (cachedProfile) {
           logger.info(
             "useProfileQuery",
-            "Usando perfil en caché debido a error"
+            "Usando perfil en caché debido a error",
           );
           return cachedProfile;
         }
@@ -233,7 +248,7 @@ export function useProfileQuery(userId: string | null | undefined) {
         // Si no hay caché, retornar null en lugar de throw
         logger.warn(
           "useProfileQuery",
-          "No hay perfil en caché, retornando null"
+          "No hay perfil en caché, retornando null",
         );
         return null;
       }
@@ -259,7 +274,7 @@ export function useAuthData(initialSession?: Session | null) {
   React.useEffect(() => {
     if (initialSession) {
       const currentData = queryClient.getQueryData<Session | null>(
-        authKeys.session
+        authKeys.session,
       );
       if (!currentData) {
         logger.info("useAuthData", "Estableciendo sesión inicial del servidor");

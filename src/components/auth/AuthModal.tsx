@@ -134,7 +134,7 @@ export function AuthModal({
           setError("Credenciales inválidas. Verifica tu email y contraseña.");
         } else if (error.message.includes("Email not confirmed")) {
           setError(
-            "Correo electrónico no confirmado. Por favor, verifica tu bandeja de entrada."
+            "Correo electrónico no confirmado. Por favor, verifica tu bandeja de entrada.",
           );
         } else {
           setError(error.message);
@@ -143,8 +143,9 @@ export function AuthModal({
       }
 
       if (data.user) {
-        // Refrescar auth inmediatamente (sin esperar)
-        refreshAuth();
+        // No necesitamos llamar a refreshAuth() aquí porque el listener en AuthContext
+        // ya se encarga de actualizar el estado cuando detecta el evento SIGNED_IN
+        // refreshAuth();
 
         setMessage("¡Inicio de sesión exitoso!");
 
@@ -227,7 +228,7 @@ export function AuthModal({
           const result = await response.json();
 
           setMessage(
-            "¡Registro exitoso! Revisa tu email para confirmar tu cuenta y luego inicia sesión."
+            "¡Registro exitoso! Revisa tu email para confirmar tu cuenta y luego inicia sesión.",
           );
           setMode("login");
           setPassword("");
@@ -238,7 +239,7 @@ export function AuthModal({
           setError(
             `Error al crear perfil: ${
               profileError.message || "Contacta al administrador."
-            }`
+            }`,
           );
 
           // Intentar cerrar sesión para evitar problemas con usuario sin perfil
@@ -247,7 +248,7 @@ export function AuthModal({
           } catch (signOutError) {
             console.error(
               "Error al cerrar sesión después de fallo en creación de perfil:",
-              signOutError
+              signOutError,
             );
           }
         }
@@ -378,8 +379,8 @@ export function AuthModal({
               {loading
                 ? "Procesando..."
                 : mode === "login"
-                ? "Iniciar Sesión"
-                : "Crear Cuenta"}
+                  ? "Iniciar Sesión"
+                  : "Crear Cuenta"}
             </Button>
           </form>
 

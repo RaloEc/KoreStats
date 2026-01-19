@@ -23,7 +23,7 @@ async function refreshCachedVersion() {
   } catch (error) {
     console.error(
       "[match-card/helpers] Error al refrescar versión DDragon",
-      error
+      error,
     );
   }
 }
@@ -73,15 +73,22 @@ export const RUNE_STYLE_MAP: Record<number, string> = {
 
 export function getQueueName(queueId: number): string {
   const queueNames: Record<number, string> = {
-    400: "Normales",
-    420: "SoloQ",
-    430: "Normales",
-    440: "Flex",
-    450: "ARAM",
-    700: "Clash",
-    900: "URF",
+    400: "Normales", // Draft Pick
+    420: "SoloQ", // Ranked Solo
+    430: "Normales", // Blind Pick
+    440: "Flex", // Ranked Flex
+    450: "ARAM", // All Random All Mid
+    490: "Normales", // Quickplay
+    700: "Clash", // Clash
+    720: "ARAM Clash", // ARAM Clash
+    900: "URF", // URF
+    1020: "One For All", // One For All
+    1300: "Nexus Blitz", // Nexus Blitz
+    1400: "Libro de Hechizos", // Ultimate Spellbook
+    1700: "Arena", // Arena
+    1900: "URF", // URF
   };
-  return queueNames[queueId] || `Queue ${queueId}`;
+  return queueNames[queueId] || `Evento (${queueId})`;
 }
 
 export function getRelativeTime(timestamp: string): string {
@@ -107,7 +114,7 @@ export function formatDuration(seconds: number): string {
 
 export function getChampionImageUrl(
   championName: string,
-  version: string = FALLBACK_VERSION
+  version: string = FALLBACK_VERSION,
 ): string {
   if (championName === "FiddleSticks") championName = "Fiddlesticks";
   const resolvedVersion = resolveVersion(version);
@@ -116,7 +123,7 @@ export function getChampionImageUrl(
 
 export function getItemImageUrl(
   itemId: number,
-  version: string = FALLBACK_VERSION
+  version: string = FALLBACK_VERSION,
 ): string {
   if (itemId === 0) return "";
   const resolvedVersion = resolveVersion(version);
@@ -125,14 +132,14 @@ export function getItemImageUrl(
 
 export function getSummonerSpellUrl(
   summonerId: number,
-  version: string = FALLBACK_VERSION
+  version: string = FALLBACK_VERSION,
 ): string {
   if (summonerId === 0) return "";
   const resolvedVersion = resolveVersion(version);
   const spellName = SUMMONER_SPELL_MAP[summonerId];
   if (!spellName) {
     console.warn(
-      `[getSummonerSpellUrl] Summoner spell ID ${summonerId} not found in map`
+      `[getSummonerSpellUrl] Summoner spell ID ${summonerId} not found in map`,
     );
     return "";
   }

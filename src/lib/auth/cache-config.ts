@@ -6,12 +6,13 @@
 export const CACHE_CONFIG = {
   /**
    * Configuración para sesión
-   * - staleTime: 5 minutos (sesión debe ser fresca)
-   * - gcTime: 15 minutos (mantener en caché por si se reconecta)
+   * - staleTime: 10 minutos (reducir llamadas a getSession para evitar rate limits)
+   * - gcTime: 30 minutos (mantener en caché por si se reconecta)
+   * NOTA: El cliente de Supabase auto-refresca el token internamente
    */
   SESSION: {
-    staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   },
 
   /**

@@ -99,7 +99,7 @@ function parsePerks(value: unknown): SpectatorPerks | null {
   const perkIds: number[] = Array.isArray(perkIdsRaw)
     ? perkIdsRaw
         .map((id) =>
-          typeof id === "number" && Number.isFinite(id) ? id : null
+          typeof id === "number" && Number.isFinite(id) ? id : null,
         )
         .filter((id): id is number => id !== null && id > 0)
     : [];
@@ -119,7 +119,7 @@ function parsePerks(value: unknown): SpectatorPerks | null {
 }
 
 function getPositionFromParticipant(
-  participant: Record<string, unknown>
+  participant: Record<string, unknown>,
 ): string | null {
   const teamPosition = toString(participant["teamPosition"]);
   const individualPosition = toString(participant["individualPosition"]);
@@ -142,8 +142,8 @@ async function getSummonerNameFromRiot(params: {
   const cacheKey = summonerId
     ? `${platformRegion}:summonerId:${summonerId}`
     : puuid
-    ? `${platformRegion}:puuid:${puuid}`
-    : null;
+      ? `${platformRegion}:puuid:${puuid}`
+      : null;
 
   if (cacheKey) {
     const cached = summonerNameCache.get(cacheKey);
@@ -321,7 +321,7 @@ function getSummonerDisplayName(participant: Record<string, unknown>): string {
     "[GET /api/riot/matches/active] Unable to resolve participant name; using fallback",
     {
       keys: Object.keys(participant),
-    }
+    },
   );
 
   return "Invocador";
@@ -336,8 +336,8 @@ function sortByRoleOrder(a: ActiveParticipant, b: ActiveParticipant): number {
     UTILITY: 5,
   };
 
-  const aKey = a.position ? order[a.position] ?? 99 : 99;
-  const bKey = b.position ? order[b.position] ?? 99 : 99;
+  const aKey = a.position ? (order[a.position] ?? 99) : 99;
+  const bKey = b.position ? (order[b.position] ?? 99) : 99;
 
   if (aKey !== bKey) return aKey - bKey;
 
@@ -363,7 +363,7 @@ export async function GET(request: NextRequest) {
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { error: "Supabase configuration missing" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -383,7 +383,7 @@ export async function GET(request: NextRequest) {
       if (!authHeader?.startsWith("Bearer ")) {
         return NextResponse.json(
           { error: "Missing or invalid authorization header" },
-          { status: 401 }
+          { status: 401 },
         );
       }
 
@@ -405,7 +405,7 @@ export async function GET(request: NextRequest) {
     if (!RIOT_API_KEY) {
       return NextResponse.json(
         { error: "RIOT_API_KEY no configurada" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -419,14 +419,14 @@ export async function GET(request: NextRequest) {
     if (riotError || !riotAccount) {
       return NextResponse.json(
         { hasActiveMatch: false, reason: "No linked Riot account" },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
     if (!riotAccount.puuid) {
       return NextResponse.json(
         { hasActiveMatch: false, reason: "Missing puuid" },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -434,13 +434,6 @@ export async function GET(request: NextRequest) {
 
     // Spectator API v5 acepta PUUID directamente en /by-summoner/{encryptedPUUID}
     const spectatorUrl = `https://${platformRegion}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${riotAccount.puuid}`;
-
-    console.log("[GET /api/riot/matches/active] Checking active match:", {
-      userId: targetUserId,
-      puuid: riotAccount.puuid?.substring(0, 8) + "...",
-      platformRegion,
-      spectatorUrl,
-    });
 
     const spectatorResponse = await fetch(spectatorUrl, {
       method: "GET",
@@ -450,30 +443,17 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
 
-    console.log(
-      "[GET /api/riot/matches/active] Spectator response status:",
-      spectatorResponse.status
-    );
-
     // 404 = no está en partida (caso normal)
     if (spectatorResponse.status === 404) {
-      console.log("[GET /api/riot/matches/active] No active game (404)");
       return NextResponse.json(
         { hasActiveMatch: false, reason: "No active game" },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
     // 200 = en partida
     if (spectatorResponse.status === 200) {
       const data = await spectatorResponse.json().catch(() => null);
-
-      console.log("[GET /api/riot/matches/active] ACTIVE GAME DETECTED:", {
-        gameId: data?.gameId,
-        gameStartTime: data?.gameStartTime,
-        gameLength: data?.gameLength,
-        queueId: data?.gameQueueConfigId,
-      });
 
       const payload = isRecord(data) ? data : null;
       const rawParticipants =
@@ -573,7 +553,7 @@ export async function GET(request: NextRequest) {
             if (riotId) return riotId;
           }
           return p.summonerName;
-        })
+        }),
       );
 
       const participants: ActiveParticipant[] = parsedParticipantsBase.map(
@@ -587,7 +567,7 @@ export async function GET(request: NextRequest) {
           spell1Id: p.spell1Id,
           spell2Id: p.spell2Id,
           perks: p.perks,
-        })
+        }),
       );
 
       const team100 = participants
@@ -638,7 +618,7 @@ export async function GET(request: NextRequest) {
               }
             : {}),
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -655,13 +635,13 @@ export async function GET(request: NextRequest) {
         reason: "Riot API error",
         riotStatus: spectatorResponse.status,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("[GET /api/riot/matches/active] Unexpected error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

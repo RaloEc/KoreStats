@@ -120,6 +120,7 @@ export default function MobileProfileLayout({
         <div className="px-4 mt-2 sticky top-0 z-20 bg-white dark:bg-black amoled:bg-black py-2 shadow-sm">
           <ProfileTabs
             hasRiotAccount={!!riotAccount}
+            isOwnProfile={isOwnProfile}
             currentTab={currentTab}
             onTabChange={handleTabChange}
             isMobile={true}

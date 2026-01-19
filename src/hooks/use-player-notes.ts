@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export interface PlayerNote {
   id: string;
@@ -68,7 +69,11 @@ export function usePlayerNotes() {
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
 
+  const { user } = useAuth();
+
   const fetchNotes = useCallback(async () => {
+    if (!user) return; // No intentar fetch si no hay usuario
+
     setLoading(true);
     try {
       const freshNotes = await fetchNotesGlobal();
@@ -80,7 +85,7 @@ export function usePlayerNotes() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [user]);
 
   const getNote = (targetPuuid: string) => notes[targetPuuid];
 
@@ -91,6 +96,11 @@ export function usePlayerNotes() {
     note: string;
     tags: string[];
   }) => {
+    if (!user) {
+      toast.error("Debes iniciar sesión para guardar notas");
+      throw new Error("No authenticated");
+    }
+
     try {
       const res = await fetch("/api/riot/notes", {
         method: "POST",
@@ -120,6 +130,8 @@ export function usePlayerNotes() {
   };
 
   const deleteNote = async (targetPuuid: string) => {
+    if (!user) return;
+
     try {
       const res = await fetch(`/api/riot/notes?target_puuid=${targetPuuid}`, {
         method: "DELETE",
@@ -150,9 +162,11 @@ export function usePlayerNotes() {
     }
 
     // Fetch en background solo si el caché está vacío o expirado
+    // Y solo si hay usuario autenticado
     if (
-      Object.keys(globalNotesCache).length === 0 ||
-      Date.now() - globalFetchedAt >= CACHE_TTL_MS
+      user &&
+      (Object.keys(globalNotesCache).length === 0 ||
+        Date.now() - globalFetchedAt >= CACHE_TTL_MS)
     ) {
       fetchNotes();
     }
@@ -160,7 +174,7 @@ export function usePlayerNotes() {
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchNotes]);
+  }, [fetchNotes, user]);
 
   return {
     notes,

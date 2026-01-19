@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   if (isPublicRoute(pathname)) {
     logger.info(
       "Middleware",
-      "Ruta pública detectada, permitiendo acceso sin autenticación"
+      "Ruta pública detectada, permitiendo acceso sin autenticación",
     );
     return NextResponse.next();
   }
@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
           });
         },
       },
-    }
+    },
   );
 
   // ✅ OPTIMIZADO: Usar getUser() para validar la sesión de forma segura
@@ -106,7 +106,7 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       logger.warn(
         "Middleware",
-        "No hay usuario autenticado, redirigiendo a login"
+        "No hay usuario autenticado, redirigiendo a login",
       );
       const redirectUrl = new URL("/login", request.url);
       redirectUrl.searchParams.set("redirect", pathname);
@@ -126,7 +126,7 @@ export async function middleware(request: NextRequest) {
     if (userRole !== "admin") {
       logger.info(
         "Middleware",
-        "Role no encontrado en app_metadata, consultando tabla perfiles..."
+        "Role no encontrado en app_metadata, consultando tabla perfiles...",
       );
 
       try {
@@ -139,14 +139,14 @@ export async function middleware(request: NextRequest) {
         if (profileError || !profile || profile.role !== "admin") {
           logger.warn(
             "Middleware",
-            "Usuario no es admin en perfiles, redirigiendo a home"
+            "Usuario no es admin en perfiles, redirigiendo a home",
           );
           return NextResponse.redirect(new URL("/", request.url));
         }
 
         logger.success(
           "Middleware",
-          "Usuario es admin (verificado en perfiles), permitiendo acceso"
+          "Usuario es admin (verificado en perfiles), permitiendo acceso",
         );
       } catch (error) {
         logger.error("Middleware", "Error al consultar perfiles", error);
@@ -155,7 +155,7 @@ export async function middleware(request: NextRequest) {
     } else {
       logger.success(
         "Middleware",
-        "Usuario es admin (verificado en app_metadata), permitiendo acceso"
+        "Usuario es admin (verificado en app_metadata), permitiendo acceso",
       );
     }
   }

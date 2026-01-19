@@ -6,6 +6,7 @@ export type ProfileTab = "posts" | "lol" | "friends" | "stats";
 
 interface ProfileTabsProps {
   hasRiotAccount: boolean;
+  isOwnProfile?: boolean;
   currentTab: ProfileTab;
   onTabChange: (tab: ProfileTab) => void;
   isMobile?: boolean;
@@ -13,6 +14,7 @@ interface ProfileTabsProps {
 
 export function ProfileTabs({
   hasRiotAccount,
+  isOwnProfile = false,
   currentTab,
   onTabChange,
   isMobile = false,
@@ -33,7 +35,7 @@ export function ProfileTabs({
       </button>
 
       {/* Pestaña League of Legends */}
-      {hasRiotAccount && (
+      {(hasRiotAccount || isOwnProfile) && (
         <button
           onClick={() => onTabChange("lol")}
           className={`flex items-center gap-2 pb-3 px-2 text-sm md:text-base font-medium transition-all relative border-b-2 whitespace-nowrap ${

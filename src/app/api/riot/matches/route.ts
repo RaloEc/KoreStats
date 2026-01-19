@@ -19,7 +19,7 @@ import {
 async function getPlayerStatsOptimized(
   supabase: any,
   puuid: string,
-  options: any
+  options: any,
 ) {
   // Intentar obtener del caché primero
   const { data: cachedStats } = await supabase
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     if (accountError || !riotAccount) {
       return NextResponse.json(
         { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -126,15 +126,6 @@ export async function GET(request: NextRequest) {
 
     const queueParam = request.nextUrl.searchParams.get("queue")?.toLowerCase();
     const queueIds = queueParam ? QUEUE_FILTERS[queueParam] : undefined;
-
-    console.log(
-      "[GET /api/riot/matches] 📊 PARAMS - limit:",
-      limit,
-      "cursor:",
-      cursor,
-      "queue:",
-      queueParam
-    );
 
     // Obtener historial de partidas y estadísticas EN PARALELO (no secuencial)
     // IMPORTANTE: Stats siempre se calcula con límite de 40 para consistencia,
@@ -162,7 +153,7 @@ export async function GET(request: NextRequest) {
     console.error("[GET /api/riot/matches] ❌ Error:", error);
     return NextResponse.json(
       { error: "Error al obtener partidas" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -181,7 +172,7 @@ export async function POST(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "userId es requerido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -195,7 +186,7 @@ export async function POST(request: NextRequest) {
     if (accountError || !riotAccount) {
       return NextResponse.json(
         { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -203,11 +194,11 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.RIOT_API_KEY;
     if (!apiKey) {
       console.error(
-        "[POST /api/riot/matches/sync] RIOT_API_KEY no configurada"
+        "[POST /api/riot/matches/sync] RIOT_API_KEY no configurada",
       );
       return NextResponse.json(
         { error: "Configuración de servidor incompleta" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -216,13 +207,13 @@ export async function POST(request: NextRequest) {
       riotAccount.puuid,
       riotAccount.active_shard || "la1",
       apiKey,
-      100 // Sincronizar últimas 100 partidas
+      100, // Sincronizar últimas 100 partidas
     );
 
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || "Error al sincronizar" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -236,8 +227,8 @@ export async function POST(request: NextRequest) {
     refreshMatchHistoryCache(userId, riotAccount.puuid).catch((err) =>
       console.error(
         "[POST /api/riot/matches/sync] Error refrescando caché:",
-        err
-      )
+        err,
+      ),
     );
 
     return NextResponse.json({
@@ -254,7 +245,7 @@ export async function POST(request: NextRequest) {
     console.error("[POST /api/riot/matches/sync] Error:", error);
     return NextResponse.json(
       { error: "Error al sincronizar partidas" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

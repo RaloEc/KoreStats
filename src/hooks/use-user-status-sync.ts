@@ -2,7 +2,6 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import createClient from "@/utils/supabase/client";
 
 type StatusType = "online" | "in-game" | "offline";
 
@@ -19,22 +18,19 @@ export function useUserStatusSync(options: UseUserStatusSyncOptions = {}) {
     autoSetOfflineOnUnmount = true,
   } = options;
 
-  const { user, supabase } = useAuth();
+  const { user, session } = useAuth();
   const statusTimeoutRef = useRef<NodeJS.Timeout>();
   const lastStatusRef = useRef<StatusType>("offline");
 
-  // Función para actualizar el estado
+  // Función para actualizar el estado - usa la sesión del contexto
   const updateStatus = useCallback(
     async (status: StatusType) => {
       if (!user?.id || !enabled) return;
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        // Usar la sesión del contexto en lugar de llamar getSession()
         if (!session?.access_token) {
-          console.warn("[useUserStatusSync] No access token available");
+          // No loguear warning, es normal si no hay sesión activa
           return;
         }
 
@@ -50,7 +46,7 @@ export function useUserStatusSync(options: UseUserStatusSyncOptions = {}) {
         if (!response.ok) {
           console.error(
             "[useUserStatusSync] Failed to update status:",
-            response.statusText
+            response.statusText,
           );
           return;
         }
@@ -60,7 +56,7 @@ export function useUserStatusSync(options: UseUserStatusSyncOptions = {}) {
         console.error("[useUserStatusSync] Error updating status:", error);
       }
     },
-    [user?.id, enabled, supabase.auth]
+    [user?.id, enabled, session],
   );
 
   // Al montar el componente, establecer estado como "online"

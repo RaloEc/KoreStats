@@ -91,7 +91,7 @@ export default function PerfilPageClient({
       invalidateStaticCache,
       refreshProfile,
       refreshAuth,
-    }
+    },
   );
 
   const isOwnProfile = user?.id === perfil?.id;
@@ -135,7 +135,7 @@ export default function PerfilPageClient({
 
       try {
         const response = await fetch(
-          `/api/perfil/actividades?userId=${user.id}&page=${page}&limit=${limit}`
+          `/api/perfil/actividades?userId=${user.id}&page=${page}&limit=${limit}`,
         );
 
         if (!response.ok) {
@@ -153,7 +153,7 @@ export default function PerfilPageClient({
         return [];
       }
     },
-    [user, toast]
+    [user, toast],
   );
 
   const handleSignOut = async () => {
@@ -164,7 +164,7 @@ export default function PerfilPageClient({
 
     try {
       console.log(
-        "[Perfil] Intentando cierre de sesión con el contexto de autenticación..."
+        "[Perfil] Intentando cierre de sesión con el contexto de autenticación...",
       );
       await signOut();
       console.log("[Perfil] Cierre de sesión exitoso con el contexto");
@@ -176,7 +176,7 @@ export default function PerfilPageClient({
 
       try {
         console.log(
-          "[Perfil] Intentando cierre de sesión con instancia directa..."
+          "[Perfil] Intentando cierre de sesión con instancia directa...",
         );
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
@@ -185,7 +185,7 @@ export default function PerfilPageClient({
       } catch (innerError) {
         console.error(
           "[Perfil] Error en cierre de sesión con instancia directa:",
-          innerError
+          innerError,
         );
       } finally {
         console.log("[Perfil] Forzando recarga de la página...");
@@ -313,6 +313,7 @@ export default function PerfilPageClient({
         {/* Sistema de Pestañas */}
         <ProfileTabs
           hasRiotAccount={!!riotAccount}
+          isOwnProfile={isOwnProfile}
           currentTab={activeTab}
           onTabChange={setActiveTab}
         />

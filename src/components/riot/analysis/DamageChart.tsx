@@ -22,19 +22,19 @@ const COLORS = [
 ];
 
 const COLORS_RED = [
-  "#9ca3af", // Gray for neutral
-  "#f87171", // Red 400
-  "#fb7185", // Rose 400
-  "#f43f5e", // Rose 500
-  "#fda4af", // Rose 300
+  "#ef4444", // Red 500
+  "#f97316", // Orange 500
+  "#eab308", // Yellow 500
+  "#ec4899", // Pink 500
+  "#be123c", // Rose 700
 ];
 
 const COLORS_BLUE = [
-  "#9ca3af", // Gray for neutral
-  "#60a5fa", // Blue 400
   "#3b82f6", // Blue 500
-  "#93c5fd", // Blue 300
-  "#bfdbfe", // Blue 200
+  "#06b6d4", // Cyan 500
+  "#8b5cf6", // Violet 500
+  "#10b981", // Emerald 500
+  "#6366f1", // Indigo 500
 ];
 
 function TeamDamageSection({
@@ -50,13 +50,13 @@ function TeamDamageSection({
       <div
         className={cn(
           "flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2",
-          alignRight ? "justify-end" : "justify-start"
+          alignRight ? "justify-end" : "justify-start",
         )}
       >
         <h4
           className={cn(
             "text-xs font-bold uppercase tracking-widest",
-            title.includes("Azul") ? "text-blue-500" : "text-rose-500"
+            title.includes("Azul") ? "text-blue-500" : "text-rose-500",
           )}
         >
           {title}
@@ -137,7 +137,7 @@ function TeamDamageSection({
                     <span
                       className={cn(
                         "font-bold truncate",
-                        isTop ? "text-amber-500" : "text-slate-300"
+                        isTop ? "text-amber-500" : "text-slate-300",
                       )}
                     >
                       {player.championName}

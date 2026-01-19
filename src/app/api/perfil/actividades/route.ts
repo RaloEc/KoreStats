@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "Se requiere el ID de usuario" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,16 +25,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Crear cliente de Supabase
-    const cookieStore = cookies();
     const supabase = await createClient();
-
-    // Verificar sesión
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
 
     console.log("[Perfil Actividades API] Iniciando consulta", {
       userId,
@@ -52,7 +43,7 @@ export async function GET(request: NextRequest) {
           `
           id, titulo, contenido, created_at, estado, deleted_at, imagen_portada,
           categorias:noticias_categorias(categoria:categorias(nombre))
-        `
+        `,
         )
         .eq("autor_id", userId)
         .is("deleted_at", null)
@@ -67,7 +58,7 @@ export async function GET(request: NextRequest) {
           `
           id, titulo, contenido, created_at, 
           categoria:foro_categorias(nombre)
-        `
+        `,
         )
         .eq("autor_id", userId)
         .is("deleted_at", null)
@@ -88,7 +79,7 @@ export async function GET(request: NextRequest) {
     // Función auxiliar para extraer preview de contenido
     const getContentPreview = (
       content: string,
-      maxLength: number = 150
+      maxLength: number = 150,
     ): string => {
       if (!content) return "";
       // Remover HTML tags
@@ -185,7 +176,7 @@ export async function GET(request: NextRequest) {
           category: primeraCategoria,
           image: noticia.imagen_portada || null,
         };
-      }
+      },
     );
 
     // Comentarios y respuestas eliminados para simplificar el feed
@@ -242,7 +233,7 @@ export async function GET(request: NextRequest) {
             summoner1_id, summoner2_id, perk_primary_style, perk_sub_style,
             ranking_position, performance_score, win,
             matches(match_id, game_creation, game_duration, queue_id, data_version, full_json)
-          `
+          `,
           )
           .eq("puuid", userPuuid)
           .in("match_id", uniqueMatchIds);
@@ -250,7 +241,7 @@ export async function GET(request: NextRequest) {
       if (matchParticipantsError) {
         console.warn(
           "[Perfil Actividades API] Error obteniendo match_participants",
-          matchParticipantsError
+          matchParticipantsError,
         );
       } else {
         matchParticipants?.forEach((participant) => {
@@ -267,7 +258,7 @@ export async function GET(request: NextRequest) {
       if (rankSnapshotsError) {
         console.warn(
           "[Perfil Actividades API] Error obteniendo match_participant_ranks",
-          rankSnapshotsError
+          rankSnapshotsError,
         );
       } else {
         rankSnapshots?.forEach((rank) => {
@@ -284,7 +275,7 @@ export async function GET(request: NextRequest) {
       if (participantNamesError) {
         console.warn(
           "[Perfil Actividades API] Error obteniendo nombres de participantes",
-          participantNamesError
+          participantNamesError,
         );
       } else {
         participantNames?.forEach((row: any) => {
@@ -329,7 +320,7 @@ export async function GET(request: NextRequest) {
 
     const getDeterministicSkinId = (
       matchId: string,
-      championName: string | number
+      championName: string | number,
     ): number => {
       const skins = championSkinsMap.get(String(championName));
       if (!skins || skins.length === 0) return 0;
@@ -368,10 +359,10 @@ export async function GET(request: NextRequest) {
         typeof participant?.kda === "number"
           ? participant?.kda
           : typeof metadata.kda === "number"
-          ? metadata.kda
-          : deaths > 0
-          ? (kills + assists) / Math.max(deaths, 1)
-          : kills + assists;
+            ? metadata.kda
+            : deaths > 0
+              ? (kills + assists) / Math.max(deaths, 1)
+              : kills + assists;
 
       const totalCS =
         (participant?.total_minions_killed ?? 0) +
@@ -393,8 +384,8 @@ export async function GET(request: NextRequest) {
             participant.item6 ?? 0,
           ]
         : Array.isArray(metadata.items)
-        ? [...metadata.items, 0, 0, 0, 0, 0, 0, 0].slice(0, 7)
-        : [0, 0, 0, 0, 0, 0, 0];
+          ? [...metadata.items, 0, 0, 0, 0, 0, 0, 0].slice(0, 7)
+          : [0, 0, 0, 0, 0, 0, 0];
 
       const resultWin = participant?.win ?? Boolean(metadata.win);
       const queueId = matchInfo?.queue_id ?? metadata.queueId ?? 0;
@@ -505,7 +496,7 @@ export async function GET(request: NextRequest) {
       if (matchInfo?.full_json?.info?.participants) {
         const participants = matchInfo.full_json.info.participants;
         const participantDetail = participants.find(
-          (p: any) => p.puuid === (participant?.puuid || userPuuid)
+          (p: any) => p.puuid === (participant?.puuid || userPuuid),
         );
         perks = participantDetail?.perks ?? null;
 
@@ -527,23 +518,23 @@ export async function GET(request: NextRequest) {
         // Calcular datos de equipo
         const playerTeamId = participantDetail?.teamId;
         const teamParticipants = participants.filter(
-          (p: any) => p.teamId === playerTeamId
+          (p: any) => p.teamId === playerTeamId,
         );
         const enemyParticipants = participants.filter(
-          (p: any) => p.teamId !== playerTeamId
+          (p: any) => p.teamId !== playerTeamId,
         );
 
         teamTotalDamage = teamParticipants.reduce(
           (sum: number, p: any) => sum + (p.totalDamageDealtToChampions || 0),
-          0
+          0,
         );
         teamTotalGold = teamParticipants.reduce(
           (sum: number, p: any) => sum + (p.goldEarned || 0),
-          0
+          0,
         );
         const enemyTotalGold = enemyParticipants.reduce(
           (sum: number, p: any) => sum + (p.goldEarned || 0),
-          0
+          0,
         );
         // Heurística simple para Remontada: Si ganamos pero tuvimos menos oro total (raro pero posible en base race)
         // O mejor: usar maxGoldAdvantage de challenges si existe? No siempre.
@@ -558,7 +549,7 @@ export async function GET(request: NextRequest) {
 
         teamTotalKills = teamParticipants.reduce(
           (sum: number, p: any) => sum + (p.kills || 0),
-          0
+          0,
         );
 
         const teamCount =
@@ -580,7 +571,7 @@ export async function GET(request: NextRequest) {
         teamAvgVisionScore =
           teamParticipants.reduce(
             (sum: number, p: any) => sum + (p.visionScore || 0),
-            0
+            0,
           ) / teamCount;
         // gameDuration está en segundos, convertir a minutos
         const gameDurationSeconds =
@@ -595,7 +586,7 @@ export async function GET(request: NextRequest) {
         teamAvgDamageToTurrets =
           teamParticipants.reduce(
             (sum: number, p: any) => sum + (p.damageDealtToTurrets || 0),
-            0
+            0,
           ) / teamCount;
 
         // Obtener objectives stolen del metadata si existe
@@ -741,7 +732,7 @@ export async function GET(request: NextRequest) {
     console.error("Error al obtener actividades:", error);
     return NextResponse.json(
       { error: "Error al obtener actividades" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

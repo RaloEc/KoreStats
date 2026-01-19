@@ -84,7 +84,7 @@ function hexToRgb(hex: string): string | null {
   return result
     ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
         result[3],
-        16
+        16,
       )}`
     : null;
 }
@@ -147,7 +147,7 @@ export function RiotAccountCardVisual({
 }: RiotAccountCardVisualProps) {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(
-    propUserId ?? account.user_id ?? null
+    propUserId ?? account.user_id ?? null,
   );
   const [topChampionName, setTopChampionName] = useState<string | null>(null);
 
@@ -275,7 +275,7 @@ export function RiotAccountCardVisual({
       if (!userId) return null;
       // Pedimos 25 para asegurar tener 20 válidas si hay filtrado
       const response = await fetch(
-        `/api/riot/matches?userId=${userId}&limit=25`
+        `/api/riot/matches?userId=${userId}&limit=25`,
       );
       if (!response.ok) return null;
       const data = await response.json();
@@ -372,26 +372,26 @@ export function RiotAccountCardVisual({
     >();
 
     recentMatchesData.forEach((match) => {
-      // Necesitamos el json completo
-      if (!match.matches?.full_json?.info?.participants) return;
+      // Ahora usamos los datos de match_participants directamente
+      const participants = match.matches?.match_participants;
+      if (!participants || participants.length === 0) return;
 
-      const participants = match.matches.full_json.info.participants;
-      const me = participants.find((p) => p.puuid === account.puuid);
+      // Encontrar mi equipo usando team_id
+      const me = participants.find((p: any) => p.puuid === account.puuid);
+      if (!me || !me.team_id) return;
 
-      if (!me) return; // No debería pasar si es mi historial
-
-      participants.forEach((p) => {
+      // Iterar sobre todos los participantes
+      participants.forEach((p: any) => {
         if (p.puuid === account.puuid) return; // Soy yo
-        if (p.teamId !== me.teamId) return; // Equipo enemigo
+        if (p.team_id !== me.team_id) return; // Equipo enemigo
 
-        // Es un compañero
-        // Usamos PUUID como key
+        // Es un compañero - usamos los nuevos campos
         const key = p.puuid;
         const current = duoMap.get(key) || {
           puuid: p.puuid,
-          name: p.riotIdGameName || "Unknown",
-          tag: p.riotIdTagline || "",
-          icon: p.profileIcon,
+          name: p.riot_id_game_name || p.summoner_name || "Unknown",
+          tag: p.riot_id_tagline || "",
+          icon: p.profile_icon_id || 29,
           count: 0,
           wins: 0,
         };
@@ -427,7 +427,7 @@ export function RiotAccountCardVisual({
     if (!recentMatchesData || recentMatchesData.length === 0) return 0;
     const totalKda = recentMatchesData.reduce(
       (acc, m) => acc + (m.kda || 0),
-      0
+      0,
     );
     return totalKda / recentMatchesData.length;
   }, [recentMatchesData]);
@@ -445,7 +445,7 @@ export function RiotAccountCardVisual({
       if (!fullJson?.info?.participants) return;
 
       const participant: any = fullJson.info.participants.find(
-        (p: any) => p.puuid === account.puuid
+        (p: any) => p.puuid === account.puuid,
       );
       if (!participant) return;
 
@@ -519,7 +519,7 @@ export function RiotAccountCardVisual({
             <span className={labelClass}>Racha</span>
             <span className={valueClass}>{currentStreak} Victorias</span>
           </div>
-        </div>
+        </div>,
       );
     }
 
@@ -534,7 +534,7 @@ export function RiotAccountCardVisual({
             <span className={labelClass}>Dominante</span>
             <span className={valueClass}>KDA {recentAvgKda.toFixed(1)}</span>
           </div>
-        </div>
+        </div>,
       );
     }
 
@@ -610,7 +610,7 @@ export function RiotAccountCardVisual({
               <span className={labelClass}>{config.label}</span>
               <span className={subClass}>Obtenido {count} veces</span>
             </div>
-          </div>
+          </div>,
         );
       }
     });
@@ -626,7 +626,7 @@ export function RiotAccountCardVisual({
             <span className={labelClass}>Estado</span>
             <span className={valueClass}>Veterano</span>
           </div>
-        </div>
+        </div>,
       );
     }
 
@@ -864,8 +864,8 @@ export function RiotAccountCardVisual({
                   {isSyncing
                     ? "..."
                     : cooldownSeconds > 0
-                    ? `${cooldownSeconds}s`
-                    : "Actualizar"}
+                      ? `${cooldownSeconds}s`
+                      : "Actualizar"}
                 </button>
               )}
               {account.puuid && (
@@ -882,6 +882,15 @@ export function RiotAccountCardVisual({
                 >
                   <ExternalLink size={14} />
                 </a>
+              )}
+              {onUnlink && (
+                <button
+                  onClick={onUnlink}
+                  className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 text-slate-700 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 border-2 border-slate-400 dark:border-white/10 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all text-[10px] font-bold"
+                  title="Desvincular cuenta"
+                >
+                  <Unlink size={14} />
+                </button>
               )}
             </div>
           </div>
@@ -1085,8 +1094,8 @@ export function RiotAccountCardVisual({
                                   borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
                                 }
                               : linkedProfileId
-                              ? {}
-                              : {}
+                                ? {}
+                                : {}
                           }
                         >
                           <div
@@ -1162,7 +1171,7 @@ export function RiotAccountCardVisual({
                             >
                               {frequentDuo.count} partidas /{" "}
                               {Math.round(
-                                (frequentDuo.wins / frequentDuo.count) * 100
+                                (frequentDuo.wins / frequentDuo.count) * 100,
                               )}
                               % WR
                             </span>
