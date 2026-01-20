@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getStaticProfileData } from "@/lib/perfil/server-data";
 
 export const metadata = {
-  title: "Mi Perfil - BitArena",
+  title: "Mi Perfil - KoreStats",
   description:
     "Gestiona tu perfil, visualiza tus estadísticas y conecta tus cuentas.",
 };

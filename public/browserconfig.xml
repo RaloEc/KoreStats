@@ -10,12 +10,12 @@
     </tile>
     <notification>
       <polling-uri src="/api/notifications/check"/>
-      <polling-uri src="https://api.bitarena.com/notifications/check" />
+      <polling-uri src="https://api.korestats.com/notifications/check" />
       <frequency>30</frequency>
       <cycle>1</cycle>
     </notification>
   </msapplication>
-  <msapplication-tooltip>BitArena - Comunidad de Minecraft</msapplication-tooltip>
+  <msapplication-tooltip>KoreStats - Estadísticas de Videojuegos</msapplication-tooltip>
   <msapplication-navbutton-hint>0</msapplication-navbutton-hint>
   <msapplication-window>
     <width>1200</width>
@@ -23,8 +23,8 @@
     <minimized>false</minimized>
   </msapplication-window>
   <msapplication-task>
-    <action>https://bitarena.com</action>
-    <caption>BitArena Web</caption>
+    <action>https://korestats.com</action>
+    <caption>KoreStats Web</caption>
     <icon-uri>/icons/icon-144x144.png</icon-uri>
   </msapplication-task>
 </browserconfig>

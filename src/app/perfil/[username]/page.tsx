@@ -54,14 +54,14 @@ export async function generateMetadata({
 
     if (!profile) {
       return {
-        title: "Perfil no encontrado - BitArena",
+        title: "Perfil no encontrado - KoreStats",
       };
     }
 
     return {
-      title: `Perfil de ${profile.username} - BitArena`,
+      title: `Perfil de ${profile.username} - KoreStats`,
       description:
-        profile.bio || `Perfil de usuario de ${profile.username} en BitArena`,
+        profile.bio || `Perfil de usuario de ${profile.username} en KoreStats`,
       openGraph: {
         images: [profile.avatar_url || "/images/default-avatar.png"],
       },
@@ -69,7 +69,7 @@ export async function generateMetadata({
   } catch (error) {
     console.error("[generateMetadata] Error:", error);
     return {
-      title: "Perfil - BitArena",
+      title: "Perfil - KoreStats",
     };
   }
 }
@@ -94,7 +94,7 @@ export default async function UserProfilePage({
     // Esto reduce el TTFB de 3-5s a <500ms
     // ═══════════════════════════════════════════════════════════════════
     const { profile, riotAccount } = await getProfileInitialData(
-      params.username
+      params.username,
     );
 
     // ⚠️ ELIMINADO: Ya no cargamos matches ni stats en SSR

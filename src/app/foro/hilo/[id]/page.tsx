@@ -25,7 +25,7 @@ const HiloComentariosOptimizado = dynamic(
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     ),
-  }
+  },
 );
 
 import { getServiceClient } from "@/lib/supabase/server";
@@ -60,7 +60,7 @@ export async function generateMetadata({
       .replace(/<[^>]*>/g, "");
 
     return {
-      title: `${hilo.titulo} | Foro - Mc-Community`,
+      title: `${hilo.titulo} | Foro - KoreStats`,
       description: descripcion,
       openGraph: {
         title: hilo.titulo,
@@ -73,7 +73,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: "Hilo no encontrado | Foro - Mc-Community",
+      title: "Hilo no encontrado | Foro - KoreStats",
     };
   }
 }

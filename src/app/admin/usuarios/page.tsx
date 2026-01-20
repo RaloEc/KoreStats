@@ -2,7 +2,7 @@ import AdminProtection from "@/components/AdminProtection";
 import AdminUsuariosPageClient from "@/components/admin/usuarios/AdminUsuariosPageClient";
 
 export const metadata = {
-  title: "Gestión de Usuarios - Administración | BitArena",
+  title: "Gestión de Usuarios - Administración | KoreStats",
   description: "Administra los usuarios de la comunidad",
 };
 

@@ -2,7 +2,7 @@ import AdminProtection from "@/components/AdminProtection";
 import DashboardContent from "@/components/admin/DashboardContent";
 
 export const metadata = {
-  title: "Dashboard - Administración | BitArena",
+  title: "Dashboard - Administración | KoreStats",
   description: "Panel de control general de la comunidad",
 };
 

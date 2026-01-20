@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
             total_damage_dealt_to_champions, gold_earned, damage_dealt_to_turrets,
             item0, item1, item2, item3, item4, item5, item6,
             summoner1_id, summoner2_id, perk_primary_style, perk_sub_style,
-            ranking_position, performance_score, win,
+            ranking_position, performance_score, win, lp_change,
             matches(match_id, game_creation, game_duration, queue_id, data_version, full_json)
           `,
           )
@@ -670,6 +670,7 @@ export async function GET(request: NextRequest) {
         tier: rankSnapshot?.tier ?? null,
         rank: rankSnapshot?.rank ?? null,
         leaguePoints: rankSnapshot?.league_points ?? 0,
+        lp_change: participant?.lp_change ?? metadata.lp_change ?? null,
         rankWins: rankSnapshot?.wins ?? 0,
         rankLosses: rankSnapshot?.losses ?? 0,
         comment: metadata.comment || null,

@@ -52,6 +52,7 @@ interface RiotParticipant {
   goldEarned?: number;
   win?: boolean;
   objectivesStolen?: number;
+  lp_change?: number;
 }
 
 const POSITION_ALIASES: Record<string, string> = {
@@ -181,6 +182,7 @@ export function MatchCardServer({
             { style: p.perk_sub_style },
           ],
         },
+        lp_change: p.lp_change,
       }),
     ) as RiotParticipant[];
   }
@@ -314,14 +316,15 @@ export function MatchCardServer({
           {statusLabel}
         </span>
         <LPBadge
-          gameId={(() => {
-            const parts = match.match_id.split("_");
-            const gameIdStr = parts.length > 1 ? parts[1] : parts[0];
-            return gameIdStr;
-          })()}
-          userId={userId}
-          queueId={match.matches.queue_id}
-          isOwnProfile={isOwnProfile}
+          lp={
+            match.lp_change ??
+            currentParticipant?.lp_change ??
+            // Fallback para intentar encontrarlo en match_participants raw si no se mapeó arriba
+            (match.matches.match_participants?.find(
+              (p: any) => p.puuid === match.puuid,
+            )?.lp_change as number | undefined)
+          }
+          className="mb-0.5"
         />
         <span className="text-sm font-bold text-slate-600 dark:text-white leading-tight">
           {getQueueName(match.matches.queue_id)}

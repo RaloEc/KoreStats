@@ -19,7 +19,7 @@ const HiloComentariosOptimizado = dynamic(
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     ),
-  }
+  },
 );
 import {
   getHiloPorSlugOId,
@@ -45,7 +45,7 @@ export async function generateMetadata({
     const hilo = await getHiloPorSlugOId(params.slug);
 
     return {
-      title: `${hilo.titulo} | Foro - Mc-Community`,
+      title: `${hilo.titulo} | Foro - KoreStats`,
       description: hilo.contenido.substring(0, 160).replace(/<[^>]*>/g, ""),
       openGraph: {
         title: hilo.titulo,
@@ -58,7 +58,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: "Hilo no encontrado | Foro - Mc-Community",
+      title: "Hilo no encontrado | Foro - KoreStats",
     };
   }
 }

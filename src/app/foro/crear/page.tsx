@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import CrearHiloPageClient from "@/components/foro/CrearHiloPageClient";
 
 export const metadata = {
-  title: "Crear Nuevo Hilo - Foro BitArena",
+  title: "Crear Nuevo Hilo - Foro KoreStats",
   description: "Crea un nuevo tema de discusión en el foro.",
 };
 

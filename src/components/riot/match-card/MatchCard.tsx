@@ -32,6 +32,7 @@ export interface Match {
   created_at: string;
   puuid: string;
   objectives_stolen?: number;
+  lp_change?: number; // Added for LP tracking
   matches: {
     match_id: string;
     game_creation: number;

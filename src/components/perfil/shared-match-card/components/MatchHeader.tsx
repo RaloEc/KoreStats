@@ -26,6 +26,7 @@ interface MatchHeaderProps {
   matchId: string;
   userId?: string;
   isOwnProfile?: boolean;
+  lp?: number | null;
   // Tiempo
   createdAt: string;
   // Menú
@@ -61,6 +62,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
   matchId,
   userId,
   isOwnProfile,
+  lp,
   createdAt,
   isAdmin,
   onHide,
@@ -111,14 +113,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
               <span className="text-xs font-black tracking-wide text-slate-900 dark:text-white">
                 {rankLabel}
               </span>
-              <LPBadge
-                gameId={(() => {
-                  const parts = matchId.split("_");
-                  return parts.length > 1 ? parts[1] : parts[0];
-                })()}
-                userId={userId}
-                isOwnProfile={isOwnProfile}
-              />
+              <LPBadge lp={lp} />
             </div>
           )}
         </div>

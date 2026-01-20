@@ -2,7 +2,7 @@ import { getMods } from "@/lib/mods/mods-data";
 import ModsPageClient from "@/components/mods/ModsPageClient";
 
 export const metadata = {
-  title: "Mods de Minecraft - BitArena",
+  title: "Mods de Minecraft - KoreStats",
   description: "Descubre los mejores mods para mejorar tu experiencia de juego",
 };
 

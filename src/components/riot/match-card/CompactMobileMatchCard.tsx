@@ -40,6 +40,7 @@ interface RiotParticipant {
   totalMinionsKilled?: number;
   neutralMinionsKilled?: number;
   champLevel?: number;
+  lp_change?: number;
 }
 
 interface CompactMobileMatchCardProps {
@@ -133,7 +134,8 @@ export function CompactMobileMatchCard({
             { style: p.perk_sub_style },
           ],
         },
-        champLevel: p.champ_level, // Nota: verificar si existe champ_level en DB, sino default
+        champLevel: p.champ_level,
+        lp_change: p.lp_change,
       }),
     ) as RiotParticipant[];
   }
@@ -415,15 +417,7 @@ export function CompactMobileMatchCard({
           </div>
 
           <div className="mt-0.5">
-            <LPBadge
-              gameId={(() => {
-                const parts = match.match_id.split("_");
-                const gameIdStr = parts.length > 1 ? parts[1] : parts[0];
-                return gameIdStr;
-              })()}
-              userId={userId}
-              isOwnProfile={isOwnProfile}
-            />
+            <LPBadge lp={match.lp_change ?? currentParticipant?.lp_change} />
           </div>
         </div>
       </div>

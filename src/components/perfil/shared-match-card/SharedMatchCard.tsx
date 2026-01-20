@@ -60,7 +60,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
         try {
           const skinId = await getDeterministicSkinIdClient(
             partida.matchId,
-            partida.championName
+            partida.championName,
           );
           setRealSkinId(skinId);
         } catch (error) {
@@ -89,7 +89,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
     const { perkIconById, perkNameById } = useRuneIcons(
       primaryStyle,
       secondaryStyle,
-      statPerks
+      statPerks,
     );
 
     // Calcular estadísticas - MEMOIZADO para evitar recálculos
@@ -97,7 +97,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
     const playerStats = useMemo(() => calculatePlayerStats(partida), [partida]);
     const comparisons = useMemo(
       () => calculateComparisons(partida, teamStats, playerStats),
-      [partida, teamStats, playerStats]
+      [partida, teamStats, playerStats],
     );
 
     // Determinar si hay datos comparativos y equipos
@@ -106,7 +106,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
       Boolean(partida.teamTotalGold) ||
       Boolean(partida.teamTotalKills);
     const hasTeams = Boolean(
-      partida.allPlayers && partida.allPlayers.length > 0
+      partida.allPlayers && partida.allPlayers.length > 0,
     );
     const mobileCarouselPages =
       (hasComparative ? 1 : 0) + 1 + (hasTeams ? 1 : 0);
@@ -171,12 +171,12 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
             partida.earlyLaningPhaseGoldExpAdvantage,
           goldDeficit: partida.goldDeficit,
         }),
-      [partida, isWin, playerStats.killParticipationRatio]
+      [partida, isWin, playerStats.killParticipationRatio],
     );
 
     const displayTags: MatchTag[] = useMemo(
       () => (matchTags.length > 0 ? matchTags : (["MVP"] as MatchTag[])),
-      [matchTags]
+      [matchTags],
     );
 
     // Usar realSkinId si está disponible, sino el skinId de partida, sino 0
@@ -287,6 +287,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
                 dataVersion={ddragonVersion}
                 queueId={partida.queueId}
                 gameDuration={partida.gameDuration}
+                lp={partida.lp_change}
               />
 
               {/* Items con runas/hechizos */}
@@ -531,5 +532,5 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
         </Card>
       </TooltipProvider>
     );
-  }
+  },
 );

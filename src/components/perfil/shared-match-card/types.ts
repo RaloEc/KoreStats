@@ -31,6 +31,7 @@ export interface SharedMatchData {
   tier: string | null;
   rank: string | null;
   leaguePoints: number;
+  lp_change?: number | null;
   rankWins: number;
   rankLosses: number;
   comment: string | null;

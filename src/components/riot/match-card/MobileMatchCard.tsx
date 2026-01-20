@@ -50,6 +50,7 @@ interface RiotParticipant {
   teamPosition?: string;
   individualPosition?: string;
   lane?: string;
+  lp_change?: number;
 }
 
 const POSITION_ALIASES: Record<string, string> = {
@@ -234,7 +235,8 @@ export function MobileMatchCard({
         summoner1Id: p.summoner1_id,
         summoner2Id: p.summoner2_id,
         visionScore: p.vision_score,
-        totalDamageDealtToChampions: p.total_damage_dealt_to_champions, // Nota: esto podría faltar en DB si no se guardó
+        totalDamageDealtToChampions: p.total_damage_dealt_to_champions,
+        lp_change: p.lp_change,
       }),
     ) as RiotParticipant[];
   }
@@ -427,17 +429,7 @@ export function MobileMatchCard({
               >
                 {resultLabel}
               </span>
-              <LPBadge
-                gameId={(() => {
-                  // Extraer solo el número del gameId
-                  // El match_id puede venir como "LA2_1676038425" o "1676038425"
-                  const parts = match.match_id.split("_");
-                  const gameIdStr = parts.length > 1 ? parts[1] : parts[0];
-                  return gameIdStr;
-                })()}
-                userId={userId}
-                isOwnProfile={isOwnProfile}
-              />
+              <LPBadge lp={match.lp_change ?? currentParticipant?.lp_change} />
             </div>
             <div className="flex-1 text-right text-xs">
               <p className="font-semibold text-slate-900 dark:text-slate-200">
