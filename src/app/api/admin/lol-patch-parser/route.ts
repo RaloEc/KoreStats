@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       - ESTADÍSTICAS: Extrae valores numéricos exactos (Vida: 600 -> 630). Si no hay números pero es mejora, usa "Buff".
       - IDIOMA: Todo en ESPAÑOL LATINO (es_MX).
 
-      JSON: { "summary": "...", "champions": [...], "changes": [...] }
+      JSON: { "champions": [...], "changes": [...] }
       `;
       const parts: any[] = [prompt, `Text context: ${text || "No text"}`];
       if (imagePart) parts.push(imagePart);
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       // Si el JSON es un objeto, extraemos el summary y los cambios
       let changesArray = manualJson;
       if (manualJson && !Array.isArray(manualJson)) {
-        aiData.summary = manualJson.summary || "";
+        aiData.summary = "";
         changesArray =
           manualJson.changes ||
           manualJson.data ||
@@ -121,12 +121,6 @@ export async function POST(req: NextRequest) {
       changesArray.forEach((item: any) => {
         const typeUpper = item.type ? item.type.toUpperCase() : "";
         const rawChanges = item.changes || item.details || "";
-
-        // CASO ESPECIAL: Resumen Ejecutivo
-        if (typeUpper === "SUMMARY" || typeUpper === "RESUMEN") {
-          aiData.summary = rawChanges || item.content || "";
-          return;
-        }
 
         // Dividir por punto y coma para obtener cambios individuales
         const parts = rawChanges
@@ -304,7 +298,7 @@ export async function POST(req: NextRequest) {
     const patchData: any = {
       version: assetVersion,
       displayVersion: version || "Preview",
-      summary: aiData.summary || "Resumen del parche",
+      summary: "",
       champions: [],
       items: [],
       runes: [],

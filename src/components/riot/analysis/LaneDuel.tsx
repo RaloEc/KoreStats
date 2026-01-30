@@ -1193,60 +1193,72 @@ export function LaneDuel({
     <Card className="bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       {/* Integrated Champion Selector Bar */}
       <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 py-3 bg-slate-50/50 dark:bg-white/[0.02] border-b border-slate-200/50 dark:border-white/5">
-        {/* Blue Team */}
+        {/* Blue Team Selection */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {blueTeam.map((p: any) => (
-            <button
-              key={p.participantId}
-              onClick={() => onFocusChange?.(p.participantId)}
-              className={cn(
-                "relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 hover:scale-110",
-                focusParticipantId === p.participantId
-                  ? "ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-[#030708] scale-110 z-10 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                  : "opacity-40 grayscale hover:grayscale-0 hover:opacity-100",
-              )}
-            >
-              <div className="absolute inset-0 rounded-full overflow-hidden border border-slate-200 dark:border-white/10">
-                <Image
-                  src={getChampionImg(p.championName, gameVersion)}
-                  alt={p.championName}
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                />
-              </div>
-            </button>
-          ))}
+          {blueTeam.map((p: any) => {
+            const isFocus = focusParticipantId === p.participantId;
+            const isOpponent = opponentParticipantId === p.participantId;
+
+            return (
+              <button
+                key={p.participantId}
+                onClick={() => onFocusChange?.(p.participantId)}
+                className={cn(
+                  "relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-300 hover:scale-110 outline-none focus:outline-none focus-visible:outline-none",
+                  isFocus
+                    ? "ring-2 ring-indigo-500 scale-110 z-10 shadow-[0_0_15px_rgba(99,102,241,0.6)]"
+                    : isOpponent
+                      ? "scale-105 opacity-100 z-0 grayscale-0"
+                      : "opacity-30 grayscale hover:grayscale-0 hover:opacity-100",
+                )}
+              >
+                <div className="absolute inset-0 rounded-full overflow-hidden border border-slate-200 dark:border-white/10">
+                  <Image
+                    src={getChampionImg(p.championName, gameVersion)}
+                    alt={p.championName}
+                    fill
+                    sizes="32px"
+                    className="object-cover"
+                  />
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        <span className="text-[10px] font-black italic text-slate-300 dark:text-white/20 uppercase tracking-widest shrink-0">
-          vs
-        </span>
+        <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 rotate-12 mx-2 opacity-50" />
 
-        {/* Red Team */}
+        {/* Red Team Selection */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {redTeam.map((p: any) => (
-            <button
-              key={p.participantId}
-              onClick={() => onOpponentChange?.(p.participantId)}
-              className={cn(
-                "relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 hover:scale-110",
-                opponentParticipantId === p.participantId
-                  ? "ring-2 ring-red-500 ring-offset-1 ring-offset-white dark:ring-offset-[#030708] scale-110 z-10 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
-                  : "opacity-40 grayscale hover:grayscale-0 hover:opacity-100",
-              )}
-            >
-              <div className="absolute inset-0 rounded-full overflow-hidden border border-slate-200 dark:border-white/10">
-                <Image
-                  src={getChampionImg(p.championName, gameVersion)}
-                  alt={p.championName}
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                />
-              </div>
-            </button>
-          ))}
+          {redTeam.map((p: any) => {
+            const isFocus = focusParticipantId === p.participantId;
+            const isOpponent = opponentParticipantId === p.participantId;
+
+            return (
+              <button
+                key={p.participantId}
+                onClick={() => onFocusChange?.(p.participantId)}
+                className={cn(
+                  "relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-300 hover:scale-110 outline-none focus:outline-none focus-visible:outline-none",
+                  isFocus
+                    ? "ring-2 ring-indigo-500 scale-110 z-10 shadow-[0_0_15px_rgba(99,102,241,0.6)]"
+                    : isOpponent
+                      ? "scale-105 opacity-100 z-0 grayscale-0"
+                      : "opacity-30 grayscale hover:grayscale-0 hover:opacity-100",
+                )}
+              >
+                <div className="absolute inset-0 rounded-full overflow-hidden border border-slate-200 dark:border-white/10">
+                  <Image
+                    src={getChampionImg(p.championName, gameVersion)}
+                    alt={p.championName}
+                    fill
+                    sizes="32px"
+                    className="object-cover"
+                  />
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

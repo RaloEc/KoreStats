@@ -1,334 +1,192 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Usamos el cliente compartido para evitar múltiples instancias
 const supabase = createClient();
 
-export interface LivePlayerLCU {
-  championName: string;
-  isBot?: boolean;
-  isDead: boolean;
-  items: number[];
-  level: number;
-  position: string;
-  respawnTimer: number;
+// --- NUEVAS INTERFACES OPTIMIZADAS (DIET PLAN) ---
+
+export interface MinifiedPlayer {
+  teamId: number; // 100 | 200
   summonerName: string;
   riotId?: string;
-  profileIconId?: number;
+  championId: number;
+  championName: string;
+  position: string; // "TOP", "JUNGLE", etc.
 
-  // Stats (Now flat in DB)
+  // Runas Simplificadas
+  perks?: {
+    perkIds: number[]; // [8005, ...] -> Solo ids numéricos. [0] es Keystone
+    perkSubStyle: number; // 8100
+  };
+
+  // Estado Vivo
+  level: number;
+  currentGold: number;
   kills: number;
   deaths: number;
   assists: number;
-  creepScore: number;
+  cs: number; // Creep Score (Corregido a "cs" según app local, mapeado a "creepScore" si es legacy)
   wardScore: number;
-  currentGold?: number;
-  totalGold?: number;
+  respawnTimer: number;
+  isDead: boolean;
+  items: number[]; // Array plano de IDs: [1055, 3006, ...]
 
-  // Identifiers
-  championId?: number;
+  // Compatibilidad Legacy
+  creepScore?: number; // Para mantener compatibilidad con componentes que buscan .creepScore
   puuid?: string;
-
-  // Team (Now teamId in DB)
-  teamId: number; // 100 = Blue, 200 = Red
-
-  // Legacy fields (optional, might be missing)
-  rawChampionName?: string;
-  runes?: {
-    keystone: { id: number; displayName: string; rawDescription: string };
-    primaryRuneTree: {
-      id: number;
-      displayName: string;
-      rawDescription: string;
-    };
-    secondaryRuneTree: {
-      id: number;
-      displayName: string;
-      rawDescription: string;
-    };
-  };
-  scores?: {
-    assists: number;
-    creepScore: number;
-    deaths: number;
-    kills: number;
-    wardScore: number;
-  };
-  screenPosition?: string;
-  skinName?: string;
-  skinID?: number;
-  riotIdGameName?: string;
-  riotIdTagline?: string;
-  summonerSpells?: {
-    summonerSpellOne: {
-      displayName: string;
-      rawDescription: string;
-      rawDisplayName: string;
-    };
-    summonerSpellTwo: {
-      displayName: string;
-      rawDescription: string;
-      rawDisplayName: string;
-    };
-  };
-  team?: "ORDER" | "CHAOS";
+  summonerSpells?: any;
 }
 
 export interface LiveGameDataLCU {
-  // Estructura anidada desde liveData (ruta real en Supabase)
-  liveData?: {
-    gameData?: {
-      gameMode: string;
-      gameTime: number;
-      mapName: string;
-      mapNumber: number;
-      mapTerrain: string;
-    };
-    allPlayers?: any[];
-    events?: any;
-  };
-  // Estructura plana (fallback/legacy)
-  gameData?: {
+  phase: string;
+  gameData: {
     gameMode: string;
     gameTime: number;
-    mapName: string;
     mapNumber: number;
-    mapTerrain: string;
+    mapName?: string;
+    mapTerrain?: string;
   };
-  livePlayers: LivePlayerLCU[];
-  phase: string; // "InProgress", "ChampSelect", etc.
-  isApiFallback?: boolean; // Flag to indicate data comes from Riot API fallback
+  livePlayers: MinifiedPlayer[]; // Usamos la versión minificada
+  isApiFallback?: boolean;
+  liveData?: { gameData?: any; allPlayers?: any[] }; // Legacy
 }
+
+// Alias para mantener compatibilidad
+export type LivePlayerLCU = MinifiedPlayer;
 
 export const useLiveGameRealtime = (
   userPuuid?: string | null,
   riotId?: string | null,
-  userId?: string | undefined, // Added parameter for API fallback
+  userId?: string | undefined,
 ) => {
   const [gameData, setGameData] = useState<LiveGameDataLCU | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeSubscriptionId, setActiveSubscriptionId] = useState<
-    string | null
-  >(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!userPuuid && !riotId) {
+    const targetPuuid = userPuuid || null;
+
+    if (!targetPuuid && !riotId) {
       setGameData(null);
       setIsConnected(false);
-      setIsLoading(false);
       return;
     }
 
-    const cleanPuuid = userPuuid ? userPuuid.trim() : null;
-    const cleanRiotId = riotId ? riotId.trim() : null;
+    let activeChannel: any = null;
 
-    // 1. Cargar el estado inicial
-    const fetchInitialState = async () => {
+    const fetchAndSubscribe = async () => {
       setIsLoading(true);
-      try {
-        let targetId = cleanPuuid ? `live-${cleanPuuid}` : null;
-        let foundData: LiveGameDataLCU | null = null;
-        let foundSubscriptionId: string | null = null;
 
-        // --- INTENTO 1: SUPABASE DIRECTO ---
-        if (targetId) {
-          const { data } = await supabase
-            .from("live_game_states")
-            .select("id, data")
-            .eq("id", targetId)
-            .single();
+      // --- 1. CARGA INICIAL (SNAPSHOT DB) ---
+      let dbId = targetPuuid ? `live-${targetPuuid}` : null;
+      let availablePuuid = targetPuuid;
 
-          if (data?.data) {
-            foundData = data.data as LiveGameDataLCU;
-            foundSubscriptionId = data.id;
+      // Si no tenemos PUUID, intentamos buscar el ID row por RiotID (Fallback)
+      if (!dbId && riotId) {
+        const { data: searchData } = await supabase
+          .from("live_game_states")
+          .select("id, data")
+          .contains("data", { livePlayers: [{ riotId: riotId }] })
+          .limit(1)
+          .maybeSingle();
+
+        if (searchData) {
+          dbId = searchData.id;
+          availablePuuid = searchData.id.replace("live-", "");
+          if (searchData.data) {
+            // Normalizar datos iniciales (cs -> creepScore si es necesario)
+            const normalizedData = normalizeGameData(searchData.data as any);
+            setGameData(normalizedData);
+            setIsConnected(true);
           }
         }
+      } else if (dbId) {
+        const { data } = await supabase
+          .from("live_game_states")
+          .select("data")
+          .eq("id", dbId)
+          .maybeSingle();
 
-        if (!foundData && cleanRiotId) {
-          const { data: searchData } = await supabase
-            .from("live_game_states")
-            .select("id, data")
-            .contains("data", {
-              livePlayers: [{ riotId: cleanRiotId }],
-            })
-            .limit(1)
-            .maybeSingle();
-
-          if (searchData?.data) {
-            foundData = searchData.data as LiveGameDataLCU;
-            foundSubscriptionId = searchData.id;
-          }
+        if (data?.data) {
+          const normalizedData = normalizeGameData(data.data as any);
+          setGameData(normalizedData);
+          setIsConnected(true);
         }
+      }
 
-        // --- INTENTO 2: API RIOT (FALLBACK) ---
-        // Si no tenemos datos de Supabase y tenemos userId, consultamos la API de Riot
-        if (!foundData && userId) {
-          try {
-            const apiRes = await fetch(
-              `/api/riot/matches/active?userId=${encodeURIComponent(userId)}`,
-            );
-            if (apiRes.ok) {
-              const apiData = await apiRes.json();
-              if (apiData.hasActiveMatch && apiData.teams) {
-                // Convertir respuesta de API a formato LCU
-                const convertParticipant = (
-                  p: any,
-                  teamId: number,
-                ): LivePlayerLCU => ({
-                  championName: p.championName || "Unknown",
-                  isBot: false,
-                  isDead: false,
-                  items: [],
-                  level: 0,
-                  position: p.position || "NONE",
-                  respawnTimer: 0,
-                  summonerName: p.summonerName || "Unknown",
-                  riotId: p.riotId || "",
-                  puuid: p.puuid,
-                  championId: p.championId,
-                  teamId: teamId,
-                  // Stats simulados (vacíos)
-                  kills: 0,
-                  deaths: 0,
-                  assists: 0,
-                  creepScore: 0,
-                  wardScore: 0,
-                  // Runas (si vienen)
-                  runes: p.perks
-                    ? {
-                        keystone: {
-                          id: p.perks.perkIds[0] || 0,
-                          displayName: "",
-                          rawDescription: "",
-                        },
-                        primaryRuneTree: {
-                          id: p.perks.perkStyle || 0,
-                          displayName: "",
-                          rawDescription: "",
-                        },
-                        secondaryRuneTree: {
-                          id: p.perks.perkSubStyle || 0,
-                          displayName: "",
-                          rawDescription: "",
-                        },
-                      }
-                    : undefined,
-                  // Hechizos
-                  summonerSpells: {
-                    summonerSpellOne: {
-                      displayName: "",
-                      rawDescription: "",
-                      rawDisplayName: "",
-                    }, // TODO: Mapear IDs si es necesario, pero ActiveMatchCard usa IDs
-                    summonerSpellTwo: {
-                      displayName: "",
-                      rawDescription: "",
-                      rawDisplayName: "",
-                    },
-                  },
-                });
+      setIsLoading(false);
 
-                const team100 = (apiData.teams.team100 || []).map((p: any) =>
-                  convertParticipant(p, 100),
-                );
-                const team200 = (apiData.teams.team200 || []).map((p: any) =>
-                  convertParticipant(p, 200),
-                );
+      // --- 2. SUSCRIPCIÓN HÍBRIDA (Broadcast + Persistence) ---
+      if (availablePuuid) {
+        const channelName = `live-status-${availablePuuid}`;
+        const dbFilter = `id=eq.live-${availablePuuid}`;
 
-                foundData = {
-                  phase: "InProgress",
-                  isApiFallback: true,
-                  gameData: {
-                    gameMode: apiData.gameMode || "CLASSIC",
-                    gameTime: apiData.elapsedSeconds || 0,
-                    mapName: "",
-                    mapNumber: apiData.mapId || 11,
-                    mapTerrain: "",
-                  },
-                  livePlayers: [...team100, ...team200],
-                  // Agregamos estructura liveData anidada para compatibilidad máxima
-                  liveData: {
-                    gameData: {
-                      gameMode: apiData.gameMode || "CLASSIC",
-                      gameTime: apiData.elapsedSeconds || 0,
-                      mapName: "",
-                      mapNumber: apiData.mapId || 11,
-                      mapTerrain: "",
-                    },
-                    allPlayers: [...team100, ...team200].map((p) => ({
-                      ...p,
-                      team: p.teamId === 100 ? "ORDER" : "CHAOS",
-                    })),
-                  },
-                };
-              }
+        // console.log("🔌 Conectando a canal realtime:", channelName);
+
+        activeChannel = supabase
+          .channel(channelName)
+          .on("broadcast", { event: "game-update" }, (payload) => {
+            // Recibimos update rápido (1s)
+            if (payload.payload) {
+              // Normalizar al vuelo
+              const normalized = normalizeGameData(payload.payload as any);
+              setGameData(normalized);
+              setIsConnected(true);
             }
-          } catch (apiErr) {
-            console.warn("Error fetching Riot API active match:", apiErr);
-          }
-        }
-
-        if (foundData) {
-          setGameData(foundData);
-          if (foundSubscriptionId) {
-            setActiveSubscriptionId(foundSubscriptionId);
-          }
-        } else {
-          setGameData(null);
-        }
-      } catch (err) {
-        console.error("Error fetching initial live game state:", err);
-      } finally {
-        setIsLoading(false);
+          })
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "live_game_states",
+              filter: dbFilter,
+            },
+            (payload: any) => {
+              // Recibimos persistencia (Backup)
+              if (payload.new?.data) {
+                const normalized = normalizeGameData(payload.new.data as any);
+                setGameData(normalized);
+                setIsConnected(true);
+              }
+            },
+          )
+          .subscribe((status) => {
+            // console.log("Status suscripción:", status);
+            if (status === "SUBSCRIBED") setIsConnected(true);
+          });
       }
     };
 
-    // Polling si no se encontró partida inicial: Reintentar cada 30s
-    // Usamos un intervalo simple que no depende del estado 'gameData' para evitar loops
-    // pero verificamos si YA tenemos datos antes de volver a fetchear agresivamente?
-    // Mejor estrategia: Un intervalo fijo que siempre verifica si la data está "stale" o si no hay.
-
-    // Simplemente ejecutamos el fetch inicial y seteamos el intervalo.
-    // Si ya hay suscripción realtime, el fetch inicial puede ser redundante pero seguro.
-    fetchInitialState();
-
-    const intervalId = setInterval(fetchInitialState, 60000);
+    fetchAndSubscribe();
 
     return () => {
-      clearInterval(intervalId);
-    };
-  }, [userPuuid, riotId, userId]); // gameData ELIMINADO de dependencias
-
-  // 2. Suscribirse a cambios en tiempo real (solo si tenemos subscription ID de Supabase)
-  useEffect(() => {
-    if (!activeSubscriptionId) return;
-
-    const channel = supabase
-      .channel(`live-game-tracking-${activeSubscriptionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*", // INSERT y UPDATE
-          schema: "public",
-          table: "live_game_states",
-          filter: `id=eq.${activeSubscriptionId}`,
-        },
-        (payload) => {
-          if (payload.new && "data" in payload.new) {
-            setGameData(payload.new.data as LiveGameDataLCU);
-          }
-        },
-      )
-      .subscribe((status) => {
-        setIsConnected(status === "SUBSCRIBED");
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
+      if (activeChannel) supabase.removeChannel(activeChannel);
       setIsConnected(false);
     };
-  }, [activeSubscriptionId]);
+  }, [userPuuid, riotId]);
 
   return { gameData, isConnected, isLoading };
 };
+
+// Helper para asegurar que .creepScore siempre exista (UI legacy lo usa)
+// y que cs (nuevo formato) también.
+function normalizeGameData(data: LiveGameDataLCU): LiveGameDataLCU {
+  if (!data || !data.livePlayers) return data;
+
+  const updatedPlayers = data.livePlayers.map((p) => {
+    // Si viene 'cs' pero no 'creepScore', llenamos creepScore
+    // Si viene 'creepScore' pero no 'cs', llenamos cs
+    const val = p.cs ?? p.creepScore ?? 0;
+    return {
+      ...p,
+      cs: val,
+      creepScore: val,
+    };
+  });
+
+  return {
+    ...data,
+    livePlayers: updatedPlayers,
+  };
+}

@@ -133,7 +133,7 @@ export default async function NoticiaDetalle({
         <NoticiaScrollbarStyles />
         <NoticiaVistaCounter noticiaId={params.id} />
 
-        <main className="container py-4 px-4 overflow-hidden">
+        <main className="container py-4 px-4 overflow-visible">
           <NoticiaCabecera
             titulo={noticia.titulo}
             descripcion={

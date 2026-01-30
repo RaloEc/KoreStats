@@ -803,26 +803,28 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
   return (
     <div className="space-y-8">
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        <TabsList className="flex items-center w-full h-auto p-1.5 gap-1.5 bg-background/60 dark:bg-black/40 border border-border/50 backdrop-blur-xl sticky top-4 z-40 rounded-2xl shadow-xl overflow-x-auto no-scrollbar">
+        <TabsList className="flex items-center w-full h-auto p-1 md:p-1.5 gap-1 md:gap-1.5 bg-background/80 dark:bg-black/60 border border-white/10 backdrop-blur-xl sticky top-14 lg:top-16 z-40 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-x-auto no-scrollbar transition-all duration-300">
           <TabsTrigger
             value="summary"
-            className="flex-1 min-w-[100px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            className="flex-1 rounded-xl py-2 md:py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/40 group"
             title="Resumen"
           >
-            <LayoutDashboard className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
-            <span className="font-semibold text-sm">Resumen</span>
+            <LayoutDashboard className="w-5 h-5 md:w-4 md:h-4 md:mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-bold text-sm hidden md:inline">Resumen</span>
           </TabsTrigger>
 
           <TabsTrigger
             value="champions"
-            className="flex-1 min-w-[110px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            className="flex-1 rounded-xl py-2 md:py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/40 group"
             title="Campeones"
           >
-            <Users className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
-            <span className="font-semibold text-sm">Campeones</span>
+            <Users className="w-5 h-5 md:w-4 md:h-4 md:mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-bold text-sm hidden md:inline">
+              Campeones
+            </span>
             <Badge
               variant="secondary"
-              className="ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+              className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
             >
               {champions.length}
             </Badge>
@@ -831,14 +833,14 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
           {newItems.length > 0 && (
             <TabsTrigger
               value="new_items"
-              className="flex-1 min-w-[100px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500 data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-yellow-500/20 hover:bg-yellow-500/5 group text-yellow-600/80 dark:text-yellow-400/80"
+              className="flex-1 rounded-xl py-2 md:py-2.5 transition-all duration-300 data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-yellow-500/20 hover:bg-yellow-500/5 group text-yellow-600/80 dark:text-yellow-400/80"
               title="Nuevos Objetos"
             >
-              <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
-              <span className="font-semibold text-sm">Nuevos</span>
+              <Sparkles className="w-5 h-5 md:w-4 md:h-4 md:mr-2 text-yellow-500" />
+              <span className="font-bold text-sm hidden md:inline">Nuevos</span>
               <Badge
                 variant="secondary"
-                className="ml-2 h-5 px-1.5 text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 border-none font-bold"
+                className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 border-none font-bold"
               >
                 {newItems.length}
               </Badge>
@@ -847,14 +849,14 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
 
           <TabsTrigger
             value="items"
-            className="flex-1 min-w-[100px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            className="flex-1 rounded-xl py-2 md:py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/40 group"
             title="Objetos"
           >
-            <Shield className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
-            <span className="font-semibold text-sm">Objetos</span>
+            <Shield className="w-5 h-5 md:w-4 md:h-4 md:mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-bold text-sm hidden md:inline">Objetos</span>
             <Badge
               variant="secondary"
-              className="ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+              className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
             >
               {regularItems.length}
             </Badge>
@@ -862,14 +864,14 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
 
           <TabsTrigger
             value="runes"
-            className="flex-1 min-w-[90px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            className="flex-1 rounded-xl py-2 md:py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/40 group"
             title="Runas"
           >
-            <Zap className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
-            <span className="font-semibold text-sm">Runas</span>
+            <Zap className="w-5 h-5 md:w-4 md:h-4 md:mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-bold text-sm hidden md:inline">Runas</span>
             <Badge
               variant="secondary"
-              className="ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+              className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
             >
               {runes.length}
             </Badge>
@@ -881,44 +883,26 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
           className="mt-6 space-y-8 animate-in fade-in slide-in-from-bottom-2"
         >
           {/* Header Resumen */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/20 p-6 rounded-2xl border border-white/5">
-            <div>
-              <h2 className="text-3xl font-bold flex items-center gap-3">
-                <Sparkles className="w-8 h-8 text-yellow-500 fill-yellow-500/20" />
-                Resumen del Parche
-              </h2>
-              <p className="text-muted-foreground mt-1">
-                Todos los cambios importantes en un solo vistazo. Haz clic en
-                los iconos para ver detalles.
-              </p>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/20 p-4 md:p-6 rounded-2xl border border-white/5">
+            <div className="flex items-start md:items-center gap-3">
+              <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-yellow-500 fill-yellow-500/20 shrink-0 mt-1 md:mt-0" />
+              <div>
+                <h2 className="text-xl md:text-3xl font-bold">
+                  Resumen del Parche
+                </h2>
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  Todos los cambios importantes en un solo vistazo. Haz clic en
+                  los iconos para ver detalles.
+                </p>
+              </div>
             </div>
             <Badge
               variant="outline"
-              className="text-2xl px-6 py-2 font-bold border-2 bg-background/50"
+              className="text-lg md:text-2xl px-4 md:px-6 py-1 md:py-2 font-bold border-2 bg-background/50 ml-9 md:ml-0"
             >
               {data.displayVersion || data.version}
             </Badge>
           </div>
-
-          {/* Resumen Ejecutivo de la IA */}
-          {data.summary && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative overflow-hidden bg-primary/5 border border-primary/20 p-6 rounded-2xl"
-            >
-              <div className="absolute top-0 right-0 p-3 opacity-10">
-                <Sparkles className="w-12 h-12" />
-              </div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Resumen Ejecutivo (AI)
-              </h3>
-              <p className="text-lg text-foreground/90 leading-relaxed font-medium italic">
-                "{data.summary}"
-              </p>
-            </motion.div>
-          )}
 
           {/* 1. Campeones */}
           <div className="space-y-4">

@@ -21,6 +21,7 @@ import {
   Upload,
   Image as ImageIcon,
   Minus,
+  Sparkles,
 } from "lucide-react";
 import { useRef } from "react";
 import Link from "next/link";
@@ -376,8 +377,19 @@ Bel'Veth: Q Damage increased..."
               </CardHeader>
               <CardContent>
                 {previewData ? (
-                  <div className="border rounded-xl p-4 bg-background shadow-sm overflow-hidden">
-                    <LolPatchContent data={previewData} />
+                  <div className="border rounded-xl p-0 bg-background shadow-lg overflow-visible">
+                    <div className="p-4 border-b bg-muted/30 rounded-t-xl">
+                      <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-yellow-500" />
+                        Previsualización del Parche
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Así es como los usuarios verán la noticia publicada.
+                      </p>
+                    </div>
+                    <div className="p-4">
+                      <LolPatchContent data={previewData} />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground text-center p-4">

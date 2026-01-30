@@ -53,7 +53,7 @@ export async function getNoticiaById(id: string) {
       !autorId &&
       noticia.autor &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        noticia.autor
+        noticia.autor,
       )
     ) {
       autorId = noticia.autor;
@@ -94,7 +94,7 @@ export async function getNoticiaById(id: string) {
         .select("*")
         .in(
           "id",
-          relaciones.map((r) => r.categoria_id)
+          relaciones.map((r) => r.categoria_id),
         );
       if (cats) categorias = cats;
     }
@@ -102,7 +102,7 @@ export async function getNoticiaById(id: string) {
     // 3. Comentarios count
     const { data: countData } = await serviceClient.rpc(
       "obtener_contador_comentarios_uuid",
-      { noticia_id_param: id }
+      { noticia_id_param: id },
     );
     const comentariosCount = countData || 0;
 
@@ -152,13 +152,20 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
     }
 
     if (busqueda) {
-      query = query.or(
-        `titulo.ilike.%${busqueda}%,contenido.ilike.%${busqueda}%,autor.ilike.%${busqueda}%`
-      );
+      // Sanitizar búsqueda para evitar inyección en sintaxis PostgREST
+      const term = busqueda.replace(/[(),.]/g, " ").trim();
+      if (term) {
+        query = query.or(
+          `titulo.ilike.%${term}%,contenido.ilike.%${term}%,autor.ilike.%${term}%`,
+        );
+      }
     }
 
     if (autor) {
-      query = query.ilike("autor", `%${autor}%`);
+      const term = autor.replace(/[(),.]/g, " ").trim();
+      if (term) {
+        query = query.ilike("autor", `%${term}%`);
+      }
     }
 
     // Ordenamiento
@@ -214,7 +221,7 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
 
         if (relaciones && relaciones.length > 0) {
           const categoriaIds = Array.from(
-            new Set(relaciones.map((r) => r.categoria_id))
+            new Set(relaciones.map((r) => r.categoria_id)),
           );
           const { data: categoriasData } = await serviceClient
             .from("categorias")
@@ -233,7 +240,7 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
                 categoriasPorNoticia[rel.noticia_id] = [];
               if (categoriasMap[rel.categoria_id])
                 categoriasPorNoticia[rel.noticia_id].push(
-                  categoriasMap[rel.categoria_id]
+                  categoriasMap[rel.categoria_id],
                 );
             });
           }
@@ -251,10 +258,10 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
           noticiaIds.map(async (id) => {
             const { data } = await serviceClient.rpc(
               "obtener_contador_comentarios_uuid",
-              { noticia_id_param: id }
+              { noticia_id_param: id },
             );
             if (data !== null) comentariosPorNoticia[id] = data;
-          })
+          }),
         );
       } catch (e) {
         console.error("Error loading comentarios", e);
@@ -270,7 +277,7 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
             if (
               n.autor &&
               /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                n.autor
+                n.autor,
               )
             )
               return n.autor;
@@ -323,7 +330,7 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
         noticia.autor_id ||
         (noticia.autor &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          noticia.autor
+          noticia.autor,
         )
           ? noticia.autor
           : null);

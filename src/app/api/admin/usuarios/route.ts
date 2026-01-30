@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/utils/supabase-service";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = getServiceClient();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limitParam = parseInt(searchParams.get("limit") || "10");
+    const limit = Math.min(Math.max(limitParam, 1), 100); // Limit between 1 and 100
     const search = searchParams.get("search") || "";
     const role = searchParams.get("role") || "";
     const activo = searchParams.get("activo");
@@ -45,10 +47,13 @@ export async function GET(request: NextRequest) {
 
     // Aplicar filtros a ambas queries
     if (search) {
-      query = query.or(`username.ilike.%${search}%,bio.ilike.%${search}%`);
-      countQuery = countQuery.or(
-        `username.ilike.%${search}%,bio.ilike.%${search}%`
-      );
+      const term = search.replace(/[(),.]/g, " ").trim();
+      if (term) {
+        query = query.or(`username.ilike.%${term}%,bio.ilike.%${term}%`);
+        countQuery = countQuery.or(
+          `username.ilike.%${term}%,bio.ilike.%${term}%`,
+        );
+      }
     }
 
     if (role) {
@@ -75,10 +80,10 @@ export async function GET(request: NextRequest) {
       const diasAtras = new Date();
       diasAtras.setDate(diasAtras.getDate() - parseInt(inactivoDias));
       query = query.or(
-        `fecha_ultimo_acceso.is.null,fecha_ultimo_acceso.lt.${diasAtras.toISOString()}`
+        `fecha_ultimo_acceso.is.null,fecha_ultimo_acceso.lt.${diasAtras.toISOString()}`,
       );
       countQuery = countQuery.or(
-        `fecha_ultimo_acceso.is.null,fecha_ultimo_acceso.lt.${diasAtras.toISOString()}`
+        `fecha_ultimo_acceso.is.null,fecha_ultimo_acceso.lt.${diasAtras.toISOString()}`,
       );
     }
 
@@ -86,7 +91,7 @@ export async function GET(request: NextRequest) {
       query = query.eq("email_verificado", emailVerificado === "true");
       countQuery = countQuery.eq(
         "email_verificado",
-        emailVerificado === "true"
+        emailVerificado === "true",
       );
     }
 
@@ -100,14 +105,14 @@ export async function GET(request: NextRequest) {
     // Aplicar paginación
     const { data: perfiles, error } = await query.range(
       offset,
-      offset + limit - 1
+      offset + limit - 1,
     );
 
     if (error) {
       console.error("Error al obtener usuarios:", error);
       return NextResponse.json(
         { error: "Error al obtener usuarios" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -122,7 +127,7 @@ export async function GET(request: NextRequest) {
           if (authError) {
             console.warn(
               `Error al obtener datos auth para usuario ${perfil.id}:`,
-              authError
+              authError,
             );
           }
 
@@ -165,7 +170,7 @@ export async function GET(request: NextRequest) {
             },
           };
         }
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -179,7 +184,7 @@ export async function GET(request: NextRequest) {
     console.error("Error en API de usuarios:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -193,7 +198,7 @@ export async function PUT(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "ID de usuario requerido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -214,7 +219,7 @@ export async function PUT(request: NextRequest) {
         console.error("Error al actualizar perfil:", perfilError);
         return NextResponse.json(
           { error: "Error al actualizar perfil" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -227,14 +232,14 @@ export async function PUT(request: NextRequest) {
 
       const { error: authError } = await supabase.auth.admin.updateUserById(
         userId,
-        authUpdates
+        authUpdates,
       );
 
       if (authError) {
         console.error("Error al actualizar auth:", authError);
         return NextResponse.json(
           { error: "Error al actualizar autenticación" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -244,7 +249,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error al actualizar usuario:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -255,10 +260,32 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
+    // Defense in Depth: Verificar autenticación y rol explícitamente
+    const authClient = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Verificar si es admin consultando la tabla de perfiles
+    const { data: adminProfile } = await supabase
+      .from("perfiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!adminProfile || adminProfile.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     if (!userId) {
       return NextResponse.json(
         { error: "ID de usuario requerido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -335,13 +362,13 @@ export async function DELETE(request: NextRequest) {
             error: "Error al eliminar el usuario del sistema de autenticación.",
             details: authError.message,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
     } else {
       // El usuario no existe en auth.users, solo existía en perfiles
       console.log(
-        `Usuario ${userId} no existe en auth.users, solo se eliminó de perfiles`
+        `Usuario ${userId} no existe en auth.users, solo se eliminó de perfiles`,
       );
     }
 
@@ -373,7 +400,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error catastrófico al eliminar usuario:", error);
     return NextResponse.json(
       { error: "Error interno del servidor al procesar la eliminación." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -745,11 +745,29 @@ export function MatchHistoryList({
     return null;
   }, [isOwnProfile, sessionStats]);
 
+  // AUTO-RETRY: Si obtenemos 0 partidas pero tenemos userId, intentamos una vez más
+  // Esto soluciona problemas de race condition en la primera carga
+  const hasAutoRetriedRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !isLoading &&
+      !isFetching &&
+      matchesToRender.length === 0 &&
+      !hasAutoRetriedRef.current &&
+      userId &&
+      !error
+    ) {
+      console.log("Auto-retrying match fetch due to empty result...");
+      hasAutoRetriedRef.current = true;
+      refetch();
+    }
+  }, [isLoading, isFetching, matchesToRender.length, userId, refetch, error]);
+
   // OPTIMIZADO: Solo mostrar skeleton si no hay NINGÚN dato disponible
   // Esto permite mostrar datos del caché o datos anteriores mientras se actualiza
   const shouldShowInitialSkeleton =
     isLoading &&
-    !isFetching && // Si está fetching pero hay datos previos, no mostrar skeleton
     pages.length === 0 &&
     lastStableMatches.length === 0 &&
     !hasCachedMatches;
@@ -781,8 +799,17 @@ export function MatchHistoryList({
 
       {/* --- Switch de Estados Principales --- */}
       {error ? (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-          Error al cargar historial de partidas
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center justify-between">
+          <span>Error al cargar historial de partidas</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refetch()}
+            className="h-8 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Reintentar
+          </Button>
         </div>
       ) : !userId && !isLoading ? (
         <div className="p-6 text-center text-slate-400 bg-slate-900/40 border border-slate-800 rounded-xl">
@@ -927,8 +954,49 @@ export function MatchHistoryList({
             className="w-full relative min-h-[100px]"
           >
             {matchesToRender.length === 0 && !isLoading ? (
-              <div className="p-4 text-center text-slate-400">
-                No hay partidas registradas
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-slate-700/30 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
+                <div className="p-3 rounded-full bg-slate-200/50 dark:bg-slate-800/50 mb-3">
+                  <LayoutList className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-slate-500 font-medium mb-1">
+                  No se encontraron partidas
+                </p>
+                <p className="text-slate-400 text-sm mb-4 max-w-[250px]">
+                  Es posible que debas sincronizar tu cuenta o verificar los
+                  filtros.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    {isFetching ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 mr-2" />
+                    )}
+                    Actualizar
+                  </Button>
+                  {isOwnProfile && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => syncMutation.mutate()}
+                      disabled={syncMutation.isPending}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      {syncMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5 mr-2" />
+                      )}
+                      Sincronizar Riot
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
               <div

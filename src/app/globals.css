@@ -112,11 +112,11 @@
     @apply no-underline text-inherit;
   }
 
-  /* Desactivar Outlines de Accesibilidad (Enfoque) */
-  *:focus {
+  /* Comentado el reset agresivo para permitir outlines customizados */
+  /* *:focus {
     outline: none !important;
     box-shadow: none !important;
-  }
+  } */
 
   /* Transiciones base */
   button,

@@ -970,13 +970,19 @@ export function ActiveMatchCard({
       championName: p.championName,
       spell1Id: 0,
       spell2Id: 0,
-      perks: p.runes
+      perks: p.perks
         ? {
-            perkIds: [p.runes.keystone.id],
-            perkStyle: p.runes.primaryRuneTree.id,
-            perkSubStyle: p.runes.secondaryRuneTree.id,
+            perkIds: p.perks.perkIds,
+            perkStyle: 0, // No se usa visualmente en ParticipantRow
+            perkSubStyle: p.perks.perkSubStyle,
           }
-        : null,
+        : p.runes
+          ? {
+              perkIds: [p.runes.keystone.id],
+              perkStyle: p.runes.primaryRuneTree.id,
+              perkSubStyle: p.runes.secondaryRuneTree.id,
+            }
+          : null,
     });
 
     const allP =
