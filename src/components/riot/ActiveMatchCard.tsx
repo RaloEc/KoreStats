@@ -901,7 +901,7 @@ export function ActiveMatchCard({
       }
 
       // Priorizar 'scores' si existe para evitar leer ceros de propiedades planas mal inicializadas
-      const s = bestMatch.scores;
+      const s = (bestMatch as any).scores;
 
       // Intentar obtener oro del activePlayer si coincide
       let gold = bestMatch.currentGold;
