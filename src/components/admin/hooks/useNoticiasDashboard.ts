@@ -67,7 +67,7 @@ export interface UseNoticiasDashboardReturn {
 // =====================================================
 
 export function useNoticiasDashboard(
-  options: UseNoticiasDashboardOptions = {}
+  options: UseNoticiasDashboardOptions = {},
 ): UseNoticiasDashboardReturn {
   const {
     limiteRecientes = 5,
@@ -106,11 +106,10 @@ export function useNoticiasDashboard(
               limite_vistas: limiteVistas,
               incluir_borradores: incluirBorradores,
               dias_atras: diasAtras,
-            }
+            },
           );
 
           if (error) {
-            console.error("❌ Error al obtener noticias del dashboard:", error);
             throw error;
           }
 
@@ -118,9 +117,6 @@ export function useNoticiasDashboard(
           const duration = endTime - startTime;
 
           // Métricas de rendimiento
-          console.log(
-            `⚡ Noticias dashboard cargadas en ${duration.toFixed(2)}ms`
-          );
 
           // Enviar métrica de rendimiento
           if (typeof window !== "undefined" && (window as any).gtag) {
@@ -133,7 +129,6 @@ export function useNoticiasDashboard(
 
           return data as NoticiasDashboardData;
         } catch (err) {
-          console.error("❌ Error en queryFn:", err);
           throw err;
         }
       },
@@ -150,7 +145,6 @@ export function useNoticiasDashboard(
     if (!enableRealtime) return;
 
     const handleRealtimeUpdate = (payload: any) => {
-      console.log("📡 Cambio detectado en noticias:", payload);
       setLastUpdate(new Date());
 
       // Invalidar caché
@@ -177,10 +171,9 @@ export function useNoticiasDashboard(
           schema: "public",
           table: "noticias",
         },
-        handleRealtimeUpdate
+        handleRealtimeUpdate,
       )
       .subscribe((status) => {
-        console.log("📡 Estado de suscripción:", status);
         setIsRealTimeActive(status === "SUBSCRIBED");
       });
 
@@ -214,14 +207,14 @@ export function useNoticiasDashboard(
         staleTime: 5 * 60 * 1000, // 5 minutos
       });
     },
-    [queryClient, supabase]
+    [queryClient, supabase],
   );
 
   const recientesMemos = useMemo(() => {
     if (!data?.recientes) return [];
     // Deduplicar por ID
     const uniques = Array.from(
-      new Map(data.recientes.map((item) => [item.id, item])).values()
+      new Map(data.recientes.map((item) => [item.id, item])).values(),
     );
     // Ordenar: lo más reciente (publicada o creada) primero
     return uniques.sort((a, b) => {
@@ -234,14 +227,14 @@ export function useNoticiasDashboard(
   const masVistasMemos = useMemo(() => {
     if (!data?.mas_vistas) return [];
     return Array.from(
-      new Map(data.mas_vistas.map((item) => [item.id, item])).values()
+      new Map(data.mas_vistas.map((item) => [item.id, item])).values(),
     );
   }, [data?.mas_vistas]);
 
   const borradoresMemos = useMemo(() => {
     if (!data?.borradores) return [];
     const uniques = Array.from(
-      new Map(data.borradores.map((item) => [item.id, item])).values()
+      new Map(data.borradores.map((item) => [item.id, item])).values(),
     );
     return uniques.sort((a, b) => {
       const dateA = new Date(a.creada_en).getTime();
@@ -298,7 +291,7 @@ export function useFiltrarNoticias({
       resultado = resultado.filter(
         (noticia) =>
           noticia.titulo.toLowerCase().includes(termLower) ||
-          noticia.slug.toLowerCase().includes(termLower)
+          noticia.slug.toLowerCase().includes(termLower),
       );
     }
 
@@ -310,7 +303,7 @@ export function useFiltrarNoticias({
     // Filtrar por categoría
     if (categoriaId) {
       resultado = resultado.filter(
-        (noticia) => noticia.categoria_id === categoriaId
+        (noticia) => noticia.categoria_id === categoriaId,
       );
     }
 
@@ -354,9 +347,6 @@ export function usePerformanceMetrics(componentName: string) {
     // Registrar tiempo de montaje en el primer render
     if (renderCountRef.current === 1) {
       const mountDuration = performance.now() - mountTimeRef.current;
-      console.log(
-        `⏱️ ${componentName} montado en ${mountDuration.toFixed(2)}ms`
-      );
 
       // Enviar métrica
       if (typeof window !== "undefined" && (window as any).gtag) {
@@ -372,10 +362,6 @@ export function usePerformanceMetrics(componentName: string) {
   // Registrar tiempo de desmontaje
   useEffect(() => {
     return () => {
-      console.log(
-        `🔄 ${componentName} renderizado ${renderCountRef.current} veces`
-      );
-
       if (typeof window !== "undefined" && (window as any).gtag) {
         (window as any).gtag("event", "component_renders", {
           event_category: "Performance",

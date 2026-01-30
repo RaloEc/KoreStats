@@ -2,7 +2,7 @@
  * Helper functions for Riot API Data Dragon URLs
  */
 
-export const FALLBACK_VERSION = "16.1.1";
+export const FALLBACK_VERSION = "16.2.1";
 
 /**
  * Obtiene la última versión disponible de DataDragon
@@ -17,12 +17,12 @@ export async function getLatestDDragonVersion(): Promise<string> {
       "https://ddragon.leagueoflegends.com/api/versions.json",
       {
         next: { revalidate: 3600 }, // Cache por 1 hora
-      }
+      },
     );
 
     if (!response.ok) {
       throw new Error(
-        `Error al obtener versiones de DDragon: ${response.status}`
+        `Error al obtener versiones de DDragon: ${response.status}`,
       );
     }
 
@@ -63,7 +63,7 @@ async function refreshLatestVersionCache(force = false) {
       } catch (error) {
         console.error(
           "[riot/helpers] No se pudo refrescar la versión de DDragon",
-          error
+          error,
         );
       } finally {
         refreshPromise = null;
@@ -146,7 +146,7 @@ export function getItemImg(id: number, gameVersion?: string) {
 }
 
 export function normalizeSpellAssetName(
-  spellName?: string | null
+  spellName?: string | null,
 ): string | null {
   if (!spellName) {
     return null;
@@ -189,7 +189,7 @@ export function getSpellImg(id: number, gameVersion?: string) {
  */
 export async function getChampionSplashArt(
   championId: number,
-  skinId: number = 0
+  skinId: number = 0,
 ): Promise<string> {
   const version = await getLatestDDragonVersion();
   return `https://cdn.communitydragon.org/${version}/champion/${championId}/splash-art/centered/skin/${skinId}`;
@@ -242,7 +242,7 @@ const CHAMPION_CACHE_TTL = 1000 * 60 * 60; // 1 hora
  * @returns Nombre del campeón o null si no se encuentra
  */
 export async function getChampionNameById(
-  championId: number
+  championId: number,
 ): Promise<string | null> {
   try {
     // Verificar si está en caché y es válido
@@ -260,13 +260,13 @@ export async function getChampionNameById(
         `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_MX/champion.json`,
         {
           next: { revalidate: 3600 }, // Cache por 1 hora
-        }
+        },
       );
 
       if (!response.ok) {
         console.error(
           "[getChampionNameById] Error fetching champion data:",
-          response.status
+          response.status,
         );
         return null;
       }

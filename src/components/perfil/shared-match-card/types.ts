@@ -4,6 +4,8 @@ export interface SharedMatchData {
   skinId?: number; // Skin ID determinístico para splash art
   championId: number;
   championName: string;
+  riotIdGameName?: string;
+  riotIdTagline?: string;
   role: string;
   lane: string;
   kda: number;
@@ -71,6 +73,19 @@ export interface SharedMatchData {
     kda: number;
     role: string;
     team: "blue" | "red";
+    totalCS?: number;
+    summoner1Id?: number;
+    summoner2Id?: number;
+    perkPrimaryStyle?: number;
+    perkSubStyle?: number;
+    keystoneId?: number;
+    item0?: number;
+    item1?: number;
+    item2?: number;
+    item3?: number;
+    item4?: number;
+    item5?: number;
+    item6?: number;
   }>;
 }
 

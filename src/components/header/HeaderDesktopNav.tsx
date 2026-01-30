@@ -40,57 +40,19 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
           <li className="menu-item">
             <Link
               href="/noticias"
-              className="px-4 py-2 rounded-lg transition-colors font-medium"
-              style={
-                {
-                  color: profile?.color || "#2563eb",
-                  "--tw-text-opacity": 1,
-                  "--tw-bg-opacity": 0.05,
-                  "--hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(37, 99, 235, 0.1)",
-                  "--hover-text": profile?.color || "#2563eb",
-                  "--dark-hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(96, 165, 250, 0.1)",
-                  "--dark-hover-text": profile?.color || "#60a5fa",
-                  "--tw-ring-color": profile?.color || "#2563eb",
-                  "--dark-ring-color": profile?.color || "#60a5fa",
-                } as React.CSSProperties
-              }
+              className="px-4 py-2 rounded-lg transition-colors font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={closeAllMenus}
             >
-              <span className="hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)] px-2 py-1 rounded">
-                Noticias
-              </span>
+              Noticias
             </Link>
           </li>
           <li className="menu-item">
             <Link
               href="/foro"
-              className="px-4 py-2 rounded-lg transition-colors font-medium"
-              style={
-                {
-                  color: profile?.color || "#2563eb",
-                  "--tw-text-opacity": 1,
-                  "--tw-bg-opacity": 0.05,
-                  "--hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(37, 99, 235, 0.1)",
-                  "--hover-text": profile?.color || "#2563eb",
-                  "--dark-hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(96, 165, 250, 0.1)",
-                  "--dark-hover-text": profile?.color || "#60a5fa",
-                  "--tw-ring-color": profile?.color || "#2563eb",
-                  "--dark-ring-color": profile?.color || "#60a5fa",
-                } as React.CSSProperties
-              }
+              className="px-4 py-2 rounded-lg transition-colors font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={closeAllMenus}
             >
-              <span className="hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)] px-2 py-1 rounded">
-                Foro
-              </span>
+              Foro
             </Link>
           </li>
           {isAdmin && (
@@ -98,7 +60,6 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
               isOpen={isAdminMenuOpen}
               onToggle={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
               onClose={() => setIsAdminMenuOpen(false)}
-              profile={profile}
               menuRef={adminMenuRef}
             />
           )}
@@ -129,18 +90,7 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
                 setShowSearchDropdown(false);
               }, 150);
             }}
-            style={
-              {
-                "--focus-border-color": profile?.color || "#3b82f6",
-                "--focus-ring-color": profile?.color
-                  ? `${profile.color}40`
-                  : "rgba(59, 130, 246, 0.25)",
-              } as React.CSSProperties
-            }
-            className={`pl-10 pr-4 py-2 w-full bg-gray-50 dark:bg-black border-gray-200 dark:border-gray-800 rounded-full
-              focus:border-[var(--focus-border-color)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]
-              dark:focus:border-[var(--focus-border-color)] dark:focus-visible:ring-2 dark:focus-visible:ring-[var(--focus-ring-color)]
-              transition-colors duration-200`}
+            className="pl-10 pr-4 py-2 w-full bg-gray-50 dark:bg-black border-gray-200 dark:border-gray-800 rounded-full focus:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 transition-colors duration-200"
           />
 
           {/* Dropdown de búsqueda en tiempo real */}
@@ -148,7 +98,6 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
             query={searchQuery}
             isOpen={showSearchDropdown}
             onClose={() => setShowSearchDropdown(false)}
-            profileColor={profile?.color}
           />
         </form>
       </div>

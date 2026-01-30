@@ -58,6 +58,8 @@ export const sanitizeHtml = (html: string): string => {
       "data-id",
       "data-type",
       "data-click-to-copy",
+      "data-image",
+      "data-name",
     ],
     // Forbidding potentially dangerous tags even if they were in ADD_TAGS default (just to be safe)
     FORBID_TAGS: [

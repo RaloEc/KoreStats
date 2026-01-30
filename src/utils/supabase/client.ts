@@ -15,8 +15,8 @@ let supabaseInstance: any = null;
 // Función para crear un cliente de Supabase
 // DEPRECATED: Usar createClient de @/lib/supabase/client en su lugar
 const createClient = () => {
-  if (isBrowser && supabaseInstance) {
-    return supabaseInstance;
+  if (isBrowser && (window as any)._supabaseClient) {
+    return (window as any)._supabaseClient;
   }
 
   const client = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
@@ -27,13 +27,13 @@ const createClient = () => {
     },
     global: {
       headers: {
-        "x-application-name": "korestats",
+        "x-application-name": "korestats-legacy",
       },
     },
   });
 
   if (isBrowser) {
-    supabaseInstance = client;
+    (window as any)._supabaseClient = client;
   }
 
   return client;

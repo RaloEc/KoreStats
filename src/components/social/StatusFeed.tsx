@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useCallback, useRef, memo } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useQueryClient } from "@tanstack/react-query";
@@ -55,7 +57,7 @@ export default function StatusFeed({
     async (
       currentPage: number,
       append: boolean = false,
-      skipCache: boolean = false
+      skipCache: boolean = false,
     ) => {
       // Check cache first (only for initial load)
       if (!append && !skipCache) {
@@ -73,10 +75,10 @@ export default function StatusFeed({
         // Fetch both endpoints in parallel for better performance
         const [postsRes, activitiesRes] = await Promise.all([
           fetch(
-            `/api/social/posts?profileId=${profileId}&page=${currentPage}&limit=5`
+            `/api/social/posts?profileId=${profileId}&page=${currentPage}&limit=5`,
           ),
           fetch(
-            `/api/perfil/actividades?userId=${profileId}&page=${currentPage}&limit=5`
+            `/api/perfil/actividades?userId=${profileId}&page=${currentPage}&limit=5`,
           ),
         ]);
 
@@ -94,7 +96,7 @@ export default function StatusFeed({
             ...post,
             type: "social_post",
             timestamp: post.created_at,
-          })
+          }),
         );
 
         // Combine both arrays
@@ -106,7 +108,7 @@ export default function StatusFeed({
         // Sort by timestamp descending
         combined.sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
 
         if (append) {
@@ -137,7 +139,7 @@ export default function StatusFeed({
         setLoadingMore(false);
       }
     },
-    [profileId]
+    [profileId],
   );
 
   useEffect(() => {
@@ -198,13 +200,13 @@ export default function StatusFeed({
 
     window.addEventListener(
       "activityDeleted",
-      handleActivityDeleted as EventListener
+      handleActivityDeleted as EventListener,
     );
 
     return () => {
       window.removeEventListener(
         "activityDeleted",
-        handleActivityDeleted as EventListener
+        handleActivityDeleted as EventListener,
       );
     };
   }, [profileId, fetchPosts]);
@@ -234,7 +236,7 @@ export default function StatusFeed({
         return newPosts;
       });
     },
-    [profileId, page]
+    [profileId, page],
   );
 
   const rowVirtualizer = useWindowVirtualizer({

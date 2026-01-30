@@ -11,19 +11,27 @@ const isBrowser = typeof window !== "undefined";
 
 // Cliente principal de Supabase - NOTA: Preferir @/lib/supabase/client para cliente del navegador
 // Este export existe solo por compatibilidad con código legacy
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: isBrowser,
-    autoRefreshToken: isBrowser,
-    detectSessionInUrl: isBrowser,
-    flowType: "pkce",
-  },
-  global: {
-    headers: {
-      "x-application-name": "korestats",
-    },
-  },
-});
+export const supabase = isBrowser
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: "pkce",
+      },
+      global: {
+        headers: {
+          "x-application-name": "korestats-legacy",
+        },
+      },
+    })
+  : createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
 
 // Función para obtener el cliente de servicio (para operaciones administrativas)
 export const getServiceClient = () => {

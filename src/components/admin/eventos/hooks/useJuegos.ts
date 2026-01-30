@@ -15,11 +15,11 @@ interface UseJuegosReturn {
   fetchJuegos: () => Promise<void>;
   handleEliminarJuego: (
     juego: JuegoListado,
-    onJuegoEliminado?: (juegoId: string) => void
+    onJuegoEliminado?: (juegoId: string) => void,
   ) => Promise<void>;
   guardarJuego: (
     data: JuegoFormValues,
-    juegoEditando: Juego | null
+    juegoEditando: Juego | null,
   ) => Promise<boolean>;
 }
 
@@ -30,7 +30,7 @@ export function useJuegos(): UseJuegosReturn {
   const [juegosError, setJuegosError] = useState<string | null>(null);
   const [hasTriedLoadingJuegos, setHasTriedLoadingJuegos] = useState(false);
   const [juegoEliminandoId, setJuegoEliminandoId] = useState<string | null>(
-    null
+    null,
   );
 
   // Función para cargar juegos con cacheo de URLs públicas
@@ -43,7 +43,7 @@ export function useJuegos(): UseJuegosReturn {
       const { data, error } = await supabase
         .from("juegos")
         .select(
-          "id, nombre, slug, icono_url, descripcion, desarrollador, fecha_lanzamiento"
+          "id, nombre, slug, icono_url, descripcion, desarrollador, fecha_lanzamiento",
         )
         .order("nombre");
 
@@ -67,30 +67,19 @@ export function useJuegos(): UseJuegosReturn {
                     .getPublicUrl(juego.icono_url);
                   iconoPublicUrl = publicUrlData?.publicUrl || null;
                 }
-              } catch (e) {
-                console.warn(
-                  `[fetchJuegos] Error obteniendo URL para ${juego.nombre}:`,
-                  e
-                );
-              }
+              } catch (e) {}
             }
 
             return {
               ...juego,
               iconoPublicUrl,
             };
-          }
+          },
         );
 
         setJuegos(juegosConUrls);
-        console.log(
-          "[fetchJuegos] Juegos cargados:",
-          juegosConUrls.length,
-          "con iconos"
-        );
       }
     } catch (error) {
-      console.error("[fetchJuegos] Error:", error);
       setJuegosError("No se pudieron cargar los juegos. Intenta de nuevo.");
     } finally {
       setIsLoadingJuegos(false);
@@ -101,10 +90,10 @@ export function useJuegos(): UseJuegosReturn {
   const handleEliminarJuego = useCallback(
     async (
       juego: JuegoListado,
-      onJuegoEliminado?: (juegoId: string) => void
+      onJuegoEliminado?: (juegoId: string) => void,
     ) => {
       const confirmar = window.confirm(
-        `¿Seguro que deseas eliminar el juego "${juego.nombre}"? Esta acción no se puede deshacer.`
+        `¿Seguro que deseas eliminar el juego "${juego.nombre}"? Esta acción no se puede deshacer.`,
       );
       if (!confirmar) return;
 
@@ -117,7 +106,7 @@ export function useJuegos(): UseJuegosReturn {
           } catch (errorRemocion) {
             console.warn(
               "No se pudo eliminar el icono asociado al juego:",
-              errorRemocion
+              errorRemocion,
             );
           }
         }
@@ -149,14 +138,14 @@ export function useJuegos(): UseJuegosReturn {
         setJuegoEliminandoId(null);
       }
     },
-    [supabase, fetchJuegos]
+    [supabase, fetchJuegos],
   );
 
   // Guardar juego (crear o actualizar)
   const guardarJuego = useCallback(
     async (
       data: JuegoFormValues,
-      juegoEditando: Juego | null
+      juegoEditando: Juego | null,
     ): Promise<boolean> => {
       try {
         // Generar slug a partir del nombre
@@ -172,8 +161,6 @@ export function useJuegos(): UseJuegosReturn {
             : null,
           icono_url: data.icono_url || null,
         };
-
-        console.log("Guardando juego con datos:", juegoData);
 
         let result;
 
@@ -218,7 +205,7 @@ export function useJuegos(): UseJuegosReturn {
         return false;
       }
     },
-    [supabase, fetchJuegos]
+    [supabase, fetchJuegos],
   );
 
   return {

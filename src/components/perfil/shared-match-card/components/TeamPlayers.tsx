@@ -12,6 +12,8 @@ import {
   getSummonerSpellUrl,
   getItemImageUrl,
 } from "@/components/riot/match-card/helpers";
+import { cn } from "@/lib/utils";
+import { Users } from "lucide-react";
 
 interface Player {
   championName: string;
@@ -23,11 +25,12 @@ interface Player {
   kda: number;
   role: string;
   team: "blue" | "red";
-  // Nuevos campos opcionales
+  totalCS?: number; // Añadido
   summoner1Id?: number;
   summoner2Id?: number;
   perkPrimaryStyle?: number;
   perkSubStyle?: number;
+  keystoneId?: number;
   item0?: number;
   item1?: number;
   item2?: number;
@@ -105,39 +108,62 @@ const getDisplayName = (summonerName: string): string => {
   return hashIndex !== -1 ? summonerName.substring(0, hashIndex) : summonerName;
 };
 
+import { getPerkDataBatch } from "@/lib/riot/perksCache";
+
 export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
   ({ players, dataVersion }) => {
+    const [keystoneIcons, setKeystoneIcons] = React.useState<
+      Record<number, string>
+    >({});
+
+    // Cargar iconos de runas para todos los jugadores
+    React.useEffect(() => {
+      const keystoneIds = Array.from(
+        new Set(
+          players
+            .map((p) => p.keystoneId)
+            .filter((id): id is number => !!id && id > 0),
+        ),
+      );
+
+      if (keystoneIds.length > 0) {
+        getPerkDataBatch(keystoneIds).then(({ icons }) => {
+          setKeystoneIcons(icons);
+        });
+      }
+    }, [players]);
+
     if (!players || players.length === 0) return null;
 
     const blue = players.filter((p) => p.team === "blue").sort(sortByRole);
     const red = players.filter((p) => p.team === "red").sort(sortByRole);
 
-    const renderPlayer = (player: Player, idx: number) => {
+    const renderPlayer = (
+      player: Player,
+      idx: number,
+      teamColor: "blue" | "red",
+    ) => {
       const champKey =
         player.championName === "FiddleSticks"
           ? "Fiddlesticks"
           : player.championName.replace(/\s+/g, "");
 
       const displayName = getDisplayName(player.summonerName);
-
-      // Items del jugador
-      const items = [
-        player.item0,
-        player.item1,
-        player.item2,
-        player.item3,
-        player.item4,
-        player.item5,
-        player.item6,
-      ].filter((item) => item && item > 0);
+      const slotClass =
+        "w-4 h-4 sm:w-[18px] sm:h-[18px] rounded-sm overflow-hidden bg-slate-950 border border-white/10 shadow-sm";
 
       return (
         <div
           key={`${player.team}-${idx}`}
-          className="group/player flex items-center gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-white/60 dark:border-white/20 shadow-sm transition-colors duration-150 hover:bg-white/90 dark:hover:bg-slate-800/90"
+          className={cn(
+            "group/player flex items-center gap-2 p-1.5 rounded-lg transition-all duration-200",
+            teamColor === "blue"
+              ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.08] border border-blue-500/10"
+              : "bg-rose-500/[0.03] hover:bg-rose-500/[0.08] border border-rose-500/10",
+          )}
         >
-          {/* Avatar del campeón */}
-          <div className="relative w-9 h-9 rounded-md overflow-hidden bg-white/80 dark:bg-white/20 shrink-0 shadow-sm">
+          {/* Champion Avatar */}
+          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-md overflow-hidden bg-black/20 shrink-0 border border-white/5">
             <Image
               src={getChampionImageUrl(champKey, dataVersion)}
               alt={player.championName}
@@ -147,140 +173,204 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
             />
           </div>
 
-          {/* Información del jugador */}
-          <div className="flex-1 min-w-0 space-y-0.5">
-            {/* Nombre */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="text-[9px] sm:text-[10px] font-black text-slate-900 dark:text-slate-50 truncate cursor-help">
-                  {displayName}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
-                {player.summonerName}
-              </TooltipContent>
-            </Tooltip>
-
-            {/* KDA */}
-            <div className="text-[7px] sm:text-[8px] text-slate-600 dark:text-slate-300 font-bold">
-              {player.kills}/{player.deaths}/{player.assists}
-            </div>
-          </div>
-
-          {/* Runas y Hechizos */}
-          {/* Runas y Hechizos (Grid 2x2) */}
-          <div className="grid grid-cols-2 gap-0.5 shrink-0">
-            {/* Runa Principal */}
-            {player.perkPrimaryStyle &&
-            RUNE_STYLE_MAP[player.perkPrimaryStyle] ? (
-              <div className="w-4 h-4 rounded-sm overflow-hidden bg-slate-800/50">
+          {/* Runas y Hechizos (Ahora al lado del avatar) */}
+          <div className="grid grid-cols-2 gap-0.5 shrink-0 px-1.5 border-r border-white/10 mr-0.5">
+            {player.keystoneId && keystoneIcons[player.keystoneId] ? (
+              <div className={slotClass}>
                 <Image
-                  src={`https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/${
-                    RUNE_STYLE_MAP[player.perkPrimaryStyle]
-                  }.png`}
-                  alt="Runa principal"
-                  width={16}
-                  height={16}
+                  src={keystoneIcons[player.keystoneId]}
+                  alt="R"
+                  width={18}
+                  height={18}
                   className="object-cover scale-110"
                   unoptimized
                 />
               </div>
             ) : (
-              <div className="w-4 h-4" />
+              <div className={slotClass} />
             )}
-
-            {/* Hechizo 1 */}
             {player.summoner1Id &&
             getSummonerSpellUrl(player.summoner1Id, dataVersion) ? (
-              <div className="w-4 h-4 rounded-sm overflow-hidden bg-slate-800/50">
+              <div className={slotClass}>
                 <Image
                   src={getSummonerSpellUrl(player.summoner1Id, dataVersion)}
-                  alt="Hechizo 1"
-                  width={16}
-                  height={16}
+                  alt="S"
+                  width={18}
+                  height={18}
                   className="object-cover"
-                  unoptimized
                 />
               </div>
             ) : (
-              <div className="w-4 h-4" />
+              <div className={slotClass} />
             )}
-
-            {/* Runa Secundaria */}
             {player.perkSubStyle && RUNE_STYLE_MAP[player.perkSubStyle] ? (
-              <div className="w-4 h-4 rounded-sm overflow-hidden bg-slate-800/50">
+              <div className={slotClass}>
                 <Image
-                  src={`https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/${
-                    RUNE_STYLE_MAP[player.perkSubStyle]
-                  }.png`}
-                  alt="Runa secundaria"
-                  width={16}
-                  height={16}
-                  className="object-cover opacity-70 scale-90"
+                  src={`https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/${RUNE_STYLE_MAP[player.perkSubStyle]}.png`}
+                  alt="S"
+                  width={18}
+                  height={18}
+                  className="object-cover scale-[0.85]"
                   unoptimized
                 />
               </div>
             ) : (
-              <div className="w-4 h-4" />
+              <div className={slotClass} />
             )}
-
-            {/* Hechizo 2 */}
             {player.summoner2Id &&
             getSummonerSpellUrl(player.summoner2Id, dataVersion) ? (
-              <div className="w-4 h-4 rounded-sm overflow-hidden bg-slate-800/50">
+              <div className={slotClass}>
                 <Image
                   src={getSummonerSpellUrl(player.summoner2Id, dataVersion)}
-                  alt="Hechizo 2"
-                  width={16}
-                  height={16}
+                  alt="S"
+                  width={18}
+                  height={18}
                   className="object-cover"
                   unoptimized
                 />
               </div>
             ) : (
-              <div className="w-4 h-4" />
+              <div className={slotClass} />
             )}
           </div>
 
-          {/* Divider Vertical */}
-          <div className="hidden sm:block w-px h-8 bg-slate-300/30 dark:bg-slate-700/50 mx-1 shrink-0" />
-
-          {/* Items */}
-          <div className="hidden sm:flex gap-0.5 shrink-0">
-            {items.slice(0, 6).map((itemId, i) => (
-              <div
-                key={i}
-                className="w-4 h-4 rounded-sm overflow-hidden bg-slate-800/50 border border-slate-700/30"
-              >
-                <Image
-                  src={getItemImageUrl(itemId, dataVersion)}
-                  alt={`Item ${i + 1}`}
-                  width={16}
-                  height={16}
-                  className="object-cover"
-                  unoptimized
-                />
+          {/* Player Info & KDA/CS */}
+          <div className="flex-1 min-w-0 overflow-hidden pr-2">
+            <div className="text-[11px] font-black text-slate-900 dark:text-slate-100 truncate mb-0.5">
+              {displayName}
+            </div>
+            <div className="flex items-center gap-2 text-[9px] font-bold tracking-tight">
+              <div className="flex items-center text-slate-600 dark:text-slate-400">
+                <span className="opacity-90">{player.kills}</span>
+                <span className="mx-px opacity-30">/</span>
+                <span className="text-rose-500/90">{player.deaths}</span>
+                <span className="mx-px opacity-30">/</span>
+                <span className="opacity-90">{player.assists}</span>
               </div>
-            ))}
+              <div className="flex items-center gap-0.5 border-l border-slate-200 dark:border-white/10 pl-2 ml-0.5 text-amber-500 font-black">
+                <span>{player.totalCS ?? 0}</span>
+                <span className="opacity-70 text-[7px] tracking-tighter uppercase">
+                  CS
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Items - Cuadrícula 3x2 con Ward Centrado Lateralmente */}
+          <div className="flex items-center gap-1.5 shrink-0 px-2 ml-auto border-l border-white/5">
+            <div className="grid grid-cols-[repeat(3,1fr)_auto] grid-rows-2 gap-0.5 items-center">
+              {/* Items Principales Fila 1 */}
+              {[player.item0, player.item1, player.item2].map((itemId, i) => (
+                <div
+                  key={`i-top-${i}`}
+                  className={cn(
+                    "w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-[17px] lg:h-[17px] rounded-md overflow-hidden transition-all border",
+                    itemId && itemId > 0
+                      ? "bg-black/40 shadow-inner border-black/10 dark:border-white/10"
+                      : "bg-slate-200/30 dark:bg-white/5 border-slate-300/30 dark:border-white/5",
+                  )}
+                >
+                  {itemId && itemId > 0 ? (
+                    <Image
+                      src={getItemImageUrl(itemId, dataVersion)}
+                      alt="I"
+                      width={17}
+                      height={17}
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : null}
+                </div>
+              ))}
+
+              {/* Centinela (Ward) - Centrado en Row Span 2 */}
+              <div className="row-span-2 ml-1">
+                <div
+                  className={cn(
+                    "w-4 h-4 sm:w-5 sm:h-5 lg:w-[22px] lg:h-[22px] rounded-full overflow-hidden flex items-center justify-center transition-all border",
+                    player.item6 && player.item6 > 0
+                      ? "border-amber-500/30 bg-black/40 shadow-lg"
+                      : "bg-slate-200/30 dark:bg-white/5 border-slate-300/30 dark:border-white/5",
+                  )}
+                >
+                  {player.item6 && player.item6 > 0 ? (
+                    <Image
+                      src={getItemImageUrl(player.item6, dataVersion)}
+                      alt="W"
+                      width={22}
+                      height={22}
+                      className="object-cover scale-90"
+                      unoptimized
+                    />
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Items Principales Fila 2 */}
+              {[player.item3, player.item4, player.item5].map((itemId, i) => (
+                <div
+                  key={`i-bot-${i}`}
+                  className={cn(
+                    "w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-[17px] lg:h-[17px] rounded-md overflow-hidden transition-all border",
+                    itemId && itemId > 0
+                      ? "bg-black/40 shadow-inner border-black/10 dark:border-white/10"
+                      : "bg-slate-200/30 dark:bg-white/5 border-slate-300/30 dark:border-white/5",
+                  )}
+                >
+                  {itemId && itemId > 0 ? (
+                    <Image
+                      src={getItemImageUrl(itemId, dataVersion)}
+                      alt="I"
+                      width={17}
+                      height={17}
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       );
     };
 
     return (
-      <div className="group/teams p-4 rounded-2xl border border-white/40 dark:border-white/20 bg-white/70 dark:bg-slate-900/70 shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-colors duration-200">
-        <h4 className="text-[9px] sm:text-[10px] uppercase font-black text-slate-700 dark:text-slate-200 tracking-widest mb-3">
-          Equipos
-        </h4>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1.5">
-            {blue.map((p, idx) => renderPlayer(p, idx))}
+      <div className="group/teams p-3 rounded-xl border border-slate-200/50 dark:border-white/[0.05] bg-white/80 dark:bg-black/80 backdrop-blur-md shadow-xl overflow-hidden relative">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h4 className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-[0.2em] flex items-center gap-2">
+            <Users className="w-3 h-3" />
+            Integrantes de la Partida
+          </h4>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative">
+          {/* Blue Side */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between px-1 mb-1.5 border-l-2 border-blue-500 pl-2">
+              <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">
+                Bando Azul
+              </span>
+            </div>
+            {blue.map((p, idx) => renderPlayer(p, idx, "blue"))}
           </div>
-          <div className="space-y-1.5">
-            {red.map((p, idx) => renderPlayer(p, idx))}
+
+          {/* Red Side */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between px-1 mb-1.5 border-l-2 border-rose-500 pl-2">
+              <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest">
+                Bando Rojo
+              </span>
+            </div>
+            {red.map((p, idx) => renderPlayer(p, idx, "red"))}
+          </div>
+
+          {/* Center VS Indicator (Desktop Only) */}
+          <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center z-10 shadow-lg">
+            <span className="text-[8px] font-black text-slate-400">VS</span>
           </div>
         </div>
       </div>
     );
-  }
+  },
 );

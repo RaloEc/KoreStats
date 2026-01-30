@@ -11,6 +11,14 @@ interface MatchShareButtonProps {
   focusParticipant: any;
   gameVersion: string;
   userColor?: string | null;
+  className?: string; // Allow custom styling
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
 }
 
 export function MatchShareButton({
@@ -18,6 +26,8 @@ export function MatchShareButton({
   focusParticipant,
   gameVersion,
   userColor,
+  className,
+  variant = "outline",
 }: MatchShareButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isPngEnabled = useSiteSetting("match_share_png_enabled");
@@ -32,9 +42,12 @@ export function MatchShareButton({
     <>
       <Button
         onClick={() => setIsModalOpen(true)}
-        variant="outline"
+        variant={variant}
         size="sm"
-        className="gap-2 bg-blue-600 border-blue-500 hover:bg-blue-700 text-white hover:text-white transition-colors shadow-sm"
+        className={
+          className ||
+          "gap-2 bg-blue-600 border-blue-500 hover:bg-blue-700 text-white hover:text-white transition-colors shadow-sm"
+        }
       >
         <Download className="h-4 w-4" />
         <span className="hidden sm:inline">Guardar PNG</span>

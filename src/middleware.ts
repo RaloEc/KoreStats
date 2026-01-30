@@ -75,6 +75,18 @@ export async function middleware(request: NextRequest) {
     },
   );
 
+  // ✅ OPTIMIZADO: Excluir llamadas a getUser() en rutas de API (excepto admin)
+  // Las rutas de API ya deberían manejar su propia autenticación si es necesario.
+  // Esto evita errores 429 (Rate Limit) cuando la app hace muchas peticiones simultáneas.
+  const isApiRoute = pathname.startsWith("/api/");
+  const isAdminApi = pathname.startsWith("/api/admin");
+
+  // Si es una ruta de API normal (no admin), saltamos la verificación de sesión en middleware
+  // para reducir drásticamente las llamadas a Supabase Auth.
+  if (isApiRoute && !isAdminApi) {
+    return response;
+  }
+
   // ✅ OPTIMIZADO: Usar getUser() para validar la sesión de forma segura
   // Esto refresca el token automáticamente si es necesario y valida contra la BD
   const {

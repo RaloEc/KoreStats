@@ -127,6 +127,9 @@ export async function GET(request: NextRequest) {
     const queueParam = request.nextUrl.searchParams.get("queue")?.toLowerCase();
     const queueIds = queueParam ? QUEUE_FILTERS[queueParam] : undefined;
 
+    const summaryParam = request.nextUrl.searchParams.get("summary");
+    const summary = summaryParam === "true";
+
     // Obtener historial de partidas y estadísticas EN PARALELO (no secuencial)
     // IMPORTANTE: Stats siempre se calcula con límite de 40 para consistencia,
     // independientemente del límite de partidas mostradas (que puede ser 5 para lazy load)
@@ -135,6 +138,7 @@ export async function GET(request: NextRequest) {
         limit,
         cursor,
         queueIds,
+        excludeFullJson: summary,
       }),
       getPlayerStatsOptimized(supabase, riotAccount.puuid, {
         limit: DEFAULT_MATCH_LIMIT, // Siempre 40 para stats consistentes

@@ -26,7 +26,87 @@ interface MatchMapAnalysisProps {
   participants: any[];
   focusTeamId?: number;
   highlightParticipantId?: number;
+  onSelectParticipant?: (id: string) => void;
 }
+
+const getObjectiveIcon = (event: any) => {
+  const baseUrl =
+    "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/";
+
+  if (event.type === "ELITE_MONSTER_KILL") {
+    switch (event.monsterType) {
+      case "BARON_NASHOR":
+        return `${baseUrl}baron-100.png`;
+      case "RIFTHERALD":
+        return `${baseUrl}herald-100.png`;
+      case "HORDE":
+        // Fallback a heraldo para los Atelios ya que el icono específico no está en este plugin
+        return `${baseUrl}herald-100.png`;
+      case "DRAGON":
+        const subType = event.monsterSubType;
+        if (subType === "AIR_DRAGON") return `${baseUrl}air-100.png`;
+        if (subType === "EARTH_DRAGON") return `${baseUrl}earth-100.png`;
+        if (subType === "FIRE_DRAGON") return `${baseUrl}fire-100.png`;
+        if (subType === "WATER_DRAGON") return `${baseUrl}water-100.png`;
+        if (subType === "ELDER_DRAGON") return `${baseUrl}elder-100.png`;
+        // Para dragones nuevos (Hextech/Chemtech) usamos el icono de dragón genérico
+        // Esto evita que se vea una imagen rota hasta que CDragon actualice este plugin
+        return `${baseUrl}dragon-100.png`;
+    }
+  }
+
+  if (event.type === "BUILDING_KILL") {
+    if (event.buildingType === "TOWER_BUILDING")
+      return `${baseUrl}tower-100.png`;
+    if (event.buildingType === "INHIBITOR_BUILDING")
+      return `${baseUrl}inhibitor-100.png`;
+    if (event.buildingType === "NEXUS_BUILDING")
+      return `${baseUrl}inhibitor-100.png`;
+  }
+
+  if (event.type === "TURRET_PLATE_DESTROYED") return `${baseUrl}tower-100.png`;
+
+  return `${baseUrl}monster-100.png`;
+};
+
+const getObjectiveName = (event: any) => {
+  if (event.type === "ELITE_MONSTER_KILL") {
+    switch (event.monsterType) {
+      case "BARON_NASHOR":
+        return "Barón Nashor";
+      case "RIFTHERALD":
+        return "Heraldo de la Grieta";
+      case "HORDE":
+        return "Larvas del Vacío";
+      case "DRAGON":
+        const subType = event.monsterSubType;
+        if (subType === "AIR_DRAGON") return "Dragón de Nube";
+        if (subType === "EARTH_DRAGON") return "Dragón de Montaña";
+        if (subType === "FIRE_DRAGON") return "Dragón de Fuego";
+        if (subType === "WATER_DRAGON") return "Dragón de Océano";
+        if (subType === "HEXTECH_DRAGON") return "Dragón Hextech";
+        if (subType === "CHEMTECH_DRAGON") return "Dragón Quimtech";
+        if (subType === "ELDER_DRAGON") return "Dragón Anciano";
+        return "Dragón";
+      default:
+        return "Monstruo Élite";
+    }
+  }
+  if (event.type === "BUILDING_KILL") {
+    switch (event.buildingType) {
+      case "TOWER_BUILDING":
+        return "Torre";
+      case "INHIBITOR_BUILDING":
+        return "Inhibidor";
+      case "NEXUS_BUILDING":
+        return "Nexo";
+      default:
+        return "Estructura";
+    }
+  }
+  if (event.type === "TURRET_PLATE_DESTROYED") return "Placa de Torre";
+  return "Objetivo";
+};
 
 type TimeRange = "early" | "mid" | "late" | "all";
 type MapLayer = "deaths" | "structures" | "paths";
@@ -36,10 +116,27 @@ export function MatchMapAnalysis({
   participants,
   focusTeamId = 100,
   highlightParticipantId,
+  onSelectParticipant,
 }: MatchMapAnalysisProps) {
-  const [selectedParticipantId, setSelectedParticipantId] = useState<string>(
-    highlightParticipantId?.toString() || "all"
+  const [internalSelectionId, setInternalSelectionId] = useState<string>(
+    highlightParticipantId?.toString() || "all",
   );
+
+  // Sync with prop changes
+  React.useEffect(() => {
+    if (highlightParticipantId) {
+      setInternalSelectionId(highlightParticipantId.toString());
+    } else {
+      setInternalSelectionId("all");
+    }
+  }, [highlightParticipantId]);
+
+  const selectedParticipantId = internalSelectionId;
+
+  const handleSelect = (id: string) => {
+    setInternalSelectionId(id);
+    onSelectParticipant?.(id);
+  };
   const [activeLayers, setActiveLayers] = useState<MapLayer[]>([
     "deaths",
     "structures",
@@ -165,12 +262,12 @@ export function MatchMapAnalysis({
   // Handle Layer Toggle
   const toggleLayer = (layer: MapLayer) => {
     setActiveLayers((prev) =>
-      prev.includes(layer) ? prev.filter((l) => l !== layer) : [...prev, layer]
+      prev.includes(layer) ? prev.filter((l) => l !== layer) : [...prev, layer],
     );
   };
 
   const getPosStyle = (x: number, y: number) => {
-    const MAP_SIZE = 14820; // Summoner's Rift coordinate size
+    const MAP_SIZE = 15000; // Estándar de Riot (0,0 a 15000,15000)
     const left = (x / MAP_SIZE) * 100;
     const bottom = (y / MAP_SIZE) * 100;
     return { left: `${left}%`, bottom: `${bottom}%` };
@@ -200,8 +297,8 @@ export function MatchMapAnalysis({
 
       const d = points
         .map((pt, i) => {
-          const x = (pt.x / 14820) * 100;
-          const y = 100 - (pt.y / 14820) * 100;
+          const x = (pt.x / 15000) * 100;
+          const y = 100 - (pt.y / 15000) * 100;
           return `${i === 0 ? "M" : "L"} ${x} ${y}`;
         })
         .join(" ");
@@ -213,7 +310,7 @@ export function MatchMapAnalysis({
             "transition-opacity duration-500",
             !isSelected && selectedParticipantId !== "all"
               ? "opacity-20"
-              : "opacity-100"
+              : "opacity-100",
           )}
         >
           {/* External Glow / Halo */}
@@ -238,7 +335,7 @@ export function MatchMapAnalysis({
             strokeDasharray={isSelected ? "4 2" : "none"}
             className={cn(
               "drop-shadow-sm transition-all duration-300",
-              isSelected && "animate-[dash_20s_linear_infinite]"
+              isSelected && "animate-[dash_20s_linear_infinite]",
             )}
             vectorEffect="non-scaling-stroke"
           />
@@ -283,10 +380,10 @@ export function MatchMapAnalysis({
           {/* Map Image with dynamic filters for Light/Dark mode */}
           <div className="absolute inset-0 overflow-hidden">
             <Image
-              src="https://ddragon.leagueoflegends.com/cdn/6.8.1/img/map/map11.png"
+              src="https://ddragon.leagueoflegends.com/cdn/14.3.1/img/map/map11.png"
               alt="Rift"
               fill
-              className="object-cover transition-all duration-500 grayscale brightness-110 contrast-75 opacity-40 dark:opacity-80 dark:brightness-50 dark:contrast-125"
+              className="object-fill transition-all duration-500 grayscale brightness-110 contrast-75 opacity-40 dark:opacity-80 dark:brightness-50 dark:contrast-125"
             />
             {/* Subtle overlay for more "Tactical" feel in light mode */}
             <div className="absolute inset-0 bg-blue-500/5 dark:bg-transparent pointer-events-none" />
@@ -308,7 +405,7 @@ export function MatchMapAnalysis({
             {events.map((event, idx) => {
               const pos = getPosStyle(
                 event.resolvedPosition.x,
-                event.resolvedPosition.y
+                event.resolvedPosition.y,
               );
               const isDeath = event.layer === "deaths";
               const isStructure = event.layer === "structures";
@@ -335,7 +432,7 @@ export function MatchMapAnalysis({
               const isFocusAssist =
                 selectedParticipantId !== "all" &&
                 event.assistingParticipantIds?.includes(
-                  parseInt(selectedParticipantId)
+                  parseInt(selectedParticipantId),
                 );
 
               return (
@@ -344,7 +441,7 @@ export function MatchMapAnalysis({
                     <TooltipTrigger asChild>
                       <div
                         className={cn(
-                          "absolute w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 flex items-center justify-center hover:scale-125 hover:z-50"
+                          "absolute w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 flex items-center justify-center hover:scale-125 hover:z-50",
                         )}
                         style={{ left: pos.left, bottom: pos.bottom }}
                       >
@@ -355,11 +452,11 @@ export function MatchMapAnalysis({
                               isFocusVictim
                                 ? "text-rose-500 drop-shadow-md"
                                 : isFocusKiller
-                                ? "text-rose-500"
-                                : isFocusAssist
-                                ? "p-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-200 dark:bg-slate-500 shadow-sm"
-                                : "p-1 rounded-full ring-2 ring-white dark:ring-slate-900 text-white " +
-                                  bgColor
+                                  ? "text-rose-500"
+                                  : isFocusAssist
+                                    ? "p-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-200 dark:bg-slate-500 shadow-sm"
+                                    : "p-1 rounded-full ring-2 ring-white dark:ring-slate-900 text-white " +
+                                      bgColor,
                             )}
                           >
                             {isFocusVictim ? (
@@ -381,10 +478,25 @@ export function MatchMapAnalysis({
                         {isStructure && (
                           <div
                             className={cn(
-                              "relative p-1.5 bg-amber-500 text-white rounded-md shadow-lg border-2 border-white dark:border-slate-900 transition-opacity"
+                              "relative w-8 h-8 flex items-center justify-center rounded-lg border-2 border-white dark:border-slate-900 shadow-xl overflow-hidden transition-all hover:scale-110 hover:z-50",
+                              event.type === "ELITE_MONSTER_KILL"
+                                ? "bg-[#010A13] ring-2 ring-amber-500/30"
+                                : "bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/20",
                             )}
                           >
-                            <Tower className="w-3.5 h-3.5" />
+                            {getObjectiveIcon(event) ? (
+                              <div className="relative w-full h-full">
+                                <Image
+                                  src={getObjectiveIcon(event)!}
+                                  alt="Icono"
+                                  fill
+                                  className="object-contain scale-125"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <Tower className="w-5 h-5 text-white" />
+                            )}
                           </div>
                         )}
                       </div>
@@ -402,44 +514,19 @@ export function MatchMapAnalysis({
                               isFocusKiller
                                 ? "text-rose-500"
                                 : isFocusVictim
-                                ? "text-rose-500"
-                                : isFocusAssist
-                                ? "text-emerald-500"
-                                : isStructure
-                                ? "text-amber-500"
-                                : "text-slate-400"
+                                  ? "text-rose-500"
+                                  : isFocusAssist
+                                    ? "text-emerald-500"
+                                    : isStructure
+                                      ? "text-amber-500"
+                                      : "text-slate-400",
                             )}
                           >
                             {(() => {
                               if (isFocusKiller) return "Asesinato";
                               if (isFocusVictim) return "Muerte";
                               if (isFocusAssist) return "Asistencia";
-                              if (isStructure) {
-                                if (event.type === "ELITE_MONSTER_KILL") {
-                                  if (event.monsterType === "DRAGON")
-                                    return "Dragón";
-                                  if (event.monsterType === "BARON_NASHOR")
-                                    return "Barón Nashor";
-                                  if (event.monsterType === "RIFTHERALD")
-                                    return "Heraldo";
-                                  if (event.monsterType === "HORDE")
-                                    return "Atelio";
-                                  return "Monstruo Élite";
-                                }
-                                if (event.type === "BUILDING_KILL") {
-                                  if (event.buildingType === "TOWER_BUILDING")
-                                    return "Torre";
-                                  if (
-                                    event.buildingType === "INHIBITOR_BUILDING"
-                                  )
-                                    return "Inhibidor";
-                                  if (event.buildingType === "NEXUS_BUILDING")
-                                    return "Nexo";
-                                }
-                                if (event.type === "TURRET_PLATE_DESTROYED")
-                                  return "Placa de Torre";
-                                return "Estructura";
-                              }
+                              if (isStructure) return getObjectiveName(event);
                               return "Suceso Táctico";
                             })()}
                           </span>
@@ -457,7 +544,7 @@ export function MatchMapAnalysis({
                                 <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500/50">
                                   <Image
                                     src={getChampionImg(
-                                      pKiller?.championName || "Unknown"
+                                      pKiller?.championName || "Unknown",
                                     )}
                                     alt="Asesino"
                                     fill
@@ -479,7 +566,7 @@ export function MatchMapAnalysis({
                                 <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-rose-500/50">
                                   <Image
                                     src={getChampionImg(
-                                      pVictim?.championName || "Unknown"
+                                      pVictim?.championName || "Unknown",
                                     )}
                                     alt="Víctima"
                                     fill
@@ -492,11 +579,28 @@ export function MatchMapAnalysis({
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <Tower className="w-4 h-4 text-amber-500" />
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                                Objetivo Asegurado
-                              </span>
+                            <div className="flex items-center gap-3">
+                              {getObjectiveIcon(event) ? (
+                                <div className="relative w-10 h-10 bg-slate-100 dark:bg-black/40 rounded-lg p-1.5 border border-slate-200 dark:border-white/10">
+                                  <Image
+                                    src={getObjectiveIcon(event)!}
+                                    alt="Icono"
+                                    fill
+                                    className="object-contain"
+                                    unoptimized
+                                  />
+                                </div>
+                              ) : (
+                                <Tower className="w-6 h-6 text-amber-500" />
+                              )}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
+                                  {getObjectiveName(event)}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">
+                                  Objetivo Asegurado
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -537,7 +641,7 @@ export function MatchMapAnalysis({
                   "py-1 text-[10px] font-bold uppercase rounded-md transition-all",
                   timeRange === t
                     ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5"
-                    : "text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300",
                 )}
               >
                 {t === "all" ? "Todo" : t}
@@ -579,7 +683,7 @@ export function MatchMapAnalysis({
                   "flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-bold transition-all",
                   activeLayers.includes(layer.id as MapLayer)
                     ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-sm"
-                    : "bg-transparent border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30"
+                    : "bg-transparent border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30",
                 )}
               >
                 <layer.icon className={cn("w-3.5 h-3.5", layer.color)} />
@@ -603,17 +707,17 @@ export function MatchMapAnalysis({
                 <button
                   key={p.participantId}
                   onClick={() =>
-                    setSelectedParticipantId(
+                    handleSelect(
                       selectedParticipantId === p.participantId.toString()
                         ? "all"
-                        : p.participantId.toString()
+                        : p.participantId.toString(),
                     )
                   }
                   className={cn(
                     "relative w-8 h-8 rounded-full overflow-hidden border-2 transition-all",
                     selectedParticipantId === p.participantId.toString()
                       ? "border-blue-500 scale-110 z-10 shadow-md ring-2 ring-blue-500/30"
-                      : "border-transparent opacity-50 hover:opacity-100 grayscale hover:grayscale-0"
+                      : "border-transparent opacity-50 hover:opacity-100 grayscale hover:grayscale-0",
                   )}
                 >
                   <Image
@@ -637,17 +741,17 @@ export function MatchMapAnalysis({
                 <button
                   key={p.participantId}
                   onClick={() =>
-                    setSelectedParticipantId(
+                    handleSelect(
                       selectedParticipantId === p.participantId.toString()
                         ? "all"
-                        : p.participantId.toString()
+                        : p.participantId.toString(),
                     )
                   }
                   className={cn(
                     "relative w-8 h-8 rounded-full overflow-hidden border-2 transition-all",
                     selectedParticipantId === p.participantId.toString()
                       ? "border-rose-500 scale-110 z-10 shadow-md ring-2 ring-rose-500/30"
-                      : "border-transparent opacity-50 hover:opacity-100 grayscale hover:grayscale-0"
+                      : "border-transparent opacity-50 hover:opacity-100 grayscale hover:grayscale-0",
                   )}
                 >
                   <Image

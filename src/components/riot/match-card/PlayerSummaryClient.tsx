@@ -9,9 +9,9 @@ import {
 import {
   getKeystonePerkId,
   RunesTooltip,
-  usePerkAssets,
   type RunePerks,
 } from "./RunesTooltip";
+import { useRunesReforged } from "@/hooks/use-runes-reforged";
 
 interface PlayerSummaryData {
   championName: string;
@@ -57,7 +57,10 @@ export function PlayerSummaryClient({
   priority = false,
 }: PlayerSummaryProps) {
   const keystonePerkId = getKeystonePerkId(data.perks);
-  const { perkIconById, perkNameById } = usePerkAssets([keystonePerkId]);
+  const { getRuneIconUrl: fetchRuneIconUrl } = useRunesReforged();
+  const keystoneIconUrl = keystonePerkId
+    ? fetchRuneIconUrl(keystonePerkId)
+    : null;
 
   const avatarBlock = (
     <div className="flex flex-col items-center gap-1.5 w-[72px]">
@@ -111,11 +114,11 @@ export function PlayerSummaryClient({
     <div className={`flex flex-col gap-1.5 ${reverse ? "items-end" : ""}`}>
       <RunesTooltip perks={data.perks}>
         <div className={`flex flex-col gap-1.5 ${reverse ? "items-end" : ""}`}>
-          {keystonePerkId && perkIconById[keystonePerkId] ? (
+          {keystoneIconUrl ? (
             <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
               <Image
-                src={perkIconById[keystonePerkId]}
-                alt={perkNameById[keystonePerkId] ?? "Keystone"}
+                src={keystoneIconUrl}
+                alt="Keystone"
                 fill
                 sizes="28px"
                 className="object-cover p-0.5"
@@ -152,7 +155,7 @@ export function PlayerSummaryClient({
       {typeof data.rankingPosition === "number" && data.rankingPosition > 0 && (
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
-            data.rankingPosition
+            data.rankingPosition,
           )}`}
           title={`Ranking global #${data.rankingPosition}`}
         >

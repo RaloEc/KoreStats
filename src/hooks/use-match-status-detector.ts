@@ -78,8 +78,7 @@ export function useMatchStatusDetector(
         // Usar la sesión del contexto en lugar de llamar getSession()
         if (!session?.access_token || abortController.signal.aborted) return;
 
-        const debugParam =
-          process.env.NODE_ENV !== "production" ? "?debug=1" : "";
+        const debugParam = "";
 
         const response = await fetch(`/api/riot/matches/active${debugParam}`, {
           method: "GET",
@@ -100,9 +99,6 @@ export function useMatchStatusDetector(
           const now = Date.now();
           if (now - lastErrorLogAtRef.current > 30_000) {
             lastErrorLogAtRef.current = now;
-            console.warn("[useMatchStatusDetector] Active match check failed", {
-              status: response.status,
-            });
           }
           return;
         }
@@ -121,13 +117,6 @@ export function useMatchStatusDetector(
           const now = Date.now();
           if (now - lastErrorLogAtRef.current > 30_000) {
             lastErrorLogAtRef.current = now;
-            console.warn(
-              "[useMatchStatusDetector] Riot API error - skipping status update",
-              {
-                reason: data?.reason,
-                riotStatus: data?.riotStatus,
-              },
-            );
           }
           return;
         }
@@ -150,12 +139,7 @@ export function useMatchStatusDetector(
                 gameId: data.gameId,
                 priority: 1, // Alta prioridad
               }),
-            }).catch((err) => {
-              console.error(
-                "[useMatchStatusDetector] Error queueing pre-game snapshot:",
-                err,
-              );
-            });
+            }).catch((err) => {});
           }
 
           // Notificar al servidor que estamos en partida
@@ -169,12 +153,7 @@ export function useMatchStatusDetector(
               isInGame: true,
               gameId: data.gameId || null,
             }),
-          }).catch((err) =>
-            console.error(
-              "[useMatchStatusDetector] Error updating server status:",
-              err,
-            ),
-          );
+          }).catch((err) => {});
 
           lastStatusRef.current = "in-game";
           onStatusChange?.("in-game");
@@ -202,12 +181,7 @@ export function useMatchStatusDetector(
                   gameId: lastGameId,
                   priority: 2, // Máxima prioridad
                 }),
-              }).catch((err) => {
-                console.error(
-                  "[useMatchStatusDetector] Error queueing post-game snapshot:",
-                  err,
-                );
-              });
+              }).catch((err) => {});
 
               fetch("/api/riot/matches/sync", {
                 method: "POST",
@@ -215,12 +189,7 @@ export function useMatchStatusDetector(
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${session.access_token}`,
                 },
-              }).catch((err) => {
-                console.error(
-                  "[useMatchStatusDetector] Error auto-syncing matches:",
-                  err,
-                );
-              });
+              }).catch((err) => {});
             }, 30000); // 30 segundos de delay
           }
 
@@ -235,12 +204,7 @@ export function useMatchStatusDetector(
               isInGame: false,
               gameId: null,
             }),
-          }).catch((err) =>
-            console.error(
-              "[useMatchStatusDetector] Error updating server status:",
-              err,
-            ),
-          );
+          }).catch((err) => {});
 
           lastStatusRef.current = "online";
           onStatusChange?.("online");
@@ -257,18 +221,14 @@ export function useMatchStatusDetector(
           // Ignorar errores por cancelación
           return;
         }
-        console.error(
-          "[useMatchStatusDetector] Error checking active match:",
-          error,
-        );
       }
     };
 
     // Verificar inmediatamente
     void checkActiveMatch();
 
-    // Verificar cada 10 segundos
-    pollIntervalRef.current = setInterval(checkActiveMatch, 10000);
+    // Verificar cada 30 segundos (antes era 10s para reducir ruido en logs)
+    pollIntervalRef.current = setInterval(checkActiveMatch, 30000);
 
     return () => {
       if (pollIntervalRef.current) {

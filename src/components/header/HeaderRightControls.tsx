@@ -24,6 +24,7 @@ interface HeaderRightControlsProps {
   openAuthModal: (mode: "login" | "register") => void;
   isLoggingOut: boolean;
   isAuthLoading?: boolean;
+  setIsSettingsModalOpen: (value: boolean) => void;
 }
 
 export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
@@ -40,6 +41,7 @@ export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
   openAuthModal,
   isLoggingOut,
   isAuthLoading,
+  setIsSettingsModalOpen,
 }) => {
   return (
     <div className="flex items-center gap-1 md:gap-3">
@@ -51,25 +53,9 @@ export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
             variant="ghost"
             size="sm"
             asChild
-            className="text-sm"
-            style={
-              {
-                color: profile?.color || "#2563eb",
-                "--hover-bg": profile?.color
-                  ? `${profile.color}1a`
-                  : "rgba(37, 99, 235, 0.1)",
-                "--hover-text": profile?.color || "#2563eb",
-                "--dark-hover-bg": profile?.color
-                  ? `${profile.color}1a`
-                  : "rgba(96, 165, 250, 0.1)",
-                "--dark-hover-text": profile?.color || "#60a5fa",
-              } as React.CSSProperties
-            }
+            className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
           >
-            <Link
-              href="/admin/noticias/crear"
-              className="hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)] px-2 py-1 rounded"
-            >
+            <Link href="/admin/noticias/crear">
               <Plus className="h-4 w-4 mr-1" />
               Noticia
             </Link>
@@ -80,25 +66,9 @@ export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
             variant="ghost"
             size="sm"
             asChild
-            className="text-sm"
-            style={
-              {
-                color: profile?.color || "#2563eb",
-                "--hover-bg": profile?.color
-                  ? `${profile.color}1a`
-                  : "rgba(37, 99, 235, 0.1)",
-                "--hover-text": profile?.color || "#2563eb",
-                "--dark-hover-bg": profile?.color
-                  ? `${profile.color}1a`
-                  : "rgba(96, 165, 250, 0.1)",
-                "--dark-hover-text": profile?.color || "#60a5fa",
-              } as React.CSSProperties
-            }
+            className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
           >
-            <Link
-              href="/foro/crear-hilo"
-              className="hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)] px-2 py-1 rounded"
-            >
+            <Link href="/foro/crear-hilo">
               <PenSquare className="h-4 w-4 mr-1" />
               Hilo
             </Link>
@@ -124,20 +94,15 @@ export const HeaderRightControls: React.FC<HeaderRightControlsProps> = ({
             userButtonRef={userButtonRef}
             userMenuRef={userMenuRef}
             isLoggingOut={isLoggingOut}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
           />
         ) : (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => openAuthModal("login")}
-            >
-              Iniciar Sesión
-            </Button>
-            <Button size="sm" onClick={() => openAuthModal("register")}>
-              Registrarse
-            </Button>
-          </div>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm hover:shadow-md px-5"
+            onClick={() => openAuthModal("login")}
+          >
+            Iniciar Sesión
+          </Button>
         )}
       </div>
 

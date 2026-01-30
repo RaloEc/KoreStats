@@ -44,6 +44,8 @@ interface LaneDuelProps {
   timeline: any;
   focusParticipantId: number;
   opponentParticipantId?: number;
+  onFocusChange?: (id: number) => void;
+  onOpponentChange?: (id: number) => void;
 }
 
 const ADVANTAGE_THRESHOLD = 0.03;
@@ -202,12 +204,18 @@ interface MinuteStat {
     xp: number;
     cs: number;
     level: number;
+    kills: number;
+    deaths: number;
+    assists: number;
   };
   opponent: {
     gold: number;
     xp: number;
     cs: number;
     level: number;
+    kills: number;
+    deaths: number;
+    assists: number;
   };
   goldDiff: number;
   xpDiff: number;
@@ -239,7 +247,7 @@ const normalizeMinute = (timestamp?: number, fallbackIndex = 0) => {
 
 const getParticipantFrame = (
   frame: TimelineFrame,
-  participantId: number
+  participantId: number,
 ): ParticipantFrame | undefined => {
   const key = participantId.toString();
   return (
@@ -280,7 +288,7 @@ const extractLaneEvents = (
   frames: TimelineFrame[],
   focusId: number,
   opponentId: number,
-  participantsMap: Map<number, Participant>
+  participantsMap: Map<number, Participant>,
 ): LaneEvent[] => {
   const events: LaneEvent[] = [];
 
@@ -525,8 +533,8 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
               data.goldDiff > 0
                 ? "text-emerald-600 dark:text-green-400"
                 : data.goldDiff < 0
-                ? "text-rose-600 dark:text-red-400"
-                : "text-slate-500 dark:text-slate-400"
+                  ? "text-rose-600 dark:text-red-400"
+                  : "text-slate-500 dark:text-slate-400",
             )}
           >
             {formatSigned(data.goldDiff)}
@@ -541,8 +549,8 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
               data.xpDiff > 0
                 ? "text-blue-600 dark:text-blue-300"
                 : data.xpDiff < 0
-                ? "text-indigo-600 dark:text-indigo-400"
-                : "text-slate-500 dark:text-slate-400"
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-slate-500 dark:text-slate-400",
             )}
           >
             {formatSigned(data.xpDiff)}
@@ -554,6 +562,20 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
           <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-200">
             {formatSigned(data.csDiff)}
           </span>
+
+          <span className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-[10px]">
+            KDA
+          </span>
+          <div className="flex gap-2 items-center">
+            <span className="font-mono font-bold text-xs text-blue-500 dark:text-blue-400">
+              {data.focus?.kills}/{data.focus?.deaths}/{data.focus?.assists}
+            </span>
+            <span className="text-[10px] text-slate-400">vs</span>
+            <span className="font-mono font-bold text-xs text-rose-500 dark:text-rose-400">
+              {data.opponent?.kills}/{data.opponent?.deaths}/
+              {data.opponent?.assists}
+            </span>
+          </div>
         </div>
 
         {/* Events List */}
@@ -568,7 +590,7 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
                 <div
                   className={cn(
                     "w-1 h-8 rounded-full shrink-0",
-                    e.impact === "positive" ? "bg-emerald-500" : "bg-rose-500"
+                    e.impact === "positive" ? "bg-emerald-500" : "bg-rose-500",
                   )}
                 />
 
@@ -581,7 +603,7 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
                           src={
                             getChampionImg(
                               e.subject.championName,
-                              gameVersion
+                              gameVersion,
                             ) || ""
                           }
                           alt={e.subject.championName}
@@ -613,7 +635,7 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
                           src={
                             getChampionImg(
                               e.target.value as string,
-                              gameVersion
+                              gameVersion,
                             ) || ""
                           }
                           alt={String(e.target.value)}
@@ -742,20 +764,49 @@ export function LaneDuel({
   timeline,
   focusParticipantId,
   opponentParticipantId,
+  onFocusChange,
+  onOpponentChange,
 }: LaneDuelProps) {
   const participants = match.info.participants as Participant[];
   const gameVersion = match.info.gameVersion;
+
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const ROLE_ORDER: Record<string, number> = {
+    TOP: 0,
+    JUNGLE: 1,
+    MIDDLE: 2,
+    BOTTOM: 3,
+    UTILITY: 4,
+  };
+
+  const sortedParticipants = useMemo(() => {
+    return [...participants].sort((a, b) => {
+      // Sort by team first
+      if (a.teamId !== b.teamId) return a.teamId - b.teamId;
+      // Then by role order
+      const orderA = ROLE_ORDER[a.teamPosition || ""] ?? 99;
+      const orderB = ROLE_ORDER[b.teamPosition || ""] ?? 99;
+      return orderA - orderB;
+    });
+  }, [participants]);
+
+  const blueTeam = sortedParticipants.filter((p) => p.teamId === 100);
+  const redTeam = sortedParticipants.filter((p) => p.teamId === 200);
 
   const duelData = useMemo(() => {
     if (!match || !timeline) return null;
 
     const focusPlayer = participants.find(
-      (p) => p.participantId === focusParticipantId
+      (p) => p.participantId === focusParticipantId,
     );
     if (!focusPlayer) return null;
 
     const opponent = participants.find(
-      (p) => p.participantId === (opponentParticipantId ?? 0)
+      (p) => p.participantId === (opponentParticipantId ?? 0),
     );
     if (!opponent) return null;
 
@@ -767,6 +818,14 @@ export function LaneDuel({
 
     const minuteStats: MinuteStat[] = [];
 
+    // Running KDA counters
+    let focusK = 0,
+      focusD = 0,
+      focusA = 0;
+    let oppK = 0,
+      oppD = 0,
+      oppA = 0;
+
     for (let minute = 1; minute < frames.length; minute++) {
       const frame = frames[minute];
       if (!frame || !frame.participantFrames) continue;
@@ -774,6 +833,27 @@ export function LaneDuel({
       const focusFrame = getParticipantFrame(frame, focusPlayer.participantId);
       const opponentFrame = getParticipantFrame(frame, opponent.participantId);
       if (!focusFrame || !opponentFrame) continue;
+
+      // Update KDA based on events in this frame
+      if (frame.events) {
+        frame.events.forEach((event) => {
+          if (event.type === "CHAMPION_KILL") {
+            // Focus Player updates
+            if (event.killerId === focusPlayer.participantId) focusK++;
+            if (event.victimId === focusPlayer.participantId) focusD++;
+            if (
+              event.assistingParticipantIds?.includes(focusPlayer.participantId)
+            )
+              focusA++;
+
+            // Opponent updates
+            if (event.killerId === opponent.participantId) oppK++;
+            if (event.victimId === opponent.participantId) oppD++;
+            if (event.assistingParticipantIds?.includes(opponent.participantId))
+              oppA++;
+          }
+        });
+      }
 
       const focusCs =
         (focusFrame.minionsKilled ?? 0) + (focusFrame.jungleMinionsKilled ?? 0);
@@ -802,12 +882,18 @@ export function LaneDuel({
           xp: focusXp,
           cs: focusCs,
           level: focusFrame.level ?? 1,
+          kills: focusK,
+          deaths: focusD,
+          assists: focusA,
         },
         opponent: {
           gold: opponentGold,
           xp: opponentXp,
           cs: opponentCs,
           level: opponentFrame.level ?? 1,
+          kills: oppK,
+          deaths: oppD,
+          assists: oppA,
         },
         goldDiff,
         xpDiff,
@@ -817,8 +903,8 @@ export function LaneDuel({
           diffPercent > ADVANTAGE_THRESHOLD
             ? "positive"
             : diffPercent < -ADVANTAGE_THRESHOLD
-            ? "negative"
-            : "neutral",
+              ? "negative"
+              : "neutral",
         events: [],
       });
     }
@@ -835,11 +921,11 @@ export function LaneDuel({
       frames,
       focusPlayer.participantId,
       opponent.participantId,
-      participantMap
+      participantMap,
     );
 
     const statsByMinute = new Map<number, MinuteStat>(
-      minuteStats.map((stat) => [stat.minute, stat])
+      minuteStats.map((stat) => [stat.minute, stat]),
     );
     const lastMinute = minuteStats[minuteStats.length - 1].minute;
 
@@ -956,7 +1042,7 @@ export function LaneDuel({
             ev.minute > purchaseMinute &&
             ev.minute <= purchaseMinute + 2 &&
             ev.type === "kill" &&
-            ev.subject?.championName === focusPlayer.championName
+            ev.subject?.championName === focusPlayer.championName,
         );
 
         if (nextEvents.length > 0) {
@@ -1015,7 +1101,7 @@ export function LaneDuel({
       tips.push({
         type: "warning",
         message: `Farming bajo (${csPerMin.toFixed(
-          1
+          1,
         )} CS/min). En League of Legends, el oro de los súbditos es la fuente más estable de poder. Practica el last-hit.`,
         icon: Target,
       });
@@ -1095,8 +1181,75 @@ export function LaneDuel({
 
   const off = gradientOffset();
 
+  if (!isMounted) {
+    return (
+      <Card className="bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 shadow-sm animate-pulse">
+        <div className="h-[400px]" />
+      </Card>
+    );
+  }
+
   return (
-    <Card className="bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      {/* Integrated Champion Selector Bar */}
+      <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 py-3 bg-slate-50/50 dark:bg-white/[0.02] border-b border-slate-200/50 dark:border-white/5">
+        {/* Blue Team */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {blueTeam.map((p: any) => (
+            <button
+              key={p.participantId}
+              onClick={() => onFocusChange?.(p.participantId)}
+              className={cn(
+                "relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 hover:scale-110",
+                focusParticipantId === p.participantId
+                  ? "ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-[#030708] scale-110 z-10 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                  : "opacity-40 grayscale hover:grayscale-0 hover:opacity-100",
+              )}
+            >
+              <div className="absolute inset-0 rounded-full overflow-hidden border border-slate-200 dark:border-white/10">
+                <Image
+                  src={getChampionImg(p.championName, gameVersion)}
+                  alt={p.championName}
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <span className="text-[10px] font-black italic text-slate-300 dark:text-white/20 uppercase tracking-widest shrink-0">
+          vs
+        </span>
+
+        {/* Red Team */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {redTeam.map((p: any) => (
+            <button
+              key={p.participantId}
+              onClick={() => onOpponentChange?.(p.participantId)}
+              className={cn(
+                "relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 hover:scale-110",
+                opponentParticipantId === p.participantId
+                  ? "ring-2 ring-red-500 ring-offset-1 ring-offset-white dark:ring-offset-[#030708] scale-110 z-10 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                  : "opacity-40 grayscale hover:grayscale-0 hover:opacity-100",
+              )}
+            >
+              <div className="absolute inset-0 rounded-full overflow-hidden border border-slate-200 dark:border-white/10">
+                <Image
+                  src={getChampionImg(p.championName, gameVersion)}
+                  alt={p.championName}
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                />
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <CardHeader className="pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -1109,15 +1262,15 @@ export function LaneDuel({
               isAlly
                 ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
                 : latestSnapshot.goldDiff > 0
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                : "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                  : "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400",
             )}
           >
             {isAlly
               ? "Sinergia de Equipo"
               : latestSnapshot.goldDiff > 0
-              ? "Ganada"
-              : "Perdida"}
+                ? "Ganada"
+                : "Perdida"}
           </div>
         </div>
       </CardHeader>
@@ -1134,7 +1287,7 @@ export function LaneDuel({
                     <Image
                       src={getChampionImg(
                         focusPlayer.championName,
-                        gameVersion
+                        gameVersion,
                       )}
                       alt={focusPlayer.championName}
                       fill
@@ -1147,17 +1300,15 @@ export function LaneDuel({
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight">
-                    {focusPlayer.championName}
-                  </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[80px]">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate max-w-[100px]">
                     {focusPlayer.riotIdGameName || focusPlayer.summonerName}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-slate-500 font-medium">
-                    {formatSigned(
-                      minuteStats[minuteStats.length - 1]?.goldDiff ?? 0
-                    )}{" "}
-                    Oro
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                    {focusPlayer.championName}
+                  </p>
+                  <p className="text-[10px] font-mono font-bold text-indigo-500 dark:text-indigo-400 mt-0.5">
+                    {focusPlayer.kills} / {focusPlayer.deaths} /{" "}
+                    {focusPlayer.assists}
                   </p>
                 </div>
               </div>
@@ -1193,14 +1344,14 @@ export function LaneDuel({
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight">
-                    {opponent.championName}
-                  </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[80px]">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate max-w-[100px]">
                     {opponent.riotIdGameName || opponent.summonerName}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-slate-500 font-medium">
-                    {isAlly ? "Compañero" : "Rival"}
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                    {opponent.championName}
+                  </p>
+                  <p className="text-[10px] font-mono font-bold text-rose-500 dark:text-rose-400 mt-0.5">
+                    {opponent.kills} / {opponent.deaths} / {opponent.assists}
                   </p>
                 </div>
               </div>
@@ -1293,14 +1444,14 @@ export function LaneDuel({
                           moment.colorClass.includes("emerald")
                             ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-500/5 dark:border-emerald-500/10"
                             : moment.colorClass.includes("rose")
-                            ? "bg-rose-50/50 border-rose-100 dark:bg-rose-500/5 dark:border-rose-500/10"
-                            : "bg-amber-50/50 border-amber-100 dark:bg-amber-500/5 dark:border-amber-500/10"
+                              ? "bg-rose-50/50 border-rose-100 dark:bg-rose-500/5 dark:border-rose-500/10"
+                              : "bg-amber-50/50 border-amber-100 dark:bg-amber-500/5 dark:border-amber-500/10",
                         )}
                       >
                         <div
                           className={cn(
                             "mt-0.5 p-1.5 rounded-full h-fit bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm",
-                            moment.colorClass
+                            moment.colorClass,
                           )}
                         >
                           <Icon className="w-3.5 h-3.5" />
@@ -1310,7 +1461,7 @@ export function LaneDuel({
                             <span
                               className={cn(
                                 "text-[10px] font-bold uppercase tracking-wider bg-white/50 dark:bg-slate-900/50 px-1.5 rounded",
-                                moment.colorClass
+                                moment.colorClass,
                               )}
                             >
                               Min {moment.minute}
@@ -1372,7 +1523,7 @@ export function LaneDuel({
                             "font-mono font-medium",
                             minute15Snapshot.goldDiff > 0
                               ? "text-emerald-600"
-                              : "text-rose-500"
+                              : "text-rose-500",
                           )}
                         >
                           {formatSigned(minute15Snapshot.goldDiff)}
@@ -1385,7 +1536,7 @@ export function LaneDuel({
                             "font-mono font-medium",
                             minute15Snapshot.csDiff > 0
                               ? "text-emerald-600"
-                              : "text-rose-500"
+                              : "text-rose-500",
                           )}
                         >
                           {formatSigned(minute15Snapshot.csDiff)}
@@ -1398,7 +1549,7 @@ export function LaneDuel({
                             "font-mono font-medium",
                             minute15Snapshot.xpDiff > 0
                               ? "text-emerald-600"
-                              : "text-rose-500"
+                              : "text-rose-500",
                           )}
                         >
                           {formatSigned(minute15Snapshot.xpDiff)}

@@ -47,16 +47,17 @@ export const useHeaderLogic = () => {
   >({});
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "register">(
-    "login"
+    "login",
   );
   const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [foroCategorias, setForoCategorias] = useState<ForoCategoria[]>([]);
   const [foroMobileOpen, setForoMobileOpen] = useState(false);
   const [noticiasMobileOpen, setNoticiasMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Referencias
   const adminMenuRef = useRef<HTMLLIElement | null>(null);
@@ -124,7 +125,7 @@ export const useHeaderLogic = () => {
         data.forEach((cat: ApiForoCategoria) => {
           if (cat.parent_id && categoriasMap[cat.parent_id]) {
             categoriasMap[cat.parent_id].subcategorias!.push(
-              categoriasMap[cat.id]
+              categoriasMap[cat.id],
             );
           } else {
             rootCategorias.push(categoriasMap[cat.id]);
@@ -201,7 +202,7 @@ export const useHeaderLogic = () => {
       setIsAuthModalOpen(true);
       closeAllMenus();
     },
-    [closeAllMenus]
+    [closeAllMenus],
   );
 
   // Función para manejar búsqueda
@@ -217,7 +218,7 @@ export const useHeaderLogic = () => {
         }
       }
     },
-    [searchQuery, isMenuOpen, router]
+    [searchQuery, isMenuOpen, router],
   );
 
   return {
@@ -247,6 +248,8 @@ export const useHeaderLogic = () => {
     noticiasMobileOpen,
     setNoticiasMobileOpen,
     isLoggingOut,
+    isSettingsModalOpen,
+    setIsSettingsModalOpen,
 
     // Referencias
     adminMenuRef,

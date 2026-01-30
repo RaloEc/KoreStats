@@ -177,6 +177,11 @@ export default function MobileProfileLayout({
                     <MatchHistoryList
                       userId={perfil.id}
                       puuid={riotAccount.puuid}
+                      riotId={
+                        riotAccount.game_name && riotAccount.tag_line
+                          ? `${riotAccount.game_name}#${riotAccount.tag_line}`
+                          : undefined
+                      }
                       externalSyncPending={unifiedSyncPending}
                       externalCooldownSeconds={unifiedSyncCooldown}
                     />

@@ -17,6 +17,7 @@ import {
 import Image from "next/image";
 import { getChampionImg } from "@/lib/riot/helpers";
 import { ArrowRightLeft, Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MatchAnalysisProps {
   match: any;
@@ -44,17 +45,39 @@ const getPositionTokens = (participant: any): string[] => {
 
 const findDefaultOpponentId = (
   participants: any[],
-  focusParticipantId: number
+  focusParticipantId: number,
 ) => {
   const focusPlayer = participants.find(
-    (p: any) => p.participantId === focusParticipantId
+    (p: any) => p.participantId === focusParticipantId,
   );
 
   if (!focusPlayer) return null;
 
   const isOpponent = (p: any) => p.teamId !== focusPlayer.teamId;
-  const focusTokens = getPositionTokens(focusPlayer);
 
+  // 1. Prioridad máxima: Coincidencia exacta de posición de equipo (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)
+  const focusPos = normalizePosition(focusPlayer.teamPosition);
+  if (focusPos) {
+    const perfectMatch = participants.find(
+      (p: any) =>
+        isOpponent(p) && normalizePosition(p.teamPosition) === focusPos,
+    );
+    if (perfectMatch) return perfectMatch.participantId;
+  }
+
+  // 2. Segunda opción: Coincidencia por posición individual
+  const focusIndivPos = normalizePosition(focusPlayer.individualPosition);
+  if (focusIndivPos) {
+    const match = participants.find(
+      (p: any) =>
+        isOpponent(p) &&
+        normalizePosition(p.individualPosition) === focusIndivPos,
+    );
+    if (match) return match.participantId;
+  }
+
+  // 3. Fallback legacy: Tokens (Menos preciso, puede mezclar ADC/SUPP si comparten carril)
+  const focusTokens = getPositionTokens(focusPlayer);
   for (const token of focusTokens) {
     const opponent = participants.find((p: any) => {
       if (!isOpponent(p)) return false;
@@ -62,25 +85,19 @@ const findDefaultOpponentId = (
       return opponentTokens.includes(token);
     });
 
-    if (opponent) {
-      return opponent.participantId;
-    }
+    if (opponent) return opponent.participantId;
   }
 
+  // 4. Último recurso: Espejo simple (1->6, 2->7, etc)
   const mirroredParticipantId =
     focusParticipantId <= 5 ? focusParticipantId + 5 : focusParticipantId - 5;
-
   const mirroredOpponent = participants.find(
-    (p: any) => isOpponent(p) && p.participantId === mirroredParticipantId
+    (p: any) => isOpponent(p) && p.participantId === mirroredParticipantId,
   );
 
-  if (mirroredOpponent) {
-    return mirroredOpponent.participantId;
-  }
+  if (mirroredOpponent) return mirroredOpponent.participantId;
 
-  const fallbackOpponent = participants.find((p: any) => isOpponent(p));
-
-  return fallbackOpponent?.participantId ?? null;
+  return participants.find((p: any) => isOpponent(p))?.participantId ?? null;
 };
 
 export function MatchAnalysis({
@@ -92,6 +109,7 @@ export function MatchAnalysis({
   const [opponentParticipantId, setOpponentParticipantId] = useState<
     number | null
   >(null);
+  const [mapSelectionId, setMapSelectionId] = useState<string>("all");
 
   // Normalize match data
   const matchData = match.full_json || match;
@@ -104,7 +122,7 @@ export function MatchAnalysis({
 
       if (currentUserPuuid) {
         const participant = participants.find(
-          (p: any) => p.puuid === currentUserPuuid
+          (p: any) => p.puuid === currentUserPuuid,
         );
         if (participant) {
           setFocusParticipantId(participant.participantId);
@@ -131,7 +149,7 @@ export function MatchAnalysis({
 
     const defaultOpponentId = findDefaultOpponentId(
       matchData.info.participants,
-      focusParticipantId
+      focusParticipantId,
     );
 
     if (defaultOpponentId) {
@@ -139,7 +157,24 @@ export function MatchAnalysis({
     } else {
       setOpponentParticipantId(null);
     }
+
+    // Auto-sync map with focus player
+    setMapSelectionId(focusParticipantId.toString());
   }, [focusParticipantId, matchData]);
+
+  // Handle manual focus change from LaneDuel and sync opponent
+  const handleFocusChange = (id: number) => {
+    setFocusParticipantId(id);
+    const opponentId = findDefaultOpponentId(matchData.info.participants, id);
+    if (opponentId) {
+      setOpponentParticipantId(opponentId);
+    }
+  };
+
+  const handleOpponentChange = (id: number) => {
+    setOpponentParticipantId(id);
+    // When manually changing opponent, we also sync the map focus
+  };
 
   if (!match || !timeline) return null;
 
@@ -151,116 +186,41 @@ export function MatchAnalysis({
 
   const participants = matchData.info.participants;
   const focusPlayer = participants.find(
-    (p: any) => p.participantId === focusParticipantId
+    (p: any) => p.participantId === focusParticipantId,
   );
   const focusTeamId = focusPlayer?.teamId || 100;
 
   return (
     <div className="space-y-8">
-      {/* Player Selectors */}
-      <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Analizar a:
-          </span>
-          <Select
-            value={focusParticipantId.toString()}
-            onValueChange={(val) => setFocusParticipantId(parseInt(val))}
-          >
-            <SelectTrigger className="w-[240px] bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
-              <SelectValue placeholder="Seleccionar Jugador" />
-            </SelectTrigger>
-            <SelectContent>
-              {participants.map((p: any) => (
-                <SelectItem
-                  key={p.participantId}
-                  value={p.participantId.toString()}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
-                      <Image
-                        src={getChampionImg(p.championName, gameVersion)}
-                        alt={p.championName}
-                        fill
-                        sizes="24px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <span className="font-medium">{p.championName}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <ArrowRightLeft className="w-4 h-4 text-slate-400 dark:text-slate-600 hidden sm:block" />
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            vs
-          </span>
-          <Select
-            value={opponentParticipantId?.toString() || ""}
-            onValueChange={(val) => setOpponentParticipantId(parseInt(val))}
-          >
-            <SelectTrigger className="w-[240px] bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
-              <SelectValue placeholder="Seleccionar Oponente" />
-            </SelectTrigger>
-            <SelectContent>
-              {participants.map((p: any) => (
-                <SelectItem
-                  key={p.participantId}
-                  value={p.participantId.toString()}
-                  disabled={p.participantId === focusParticipantId}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
-                      <Image
-                        src={getChampionImg(p.championName, gameVersion)}
-                        alt={p.championName}
-                        fill
-                        sizes="24px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <span className="font-medium">{p.championName}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Lane Duel (Head-to-Head) */}
+      {/* Lane Duel (Head-to-Head with Integrated Selector) */}
       <LaneDuel
         match={matchData}
         timeline={timeline}
         focusParticipantId={focusParticipantId}
         opponentParticipantId={opponentParticipantId || undefined}
+        onFocusChange={handleFocusChange}
+        onOpponentChange={handleOpponentChange}
+      />
+
+      {/* Build Timeline (Individual Analysis) */}
+      <BuildTimeline
+        timeline={timeline}
+        participantId={focusParticipantId}
+        gameVersion={gameVersion}
       />
 
       {/* Global Analysis Separator */}
-      <div className="flex items-center gap-4 py-6">
-        <div className="h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent flex-1" />
-        <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest shrink-0">
+      <div className="flex items-center gap-3 pt-8 pb-2">
+        <h3 className="text-[10px] font-black text-slate-500 dark:text-white/40 uppercase tracking-[0.3em] shrink-0">
           Panorama Global
         </h3>
-        <div className="h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent flex-1" />
+        <div className="h-px bg-gradient-to-r from-slate-200 dark:from-white/20 to-transparent flex-1" />
       </div>
 
       {/* Graphs */}
       <MatchGraphs timeline={timeline} focusTeamId={focusTeamId} />
 
       <div className="flex flex-col gap-6">
-        {/* Build Timeline */}
-        <BuildTimeline
-          timeline={timeline}
-          participantId={focusParticipantId}
-          gameVersion={gameVersion}
-        />
-
         {/* Damage Chart */}
         <DamageChart participants={participants} gameVersion={gameVersion} />
       </div>
@@ -272,7 +232,9 @@ export function MatchAnalysis({
             <Eye className="w-5 h-5 text-indigo-500" />
             Análisis Táctico del Mapa
             <span className="text-xs font-normal text-slate-500 ml-auto">
-              Vista centrada en: {focusPlayer?.championName}
+              {mapSelectionId === "all"
+                ? "Resumen Global"
+                : `Centrado en: ${participants.find((p: any) => p.participantId.toString() === mapSelectionId)?.championName || "Cargando..."}`}
             </span>
           </CardTitle>
         </CardHeader>
@@ -281,7 +243,10 @@ export function MatchAnalysis({
             timeline={timeline}
             participants={participants}
             focusTeamId={focusTeamId}
-            highlightParticipantId={focusParticipantId}
+            highlightParticipantId={
+              mapSelectionId === "all" ? undefined : parseInt(mapSelectionId)
+            }
+            onSelectParticipant={(id) => setMapSelectionId(id)}
           />
         </CardContent>
       </Card>

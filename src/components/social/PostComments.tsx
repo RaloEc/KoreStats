@@ -21,6 +21,18 @@ import { commentsCacheManager } from "@/lib/cache/commentsCache";
 import { useAuth } from "@/context/AuthContext";
 import UserAvatar from "@/components/UserAvatar";
 import ReportModal from "./ReportModal";
+import dynamic from "next/dynamic";
+import { RichTextRenderer } from "@/components/tiptap-editor/components/RichTextRenderer";
+
+const MinimalEditor = dynamic(
+  () => import("@/components/tiptap-editor/MinimalEditor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[80px] w-full bg-gray-100 dark:bg-white/5 rounded-lg animate-pulse" />
+    ),
+  },
+);
 
 interface Comment {
   id: string;
@@ -73,7 +85,7 @@ export default function PostComments({
   const supabase = createClient();
 
   const userColor = profile?.color || "#3b82f6";
-  const charCount = content.length;
+  const charCount = content.replace(/<[^>]*>/g, "").length; // Approximate char count stripping HTML
   const maxChars = 500;
 
   // Fetch comments on mount
@@ -108,7 +120,8 @@ export default function PostComments({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!content.trim() && !gifUrl) || charCount > maxChars) return;
+    const plainText = content.replace(/<[^>]*>/g, "").trim();
+    if ((!plainText && !gifUrl) || charCount > maxChars) return;
     if (!authUser) {
       toast.error("Debes iniciar sesión para comentar");
       return;
@@ -120,7 +133,7 @@ export default function PostComments({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: content.trim() || null,
+          content: content.trim() || null, // Guardamos el HTML
           gif_url: gifUrl,
         }),
       });
@@ -152,7 +165,7 @@ export default function PostComments({
     try {
       const res = await fetch(
         `/api/social/posts/${postId}/comments/${commentId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
 
       if (!res.ok) throw new Error("Failed to delete comment");
@@ -191,88 +204,76 @@ export default function PostComments({
       {/* Comment Form - Always visible first */}
       {authUser ? (
         <form onSubmit={handleSubmit} className="mb-4">
-          <div className="flex items-end gap-2">
-            {/* Avatar */}
-            <UserAvatar
-              username={profile?.username || "Usuario"}
-              avatarUrl={profile?.avatar_url}
-              size="sm"
-              className="border border-gray-200 dark:border-white/10 flex-shrink-0"
-            />
-
-            {/* Input */}
-            <div
-              className="relative flex-1 rounded-lg border-2 transition-all duration-200"
-              style={{
-                borderColor: isFocused ? `${userColor}80` : `${userColor}30`,
-              }}
-            >
-              <textarea
-                placeholder="Escribe un comentario..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                disabled={submitting}
-                rows={1}
-                maxLength={maxChars}
-                className="w-full px-3 py-2 pr-12 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                style={{ minHeight: "36px" }}
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              {/* Avatar */}
+              <UserAvatar
+                username={profile?.username || "Usuario"}
+                avatarUrl={profile?.avatar_url}
+                size="sm"
+                className="border border-gray-200 dark:border-white/10 flex-shrink-0 mt-1"
               />
-              <div className="absolute bottom-1.5 right-2 text-[10px] text-gray-400 dark:text-gray-500">
-                {charCount}/{maxChars}
+
+              {/* Input Area */}
+              <div className="flex-1 min-w-0">
+                <MinimalEditor
+                  value={content}
+                  onChange={setContent}
+                  placeholder="Escribe un comentario..."
+                  restrictMentionsToFriends={true}
+                  currentUserId={authUser.id}
+                  className="min-h-[60px]"
+                />
+
+                <div className="flex justify-between items-center mt-2">
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500">
+                    {/* Optional char count if needed */}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {/* GIF Button */}
+                    <GifPicker onGifSelect={setGifUrl}>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        className="p-1 px-2 rounded-md transition-colors text-xs font-semibold flex items-center gap-1 hover:bg-gray-100 dark:hover:bg-white/10"
+                        style={{ color: userColor }}
+                      >
+                        GIF
+                      </button>
+                    </GifPicker>
+
+                    {/* Send Button */}
+                    <button
+                      type="submit"
+                      disabled={
+                        (content.replace(/<[^>]*>?/gm, "").trim().length ===
+                          0 &&
+                          !gifUrl) ||
+                        submitting
+                      }
+                      className="px-3 py-1.5 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-xs font-medium text-white shadow-sm"
+                      style={{
+                        backgroundColor:
+                          (content.replace(/<[^>]*>?/gm, "").trim().length ===
+                            0 &&
+                            !gifUrl) ||
+                          submitting
+                            ? "#9ca3af"
+                            : userColor,
+                      }}
+                    >
+                      {submitting ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <SendHorizontal className="h-3 w-3" />
+                      )}
+                      Enviar
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* GIF Button */}
-            <GifPicker onGifSelect={setGifUrl}>
-              <button
-                type="button"
-                disabled={submitting}
-                className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 flex items-center justify-center"
-                style={{
-                  backgroundColor: submitting ? "#9ca3af" : `${userColor}40`,
-                  color: userColor,
-                  height: "36px",
-                  width: "36px",
-                  border: `2px solid ${userColor}60`,
-                }}
-                aria-label="Agregar GIF"
-                title="Agregar GIF"
-              >
-                <span className="font-bold text-[10px]">GIF</span>
-              </button>
-            </GifPicker>
-
-            {/* Send Button */}
-            <button
-              type="submit"
-              disabled={
-                (content.trim().length === 0 && !gifUrl) ||
-                submitting ||
-                charCount > maxChars
-              }
-              className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-              style={{
-                backgroundColor:
-                  (content.trim().length === 0 && !gifUrl) ||
-                  submitting ||
-                  charCount > maxChars
-                    ? "#9ca3af"
-                    : `${userColor}CC`,
-                color: "white",
-                height: "36px",
-                width: "36px",
-              }}
-              aria-label="Enviar"
-              title="Enviar comentario"
-            >
-              {submitting ? (
-                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <SendHorizontal className="h-4 w-4" />
-              )}
-            </button>
           </div>
 
           {/* GIF Preview */}
@@ -329,7 +330,6 @@ export default function PostComments({
               key={comment.id}
               className="flex gap-3 py-3 border-b border-gray-100 dark:border-white/5 last:border-b-0 group"
             >
-              {/* Avatar */}
               <Link href={`/perfil/${comment.user.username}`}>
                 <UserAvatar
                   username={comment.user.username}
@@ -339,7 +339,6 @@ export default function PostComments({
                 />
               </Link>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <Link
@@ -355,16 +354,14 @@ export default function PostComments({
                     })}
                   </span>
 
-                  {/* Menu button */}
                   <div className="relative ml-auto">
                     <button
                       onClick={() =>
                         setActiveMenu(
-                          activeMenu === comment.id ? null : comment.id
+                          activeMenu === comment.id ? null : comment.id,
                         )
                       }
                       className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all p-1"
-                      title="Opciones"
                     >
                       <MoreVertical size={14} />
                     </button>
@@ -376,7 +373,6 @@ export default function PostComments({
                           onClick={() => setActiveMenu(null)}
                         />
                         <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1b1e] border border-gray-200 dark:border-white/10 rounded-lg shadow-lg py-1 z-20 min-w-[140px]">
-                          {/* Report - visible to everyone except author */}
                           {authUser && authUser.id !== comment.user_id && (
                             <button
                               onClick={() => {
@@ -390,7 +386,6 @@ export default function PostComments({
                             </button>
                           )}
 
-                          {/* Delete - only visible to author */}
                           {authUser?.id === comment.user_id && (
                             <button
                               onClick={() => {
@@ -409,14 +404,26 @@ export default function PostComments({
                   </div>
                 </div>
 
-                {/* Comment text */}
                 {comment.content && (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
-                    {comment.content}
-                  </p>
+                  <div className="relative">
+                    <RichTextRenderer
+                      content={comment.content}
+                      className="text-sm text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none [&>p]:mb-0"
+                    />
+                    <style jsx global>{`
+                      .prose .lol-mention img {
+                        margin: 0 !important;
+                        display: inline-block !important;
+                      }
+                      .prose .lol-mention,
+                      .prose .user-mention {
+                        vertical-align: middle;
+                        line-height: 1.1;
+                      }
+                    `}</style>
+                  </div>
                 )}
 
-                {/* Comment GIF */}
                 {comment.gif_url && (
                   <div className="mt-2">
                     <img

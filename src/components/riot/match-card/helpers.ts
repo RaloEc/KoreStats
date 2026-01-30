@@ -92,18 +92,34 @@ export function getQueueName(queueId: number): string {
 }
 
 export function getRelativeTime(timestamp: string): string {
-  const now = new Date();
+  const now = Date.now();
   const date = new Date(timestamp);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const diffMs = now - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-  if (diffMins < 1) return "Hace poco";
-  if (diffMins < 60) return `Hace ${diffMins}m`;
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffDays < 7) return `Hace ${diffDays}d`;
-  return date.toLocaleDateString("es-ES");
+  const currentYear = new Date().getFullYear();
+  const matchYear = date.getFullYear();
+
+  if (matchYear < currentYear) {
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  if (days >= 7) {
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  }
+
+  if (days > 0) return `${days}D`;
+  if (hours > 0) return `${hours}H`;
+  return `${Math.max(1, minutes)}m`;
 }
 
 export function formatDuration(seconds: number): string {

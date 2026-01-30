@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProfilePageData } from "@/hooks/use-profile-page-data";
-import { useEditProfile } from "@/hooks/use-edit-profile";
+
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
 
 // Componentes de perfil
@@ -14,7 +14,7 @@ import ProfileHeader from "@/components/perfil/profile-header";
 import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
 import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import { ProfilePageSkeleton } from "@/components/perfil/ProfilePageSkeleton";
-import { EditProfileModal } from "@/components/perfil/EditProfileModal";
+import { UserAccountModal } from "@/components/settings/UserAccountModal";
 import { ProfilePostsTabContent } from "@/components/perfil/ProfilePostsTabContent";
 import { ProfileLolTabContent } from "@/components/perfil/ProfileLolTabContent";
 import { ConnectedAccountsModal } from "@/components/perfil/ConnectedAccountsModal";
@@ -82,18 +82,6 @@ export default function PerfilPageClient({
     respuestas: 0,
   };
 
-  // Hook para edición de perfil
-  const { editData, setEditData, isSaving, error, handleSave } = useEditProfile(
-    {
-      perfil,
-      isOpen,
-      onClose,
-      invalidateStaticCache,
-      refreshProfile,
-      refreshAuth,
-    },
-  );
-
   const isOwnProfile = user?.id === perfil?.id;
 
   // Lee el tab activo desde la URL inicialmente
@@ -159,40 +147,22 @@ export default function PerfilPageClient({
   const handleSignOut = async () => {
     if (isSigningOut) return;
 
-    console.log("[Perfil] Iniciando proceso de cierre de sesión...");
     setIsSigningOut(true);
 
     try {
-      console.log(
-        "[Perfil] Intentando cierre de sesión con el contexto de autenticación...",
-      );
       await signOut();
-      console.log("[Perfil] Cierre de sesión exitoso con el contexto");
-      console.log("[Perfil] Redirigiendo a la página principal...");
       window.location.href = "/";
       return;
     } catch (error) {
-      console.error("[Perfil] Error en cierre de sesión con contexto:", error);
-
       try {
-        console.log(
-          "[Perfil] Intentando cierre de sesión con instancia directa...",
-        );
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
         await supabase.auth.signOut();
-        console.log("[Perfil] Cierre de sesión exitoso con instancia directa");
       } catch (innerError) {
-        console.error(
-          "[Perfil] Error en cierre de sesión con instancia directa:",
-          innerError,
-        );
       } finally {
-        console.log("[Perfil] Forzando recarga de la página...");
         window.location.href = "/";
       }
     } finally {
-      console.log("[Perfil] Limpiando estado de carga...");
       setIsSigningOut(false);
     }
   };
@@ -240,10 +210,7 @@ export default function PerfilPageClient({
             followers_count: (profile as any)?.followers_count ?? 0,
             following_count: (profile as any)?.following_count ?? 0,
             friends_count: (profile as any)?.friends_count ?? 0,
-            connected_accounts:
-              editData.connected_accounts ||
-              (profile as any)?.connected_accounts ||
-              {},
+            connected_accounts: (profile as any)?.connected_accounts || {},
           }}
           userId={user?.id}
           onSignOut={handleSignOut}
@@ -253,19 +220,11 @@ export default function PerfilPageClient({
           onInvalidateCache={invalidateAndRefetchStatic}
         />
 
-        {/* Modal de edición */}
-        <EditProfileModal
-          isOpen={isOpen}
-          onClose={onClose}
-          editData={editData}
-          setEditData={setEditData}
-          perfilId={perfil.id}
-          currentUsername={perfil.username ?? ""}
-          userId={user?.id}
-          error={error}
-          isSaving={isSaving}
-          onSave={handleSave}
-          isMobile={true}
+        {/* Modal de configuración unificado */}
+        <UserAccountModal
+          open={isOpen}
+          onOpenChange={onClose}
+          defaultTab="perfil"
         />
       </>
     );
@@ -353,19 +312,11 @@ export default function PerfilPageClient({
         )}
       </div>
 
-      {/* Modal de edición */}
-      <EditProfileModal
-        isOpen={isOpen}
-        onClose={onClose}
-        editData={editData}
-        setEditData={setEditData}
-        perfilId={perfil.id}
-        currentUsername={perfil.username ?? ""}
-        userId={user?.id}
-        error={error}
-        isSaving={isSaving}
-        onSave={handleSave}
-        isMobile={false}
+      {/* Modal de configuración unificado */}
+      <UserAccountModal
+        open={isOpen}
+        onOpenChange={onClose}
+        defaultTab="perfil"
       />
 
       {/* Modal de gestión de cuentas conectadas */}

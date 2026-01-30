@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Badge } from '@/components/ui/badge';
-import { Newspaper, MessageCircle, Users } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { Newspaper, MessageCircle, Users } from "lucide-react";
 
 interface Usuario {
   id: string;
@@ -14,20 +14,20 @@ interface Usuario {
   color?: string;
   rol?: string;
   bio?: string;
-  tipo: 'usuario';
+  tipo: "usuario";
 }
 
 interface Noticia {
   id: string;
   titulo: string;
   imagen_url?: string;
-  tipo: 'noticia';
+  tipo: "noticia";
 }
 
 interface Hilo {
   id: string;
   titulo: string;
-  tipo: 'hilo';
+  tipo: "hilo";
 }
 
 type Resultado = Usuario | Noticia | Hilo;
@@ -36,14 +36,12 @@ interface SearchDropdownProps {
   query: string;
   isOpen: boolean;
   onClose: () => void;
-  profileColor?: string;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   query,
   isOpen,
   onClose,
-  profileColor,
 }) => {
   const [results, setResults] = useState<Resultado[]>([]);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -72,50 +70,58 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
 
   const performSearch = async () => {
     try {
-      const isUserSearch = query.startsWith('@');
+      const isUserSearch = query.startsWith("@");
       const searchQuery = isUserSearch ? query.substring(1) : query;
 
       if (isUserSearch) {
         // Solo buscar usuarios cuando comienza con @
         const usuariosRes = await fetch(
-          `/api/usuarios/buscar?q=${encodeURIComponent(searchQuery)}&limit=5`
+          `/api/usuarios/buscar?q=${encodeURIComponent(searchQuery)}&limit=5`,
         );
-        const usuariosData = usuariosRes.ok ? await usuariosRes.json() : { usuarios: [] };
+        const usuariosData = usuariosRes.ok
+          ? await usuariosRes.json()
+          : { usuarios: [] };
 
         const usuarios = (usuariosData.usuarios || []).map((u: any) => ({
           ...u,
-          tipo: 'usuario' as const,
+          tipo: "usuario" as const,
         }));
 
         setResults(usuarios);
       } else {
         // Buscar noticias e hilos cuando NO comienza con @
         const [noticiasRes, hilosRes] = await Promise.all([
-          fetch(`/api/noticias?busqueda=${encodeURIComponent(searchQuery)}&limit=3`),
-          fetch(`/api/foro/hilos?buscar=${encodeURIComponent(searchQuery)}&limit=3`),
+          fetch(
+            `/api/noticias?busqueda=${encodeURIComponent(searchQuery)}&limit=3`,
+          ),
+          fetch(
+            `/api/foro/hilos?buscar=${encodeURIComponent(searchQuery)}&limit=3`,
+          ),
         ]);
 
-        const noticiasData = noticiasRes.ok ? await noticiasRes.json() : { data: [] };
+        const noticiasData = noticiasRes.ok
+          ? await noticiasRes.json()
+          : { data: [] };
         const hilosData = hilosRes.ok ? await hilosRes.json() : { hilos: [] };
 
         const noticias = (noticiasData.data || []).map((n: any) => ({
           id: n.id,
           titulo: n.titulo,
           imagen_url: n.imagen_url,
-          tipo: 'noticia' as const,
+          tipo: "noticia" as const,
         }));
 
         const hilos = (hilosData.hilos || []).map((h: any) => ({
           id: h.id,
           titulo: h.titulo,
           slug: h.slug,
-          tipo: 'hilo' as const,
+          tipo: "hilo" as const,
         }));
 
         setResults([...noticias, ...hilos]);
       }
     } catch (error) {
-      console.error('Error en búsqueda:', error);
+      console.error("Error en búsqueda:", error);
       setResults([]);
     }
   };
@@ -125,12 +131,12 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   }
 
   const renderResultItem = (resultado: Resultado) => {
-    if (resultado.tipo === 'usuario') {
+    if (resultado.tipo === "usuario") {
       const usuario = resultado as Usuario;
       return (
         <Link
           key={`${usuario.tipo}-${usuario.id}`}
-          href={`/perfil/${encodeURIComponent(usuario.public_id || usuario.username || '')}`}
+          href={`/perfil/${encodeURIComponent(usuario.public_id || usuario.username || "")}`}
           onClick={onClose}
         >
           <div className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors cursor-pointer">
@@ -146,10 +152,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h4
-                className="font-semibold truncate text-sm"
-                style={{ color: usuario.color || profileColor || '#3b82f6' }}
-              >
+              <h4 className="font-semibold truncate text-sm text-gray-900 dark:text-white">
                 {usuario.username}
               </h4>
               {usuario.bio && (
@@ -158,15 +161,15 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
                 </p>
               )}
             </div>
-            {usuario.rol && usuario.rol !== 'user' && (
+            {usuario.rol && usuario.rol !== "user" && (
               <Badge className="flex-shrink-0 bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                {usuario.rol === 'admin' ? '👑' : '🛡️'}
+                {usuario.rol === "admin" ? "👑" : "🛡️"}
               </Badge>
             )}
           </div>
         </Link>
       );
-    } else if (resultado.tipo === 'noticia') {
+    } else if (resultado.tipo === "noticia") {
       const noticia = resultado as Noticia;
       return (
         <Link
@@ -190,7 +193,9 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
               <h4 className="font-semibold truncate text-sm text-gray-900 dark:text-white">
                 {noticia.titulo}
               </h4>
-              <p className="text-xs text-orange-600 dark:text-orange-400">Noticia</p>
+              <p className="text-xs text-orange-600 dark:text-orange-400">
+                Noticia
+              </p>
             </div>
           </div>
         </Link>
@@ -211,7 +216,9 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
               <h4 className="font-semibold truncate text-sm text-gray-900 dark:text-white">
                 {hilo.titulo}
               </h4>
-              <p className="text-xs text-purple-600 dark:text-purple-400">Hilo</p>
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                Hilo
+              </p>
             </div>
           </div>
         </Link>
@@ -225,7 +232,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
       {results.length > 0 ? (
         <motion.div

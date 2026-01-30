@@ -22,7 +22,7 @@ export default function BtnCrearFlotante({
   const user = authContext?.user || null;
   const profile = authContext?.profile || null;
 
-  const colorPersonalizado = profile?.color || "hsl(222.2, 47.4%, 11.2%)"; // Color por defecto
+  const colorPersonalizado = profile?.color || "#5da1f9"; // Color por defecto
 
   const toggleMenu = () => {
     setMenuAbierto(!menuAbierto);

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       console.log("[API Comentarios] Error: Faltan parámetros requeridos");
       return NextResponse.json(
         { success: false, error: "Faltan parámetros requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     if (contentType === "noticia") {
       console.log(
         "[API Comentarios] Obteniendo comentarios para noticia:",
-        contentId
+        contentId,
       );
 
       // 1) Obtener IDs de comentarios principales de la noticia
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
       // 2) Obtener TODOS los comentarios (principales + todas sus respuestas recursivas)
       // Usamos una función recursiva para obtener todas las respuestas
       const getAllCommentIds = async (
-        parentIds: string[]
+        parentIds: string[],
       ): Promise<string[]> => {
         if (parentIds.length === 0) return [];
 
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
             comentario_padre_id, 
             gif_url,
             perfiles:usuario_id(id, username, avatar_url, role, color)
-          `
+          `,
           )
           .in("id", allCommentIds)
           .or("deleted.is.null,deleted.eq.false")
@@ -107,20 +107,20 @@ export async function GET(request: Request) {
       if (comentariosError) {
         console.error(
           "[API Comentarios] Error al obtener comentarios de noticia:",
-          comentariosError
+          comentariosError,
         );
         return NextResponse.json(
           {
             success: false,
             error: `Error al obtener comentarios: ${comentariosError.message}`,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
       // 3) Contar comentarios principales no eliminados
       const totalComentarios = (todosLosComentarios || []).filter(
-        (c) => !c.comentario_padre_id
+        (c) => !c.comentario_padre_id,
       ).length;
 
       // 4) Crear un mapa de comentarios para acceso rápido
@@ -141,14 +141,14 @@ export async function GET(request: Request) {
       // 5) Construir árbol de comentarios
       const buildCommentTree = (
         comments: Record<string, any>,
-        parentId: string | null
+        parentId: string | null,
       ): any[] => {
         return Object.values(comments)
           .filter((comment) => comment.comentario_padre_id === parentId)
           .map((comment) => {
             // Buscar el comentario original para obtener comentario_padre_id
             const original = (todosLosComentarios || []).find(
-              (c) => c.id === comment.id
+              (c) => c.id === comment.id,
             );
             return {
               ...comment,
@@ -181,7 +181,7 @@ export async function GET(request: Request) {
       // 7) Construir árbol para comentarios principales paginados
       const buildForoCommentTree = (
         comments: any[],
-        parentId: string | null
+        parentId: string | null,
       ): any[] => {
         return comments
           .filter((comment) => comment.comentario_padre_id === parentId)
@@ -208,13 +208,13 @@ export async function GET(request: Request) {
           autor: comentario.perfiles,
           respuestas: buildForoCommentTree(
             todosLosComentarios || [],
-            comentario.id
+            comentario.id,
           ),
         };
       });
 
       console.log(
-        `[API Comentarios] Se encontraron ${comentariosConReplies.length} comentarios de un total de ${totalComentarios}`
+        `[API Comentarios] Se encontraron ${comentariosConReplies.length} comentarios de un total de ${totalComentarios}`,
       );
 
       return NextResponse.json({
@@ -245,19 +245,19 @@ export async function GET(request: Request) {
         // Si hay posts, filtrar manualmente los que tienen deleted = true
         if (posts && !postsError) {
           console.log(
-            `[API Comentarios] Total posts antes de filtrar: ${posts.length}`
+            `[API Comentarios] Total posts antes de filtrar: ${posts.length}`,
           );
 
           // Verificar si el campo 'deleted' existe
           const hasDeletedField = posts.length > 0 && "deleted" in posts[0];
           console.log(
-            `[API Comentarios] Campo 'deleted' existe: ${hasDeletedField}`
+            `[API Comentarios] Campo 'deleted' existe: ${hasDeletedField}`,
           );
 
           if (hasDeletedField) {
             posts = posts.filter((p) => p.deleted === false);
             console.log(
-              `[API Comentarios] Posts después de filtrar deleted=false: ${posts.length}`
+              `[API Comentarios] Posts después de filtrar deleted=false: ${posts.length}`,
             );
           }
         }
@@ -269,14 +269,14 @@ export async function GET(request: Request) {
       if (postsError) {
         console.error(
           "[API Comentarios] Error al obtener posts del foro:",
-          postsError
+          postsError,
         );
         return NextResponse.json(
           {
             success: false,
             error: `Error al obtener posts: ${postsError.message}`,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -287,11 +287,11 @@ export async function GET(request: Request) {
 
       // Crear un conjunto para búsquedas rápidas
       const postsEliminadosSet = new Set(
-        (postsEliminados || []).map((item) => item.id)
+        (postsEliminados || []).map((item) => item.id),
       );
 
       console.log(
-        `[API Comentarios] Se encontraron ${postsEliminadosSet.size} posts eliminados en la tabla de referencias`
+        `[API Comentarios] Se encontraron ${postsEliminadosSet.size} posts eliminados en la tabla de referencias`,
       );
       postsEliminadosSet.forEach((id) => {
         console.log(`[API Comentarios] Post eliminado con ID: ${id}`);
@@ -319,7 +319,7 @@ export async function GET(request: Request) {
         posts?.map((post) => {
           console.log(
             `[API Comentarios][Hilo] Post ${post.id} gif_url:`,
-            post.gif_url || null
+            post.gif_url || null,
           );
 
           const autorPerfil =
@@ -336,13 +336,13 @@ export async function GET(request: Request) {
               {
                 existeEnPosts: !!parentPost,
                 existeEnEliminados: isParentDeleted,
-              }
+              },
             );
 
             if (parentPost) {
               // El post padre existe en la lista actual
               const parentAutor = autores?.find(
-                (autor) => autor.id === parentPost.autor_id
+                (autor) => autor.id === parentPost.autor_id,
               );
               repliedTo = {
                 id: parentPost.id,
@@ -355,7 +355,7 @@ export async function GET(request: Request) {
             } else if (isParentDeleted) {
               // El post padre ha sido eliminado
               console.log(
-                `[API Comentarios] Post padre ${post.post_padre_id} encontrado en tabla de eliminados`
+                `[API Comentarios] Post padre ${post.post_padre_id} encontrado en tabla de eliminados`,
               );
               repliedTo = {
                 id: post.post_padre_id,
@@ -367,7 +367,7 @@ export async function GET(request: Request) {
               };
             } else {
               console.log(
-                `[API Comentarios] ADVERTENCIA: No se encontró el post padre ${post.post_padre_id} ni en posts ni en eliminados`
+                `[API Comentarios] ADVERTENCIA: No se encontró el post padre ${post.post_padre_id} ni en posts ni en eliminados`,
               );
             }
           }
@@ -394,7 +394,7 @@ export async function GET(request: Request) {
             `[API Comentarios][Hilo] Post ${post.id} (padre ${
               post.post_padre_id || "root"
             }) preparado con gif_url:`,
-            replyWithGif.gif_url
+            replyWithGif.gif_url,
           );
 
           return replyWithGif;
@@ -402,7 +402,7 @@ export async function GET(request: Request) {
 
       // 6) Ordenar comentarios principales según sortBy
       let comentariosPrincipales = comentariosFormateados.filter(
-        (c) => !c.parent_id
+        (c) => !c.parent_id,
       );
 
       // Encontrar la solución si existe
@@ -411,7 +411,7 @@ export async function GET(request: Request) {
       // Filtrar la solución de la lista principal para no duplicarla
       if (solucion) {
         comentariosPrincipales = comentariosPrincipales.filter(
-          (c) => c.id !== solucion.id
+          (c) => c.id !== solucion.id,
         );
       }
 
@@ -460,14 +460,14 @@ export async function GET(request: Request) {
         const adjustedOffset = solucion ? Math.max(0, offset - 1) : offset;
         comentariosPaginados = comentariosPrincipales.slice(
           adjustedOffset,
-          adjustedOffset + limite
+          adjustedOffset + limite,
         );
       }
 
       // 7) Construir árbol de comentarios para los paginados
       const buildForoCommentTree = (
         comments: any[],
-        parentId: string | null
+        parentId: string | null,
       ): any[] => {
         return comments
           .filter((comment) => comment.parent_id === parentId)
@@ -483,7 +483,7 @@ export async function GET(request: Request) {
               `[API Comentarios][Hilo] Reply ${comment.id} (padre ${
                 parentId || "root"
               }) gif_url:`,
-              commentWithReplies.gif_url || null
+              commentWithReplies.gif_url || null,
             );
 
             return commentWithReplies;
@@ -499,7 +499,7 @@ export async function GET(request: Request) {
       });
 
       console.log(
-        `[API Comentarios] Enviando ${comentariosConReplies.length} comentarios principales con sus respuestas`
+        `[API Comentarios] Enviando ${comentariosConReplies.length} comentarios principales con sus respuestas`,
       );
       return NextResponse.json({
         success: true,
@@ -517,11 +517,11 @@ export async function GET(request: Request) {
 
     // Crear un conjunto para búsquedas rápidas
     const comentariosEliminadosSet = new Set(
-      (comentariosEliminados || []).map((item) => item.id)
+      (comentariosEliminados || []).map((item) => item.id),
     );
 
     console.log(
-      `[API Comentarios] Se encontraron ${comentariosEliminadosSet.size} comentarios eliminados en la tabla de referencias`
+      `[API Comentarios] Se encontraron ${comentariosEliminadosSet.size} comentarios eliminados en la tabla de referencias`,
     );
     comentariosEliminadosSet.forEach((id) => {
       console.log(`[API Comentarios] Comentario eliminado con ID: ${id}`);
@@ -531,7 +531,7 @@ export async function GET(request: Request) {
     // Función recursiva para construir árbol de comentarios
     const buildCommentTree = (
       comments: any[],
-      parentId: string | null = null
+      parentId: string | null = null,
     ): Comentario[] => {
       return comments
         .filter((comment) => comment.comentario_padre_id === parentId)
@@ -541,12 +541,12 @@ export async function GET(request: Request) {
           if (comment.comentario_padre_id) {
             // Verificar si el comentario padre existe en los comentarios actuales
             const parentComment = comments.find(
-              (c) => c.id === comment.comentario_padre_id
+              (c) => c.id === comment.comentario_padre_id,
             );
 
             // Verificar si el comentario padre ha sido eliminado
             const isParentDeleted = comentariosEliminadosSet.has(
-              comment.comentario_padre_id
+              comment.comentario_padre_id,
             );
 
             console.log(
@@ -554,7 +554,7 @@ export async function GET(request: Request) {
               {
                 existeEnComentarios: !!parentComment,
                 existeEnEliminados: isParentDeleted,
-              }
+              },
             );
 
             if (parentComment) {
@@ -570,7 +570,7 @@ export async function GET(request: Request) {
             } else if (isParentDeleted) {
               // El comentario padre ha sido eliminado
               console.log(
-                `[API Comentarios] Comentario padre ${comment.comentario_padre_id} encontrado en tabla de eliminados`
+                `[API Comentarios] Comentario padre ${comment.comentario_padre_id} encontrado en tabla de eliminados`,
               );
               repliedTo = {
                 id: comment.comentario_padre_id,
@@ -582,7 +582,7 @@ export async function GET(request: Request) {
               };
             } else {
               console.log(
-                `[API Comentarios] ADVERTENCIA: No se encontró el comentario padre ${comment.comentario_padre_id} ni en comentarios ni en eliminados`
+                `[API Comentarios] ADVERTENCIA: No se encontró el comentario padre ${comment.comentario_padre_id} ni en comentarios ni en eliminados`,
               );
             }
           }
@@ -616,7 +616,7 @@ export async function GET(request: Request) {
         `
         *,
         perfiles:usuario_id(id, username, avatar_url, role, color)
-      `
+      `,
       )
       .eq("tipo_entidad", contentType)
       .eq("entidad_id", contentId)
@@ -629,7 +629,7 @@ export async function GET(request: Request) {
           success: false,
           error: `Error al obtener comentarios: ${error.message}`,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -638,21 +638,21 @@ export async function GET(request: Request) {
 
     // Log para depuración
     console.log(
-      `[API Comentarios] Estructura de comentarios construida con ${comentariosRaiz.length} comentarios principales`
+      `[API Comentarios] Estructura de comentarios construida con ${comentariosRaiz.length} comentarios principales`,
     );
 
     // Verificar si hay respuestas con repliedTo
     const respuestasConRepliedTo =
       todosLosComentarios?.filter((c) => c.comentario_padre_id !== null) || [];
     console.log(
-      `[API Comentarios] Hay ${respuestasConRepliedTo.length} respuestas en total`
+      `[API Comentarios] Hay ${respuestasConRepliedTo.length} respuestas en total`,
     );
 
     // Aplicar paginación a comentarios principales
     const comentariosPaginados = comentariosRaiz.slice(offset, offset + limite);
 
     console.log(
-      `[API Comentarios] Enviando ${comentariosPaginados.length} comentarios principales`
+      `[API Comentarios] Enviando ${comentariosPaginados.length} comentarios principales`,
     );
     return NextResponse.json({
       success: true,
@@ -665,7 +665,7 @@ export async function GET(request: Request) {
     console.error("[API Comentarios] Error en la API de comentarios:", error);
     return NextResponse.json(
       { success: false, error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -687,11 +687,11 @@ export async function PUT(request: Request) {
     // Validar datos requeridos
     if (!id || !contenido || !usuario_id) {
       console.log(
-        "[API Comentarios] Error: Faltan campos requeridos para edición"
+        "[API Comentarios] Error: Faltan campos requeridos para edición",
       );
       return NextResponse.json(
         { success: false, error: "Faltan campos requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -707,25 +707,25 @@ export async function PUT(request: Request) {
     if (errorConsulta) {
       console.error(
         "[API Comentarios] Error al verificar comentario:",
-        errorConsulta
+        errorConsulta,
       );
       return NextResponse.json(
         { success: false, error: "No se encontró el comentario" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Verificar que el comentario pertenezca al usuario
     if (comentarioExistente.usuario_id !== usuario_id) {
       console.error(
-        "[API Comentarios] Error: Usuario no autorizado para editar este comentario"
+        "[API Comentarios] Error: Usuario no autorizado para editar este comentario",
       );
       return NextResponse.json(
         {
           success: false,
           error: "No estás autorizado para editar este comentario",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -774,7 +774,7 @@ export async function PUT(request: Request) {
         `
         *,
         perfiles:usuario_id(id, username, avatar_url, role, color)
-      `
+      `,
       )
       .single();
 
@@ -785,7 +785,7 @@ export async function PUT(request: Request) {
           success: false,
           error: `Error al actualizar el comentario: ${error.message}`,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -798,11 +798,11 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error(
       "[API Comentarios] Error en la API de edición de comentarios:",
-      error
+      error,
     );
     return NextResponse.json(
       { success: false, error: `Error interno del servidor: ${error}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -823,11 +823,11 @@ export async function DELETE(request: Request) {
     // Validar datos requeridos
     if (!id || !usuario_id) {
       console.log(
-        "[API Comentarios] Error: Faltan parámetros requeridos para eliminación"
+        "[API Comentarios] Error: Faltan parámetros requeridos para eliminación",
       );
       return NextResponse.json(
         { success: false, error: "Faltan parámetros requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -843,25 +843,25 @@ export async function DELETE(request: Request) {
     if (errorConsulta) {
       console.error(
         "[API Comentarios] Error al verificar comentario:",
-        errorConsulta
+        errorConsulta,
       );
       return NextResponse.json(
         { success: false, error: "No se encontró el comentario" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Verificar que el comentario pertenezca al usuario
     if (comentarioExistente.usuario_id !== usuario_id) {
       console.error(
-        "[API Comentarios] Error: Usuario no autorizado para eliminar este comentario"
+        "[API Comentarios] Error: Usuario no autorizado para eliminar este comentario",
       );
       return NextResponse.json(
         {
           success: false,
           error: "No estás autorizado para eliminar este comentario",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -875,7 +875,7 @@ export async function DELETE(request: Request) {
           success: false,
           error: `Error al eliminar el comentario: ${error.message}`,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -891,7 +891,7 @@ export async function DELETE(request: Request) {
         success: false,
         error: "Error interno del servidor al eliminar el comentario",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -911,7 +911,7 @@ export async function POST(request: Request) {
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: "Debes iniciar sesión para comentar" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -928,7 +928,7 @@ export async function POST(request: Request) {
       console.log("[API Comentarios] Error: Faltan campos requeridos");
       return NextResponse.json(
         { success: false, error: "Debes proporcionar texto o un GIF" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -936,7 +936,7 @@ export async function POST(request: Request) {
       console.log("[API Comentarios] Error: Faltan campos requeridos");
       return NextResponse.json(
         { success: false, error: "Faltan campos requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -946,7 +946,7 @@ export async function POST(request: Request) {
     // Caso especial: si es un comentario para un hilo del foro, guardarlo en foro_posts
     if (content_type === "hilo") {
       console.log(
-        "[API Comentarios] Guardando comentario de hilo en foro_posts"
+        "[API Comentarios] Guardando comentario de hilo en foro_posts",
       );
       const { data: postData, error: postError } = await serviceSupabase
         .from("foro_posts")
@@ -963,14 +963,14 @@ export async function POST(request: Request) {
       if (postError) {
         console.error(
           "[API Comentarios] Error al crear post del foro:",
-          postError
+          postError,
         );
         return NextResponse.json(
           {
             success: false,
             error: `Error al crear el comentario: ${postError.message}`,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -1009,8 +1009,30 @@ export async function POST(request: Request) {
         });
         console.log(
           "[API Comentarios] Notificación de comentario en hilo enviada a:",
-          hiloData.autor_id
+          hiloData.autor_id,
         );
+      }
+
+      // Procesa menciones para Hilos
+      if (text && hiloData) {
+        try {
+          const { notifyMentions } = await import("@/lib/notificationService");
+          await notifyMentions({
+            content: text,
+            authorId: user.id,
+            authorName: perfilData?.username || "Alguien",
+            sourceId: postData.id,
+            sourceType: "thread_comment",
+            sourceUrl: `/foro/hilo/${hiloData.slug}`,
+            previewText: text.replace(/<[^>]+>/g, ""),
+            // No excluimos a nadie salvo al autor mismo (automático)
+          });
+        } catch (err) {
+          console.error(
+            "[API Comentarios] Error procesando menciones hilo:",
+            err,
+          );
+        }
       }
 
       // Formatear respuesta para compatibilidad con el frontend
@@ -1029,7 +1051,7 @@ export async function POST(request: Request) {
 
       console.log(
         "[API Comentarios] Post del foro creado exitosamente:",
-        comentarioFormateado.id
+        comentarioFormateado.id,
       );
       return NextResponse.json(comentarioFormateado);
     }
@@ -1049,7 +1071,7 @@ export async function POST(request: Request) {
         `
         *,
         perfiles:usuario_id(id, username, avatar_url, role, color)
-      `
+      `,
       )
       .single();
 
@@ -1060,7 +1082,7 @@ export async function POST(request: Request) {
           success: false,
           error: `Error al crear el comentario: ${error.message}`,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -1094,8 +1116,32 @@ export async function POST(request: Request) {
         });
         console.log(
           "[API Comentarios] Notificación de comentario en noticia enviada a:",
-          noticiaData.autor_id
+          noticiaData.autor_id,
         );
+      }
+
+      // Procesa menciones para Noticias
+      if ((text || comentarioData.contenido) && noticiaData) {
+        try {
+          const { notifyMentions } = await import("@/lib/notificationService");
+          await notifyMentions({
+            content: text || comentarioData.contenido || "",
+            authorId: user.id,
+            authorName: comentarioData.perfiles?.username || "Alguien",
+            sourceId: comentarioData.id,
+            sourceType: "news_comment",
+            sourceUrl: `/noticias/${content_id}`,
+            previewText: (text || comentarioData.contenido || "").replace(
+              /<[^>]+>/g,
+              "",
+            ),
+          });
+        } catch (err) {
+          console.error(
+            "[API Comentarios] Error procesando menciones noticia:",
+            err,
+          );
+        }
       }
     }
 
@@ -1115,7 +1161,7 @@ export async function POST(request: Request) {
 
     console.log(
       "[API Comentarios] Comentario creado exitosamente:",
-      comentarioFormateado.id
+      comentarioFormateado.id,
     );
 
     return NextResponse.json(comentarioFormateado);
@@ -1123,7 +1169,7 @@ export async function POST(request: Request) {
     console.error("Error en API de comentarios:", error);
     return NextResponse.json(
       { success: false, error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

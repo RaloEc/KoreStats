@@ -24,24 +24,10 @@ export const AdminDesktopMenu: React.FC<AdminDesktopMenuProps> = ({
         type="button"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="px-4 py-2 transition font-medium hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg"
-        style={
-          {
-            "--hover-bg": profile?.color
-              ? `${profile.color}1a`
-              : "rgba(37, 99, 235, 0.1)",
-            "--hover-text": profile?.color || "#2563eb",
-            "--dark-hover-bg": profile?.color
-              ? `${profile.color}1a`
-              : "rgba(96, 165, 250, 0.1)",
-            "--dark-hover-text": profile?.color || "#60a5fa",
-          } as React.CSSProperties
-        }
+        className="px-4 py-2 transition font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg"
         onClick={onToggle}
       >
-        <span className="hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)] px-2 py-1 rounded">
-          Admin
-        </span>
+        Admin
       </button>
       <div
         className={`absolute top-full left-0 mt-1 w-56 rounded-md border shadow-lg bg-white dark:bg-black border-gray-200 dark:border-gray-800 transition-all duration-200 ease-in-out transform origin-top-left ${
@@ -54,19 +40,7 @@ export const AdminDesktopMenu: React.FC<AdminDesktopMenuProps> = ({
           <li className="menu-item">
             <Link
               href="/admin/dashboard"
-              style={
-                {
-                  "--hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(37, 99, 235, 0.1)",
-                  "--hover-text": profile?.color || "#2563eb",
-                  "--dark-hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(96, 165, 250, 0.1)",
-                  "--dark-hover-text": profile?.color || "#60a5fa",
-                } as React.CSSProperties
-              }
-              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)]"
+              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={onClose}
             >
               Dashboard
@@ -75,19 +49,7 @@ export const AdminDesktopMenu: React.FC<AdminDesktopMenuProps> = ({
           <li className="menu-item">
             <Link
               href="/admin/noticias"
-              style={
-                {
-                  "--hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(37, 99, 235, 0.1)",
-                  "--hover-text": profile?.color || "#2563eb",
-                  "--dark-hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(96, 165, 250, 0.1)",
-                  "--dark-hover-text": profile?.color || "#60a5fa",
-                } as React.CSSProperties
-              }
-              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)]"
+              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={onClose}
             >
               Admin Noticias
@@ -96,19 +58,7 @@ export const AdminDesktopMenu: React.FC<AdminDesktopMenuProps> = ({
           <li className="menu-item">
             <Link
               href="/admin/usuarios"
-              style={
-                {
-                  "--hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(37, 99, 235, 0.1)",
-                  "--hover-text": profile?.color || "#2563eb",
-                  "--dark-hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(96, 165, 250, 0.1)",
-                  "--dark-hover-text": profile?.color || "#60a5fa",
-                } as React.CSSProperties
-              }
-              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)]"
+              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={onClose}
             >
               Admin Usuarios
@@ -117,19 +67,7 @@ export const AdminDesktopMenu: React.FC<AdminDesktopMenuProps> = ({
           <li className="menu-item">
             <Link
               href="/admin/foro"
-              style={
-                {
-                  "--hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(37, 99, 235, 0.1)",
-                  "--hover-text": profile?.color || "#2563eb",
-                  "--dark-hover-bg": profile?.color
-                    ? `${profile.color}1a`
-                    : "rgba(96, 165, 250, 0.1)",
-                  "--dark-hover-text": profile?.color || "#60a5fa",
-                } as React.CSSProperties
-              }
-              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-[var(--hover-bg)] dark:hover:bg-[var(--dark-hover-bg)] hover:text-[var(--hover-text)] dark:hover:text-[var(--dark-hover-text)]"
+              className="block px-4 py-2 transition-colors text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={onClose}
             >
               Admin Foro

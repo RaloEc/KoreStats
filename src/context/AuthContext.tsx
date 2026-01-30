@@ -19,6 +19,7 @@ export interface Profile {
   followers_count?: number;
   following_count?: number;
   friends_count?: number;
+  settings?: Record<string, any>;
 }
 
 interface AuthState {
@@ -37,7 +38,7 @@ const defaultAuthState: AuthState = {
   session: null,
   loading: true,
   profile: null,
-  supabase: createClient(),
+  supabase: null as any, // Se asignará en el Provider
   signOut: async () => {},
   refreshAuth: async () => {},
   refreshProfile: async () => {},

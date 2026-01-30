@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -71,7 +72,10 @@ export default function ReportModal({
     }
   };
 
-  return (
+  // Use a portal to escape parent stacking contexts (e.g. transforms in virtual lists)
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -104,7 +108,7 @@ export default function ReportModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               ¿Por qué deseas reportar este contenido?
             </label>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
               {REPORT_REASONS.map((r) => (
                 <label
                   key={r.value}
@@ -192,6 +196,7 @@ export default function ReportModal({
           </p>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

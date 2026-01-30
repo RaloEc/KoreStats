@@ -12,6 +12,7 @@ import { Search } from "lucide-react";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { Input } from "@/components/ui/input";
 import { SearchDropdown } from "./header/SearchDropdown";
+import { UserAccountModal } from "./settings/UserAccountModal";
 
 const Header: React.FC = () => {
   const [showMobileSearchDropdown, setShowMobileSearchDropdown] =
@@ -40,6 +41,8 @@ const Header: React.FC = () => {
     expandedCategories,
     setExpandedCategories,
     isLoggingOut,
+    isSettingsModalOpen,
+    setIsSettingsModalOpen,
 
     // Referencias
     adminMenuRef,
@@ -134,18 +137,7 @@ const Header: React.FC = () => {
                       setShowMobileSearchDropdown(false);
                     }, 150);
                   }}
-                  style={
-                    {
-                      "--focus-border-color": profile?.color || "#3b82f6",
-                      "--focus-ring-color": profile?.color
-                        ? `${profile.color}40`
-                        : "rgba(59, 130, 246, 0.25)",
-                    } as React.CSSProperties
-                  }
-                  className={`pl-10 pr-4 py-2 w-full bg-gray-50 dark:bg-black border-gray-200 dark:border-gray-800 rounded-full
-                focus:border-[var(--focus-border-color)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]
-                dark:focus:border-[var(--focus-border-color)] dark:focus-visible:ring-2 dark:focus-visible:ring-[var(--focus-ring-color)]
-                transition-colors duration-200`}
+                  className="pl-10 pr-4 py-2 w-full bg-gray-50 dark:bg-black border-gray-200 dark:border-gray-800 rounded-full focus:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 transition-colors duration-200"
                 />
 
                 {/* Dropdown de búsqueda en tiempo real para móvil */}
@@ -154,7 +146,6 @@ const Header: React.FC = () => {
                     query={searchQuery}
                     isOpen={showMobileSearchDropdown}
                     onClose={() => setShowMobileSearchDropdown(false)}
-                    profileColor={profile?.color}
                   />
                 </div>
               </form>
@@ -176,6 +167,7 @@ const Header: React.FC = () => {
               handleLogout={handleLogout}
               openAuthModal={openAuthModal}
               isLoggingOut={isLoggingOut}
+              setIsSettingsModalOpen={setIsSettingsModalOpen}
             />
           </div>
         </div>
@@ -197,6 +189,7 @@ const Header: React.FC = () => {
           setExpandedCategories={setExpandedCategories}
           isAdmin={isAdmin}
           isLoggingOut={isLoggingOut}
+          setIsSettingsModalOpen={setIsSettingsModalOpen}
         />
 
         {/* Auth Modal */}
@@ -205,6 +198,13 @@ const Header: React.FC = () => {
           onClose={() => setIsAuthModalOpen(false)}
           defaultMode={authModalMode}
           redirectTo={authRedirectTo}
+        />
+
+        {/* User Account Modal (Unified Settings & Profile) */}
+        <UserAccountModal
+          open={isSettingsModalOpen}
+          onOpenChange={setIsSettingsModalOpen}
+          defaultTab="interfaz"
         />
       </div>
     </>

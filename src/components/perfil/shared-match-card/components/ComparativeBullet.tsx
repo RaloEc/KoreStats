@@ -29,83 +29,69 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = memo(
       avg > 0 && max > 0 ? Math.max(0, Math.min(100, (avg / max) * 100)) : 0;
 
     return (
-      <div className="group/bullet space-y-2">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-slate-800 dark:text-slate-100">
-            {label}
-          </span>
-          <div className="flex items-baseline gap-2">
-            {deltaLabel && (
-              <span
-                className="text-[8px] sm:text-[9px] font-black px-1 py-0.5 rounded-md backdrop-blur-sm border border-white/30 dark:border-white/10"
-                style={{
-                  color: userColor,
-                  opacity: isBetter ? 1 : 0.7,
-                  backgroundColor: isBetter
-                    ? `${userColor}15`
-                    : `${userColor}08`,
-                }}
-              >
-                {deltaLabel}
-              </span>
-            )}
-            <span
-              className="text-[10px] sm:text-xs font-black"
-              style={{
-                color: userColor,
-                opacity: isBetter ? 1 : 0.85,
-              }}
-            >
-              {valueLabel}
+      <div className="group/bullet space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-black/70 dark:text-slate-400">
+              {label}
             </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs sm:text-sm font-black text-black dark:text-slate-50">
+                {valueLabel}
+              </span>
+              {deltaLabel && (
+                <span
+                  className={`text-[9px] font-bold px-1 py-0.5 rounded-sm ${
+                    isBetter
+                      ? "text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-500/10"
+                      : "text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-500/10"
+                  }`}
+                >
+                  {deltaLabel}
+                </span>
+              )}
+            </div>
           </div>
+
+          {avg > 0 && (
+            <div className="text-right">
+              <span className="block text-[8px] uppercase font-bold text-black/60 dark:text-slate-500 tracking-tight">
+                Promedio
+              </span>
+              <span className="text-[10px] font-bold text-black dark:text-slate-300">
+                {avgLabel ?? avg.toFixed(0)}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Barra de progreso mejorada */}
-        <div className="relative h-3 rounded-full bg-gradient-to-r from-slate-200/50 via-slate-100/50 to-slate-200/50 dark:from-slate-800/50 dark:via-slate-900/50 dark:to-slate-800/50 overflow-hidden shadow-inner">
-          {/* Brillo superior */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
-
-          {/* Barra de valor con gradiente */}
+        {/* Barra de progreso minimalista */}
+        <div className="relative h-1 w-full bg-slate-200/50 dark:bg-slate-800/80 rounded-full overflow-visible mt-3 mb-4">
+          {/* Marcador de promedio (Línea vertical más alta y clara) */}
           <div
-            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
-            style={{
-              width: `${Math.max(2, valuePct)}%`,
-              background: `linear-gradient(90deg, ${userColor}40, ${userColor}80, ${userColor}40)`,
-            }}
-          >
-            {/* Brillo estático para mejor rendimiento */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          </div>
-
-          {/* Marcador de promedio (línea vertical) */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-gradient-to-b from-white/90 via-white/70 to-white/90 dark:from-white/60 dark:via-white/40 dark:to-white/60 shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all duration-300"
-            style={{ left: `calc(${avgPct}% - 1px)` }}
+            className="absolute top-[-5px] bottom-[-5px] w-[1.5px] bg-slate-500 dark:bg-slate-500 z-10"
+            style={{ left: `${avgPct}%` }}
           />
 
-          {/* Indicador circular del valor */}
+          {/* Barra de valor (Base neutra) */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg transition-all duration-500 ease-out"
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out z-0"
             style={{
-              left: `calc(${valuePct}% - 7px)`,
-              backgroundColor: userColor,
-              opacity: isBetter ? 1 : 0.7,
-              boxShadow: `0 0 12px ${userColor}80, 0 2px 8px rgba(0,0,0,0.2)`,
+              width: `${Math.max(1, valuePct)}%`,
+              backgroundColor: isBetter ? "#94a3b8" : "#64748b",
             }}
           >
-            {/* Brillo interno */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/40 to-transparent" />
+            {/* Indicador del usuario: Barra vertical con Color de Usuario y Brillo */}
+            <div
+              className="absolute right-[-1px] top-[-4px] bottom-[-4px] w-[3px] rounded-full shadow-sm transition-all duration-500"
+              style={{
+                backgroundColor: userColor,
+                boxShadow: `0 0 8px ${userColor}80`,
+              }}
+            />
           </div>
         </div>
-
-        {avg > 0 && (
-          <div className="text-[8px] sm:text-[9px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-            <span className="inline-block w-1 h-1 rounded-full bg-slate-500 dark:bg-slate-400" />
-            Promedio equipo: {avgLabel ?? avg.toFixed(0)}
-          </div>
-        )}
       </div>
     );
-  }
+  },
 );

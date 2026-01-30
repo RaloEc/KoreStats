@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     if (!esUsuarioAdmin) {
       return NextResponse.json(
         { error: "No autorizado. Se requieren permisos de administrador." },
-        { status: 403 }
+        { status: 403 },
       );
     }
   }
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
           *,
           autor:perfiles!noticias_autor_id_fkey(username, avatar_url, role),
           categorias:noticias_categorias!inner(categoria_id, categoria:categorias!inner(nombre, slug, color))
-        `
+        `,
         )
         .eq("id", id)
         .single();
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         console.error("Error al obtener noticia:", error);
         return NextResponse.json(
           { error: `Error al obtener noticia: ${error.message}` },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -105,13 +105,13 @@ export async function GET(request: NextRequest) {
         autor:perfiles!noticias_autor_id_fkey(username, avatar_url, role),
         categorias:noticias_categorias!inner(categoria_id, categoria:categorias!inner(nombre, slug, color))
       `,
-      { count: "exact" }
+      { count: "exact" },
     );
 
     // Aplicar filtros
     if (busqueda) {
       query = query.or(
-        `titulo.ilike.%${busqueda}%,contenido.ilike.%${busqueda}%`
+        `titulo.ilike.%${busqueda}%,contenido.ilike.%${busqueda}%`,
       );
     }
 
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
       console.error("Error al obtener noticias:", error);
       return NextResponse.json(
         { error: `Error al obtener noticias: ${error.message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -196,8 +196,8 @@ export async function GET(request: NextRequest) {
         noticia.autor?.rol === "admin"
           ? "#ef4444"
           : noticia.autor?.rol === "moderator"
-          ? "#f59e0b"
-          : "#3b82f6",
+            ? "#f59e0b"
+            : "#3b82f6",
     }));
 
     // Calcular total de páginas
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
     console.error("Error al procesar la solicitud:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
         console.log(
           `API - Imagen ${imgCount}: ${src?.substring(0, 100)}${
             src && src.length > 100 ? "..." : ""
-          }`
+          }`,
         );
 
         // Verificar si la imagen es una URL de Supabase
@@ -263,11 +263,11 @@ export async function POST(request: Request) {
           console.log(`API - Imagen ${imgCount} es una URL de Supabase válida`);
         } else if (src && src.startsWith("blob:")) {
           console.error(
-            `API - Imagen ${imgCount} es una URL de blob temporal que NO debería estar presente en este punto`
+            `API - Imagen ${imgCount} es una URL de blob temporal que NO debería estar presente en este punto`,
           );
         } else if (src && src.startsWith("data:")) {
           console.error(
-            `API - Imagen ${imgCount} es una URL de datos que NO debería estar presente en este punto`
+            `API - Imagen ${imgCount} es una URL de datos que NO debería estar presente en este punto`,
           );
         }
       }
@@ -280,7 +280,7 @@ export async function POST(request: Request) {
       console.error("Validación fallida: Faltan campos requeridos");
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -292,7 +292,7 @@ export async function POST(request: Request) {
       console.error("No se pudo obtener el cliente de servicio de Supabase");
       return NextResponse.json(
         { error: "Error de configuración del servidor" },
-        { status: 500 }
+        { status: 500 },
       );
     }
     console.log("Cliente de servicio obtenido correctamente");
@@ -310,6 +310,9 @@ export async function POST(request: Request) {
       fecha_publicacion:
         data.estado === "publicada" ? new Date().toISOString() : null,
       fuentes: data.fuentes || (data.fuente ? [data.fuente] : []),
+      type: data.type || "standard",
+      data: data.data || null,
+      slug: data.slug || undefined,
     };
 
     console.log("Datos de la noticia a crear:", {
@@ -336,7 +339,7 @@ export async function POST(request: Request) {
       console.log("Datos recibidos:", JSON.stringify(data, null, 2));
       return NextResponse.json(
         { error: `Error al crear noticia: ${error.message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -354,7 +357,7 @@ export async function POST(request: Request) {
           (categoriaId: string) => ({
             noticia_id: noticiaId,
             categoria_id: categoriaId,
-          })
+          }),
         );
 
         // Primero, eliminar cualquier relación existente para esta noticia
@@ -366,7 +369,7 @@ export async function POST(request: Request) {
         if (errorEliminar && errorEliminar.code !== "42P01") {
           console.error(
             "Error al eliminar categorías existentes:",
-            errorEliminar
+            errorEliminar,
           );
         }
 
@@ -383,11 +386,11 @@ export async function POST(request: Request) {
             if (errorRelaciones.code === "42P01") {
               // La tabla no existe, intentar crearla
               console.log(
-                "Tabla noticias_categorias no existe. Intentando crear..."
+                "Tabla noticias_categorias no existe. Intentando crear...",
               );
 
               const { error: createTableError } = await serviceClient.rpc(
-                "crear_tabla_noticias_categorias"
+                "crear_tabla_noticias_categorias",
               );
 
               if (createTableError) {
@@ -396,7 +399,7 @@ export async function POST(request: Request) {
                   {
                     error: `Error al crear tabla de relaciones: ${createTableError.message}`,
                   },
-                  { status: 500 }
+                  { status: 500 },
                 );
               }
 
@@ -408,13 +411,13 @@ export async function POST(request: Request) {
               if (reintentarRelaciones) {
                 console.error(
                   "Error al reintentar asignar categorías:",
-                  reintentarRelaciones
+                  reintentarRelaciones,
                 );
               }
             } else if (errorRelaciones.code === "23505") {
               // Duplicado, lo ignoramos (ya hemos eliminado las relaciones previas)
               console.log(
-                "Relaciones de categorías ya existían, se han actualizado."
+                "Relaciones de categorías ya existían, se han actualizado.",
               );
             }
           }
@@ -435,14 +438,14 @@ export async function POST(request: Request) {
     } else {
       return NextResponse.json(
         { error: "No se pudo obtener el ID de la noticia creada" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error) {
     console.error("Error al procesar la solicitud:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -454,7 +457,7 @@ export async function PUT(request: Request) {
     if (!data.id || !data.titulo || !data.contenido || !data.categoria_ids) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -472,6 +475,8 @@ export async function PUT(request: Request) {
         destacada: data.destacada || false,
         updated_at: new Date().toISOString(),
         fuentes: data.fuentes || (data.fuente ? [data.fuente] : []),
+        type: data.type || undefined,
+        data: data.data || undefined,
       })
       .eq("id", data.id);
 
@@ -479,7 +484,7 @@ export async function PUT(request: Request) {
       console.error("Error al actualizar noticia:", updateError);
       return NextResponse.json(
         { error: `Error al actualizar noticia: ${updateError.message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -501,7 +506,7 @@ export async function PUT(request: Request) {
           (categoriaId: string) => ({
             noticia_id: data.id,
             categoria_id: categoriaId,
-          })
+          }),
         );
 
         const { error: categoriaError } = await serviceClient
@@ -527,7 +532,7 @@ export async function PUT(request: Request) {
     console.error("Error al procesar la solicitud:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -540,7 +545,7 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json(
         { error: "ID de noticia no proporcionado" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -557,7 +562,7 @@ export async function DELETE(request: Request) {
       console.error("Error al eliminar noticia:", error);
       return NextResponse.json(
         { error: `Error al eliminar noticia: ${error.message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -572,7 +577,7 @@ export async function DELETE(request: Request) {
     console.error("Error al procesar la solicitud:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

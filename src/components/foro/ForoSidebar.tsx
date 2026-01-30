@@ -251,40 +251,24 @@ export default function ForoSidebar({ categorias = [] }: ForoSidebarProps) {
   const [query, setQuery] = useState("");
 
   // Log para depuración
-  React.useEffect(() => {
-    console.log("Categorías recibidas en ForoSidebar:", categorias);
-    if (categorias.length === 0) {
-      console.warn("No se recibieron categorías en el componente ForoSidebar");
-    }
-  }, [categorias]);
 
   const nestedCategorias = useMemo(() => {
     if (!categorias || categorias.length === 0) {
-      console.warn("No hay categorías para procesar en nestedCategorias");
       return [];
     }
 
-    console.log("[ForoSidebar] Categorías recibidas (raw):", categorias);
-    console.log("[ForoSidebar] Primera categoría estructura:", categorias[0]);
-
     // Si las categorías ya vienen con subcategorias (árbol construido), usarlas directamente
     const yaEsArbol = categorias.some((c) => c.subcategorias !== undefined);
-    console.log("[ForoSidebar] ¿Ya es árbol?:", yaEsArbol);
 
     let tree: Categoria[];
 
     if (yaEsArbol) {
       // Ya viene organizado jerárquicamente desde el servidor
       tree = categorias;
-      console.log("[ForoSidebar] Usando árbol existente, raíces:", tree.length);
     } else {
       // Necesita reorganización (categorías planas)
       const parents = categorias.filter(
-        (c) => !c.categoria_padre_id && !c.parent_id
-      );
-      console.log(
-        "[ForoSidebar] Categorías padre encontradas:",
-        parents.length
+        (c) => !c.categoria_padre_id && !c.parent_id,
       );
 
       const childrenByParent = new Map<string, Categoria[]>();
@@ -303,16 +287,6 @@ export default function ForoSidebar({ categorias = [] }: ForoSidebarProps) {
       }));
     }
 
-    // Log de subcategorías
-    tree.forEach((cat) => {
-      if (cat.subcategorias && cat.subcategorias.length > 0) {
-        console.log(
-          `[ForoSidebar] Categoría "${cat.nombre}" tiene ${cat.subcategorias.length} subcategorías:`,
-          cat.subcategorias.map((s) => s.nombre)
-        );
-      }
-    });
-
     if (!query.trim()) return tree;
     const q = query.toLowerCase();
     // Filtra manteniendo padres que coincidan o aquellos con subcategorías coincidentes
@@ -320,7 +294,7 @@ export default function ForoSidebar({ categorias = [] }: ForoSidebarProps) {
       .map((p) => {
         const matchParent = p.nombre?.toLowerCase().includes(q);
         const filteredSubs = (p.subcategorias || []).filter((s) =>
-          s.nombre?.toLowerCase().includes(q)
+          s.nombre?.toLowerCase().includes(q),
         );
         if (matchParent) return { ...p, subcategorias: filteredSubs };
         if (filteredSubs.length > 0)
@@ -346,7 +320,7 @@ export default function ForoSidebar({ categorias = [] }: ForoSidebarProps) {
       parent_id: null, // Alias para compatibilidad
       subcategorias: [],
     }),
-    []
+    [],
   );
 
   return (

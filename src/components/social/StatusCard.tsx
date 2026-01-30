@@ -18,6 +18,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { SupabaseImage } from "@/components/ui/SupabaseImage";
 import PostComments from "./PostComments";
 import ReportModal from "./ReportModal";
+import { RichTextRenderer } from "@/components/tiptap-editor/components/RichTextRenderer";
 
 interface SocialPost {
   id: string;
@@ -230,9 +231,23 @@ export default function StatusCard({ post, onDelete }: StatusCardProps) {
 
       <div className="mb-3">
         {post.content && (
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap mb-3 text-sm leading-relaxed">
-            {post.content}
-          </p>
+          <div className="relative">
+            <RichTextRenderer
+              content={post.content}
+              className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 mb-3"
+            />
+            <style jsx global>{`
+              .prose .lol-mention img {
+                margin: 0 !important;
+                display: inline-block !important;
+              }
+              .prose .lol-mention,
+              .prose .user-mention {
+                vertical-align: middle;
+                line-height: 1.1;
+              }
+            `}</style>
+          </div>
         )}
 
         {post.media_type === "image" && post.media_url && (
@@ -253,7 +268,7 @@ export default function StatusCard({ post, onDelete }: StatusCardProps) {
               width="100%"
               height="100%"
               src={`https://www.youtube.com/embed/${getYoutubeId(
-                post.media_url
+                post.media_url,
               )}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

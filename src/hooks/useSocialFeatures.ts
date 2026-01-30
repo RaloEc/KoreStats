@@ -52,7 +52,7 @@ export const useFollowMutation = () => {
         (old: any) => ({
           ...old,
           is_following: true,
-        })
+        }),
       );
 
       return { previousStatus, targetPublicId };
@@ -62,10 +62,9 @@ export const useFollowMutation = () => {
       if (context?.previousStatus) {
         queryClient.setQueryData(
           ["social-status", targetPublicId],
-          context.previousStatus
+          context.previousStatus,
         );
       }
-      console.error("[Follow Mutation Error]", err);
       toast.error(err.message);
     },
     onSettled: (data, error, targetPublicId) => {
@@ -97,7 +96,7 @@ export const useUnfollowMutation = () => {
         `/api/social/follow?targetPublicId=${targetPublicId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -122,7 +121,7 @@ export const useUnfollowMutation = () => {
         (old: any) => ({
           ...old,
           is_following: false,
-        })
+        }),
       );
 
       return { previousStatus, targetPublicId };
@@ -131,10 +130,9 @@ export const useUnfollowMutation = () => {
       if (context?.previousStatus) {
         queryClient.setQueryData(
           ["social-status", targetPublicId],
-          context.previousStatus
+          context.previousStatus,
         );
       }
-      console.error("[Unfollow Mutation Error]", err);
       toast.error(err.message);
     },
     onSettled: (data, error, targetPublicId) => {
@@ -164,10 +162,6 @@ export const useSendFriendRequestMutation = () => {
 
   return useMutation({
     mutationFn: async (targetPublicId: string) => {
-      console.log(
-        "[useSendFriendRequestMutation] Sending friend request to:",
-        targetPublicId
-      );
       const response = await fetch("/api/social/friend-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -180,14 +174,9 @@ export const useSendFriendRequestMutation = () => {
       }
 
       const data = await response.json();
-      console.log("[useSendFriendRequestMutation] Response:", data);
       return data;
     },
     onMutate: async (targetPublicId) => {
-      console.log(
-        "[useSendFriendRequestMutation] onMutate - targetPublicId:",
-        targetPublicId
-      );
       await queryClient.cancelQueries({
         queryKey: ["social-stats", targetPublicId],
       });
@@ -202,26 +191,21 @@ export const useSendFriendRequestMutation = () => {
         (old: SocialStats | undefined) => ({
           ...old,
           friendship_status: "pending_sent",
-        })
+        }),
       );
 
       return { previousStats, targetPublicId };
     },
     onError: (err, targetPublicId, context) => {
-      console.error("[useSendFriendRequestMutation] Error:", err);
       if (context?.previousStats) {
         queryClient.setQueryData(
           ["social-stats", targetPublicId],
-          context.previousStats
+          context.previousStats,
         );
       }
       toast.error(err.message);
     },
     onSettled: (data, error, targetPublicId) => {
-      console.log(
-        "[useSendFriendRequestMutation] onSettled - targetPublicId:",
-        targetPublicId
-      );
       queryClient.invalidateQueries({
         queryKey: ["social-stats", targetPublicId],
       });
@@ -231,7 +215,6 @@ export const useSendFriendRequestMutation = () => {
       });
     },
     onSuccess: () => {
-      console.log("[useSendFriendRequestMutation] onSuccess");
       toast.success("Solicitud de amistad enviada");
     },
   });
@@ -326,7 +309,7 @@ export const useBlockUserMutation = () => {
           is_blocked: true,
           is_following: false,
           friendship_status: "none",
-        })
+        }),
       );
 
       return { previousStats, targetPublicId };
@@ -335,7 +318,7 @@ export const useBlockUserMutation = () => {
       if (context?.previousStats) {
         queryClient.setQueryData(
           ["social-stats", targetPublicId],
-          context.previousStats
+          context.previousStats,
         );
       }
       toast.error(err.message);
@@ -364,7 +347,7 @@ export const useUnblockUserMutation = () => {
         `/api/social/block?targetPublicId=${targetPublicId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -389,7 +372,7 @@ export const useUnblockUserMutation = () => {
         (old: SocialStats | undefined) => ({
           ...old,
           is_blocked: false,
-        })
+        }),
       );
 
       return { previousStats, targetPublicId };
@@ -398,7 +381,7 @@ export const useUnblockUserMutation = () => {
       if (context?.previousStats) {
         queryClient.setQueryData(
           ["social-stats", targetPublicId],
-          context.previousStats
+          context.previousStats,
         );
       }
       toast.error(err.message);
@@ -423,7 +406,7 @@ export const useFollowers = (publicId: string, page = 1, limit = 20) => {
     queryKey: ["followers", publicId, page, limit],
     queryFn: async () => {
       const response = await fetch(
-        `/api/social/${publicId}/followers?page=${page}&limit=${limit}`
+        `/api/social/${publicId}/followers?page=${page}&limit=${limit}`,
       );
       if (!response.ok) {
         throw new Error("Error al cargar seguidores");
@@ -440,7 +423,7 @@ export const useFollowing = (publicId: string, page = 1, limit = 20) => {
     queryKey: ["following", publicId, page, limit],
     queryFn: async () => {
       const response = await fetch(
-        `/api/social/${publicId}/following?page=${page}&limit=${limit}`
+        `/api/social/${publicId}/following?page=${page}&limit=${limit}`,
       );
       if (!response.ok) {
         throw new Error("Error al cargar seguidos");
@@ -457,7 +440,7 @@ export const useFriendRequests = (scope: "received" | "sent" = "received") => {
     queryKey: ["friend-requests", scope],
     queryFn: async () => {
       const response = await fetch(
-        `/api/social/friend-requests?scope=${scope}`
+        `/api/social/friend-requests?scope=${scope}`,
       );
       if (!response.ok) {
         throw new Error("Error al cargar solicitudes");
@@ -487,13 +470,11 @@ export const useSocialStatus = (publicId: string) => {
   return useQuery({
     queryKey: ["social-status", publicId],
     queryFn: async () => {
-      console.log("[useSocialStatus] Fetching status for publicId:", publicId);
       const response = await fetch(`/api/social/${publicId}/status`);
       if (!response.ok) {
         throw new Error("Error al cargar estado social");
       }
       const data = await response.json();
-      console.log("[useSocialStatus] Status data received:", data);
       return data;
     },
     enabled: !!publicId,

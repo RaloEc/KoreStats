@@ -32,6 +32,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { WeaponStatsCard } from "@/components/weapon/WeaponStatsCard";
 import type { WeaponStats } from "@/types/weapon";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 
 export type HiloCardProps = {
   id: string;
@@ -85,7 +86,7 @@ const getYoutubeVideoId = (url: string): string | null => {
 
 // Función pura para parsear weaponStats
 const parseWeaponStats = (
-  weaponStats: HiloCardProps["weaponStats"]
+  weaponStats: HiloCardProps["weaponStats"],
 ): WeaponStats | null => {
   if (!weaponStats) return null;
 
@@ -102,9 +103,74 @@ const parseWeaponStats = (
   } catch (error) {
     console.error(
       "[HiloCard] Error al parsear weaponStats (JSON inválido):",
-      error
+      error,
     );
     return null;
+  }
+};
+
+const processContentForPreview = (html: string | null | undefined): string => {
+  if (!html) return "";
+  if (typeof window === "undefined") return stripHtml(html);
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const body = doc.body;
+
+    let result = "";
+
+    const processNode = (node: Node) => {
+      // Limit length safely to avoid performance issues
+      if (result.length > 1000) return;
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as Element;
+        // Check for mentions - spans with class "mention", "user-mention", data-image attribute, or data-type="user"
+        const isMention =
+          el.tagName === "SPAN" &&
+          (el.classList.contains("mention") ||
+            el.classList.contains("user-mention") ||
+            el.hasAttribute("data-image") ||
+            el.getAttribute("data-type") === "user");
+
+        if (isMention) {
+          result += el.outerHTML;
+        } else {
+          // Add space for blocks to prevent content merging
+          const isBlockTag = [
+            "P",
+            "DIV",
+            "H1",
+            "H2",
+            "H3",
+            "H4",
+            "H5",
+            "H6",
+            "LI",
+            "UL",
+            "OL",
+            "BR",
+            "TR",
+          ].includes(el.tagName);
+
+          if (isBlockTag) result += " ";
+
+          node.childNodes.forEach((child) => processNode(child));
+
+          if (isBlockTag) result += " ";
+        }
+      }
+    };
+
+    processNode(body);
+
+    // Cleanup double spaces
+    return result.replace(/\s+/g, " ").trim();
+  } catch (e) {
+    return stripHtml(html);
   }
 };
 
@@ -131,20 +197,26 @@ const YoutubePlayer = dynamic<{
         <div className="animate-pulse text-gray-400">Cargando video...</div>
       </div>
     ),
-  }
+  },
 );
 
 // Componente simplificado para renderizar preview de contenido
 const HiloPreviewSimple = ({
   excerpt,
+  htmlContent,
   thumbnailUrl,
   youtubeVideoId,
   images = [],
+  mentionColor = "#3B82F6",
+  mentionBg = "rgba(59, 130, 246, 0.1)",
 }: {
   excerpt?: string;
+  htmlContent?: string;
   thumbnailUrl?: string | null;
   youtubeVideoId?: string | null;
   images?: string[];
+  mentionColor?: string;
+  mentionBg?: string;
 }) => {
   return (
     <div className="space-y-3">
@@ -197,11 +269,39 @@ const HiloPreviewSimple = ({
         </div>
       )}
 
-      {/* Texto - Usamos line-clamp nativo de Tailwind */}
-      {excerpt && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-          {excerpt}
-        </p>
+      {/* Texto - Usamos line-clamp nativo de Tailwind y estilos para menciones */}
+      {(htmlContent || excerpt) && (
+        <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 hilo-preview-content">
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+            .hilo-preview-content .mention,
+            .hilo-preview-content .user-mention,
+            .hilo-preview-content span[data-image] {
+              display: inline-flex !important;
+              align-items: center !important;
+              vertical-align: middle !important;
+              height: 1.5em !important;
+              line-height: 1 !important;
+              margin: 0 2px !important;
+            }
+            .hilo-preview-content span[data-image] img {
+              margin: 0 4px 0 0 !important;
+              height: 1.25em !important;
+              width: auto !important;
+              display: block !important;
+            }
+          `,
+            }}
+          />
+          {htmlContent ? (
+            <span
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }}
+            />
+          ) : (
+            excerpt
+          )}
+        </div>
       )}
     </div>
   );
@@ -249,8 +349,8 @@ function HiloCard(props: HiloCardProps) {
   const profileId = autorPublicId
     ? autorPublicId
     : normalizedUsername && normalizedUsername.toLowerCase() !== "anónimo"
-    ? normalizedUsername
-    : null;
+      ? normalizedUsername
+      : null;
   const hasProfileLink = Boolean(profileId);
 
   // Funciones de eliminación (sin cambios significativos en lógica)
@@ -472,10 +572,17 @@ function HiloCard(props: HiloCardProps) {
                   {(contenido || excerpt) && (
                     <div className="hilo-preview text-sm text-gray-600 dark:text-gray-400 flex-1 mt-2">
                       <HiloPreviewSimple
-                        excerpt={excerpt || stripHtml(contenido, 200)}
+                        excerpt={excerpt}
+                        htmlContent={processContentForPreview(contenido)}
                         thumbnailUrl={mediaMetadata?.thumbnailUrl}
                         youtubeVideoId={mediaMetadata?.youtubeVideoId}
                         images={mediaMetadata?.images}
+                        mentionColor={userColor || "#3B82F6"}
+                        mentionBg={
+                          userColor
+                            ? getColorWithOpacity(0.1)
+                            : "rgba(59, 130, 246, 0.1)"
+                        }
                       />
 
                       {parsedWeaponStats && (
@@ -573,7 +680,7 @@ function HiloCard(props: HiloCardProps) {
 // Función de comparación mejorada para memoización
 const arePropsEqual = (
   prevProps: HiloCardProps,
-  nextProps: HiloCardProps
+  nextProps: HiloCardProps,
 ): boolean => {
   // Comparación de propiedades principales que afectan al renderizado
   const basicPropsEqual =
@@ -604,7 +711,7 @@ const arePropsEqual = (
 
     // Si la longitud del contenido cambió significativamente, hay que re-renderizar
     const lengthDiff = Math.abs(
-      (prevProps.contenido?.length || 0) - (nextProps.contenido?.length || 0)
+      (prevProps.contenido?.length || 0) - (nextProps.contenido?.length || 0),
     );
     if (lengthDiff > 10) return false;
   }

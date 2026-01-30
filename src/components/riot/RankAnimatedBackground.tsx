@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 interface RankAnimatedBackgroundProps {
   tier?: string | null;
@@ -83,7 +83,20 @@ export function RankAnimatedBackground({
 }: RankAnimatedBackgroundProps) {
   const { resolvedTheme } = useTheme();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const gradientStyle = useMemo(() => {
+    // If not mounted (server), return a safe default that matches what server would guess OR just base colors
+    // But since server doesn't know theme, it's safer to avoid specific themed colors on server
+    // or use a neutral default fallback to avoid mismatch warnings.
+    // However, simplest fix for hydration mismatch on theme is to wait for mount or suppress warning.
+    // Given this is purely visual, waiting for mount is acceptable.
+    if (!mounted) return {};
+
     // Normalizar tier a mayúsculas
     const normalizedTier = (tier || "UNRANKED").toUpperCase();
     const palette = TIER_PALETTES[normalizedTier] || TIER_PALETTES.UNRANKED;
@@ -105,7 +118,15 @@ export function RankAnimatedBackground({
       )`,
       backgroundSize: "400% 400%",
     };
-  }, [tier, resolvedTheme]);
+  }, [tier, resolvedTheme, mounted]);
+
+  if (!mounted)
+    return (
+      <div
+        className={`absolute inset-0 bg-slate-100 dark:bg-slate-900 ${className}`}
+        aria-hidden="true"
+      />
+    );
 
   return (
     <div

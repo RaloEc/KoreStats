@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Target, CheckCircle, Eye } from "lucide-react";
+import { Target, CheckCircle, Eye, Send } from "lucide-react";
 import { WeaponStatsCard } from "@/components/weapon/WeaponStatsCard";
 import { cn } from "@/lib/utils";
 import { processEditorContent as processEditorImages } from "@/components/tiptap-editor/processImages";
@@ -46,13 +46,13 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null
+    null,
   );
   const [isWeaponModalOpen, setIsWeaponModalOpen] = useState(false);
   const [weaponStatsPreview, setWeaponStatsPreview] =
     useState<WeaponStats | null>(null);
   const [weaponStatsRecordId, setWeaponStatsRecordId] = useState<string | null>(
-    null
+    null,
   );
   const { user } = useAuth();
   const router = useRouter();
@@ -78,7 +78,7 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
   // Función recursiva para encontrar una categoría por ID (soporta 3 niveles)
   const findCategoryById = (
     id: string,
-    categories: Category[] = formattedCategories
+    categories: Category[] = formattedCategories,
   ): Category | null => {
     for (const cat of categories) {
       if (cat.id === id) return cat;
@@ -97,7 +97,7 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
 
   const handleWeaponStatsExtracted = (
     stats: WeaponStats,
-    recordId: string | null = null
+    recordId: string | null = null,
   ) => {
     // Guardar las estadísticas para previsualización y estado del botón
     setWeaponStatsPreview(stats);
@@ -194,47 +194,20 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
       let contenidoProcesado = contenido;
 
       try {
-        console.log(
-          "[CrearHiloForm] Iniciando procesamiento de imágenes antes de guardar..."
-        );
-        console.log(
-          "[CrearHiloForm] Contenido original (primeros 200 chars):",
-          contenido.substring(0, 200)
-        );
-
         contenidoProcesado = await processEditorImages(contenido);
-
-        console.log("[CrearHiloForm] Procesamiento completado");
-        console.log(
-          "[CrearHiloForm] Contenido procesado (primeros 200 chars):",
-          contenidoProcesado.substring(0, 200)
-        );
 
         // Verificar si hay cambios
         if (contenidoProcesado === contenido) {
-          console.warn(
-            "[CrearHiloForm] ADVERTENCIA: El contenido no cambió después del procesamiento"
-          );
         } else {
-          console.log(
-            "[CrearHiloForm] Contenido fue modificado durante el procesamiento"
-          );
         }
       } catch (processingError) {
-        console.error(
-          "[CrearHiloForm] Error al procesar imágenes antes de guardar el hilo:",
-          processingError
-        );
         toast.error(
-          "No se pudieron procesar algunas imágenes. Intenta nuevamente."
+          "No se pudieron procesar algunas imágenes. Intenta nuevamente.",
         );
         setIsLoading(false);
         return;
       }
 
-      console.log(
-        "[CrearHiloForm] Enviando hilo a API con contenido procesado..."
-      );
       const response = await fetch("/api/foro/crear-hilo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -374,7 +347,7 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
                 className={cn(
                   "border-[var(--user-color,#6366f1)] text-[var(--user-color,#6366f1)] hover:bg-[var(--user-color,#6366f1)]/10",
                   weaponStatsPreview &&
-                    "bg-[var(--user-color,#6366f1)] text-white hover:bg-[var(--user-color,#6366f1)]/90 border-transparent"
+                    "bg-[var(--user-color,#6366f1)] text-white hover:bg-[var(--user-color,#6366f1)]/90 border-transparent",
                 )}
                 style={{ "--user-color": userColor } as React.CSSProperties}
               >
@@ -471,9 +444,29 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
         )}
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Publicando..." : "Publicar Hilo"}
+      <div className="flex justify-end pt-4">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="relative overflow-hidden group px-8 py-6 text-base font-semibold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl dark:shadow-none bg-[var(--user-btn-bg)] hover:bg-[var(--user-btn-hover)] text-white"
+          style={
+            {
+              "--user-btn-bg": userColor,
+              "--user-btn-hover": `${userColor}dd`, // Un poco más oscuro/transparente para el hover
+            } as React.CSSProperties
+          }
+        >
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Publicando...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span>Publicar Hilo</span>
+              <Send className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+            </div>
+          )}
         </Button>
       </div>
     </form>

@@ -10,6 +10,8 @@ export interface TiptapEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   onImageChange?: (hasTemporaryImages: boolean) => void;
+  restrictMentionsToFriends?: boolean;
+  currentUserId?: string;
 }
 
 // Función para procesar el contenido del editor antes de guardarlo

@@ -62,7 +62,11 @@ export function ReactQueryProvider({ children }: { children: ReactNode }) {
     const handleVisibilityChange = () => {
       // Pausar consultas cuando la página no está visible
       if (document.visibilityState === "hidden") {
-        queryClient.cancelQueries();
+        try {
+          queryClient.cancelQueries();
+        } catch (error) {
+          // Ignorar errores de cancelación
+        }
       }
     };
 

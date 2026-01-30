@@ -89,12 +89,12 @@ export const MatchStats: React.FC<MatchStatsProps> = memo(
     ];
 
     return (
-      <div className="group/stats p-4 rounded-2xl border border-white/40 dark:border-white/20 bg-white/70 dark:bg-slate-900/70 shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-colors duration-200">
+      <div className="group/stats p-4 rounded-2xl border border-slate-200/50 dark:border-white/[0.03] bg-white/80 dark:bg-black/80 backdrop-blur-md transition-all duration-300">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className="group/stat relative overflow-hidden rounded-xl border border-white/50 dark:border-white/20 bg-white/80 dark:bg-slate-800/80 px-3 py-2.5 shadow-sm dark:shadow-md transition-colors duration-150 hover:bg-white/90 dark:hover:bg-slate-700/90 flex flex-col justify-between"
+              className="relative overflow-hidden rounded-xl border border-slate-200/50 dark:border-white/[0.03] bg-white/50 dark:bg-white/[0.02] px-3 py-2.5 flex flex-col justify-between"
               style={{
                 animationDelay: `${index * 50}ms`,
               }}
@@ -158,5 +158,5 @@ export const MatchStats: React.FC<MatchStatsProps> = memo(
         )}
       </div>
     );
-  }
+  },
 );

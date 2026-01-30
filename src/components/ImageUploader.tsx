@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2, Upload, X } from 'lucide-react';
-import UserAvatar from '@/components/UserAvatar';
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Upload, X } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 
 interface ImageUploaderProps {
   currentImageUrl?: string;
@@ -16,11 +16,13 @@ export default function ImageUploader({
   currentImageUrl,
   userId,
   onImageUploaded,
-  className = ''
+  className = "",
 }: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    currentImageUrl || null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,14 +30,14 @@ export default function ImageUploader({
     if (!file) return;
 
     // Validaciones básicas
-    if (!file.type.startsWith('image/')) {
-      setError('El archivo debe ser una imagen');
+    if (!file.type.startsWith("image/")) {
+      setError("El archivo debe ser una imagen");
       return;
     }
 
     const maxSize = 2 * 1024 * 1024; // 2MB
     if (file.size > maxSize) {
-      setError('La imagen es demasiado grande. El tamaño máximo es 2MB');
+      setError("La imagen es demasiado grande. El tamaño máximo es 2MB");
       return;
     }
 
@@ -43,7 +45,7 @@ export default function ImageUploader({
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
     setError(null);
-    
+
     // Actualizar la interfaz inmediatamente con la vista previa
     // Esto permite al usuario ver su imagen antes de que se complete la subida
     onImageUploaded(objectUrl);
@@ -52,25 +54,25 @@ export default function ImageUploader({
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', userId);
+      formData.append("file", file);
+      formData.append("userId", userId);
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error al subir la imagen');
+        throw new Error(result.error || "Error al subir la imagen");
       }
 
       // Actualizar con la URL permanente del servidor
       onImageUploaded(result.data.url);
     } catch (err: any) {
-      console.error('Error al subir la imagen:', err);
-      setError(err.message || 'Error al subir la imagen');
+      console.error("Error al subir la imagen:", err);
+      setError(err.message || "Error al subir la imagen");
       // Si hay error, volver al estado anterior
       setPreviewUrl(currentImageUrl || null);
     } finally {
@@ -85,7 +87,7 @@ export default function ImageUploader({
   const handleRemoveImage = () => {
     setPreviewUrl(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -117,21 +119,16 @@ export default function ImageUploader({
         </div>
       ) : (
         <div className="w-32 h-32 mx-auto">
-          <UserAvatar
-            username={userId}
-            size="lg"
-            className="w-full h-full"
-          />
+          <UserAvatar username={userId} size="lg" className="w-full h-full" />
         </div>
       )}
 
       <div className="flex flex-col items-center">
         <Button
           type="button"
-          variant="outline"
           onClick={handleButtonClick}
           disabled={isUploading}
-          className="w-full"
+          className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-none hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm font-medium transition-colors"
         >
           {isUploading ? (
             <>
@@ -141,14 +138,12 @@ export default function ImageUploader({
           ) : (
             <>
               <Upload className="mr-2 h-4 w-4" />
-              {previewUrl ? 'Cambiar imagen' : 'Subir imagen'}
+              {previewUrl ? "Cambiar imagen" : "Subir imagen"}
             </>
           )}
         </Button>
 
-        {error && (
-          <p className="text-sm text-destructive mt-2">{error}</p>
-        )}
+        {error && <p className="text-sm text-destructive mt-2">{error}</p>}
       </div>
     </div>
   );

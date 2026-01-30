@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
-import { Nunito, Inter } from "next/font/google";
+import { Nunito, Inter, Unbounded } from "next/font/google";
 import dynamic from "next/dynamic";
 import "@/styles/critical.css"; // CSS crítico inyectado inline
 import "./globals.css";
@@ -19,7 +19,7 @@ const MobileNavbarWrapper = dynamic(
       // Placeholder que mantiene el espacio del navbar durante la carga
       <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-gray-950/95 border-t border-gray-200/80 dark:border-gray-700/50 lg:hidden z-[9990]" />
     ),
-  }
+  },
 );
 
 // Lazy load PWAManager
@@ -29,14 +29,14 @@ const PWAManager = dynamic(() => import("@/components/pwa/PWAManager"), {
 
 const DynamicThemeColor = dynamic(
   () => import("@/components/pwa/DynamicThemeColor"),
-  { ssr: false }
+  { ssr: false },
 );
 
 const BtnFlotanteInteligente = dynamic(
   () => import("@/components/BtnFlotanteInteligente"),
   {
     ssr: false,
-  }
+  },
 );
 
 // Optimizar carga de fuentes con font-display: swap para evitar bloqueo de renderizado
@@ -52,7 +52,15 @@ const nunito = Nunito({
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  preload: true,
+});
+
+const unbounded = Unbounded({
+  subsets: ["latin"],
+  variable: "--font-unbounded",
+  weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
   preload: true,
 });
@@ -277,7 +285,7 @@ export default async function RootLayout({
         )}
       </head>
       <body
-        className={`${nunito.variable} ${inter.variable} font-sans bg-background text-foreground h-screen w-screen overflow-hidden flex flex-col`}
+        className={`${nunito.variable} ${inter.variable} ${unbounded.variable} font-sans bg-background text-foreground h-screen w-screen overflow-hidden flex flex-col`}
       >
         <Providers session={session}>
           <ScrollToTop />

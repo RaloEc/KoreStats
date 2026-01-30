@@ -67,7 +67,7 @@ export interface EstadisticasNoticias {
 export function useAdminNoticias(
   pagina: number,
   limite: number,
-  filtros: FiltrosNoticias
+  filtros: FiltrosNoticias,
 ) {
   const lastFetchTime = useRef<number>(0);
 
@@ -134,7 +134,7 @@ export function usePrefetchAdminNoticias(
   paginaActual: number,
   limite: number,
   filtros: FiltrosNoticias,
-  totalPaginas: number
+  totalPaginas: number,
 ) {
   const queryClient = useQueryClient();
 
@@ -154,7 +154,7 @@ export function usePrefetchAdminNoticias(
         queryKey: ["admin-noticias", paginaActual + 1, limite, filtros],
         queryFn: async () => {
           const respuesta = await fetch(
-            `/api/admin/noticias?${params.toString()}`
+            `/api/admin/noticias?${params.toString()}`,
           );
           return respuesta.json();
         },
@@ -177,7 +177,7 @@ export function usePrefetchAdminNoticias(
         queryKey: ["admin-noticias", paginaActual - 1, limite, filtros],
         queryFn: async () => {
           const respuesta = await fetch(
-            `/api/admin/noticias?${params.toString()}`
+            `/api/admin/noticias?${params.toString()}`,
           );
           return respuesta.json();
         },
@@ -196,7 +196,7 @@ export function useEstadisticasNoticias() {
     queryKey: ["admin-noticias-estadisticas"],
     queryFn: async () => {
       const respuesta = await fetch(
-        "/api/admin/noticias/estadisticas?admin=true"
+        "/api/admin/noticias/estadisticas?admin=true",
       );
 
       if (!respuesta.ok) {
@@ -214,8 +214,6 @@ export function useEstadisticasNoticias() {
   useEffect(() => {
     const supabase = createClient();
 
-    console.log("🔴 Configurando Realtime para estadísticas de noticias...");
-
     // Suscribirse a cambios en la tabla noticias
     const channel = supabase
       .channel("admin-noticias-estadisticas-realtime")
@@ -227,8 +225,6 @@ export function useEstadisticasNoticias() {
           table: "noticias",
         },
         (payload) => {
-          console.log("🔴 Cambio detectado en noticias:", payload.eventType);
-
           // Invalidar y refetch de estadísticas cuando hay cambios
           queryClient.invalidateQueries({
             queryKey: ["admin-noticias-estadisticas"],
@@ -236,24 +232,20 @@ export function useEstadisticasNoticias() {
 
           // También invalidar la lista de noticias
           queryClient.invalidateQueries({ queryKey: ["admin-noticias"] });
-        }
+        },
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("✅ Realtime conectado para estadísticas de noticias");
           setRealtimeEnabled(true);
         } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Error en canal Realtime de estadísticas");
           setRealtimeEnabled(false);
         } else if (status === "TIMED_OUT") {
-          console.warn("⏱️ Timeout en conexión Realtime de estadísticas");
           setRealtimeEnabled(false);
         }
       });
 
     // Cleanup al desmontar
     return () => {
-      console.log("🔴 Desconectando Realtime de estadísticas...");
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -335,10 +327,10 @@ export function useActualizarEstadoNoticia() {
           return {
             ...old,
             noticias: old.noticias.map((noticia) =>
-              noticia.id === id ? { ...noticia, [campo]: valor } : noticia
+              noticia.id === id ? { ...noticia, [campo]: valor } : noticia,
             ),
           };
-        }
+        },
       );
 
       return { previousData };
@@ -380,7 +372,7 @@ export function useCambiarEstadoPublicacion() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ id, estado: nuevoEstado }),
-        }
+        },
       );
 
       if (!respuesta.ok) {
@@ -406,10 +398,10 @@ export function useCambiarEstadoPublicacion() {
           return {
             ...old,
             noticias: old.noticias.map((noticia) =>
-              noticia.id === id ? { ...noticia, estado: nuevoEstado } : noticia
+              noticia.id === id ? { ...noticia, estado: nuevoEstado } : noticia,
             ),
           };
-        }
+        },
       );
 
       return { previousData };

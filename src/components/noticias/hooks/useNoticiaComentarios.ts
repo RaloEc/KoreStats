@@ -19,8 +19,8 @@ const mapApiCommentToUI = (apiComment: any): Comment => {
     replies: apiComment.respuestas
       ? apiComment.respuestas.map(mapApiCommentToUI)
       : apiComment.replies
-      ? apiComment.replies.map(mapApiCommentToUI)
-      : [],
+        ? apiComment.replies.map(mapApiCommentToUI)
+        : [],
     isEdited: apiComment.isEdited || apiComment.editado || false,
     editedAt: apiComment.editado_en || null,
     deleted: apiComment.deleted || false,
@@ -40,7 +40,7 @@ const mapApiCommentToUI = (apiComment: any): Comment => {
 export function useNoticiaComentarios(
   contentId: string,
   pageSize: number = 10,
-  order: "asc" | "desc" = "desc"
+  order: "asc" | "desc" = "desc",
 ) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<any>(null);
@@ -82,7 +82,7 @@ export function useNoticiaComentarios(
     queryFn: async ({ pageParam = 0 }) => {
       try {
         const url = `/api/comentarios?contentType=noticia&contentId=${encodeURIComponent(
-          contentId
+          contentId,
         )}&limite=${pageSize}&offset=${pageParam}&orden=${order}`;
 
         const response = await fetch(url);
@@ -103,14 +103,13 @@ export function useNoticiaComentarios(
           nextOffset: (pageParam as number) + pageSize,
         };
       } catch (err) {
-        console.error("Error al cargar comentarios:", err);
         throw err;
       }
     },
     getNextPageParam: (lastPage, allPages) => {
       const loadedCount = allPages.reduce(
         (total, page) => total + page.comentarios.length,
-        0 as number
+        0 as number,
       );
       return loadedCount < lastPage.total ? lastPage.nextOffset : undefined;
     },
@@ -169,9 +168,8 @@ export function useNoticiaComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al crear comentario:", err);
       setError(
-        err instanceof Error ? err.message : "Error al crear comentario"
+        err instanceof Error ? err.message : "Error al crear comentario",
       );
       return false;
     } finally {
@@ -184,7 +182,7 @@ export function useNoticiaComentarios(
     parentId: string,
     text: string,
     repliedTo?: { id: string; author: string; text: string; color?: string },
-    gifUrl?: string | null
+    gifUrl?: string | null,
   ) => {
     if (!user) {
       setError("Debes iniciar sesión para responder");
@@ -221,7 +219,6 @@ export function useNoticiaComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al crear respuesta:", err);
       setError(err instanceof Error ? err.message : "Error al crear respuesta");
       return false;
     } finally {
@@ -270,9 +267,8 @@ export function useNoticiaComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al editar comentario:", err);
       setError(
-        err instanceof Error ? err.message : "Error al editar comentario"
+        err instanceof Error ? err.message : "Error al editar comentario",
       );
       return false;
     } finally {
@@ -308,8 +304,6 @@ export function useNoticiaComentarios(
         throw new Error(data.error || "Error al eliminar comentario");
       }
 
-      console.log("[useNoticiaComentarios] Comentario eliminado exitosamente");
-
       // Invalidar la caché para refetch en background (sin recargar el componente)
       queryClient.invalidateQueries({
         queryKey: ["comentarios", "noticia", contentId],
@@ -319,9 +313,8 @@ export function useNoticiaComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al eliminar comentario:", err);
       setError(
-        err instanceof Error ? err.message : "Error al eliminar comentario"
+        err instanceof Error ? err.message : "Error al eliminar comentario",
       );
       return false;
     } finally {

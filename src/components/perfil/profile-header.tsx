@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { ConnectedAccounts } from "./ConnectedAccounts";
 
 interface ProfileHeaderProps {
@@ -85,6 +85,31 @@ export default function ProfileHeader({
             draggable={false}
           />
         ) : null}
+
+        {/* Botón de configuración unificado (Posicionado sobre el banner) */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute bottom-4 right-4 z-20 rounded-xl border-2 backdrop-blur-md transition-all hover:scale-110 active:scale-95 shadow-lg group/settings"
+          onClick={onEditClick}
+          title="Configuración de Perfil"
+          style={{
+            borderColor: `color-mix(in srgb, var(--user-color) 40%, white)`,
+            color: `white`,
+            backgroundColor: `rgba(0,0,0,0.4)`,
+            textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+            ...colorStyle,
+          }}
+        >
+          <div
+            className="w-full h-full flex items-center justify-center rounded-[10px] transition-colors"
+            style={{
+              backgroundColor: `color-mix(in srgb, var(--user-color) 40%, transparent)`,
+            }}
+          >
+            <Settings2 className="w-5 h-5 drop-shadow-sm" />
+          </div>
+        </Button>
       </div>
 
       <CardContent className="px-4 sm:px-6 py-6">
@@ -181,22 +206,6 @@ export default function ProfileHeader({
                   <div className="text-muted-foreground text-xs">amigos</div>
                 </div>
               </div>
-
-              {/* Botón de editar */}
-              <Button
-                variant="outline"
-                size="default"
-                className="gap-2 w-full sm:w-auto px-4 py-2 h-auto min-h-10"
-                onClick={onEditClick}
-                style={{
-                  borderColor: `color-mix(in srgb, var(--user-color) 30%, transparent)`,
-                  color: `var(--user-color)`,
-                  ...colorStyle,
-                }}
-              >
-                <Edit className="w-4 h-4" />
-                <span className="text-sm sm:text-base">Editar Perfil</span>
-              </Button>
             </div>
           </div>
         </div>

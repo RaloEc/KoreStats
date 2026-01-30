@@ -20,7 +20,33 @@ export function MatchHistoryAdBanner({
   const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "";
   const slotId = process.env.NEXT_PUBLIC_ADSENSE_INFEED_SLOT || "";
 
+  /* Detección de visibilidad para evitar carga en contenedores ocultos (width=0) */
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
+    if (!adRef.current) return;
+
+    // Si ya tiene ancho, es visible
+    if (adRef.current.offsetWidth > 0) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      }
+    });
+
+    observer.observe(adRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
     if (!clientId || !slotId) {
       setAdError(true);
       return;
@@ -61,16 +87,21 @@ export function MatchHistoryAdBanner({
       console.warn("[MatchHistoryAdBanner] Error creating ad:", error);
       setAdError(true);
     }
-  }, [clientId, slotId]);
+  }, [isVisible, clientId, slotId]);
 
   // Si no hay configuración de AdSense, no mostrar nada
   if (!clientId || !slotId) {
     return null;
   }
 
-  // Si hay error, no mostrar nada para no romper la experiencia
+  // Si hay error, renderizar contenedor vacío pero con altura para evitar saltos en el Virtualizer
   if (adError) {
-    return null;
+    return (
+      <div
+        className={`hidden md:block min-h-[90px] ${className}`}
+        aria-hidden="true"
+      />
+    );
   }
 
   return (
@@ -113,7 +144,31 @@ export function MobileMatchHistoryAdBanner({
   const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "";
   const slotId = process.env.NEXT_PUBLIC_ADSENSE_INFEED_SLOT || "";
 
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
+    if (!adRef.current) return;
+
+    if (adRef.current.offsetWidth > 0) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      }
+    });
+
+    observer.observe(adRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
     if (!clientId || !slotId) {
       setAdError(true);
       return;
@@ -145,7 +200,7 @@ export function MobileMatchHistoryAdBanner({
         } catch (pushError) {
           console.warn(
             "[MobileMatchHistoryAdBanner] Error pushing ad:",
-            pushError
+            pushError,
           );
           setAdError(true);
         }
@@ -154,10 +209,20 @@ export function MobileMatchHistoryAdBanner({
       console.warn("[MobileMatchHistoryAdBanner] Error creating ad:", error);
       setAdError(true);
     }
-  }, [clientId, slotId]);
+  }, [isVisible, clientId, slotId]);
 
-  if (!clientId || !slotId || adError) {
+  if (!clientId || !slotId) {
     return null;
+  }
+
+  // Si hay error, mantener espacio para evitar re-cálculos infinitos del virtualizer
+  if (adError) {
+    return (
+      <div
+        className={`md:hidden w-full min-h-[100px] ${className}`}
+        aria-hidden="true"
+      />
+    );
   }
 
   return (

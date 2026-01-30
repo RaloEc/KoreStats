@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
+import { calculatePerformanceScore } from "@/lib/riot/match-analyzer";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
         .from("foro_hilos")
         .select(
           `
-          id, titulo, contenido, created_at, 
+          id, titulo, contenido, created_at, slug,
           categoria:foro_categorias(nombre)
         `,
         )
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
       titulo: string;
       contenido?: string;
       created_at: string;
+      slug?: string;
       categoria?: { nombre?: string } | null;
     };
 
@@ -190,6 +192,7 @@ export async function GET(request: NextRequest) {
       preview: getContentPreview(hilo.contenido || ""),
       content: hilo.contenido || "",
       timestamp: hilo.created_at,
+      slug: hilo.slug,
       category: hilo.categoria?.nombre || "Foro",
     }));
 
@@ -232,6 +235,7 @@ export async function GET(request: NextRequest) {
             item0, item1, item2, item3, item4, item5, item6,
             summoner1_id, summoner2_id, perk_primary_style, perk_sub_style,
             ranking_position, performance_score, win, lp_change,
+            riot_id_game_name, riot_id_tagline,
             matches(match_id, game_creation, game_duration, queue_id, data_version, full_json)
           `,
           )
@@ -295,6 +299,30 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    // NUEVO: Obtener datos de la tabla matches DIRECTAMENTE
+    // Esto asegura que tengamos el full_json incluso si falla el join con participants
+    // o si el usuario cambió de cuenta/puuid
+    // ═════════════════════════════════════════════════════════════════════════
+    const matchesMap = new Map<string, any>();
+    if (uniqueMatchIds.length > 0) {
+      const { data: matchesData, error: matchesError } = await supabase
+        .from("matches")
+        .select(
+          "match_id, game_creation, game_duration, queue_id, data_version, full_json",
+        )
+        .in("match_id", uniqueMatchIds);
+
+      if (matchesError) {
+        console.error(
+          "[Perfil Actividades API] Error fetching matches table:",
+          matchesError,
+        );
+      } else {
+        matchesData?.forEach((m) => matchesMap.set(m.match_id, m));
+      }
+    }
+
     // Obtener skins de campeones para asignación determinista
     const { data: championsData } = await supabase
       .from("lol_champions")
@@ -344,63 +372,161 @@ export async function GET(request: NextRequest) {
           : participant.matches
         : null;
 
-      const championName =
-        participant?.champion_name ||
+      // Intentar obtener el match directo si no vino por participante
+      const directMatch = matchesMap.get(partida.match_id);
+
+      // Determinar la fuente de datos (Prioridad: Participant -> Direct Match -> Metadata)
+      // Si tenemos participant DB row, usamos eso. Si no, intentamos extraer del JSON del match.
+      let participantFromJSON: any = null;
+      const fullJson = matchInfo?.full_json || directMatch?.full_json || null;
+
+      const normalizeChamp = (name: string | null | undefined) => {
+        if (!name) return "";
+        const n = name
+          .toLowerCase()
+          .trim()
+          .replace(/['\s.]/g, "");
+        if (n === "wukong") return "monkeyking";
+        return n;
+      };
+
+      if (fullJson && fullJson.info && fullJson.info.participants) {
+        const jsonParticipants = fullJson.info.participants as any[];
+        // Intentar encontrar al usuario en el JSON
+        // 1. Por PUUID actual
+        if (userPuuid) {
+          participantFromJSON = jsonParticipants.find(
+            (p: any) => p.puuid === userPuuid,
+          );
+        }
+
+        // 2. Fallback: Por Campeón (con normalización)
+        if (!participantFromJSON && metadata.championName) {
+          const target = normalizeChamp(metadata.championName);
+          participantFromJSON = jsonParticipants.find(
+            (p: any) => normalizeChamp(p.championName) === target,
+          );
+        }
+
+        // 3. Fallback: Por K/D/A (si tenemos los 3 datos en metadata)
+        if (
+          !participantFromJSON &&
+          typeof metadata.kills === "number" &&
+          typeof metadata.deaths === "number" &&
+          typeof metadata.assists === "number"
+        ) {
+          participantFromJSON = jsonParticipants.find(
+            (p: any) =>
+              p.kills === metadata.kills &&
+              p.deaths === metadata.deaths &&
+              p.assists === metadata.assists,
+          );
+        }
+      }
+
+      // Consolidar datos
+      const usedParticipant = participant || participantFromJSON;
+
+      const championNameRaw =
+        usedParticipant?.championName ||
+        usedParticipant?.champion_name ||
         metadata.championName ||
         "Campeón desconocido";
-      const championId = participant?.champion_id || metadata.championId || 0;
-      const role = participant?.role || metadata.role || "Desconocido";
-      const lane = participant?.lane || metadata.lane || role;
 
-      const kills = participant?.kills ?? metadata.kills ?? 0;
-      const deaths = participant?.deaths ?? metadata.deaths ?? 0;
-      const assists = participant?.assists ?? metadata.assists ?? 0;
-      const kdaValue =
-        typeof participant?.kda === "number"
-          ? participant?.kda
-          : typeof metadata.kda === "number"
-            ? metadata.kda
-            : deaths > 0
-              ? (kills + assists) / Math.max(deaths, 1)
-              : kills + assists;
+      // Normalizar nombre del campeón para visualización si es necesario
+      const championName =
+        championNameRaw === "MonkeyKing" ? "Wukong" : championNameRaw;
+      const championId =
+        usedParticipant?.championId ||
+        usedParticipant?.champion_id ||
+        metadata.championId ||
+        0;
+      const role =
+        usedParticipant?.teamPosition ||
+        usedParticipant?.role ||
+        metadata.role ||
+        "Desconocido";
+      const lane =
+        usedParticipant?.lane ||
+        usedParticipant?.individualPosition ||
+        metadata.lane ||
+        role;
+
+      const kills = usedParticipant?.kills ?? metadata.kills ?? 0;
+      const deaths = usedParticipant?.deaths ?? metadata.deaths ?? 0;
+      const assists = usedParticipant?.assists ?? metadata.assists ?? 0;
+
+      const kdaValue = (() => {
+        if (typeof usedParticipant?.kda === "number")
+          return usedParticipant.kda;
+        if (usedParticipant?.challenges?.kda)
+          return usedParticipant.challenges.kda; // a veces viene en challenges
+        if (typeof metadata.kda === "number") return metadata.kda;
+        return deaths > 0 ? (kills + assists) / deaths : kills + assists;
+      })();
 
       const totalCS =
-        (participant?.total_minions_killed ?? 0) +
-        (participant?.neutral_minions_killed ?? 0);
+        (usedParticipant?.totalMinionsKilled ??
+          usedParticipant?.total_minions_killed ??
+          0) +
+        (usedParticipant?.neutralMinionsKilled ??
+          usedParticipant?.neutral_minions_killed ??
+          0);
+
       const gameDurationSeconds =
-        matchInfo?.game_duration ?? metadata.gameDuration ?? 0;
+        matchInfo?.game_duration ??
+        directMatch?.game_duration ??
+        metadata.gameDuration ??
+        0;
+
       const csPerMin = gameDurationSeconds
         ? Number((totalCS / Math.max(gameDurationSeconds / 60, 1)).toFixed(1))
         : 0;
 
-      const items = participant
+      // Items: Priorizar JSON/Participant -> Metadata -> Vacío
+      const items = usedParticipant
         ? [
-            participant.item0 ?? 0,
-            participant.item1 ?? 0,
-            participant.item2 ?? 0,
-            participant.item3 ?? 0,
-            participant.item4 ?? 0,
-            participant.item5 ?? 0,
-            participant.item6 ?? 0,
+            usedParticipant.item0 ?? 0,
+            usedParticipant.item1 ?? 0,
+            usedParticipant.item2 ?? 0,
+            usedParticipant.item3 ?? 0,
+            usedParticipant.item4 ?? 0,
+            usedParticipant.item5 ?? 0,
+            usedParticipant.item6 ?? 0,
           ]
         : Array.isArray(metadata.items)
           ? [...metadata.items, 0, 0, 0, 0, 0, 0, 0].slice(0, 7)
           : [0, 0, 0, 0, 0, 0, 0];
 
-      const resultWin = participant?.win ?? Boolean(metadata.win);
-      const queueId = matchInfo?.queue_id ?? metadata.queueId ?? 0;
+      const resultWin = usedParticipant?.win ?? Boolean(metadata.win);
+      const queueId =
+        matchInfo?.queue_id ?? directMatch?.queue_id ?? metadata.queueId ?? 0;
       const gameDuration = gameDurationSeconds;
       const gameCreation =
-        matchInfo?.game_creation ?? metadata.gameCreation ?? 0;
-      const dataVersion = matchInfo?.data_version ?? metadata.dataVersion ?? "";
+        matchInfo?.game_creation ??
+        directMatch?.game_creation ??
+        metadata.gameCreation ??
+        0;
+      const dataVersion =
+        matchInfo?.data_version ??
+        directMatch?.data_version ??
+        metadata.dataVersion ??
+        "";
 
-      let perks = null;
+      // Stats complejos y equipos
+      let perks = usedParticipant?.perks || null;
+      // Normalizar estructura de perks si viene de DB camelCase vs snake_case
+      if (!perks && usedParticipant?.perk_primary_style) {
+        // Construcción manual si viene de DB flat columns y no JSON
+        // (Aunque si tenemos participant DB row, solemos priorizar full_json si existe)
+      }
+
       let teamTotalDamage = 0;
       let teamTotalGold = 0;
       let teamTotalKills = 0;
       let objectivesStolen = 0;
       let allPlayers: any[] = [];
-      // Variables para nuevos badges
+
       let pentaKills = 0;
       let quadraKills = 0;
       let tripleKills = 0;
@@ -411,13 +537,18 @@ export async function GET(request: NextRequest) {
       let turretPlatesTaken = 0;
       let earlyLaningPhaseGoldExpAdvantage = 0;
       let goldDeficit = 0;
+      let riotIdGameName = "";
+      let riotIdTagline = "";
       let teamAvgDamageToChampions = 0;
       let teamAvgGoldEarned = 0;
       let teamAvgKillParticipation = 0;
       let teamAvgVisionScore = 0;
       let teamAvgCsPerMin = 0;
       let teamAvgDamageToTurrets = 0;
+      let calculatedRankingPosition: number | null = null;
+      let calculatedPerformanceScore: number | null = null;
 
+      // Función helper para nombres
       const getParticipantDisplayName = (p: unknown): string => {
         if (!p || typeof p !== "object") return "Jugador";
         const obj = p as Record<string, unknown>;
@@ -493,108 +624,204 @@ export async function GET(request: NextRequest) {
         );
       };
 
-      if (matchInfo?.full_json?.info?.participants) {
-        const participants = matchInfo.full_json.info.participants;
-        const participantDetail = participants.find(
-          (p: any) => p.puuid === (participant?.puuid || userPuuid),
-        );
-        perks = participantDetail?.perks ?? null;
+      // Si tenemos JSON completo (ya sea del join o directo), poblamos los datos RICH
+      if (fullJson?.info?.participants) {
+        const jsonParticipants = fullJson.info.participants as any[];
 
-        // Extraer stats base
-        pentaKills = participantDetail?.pentaKills || 0;
-        quadraKills = participantDetail?.quadraKills || 0;
-        tripleKills = participantDetail?.tripleKills || 0;
-        doubleKills = participantDetail?.doubleKills || 0;
-        firstBloodKill = participantDetail?.firstBloodKill || false;
-        totalTimeCCDealt = participantDetail?.totalTimeCCDealt || 0;
+        // Identificamos al participante en el JSON (participantDetail es el objeto de Riot)
+        let participantDetail = jsonParticipants.find((p: any) => {
+          // 1. Por PUUID
+          if (userPuuid && p.puuid === userPuuid) return true;
+          if (participant?.puuid && p.puuid === participant.puuid) return true;
 
-        // Extraer challenges
-        const challenges = participantDetail?.challenges || {};
-        soloKills = challenges.soloKills || 0;
-        turretPlatesTaken = challenges.turretPlatesTaken || 0;
-        earlyLaningPhaseGoldExpAdvantage =
-          challenges.earlyLaningPhaseGoldExpAdvantage || 0;
+          // 2. Por Champion ID (muy fiable)
+          if (championId && p.championId === championId) return true;
 
-        // Calcular datos de equipo
-        const playerTeamId = participantDetail?.teamId;
-        const teamParticipants = participants.filter(
-          (p: any) => p.teamId === playerTeamId,
-        );
-        const enemyParticipants = participants.filter(
-          (p: any) => p.teamId !== playerTeamId,
-        );
+          // 3. Por Champion Name (normalizado)
+          const targetChamp = normalizeChamp(championNameRaw);
+          if (targetChamp && normalizeChamp(p.championName) === targetChamp)
+            return true;
 
-        teamTotalDamage = teamParticipants.reduce(
-          (sum: number, p: any) => sum + (p.totalDamageDealtToChampions || 0),
-          0,
-        );
-        teamTotalGold = teamParticipants.reduce(
-          (sum: number, p: any) => sum + (p.goldEarned || 0),
-          0,
-        );
-        const enemyTotalGold = enemyParticipants.reduce(
-          (sum: number, p: any) => sum + (p.goldEarned || 0),
-          0,
-        );
-        // Heurística simple para Remontada: Si ganamos pero tuvimos menos oro total (raro pero posible en base race)
-        // O mejor: usar maxGoldAdvantage de challenges si existe? No siempre.
-        // Si no hay timeline, usaremos esta heurística conservadora o 0.
-        // Pero el badge de Remontada decía "4.9k behind". Eso implica max deficit.
-        // challenges tiene "maxKillDeficit"? No. "12AssistStreakCount"? No.
-        // Si challenges tiene "goldPerMinute", etc.
-        // Voy a dejar goldDeficit como 0 por ahora a menos que ganemos con menos oro (que es una remontada épica).
-        if (resultWin && enemyTotalGold > teamTotalGold) {
-          goldDeficit = enemyTotalGold - teamTotalGold;
+          // 4. Por K/D/A
+          if (
+            typeof kills === "number" &&
+            typeof deaths === "number" &&
+            typeof assists === "number" &&
+            p.kills === kills &&
+            p.deaths === deaths &&
+            p.assists === assists
+          )
+            return true;
+
+          return false;
+        });
+
+        // Si no lo encontramos pero tenemos usedParticipant, lo usamos como último recurso
+        if (!participantDetail && usedParticipant) {
+          participantDetail = usedParticipant;
         }
 
-        teamTotalKills = teamParticipants.reduce(
-          (sum: number, p: any) => sum + (p.kills || 0),
-          0,
-        );
+        // Si encontramos data detallada del usuario, poblamos stats avanzados
+        if (participantDetail) {
+          perks = participantDetail.perks ?? perks;
+          pentaKills = participantDetail.pentaKills ?? 0;
+          quadraKills = participantDetail.quadraKills ?? 0;
+          tripleKills = participantDetail.tripleKills ?? 0;
+          doubleKills = participantDetail.doubleKills ?? 0;
+          firstBloodKill = participantDetail.firstBloodKill ?? false;
+          totalTimeCCDealt = participantDetail.totalTimeCCDealt ?? 0;
 
-        const teamCount =
-          typeof teamParticipants.length === "number" &&
-          teamParticipants.length > 0
-            ? teamParticipants.length
-            : 5;
-        teamAvgDamageToChampions = teamTotalDamage / teamCount;
-        teamAvgGoldEarned = teamTotalGold / teamCount;
-        teamAvgKillParticipation =
-          teamTotalKills > 0
-            ? teamParticipants.reduce((sum: number, p: any) => {
-                const kp =
-                  (((p.kills || 0) + (p.assists || 0)) / teamTotalKills) * 100;
-                return sum + kp;
-              }, 0) / teamCount
-            : 0;
+          const challenges = participantDetail.challenges || {};
+          soloKills = challenges.soloKills ?? 0;
+          turretPlatesTaken = challenges.turretPlatesTaken ?? 0;
+          earlyLaningPhaseGoldExpAdvantage =
+            challenges.earlyLaningPhaseGoldExpAdvantage ?? 0;
+          objectivesStolen =
+            participantDetail.objectivesStolen ?? objectivesStolen;
 
-        teamAvgVisionScore =
-          teamParticipants.reduce(
-            (sum: number, p: any) => sum + (p.visionScore || 0),
-            0,
-          ) / teamCount;
-        // gameDuration está en segundos, convertir a minutos
-        const gameDurationSeconds =
-          gameDuration || matchInfo?.game_duration || 0;
-        const minutes = Math.max(1, gameDurationSeconds / 60);
-        teamAvgCsPerMin =
-          teamParticipants.reduce((sum: number, p: any) => {
-            const cs =
-              (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0);
-            return sum + cs / minutes;
-          }, 0) / teamCount;
-        teamAvgDamageToTurrets =
-          teamParticipants.reduce(
-            (sum: number, p: any) => sum + (p.damageDealtToTurrets || 0),
-            0,
-          ) / teamCount;
+          riotIdGameName =
+            participantDetail.riotIdGameName ||
+            participantDetail.riot_id_game_name ||
+            "";
+          riotIdTagline =
+            participantDetail.riotIdTagline ||
+            participantDetail.riot_id_tagline ||
+            "";
 
-        // Obtener objectives stolen del metadata si existe
-        objectivesStolen =
-          participant?.objectives_stolen || metadata.objectivesStolen || 0;
+          // Team Stats Calculation
+          const playerTeamId =
+            participantDetail.teamId ?? participantDetail.team_id;
 
-        // Obtener todos los jugadores del match
-        allPlayers = participants.map((p: any) => ({
+          if (playerTeamId !== undefined) {
+            const teamParticipants = jsonParticipants.filter(
+              (p: any) => p.teamId === playerTeamId,
+            );
+            const enemyParticipants = jsonParticipants.filter(
+              (p: any) => p.teamId !== playerTeamId,
+            );
+
+            teamTotalDamage = teamParticipants.reduce(
+              (sum: number, p: any) =>
+                sum + (p.totalDamageDealtToChampions || 0),
+              0,
+            );
+            teamTotalGold = teamParticipants.reduce(
+              (sum: number, p: any) => sum + (p.goldEarned || 0),
+              0,
+            );
+            const enemyTotalGold = enemyParticipants.reduce(
+              (sum: number, p: any) => sum + (p.goldEarned || 0),
+              0,
+            );
+
+            if (resultWin && enemyTotalGold > teamTotalGold) {
+              goldDeficit = enemyTotalGold - teamTotalGold;
+            }
+
+            teamTotalKills = teamParticipants.reduce(
+              (sum: number, p: any) => sum + (p.kills || 0),
+              0,
+            );
+
+            const teamCount = Math.max(teamParticipants.length, 1);
+            teamAvgDamageToChampions = teamTotalDamage / teamCount;
+            teamAvgGoldEarned = teamTotalGold / teamCount;
+            teamAvgKillParticipation =
+              teamTotalKills > 0
+                ? teamParticipants.reduce((sum: number, p: any) => {
+                    const kp =
+                      (((p.kills || 0) + (p.assists || 0)) / teamTotalKills) *
+                      100;
+                    return sum + kp;
+                  }, 0) / teamCount
+                : 0;
+
+            teamAvgVisionScore =
+              teamParticipants.reduce(
+                (sum: number, p: any) => sum + (p.visionScore || 0),
+                0,
+              ) / teamCount;
+
+            const mins = Math.max(1, gameDurationSeconds / 60);
+            teamAvgCsPerMin =
+              teamParticipants.reduce((sum: number, p: any) => {
+                const cs =
+                  (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0);
+                return sum + cs / mins;
+              }, 0) / teamCount;
+
+            teamAvgDamageToTurrets =
+              teamParticipants.reduce(
+                (sum: number, p: any) => sum + (p.damageDealtToTurrets || 0),
+                0,
+              ) / teamCount;
+
+            // Ranking and performance score calculation if missing in DB
+            if (
+              !participant?.ranking_position ||
+              !participant?.performance_score
+            ) {
+              const enemyTotalKills = enemyParticipants.reduce(
+                (sum: number, p: any) => sum + (p.kills || 0),
+                0,
+              );
+              const enemyTotalDamage = enemyParticipants.reduce(
+                (sum: number, p: any) =>
+                  sum + (p.totalDamageDealtToChampions || 0),
+                0,
+              );
+
+              const scoresMap = new Map<string, number>();
+              for (const p of jsonParticipants) {
+                const isAlly = p.teamId === playerTeamId;
+                const tk = isAlly ? teamTotalKills : enemyTotalKills;
+                const td = isAlly ? teamTotalDamage : enemyTotalDamage;
+                const tg = isAlly
+                  ? isAlly
+                    ? teamTotalGold
+                    : enemyTotalGold
+                  : enemyTotalGold;
+
+                const scoreValue = calculatePerformanceScore({
+                  kills: p.kills,
+                  deaths: p.deaths,
+                  assists: p.assists,
+                  win: p.win,
+                  gameDuration: gameDurationSeconds,
+                  goldEarned: p.goldEarned,
+                  totalDamageDealtToChampions:
+                    p.totalDamageDealtToChampions ?? 0,
+                  visionScore: p.visionScore ?? 0,
+                  totalMinionsKilled: p.totalMinionsKilled ?? 0,
+                  neutralMinionsKilled: p.neutralMinionsKilled ?? 0,
+                  role:
+                    p.teamPosition || p.individualPosition || p.lane || p.role,
+                  teamTotalKills: tk,
+                  teamTotalDamage: td,
+                  teamTotalGold: tg,
+                  objectivesStolen: p.objectivesStolen ?? 0,
+                });
+                scoresMap.set(p.puuid, scoreValue);
+              }
+
+              const sorted = Array.from(scoresMap.entries()).sort(
+                (a, b) => b[1] - a[1],
+              );
+              const rankingMap = new Map<string, number>();
+              sorted.forEach(([puuid], index) =>
+                rankingMap.set(puuid, index + 1),
+              );
+
+              calculatedRankingPosition =
+                rankingMap.get(participantDetail.puuid) || null;
+              calculatedPerformanceScore =
+                scoresMap.get(participantDetail.puuid) || null;
+            }
+          }
+        }
+
+        // Poblar allPlayers siempre que tengamos participants
+        allPlayers = jsonParticipants.map((p: any) => ({
           championName: p.championName || "Desconocido",
           championId: p.championId || 0,
           summonerName: (() => {
@@ -611,11 +838,11 @@ export async function GET(request: NextRequest) {
               : p.kills + p.assists,
           role: getParticipantPosition(p),
           team: p.teamId === 100 ? "blue" : "red",
-          // Extraer datos de build y runas
           summoner1Id: p.summoner1Id,
           summoner2Id: p.summoner2Id,
           perkPrimaryStyle: p.perks?.styles?.[0]?.style,
           perkSubStyle: p.perks?.styles?.[1]?.style,
+          keystoneId: p.perks?.styles?.[0]?.selections?.[0]?.perk,
           item0: p.item0,
           item1: p.item1,
           item2: p.item2,
@@ -623,7 +850,16 @@ export async function GET(request: NextRequest) {
           item4: p.item4,
           item5: p.item5,
           item6: p.item6,
+          totalCS: (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0),
         }));
+      }
+
+      // Fallback: Si no tenemos JSON pero tenemos participant DB row, usamos sus columnas
+      if (!allPlayers.length && participant) {
+        // Aquí podríamos intentar construir un "Fake" allPlayers con solo el usuario,
+        // pero es mejor dejarlo vacío para no mostrar UI rota.
+        // Sin embargo, aseguramos que objectivesStolen tenga valor si venía de DB
+        objectivesStolen = participant.objectives_stolen || objectivesStolen;
       }
 
       return {
@@ -638,6 +874,16 @@ export async function GET(request: NextRequest) {
         matchId: partida.match_id,
         championId,
         championName,
+        riotIdGameName:
+          riotIdGameName ||
+          usedParticipant?.riot_id_game_name ||
+          usedParticipant?.riotIdGameName ||
+          usedParticipant?.summoner_name ||
+          usedParticipant?.summonerName,
+        riotIdTagline:
+          riotIdTagline ||
+          usedParticipant?.riot_id_tagline ||
+          usedParticipant?.riotIdTagline,
         skinId: getDeterministicSkinId(partida.match_id, championName),
         role,
         lane,
@@ -648,21 +894,45 @@ export async function GET(request: NextRequest) {
         assists,
         totalCS,
         csPerMin,
-        visionScore: participant?.vision_score ?? metadata.visionScore ?? 0,
+        visionScore:
+          usedParticipant?.visionScore ??
+          usedParticipant?.vision_score ??
+          metadata.visionScore ??
+          0,
         damageToChampions:
-          participant?.total_damage_dealt_to_champions ??
+          usedParticipant?.totalDamageDealtToChampions ??
+          usedParticipant?.total_damage_dealt_to_champions ??
           metadata.damageDealt ??
           0,
-        damageToTurrets: participant?.damage_dealt_to_turrets ?? 0,
-        goldEarned: participant?.gold_earned ?? metadata.goldEarned ?? 0,
+        damageToTurrets:
+          usedParticipant?.damageDealtToTurrets ??
+          usedParticipant?.damage_dealt_to_turrets ??
+          0,
+        goldEarned:
+          usedParticipant?.goldEarned ??
+          usedParticipant?.gold_earned ??
+          metadata.goldEarned ??
+          0,
         items,
-        summoner1Id: participant?.summoner1_id ?? 0,
-        summoner2Id: participant?.summoner2_id ?? 0,
-        perkPrimaryStyle: participant?.perk_primary_style ?? 0,
-        perkSubStyle: participant?.perk_sub_style ?? 0,
+        summoner1Id:
+          usedParticipant?.summoner1Id ?? usedParticipant?.summoner1_id ?? 0,
+        summoner2Id:
+          usedParticipant?.summoner2Id ?? usedParticipant?.summoner2_id ?? 0,
+        perkPrimaryStyle:
+          usedParticipant?.perkPrimaryStyle ??
+          usedParticipant?.perk_primary_style ??
+          usedParticipant?.perks?.styles?.[0]?.style ??
+          0,
+        perkSubStyle:
+          usedParticipant?.perkSubStyle ??
+          usedParticipant?.perk_sub_style ??
+          usedParticipant?.perks?.styles?.[1]?.style ??
+          0,
         perks,
-        rankingPosition: participant?.ranking_position ?? null,
-        performanceScore: participant?.performance_score ?? null,
+        rankingPosition:
+          calculatedRankingPosition ?? participant?.ranking_position ?? null,
+        performanceScore:
+          calculatedPerformanceScore ?? participant?.performance_score ?? null,
         queueId,
         gameDuration,
         gameCreation,

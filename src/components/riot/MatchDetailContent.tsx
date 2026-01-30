@@ -10,7 +10,7 @@ import { MatchAnalysis } from "@/components/riot/analysis/MatchAnalysis";
 import { ScoreboardTable } from "@/components/riot/ScoreboardTable";
 import { MatchShareButton } from "@/components/riot/MatchShareButton";
 import { createClient } from "@/lib/supabase/client";
-import { Download } from "lucide-react";
+import { Download, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MatchDetailContentProps {
@@ -28,11 +28,32 @@ function formatDuration(seconds: number) {
 function formatTimeAgo(timestamp: number) {
   const now = Date.now();
   const diff = now - timestamp;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days > 0) return `Hace ${days} días`;
+  const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
-  if (hours > 0) return `Hace ${hours} horas`;
-  return "Hace poco";
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  const date = new Date(timestamp);
+  const currentYear = new Date().getFullYear();
+  const matchYear = date.getFullYear();
+
+  if (matchYear < currentYear) {
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  if (days >= 7) {
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  }
+
+  if (days > 0) return `${days}D`;
+  if (hours > 0) return `${hours}H`;
+  return `${Math.max(1, minutes)}m`;
 }
 
 /**
@@ -181,7 +202,7 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
   const team2 = participants.filter((p: any) => !p.win);
 
   const focusParticipant = mapParticipants.find(
-    (p: any) => p.puuid === currentUserPuuid
+    (p: any) => p.puuid === currentUserPuuid,
   );
   const focusTeamId =
     focusParticipant?.teamId || mapParticipants[0]?.teamId || 100;
@@ -198,8 +219,11 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
               • {formatDuration(match.game_duration)}
             </span>
           </h2>
-          <p className="text-slate-400 text-sm mt-2">
-            {formatTimeAgo(match.game_creation)} • ID: {matchId}
+          <p className="text-slate-400 text-sm mt-2 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 opacity-70" />
+            <span>{formatTimeAgo(match.game_creation)}</span>
+            <span className="opacity-30">•</span>
+            <span>ID: {matchId}</span>
           </p>
         </div>
 

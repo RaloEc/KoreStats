@@ -204,7 +204,7 @@ export const patchService = {
       // 1. Obtener versiones sin caché
       const versionsResponse = await fetch(
         "https://ddragon.leagueoflegends.com/api/versions.json",
-        { cache: "no-store", headers: { "Cache-Control": "no-cache" } }
+        { cache: "no-store", headers: { "Cache-Control": "no-cache" } },
       );
       if (!versionsResponse.ok) throw new Error("Error fetching versions");
       const versions: string[] = await versionsResponse.json();
@@ -212,7 +212,7 @@ export const patchService = {
       const previousVersion = versions[1];
 
       console.log(
-        `Versiones detectadas - Latest: ${latestVersion}, Prev: ${previousVersion}`
+        `Versiones detectadas - Latest: ${latestVersion}, Prev: ${previousVersion}`,
       );
 
       if (!latestVersion || !previousVersion)
@@ -266,19 +266,19 @@ export const patchService = {
       const patchContext = await getPatchContext(
         latestVersion,
         Object.keys(latestChamps?.data || {}),
-        Object.keys(latestItems?.data || {})
+        Object.keys(latestItems?.data || {}),
       );
 
       // 4. Comparar TODO - Usando contextos categorizados
       const championChanges = this.compareChampions(
         prevChamps,
         latestChamps,
-        patchContext.champions
+        patchContext.champions,
       );
       const itemChanges = this.compareItems(
         prevItems,
         latestItems,
-        patchContext.items
+        patchContext.items,
       );
       const runeChanges = this.compareRunes(prevRunes, latestRunes);
       const summonerChanges = this.compareSummoners(prevSums, latestSums);
@@ -341,20 +341,21 @@ export const patchService = {
         }
       }
 
+      const season = parseInt(latestVersion.split(".")[0]);
+      const patchNum = latestVersion.split(".")[1];
+      const displayVersion = `${season + 10}.${patchNum}`;
+
       // Convertir la imagen principal a nuestra URL dinámica con texto
       if (imagenPrincipal) {
         // Usamos ruta relativa o absoluta si existe la variable.
         // Al guardar en base de datos, lo ideal es que sea accesible desde cualquier lugar.
         // Si usamos ruta relativa iniciando con /, en la web funcionará.
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-        imagenPrincipal = `${baseUrl}/api/og/patch?version=${latestVersion}&bg=${encodeURIComponent(
-          imagenPrincipal
+        imagenPrincipal = `${baseUrl}/api/og/patch?version=${displayVersion}&bg=${encodeURIComponent(
+          imagenPrincipal,
         )}&ts=${Date.now()}`;
+        console.log(`[PatchService] Generated OG Image: ${imagenPrincipal}`);
       }
-
-      const season = parseInt(latestVersion.split(".")[0]);
-      const patchNum = latestVersion.split(".")[1];
-      const displayVersion = `${season + 10}.${patchNum}`;
 
       // 5. Deduplicar Items (Fix para "Retoño de Pisamusgo" duplicado)
       const uniqueItemChanges = Array.from(
@@ -388,7 +389,7 @@ export const patchService = {
             }
             return map;
           }, new Map<string, ItemChange>())
-          .values()
+          .values(),
       ) as ItemChange[];
 
       const patchData: PatchData = {
@@ -466,9 +467,8 @@ export const patchService = {
       console.log("Syncing champion data...");
       let championSyncResult = null;
       try {
-        championSyncResult = await championService.fetchAndSyncChampions(
-          latestVersion
-        );
+        championSyncResult =
+          await championService.fetchAndSyncChampions(latestVersion);
       } catch (champError) {
         console.error("Error syncing champions:", champError);
       }
@@ -494,11 +494,11 @@ export const patchService = {
   // --- Fetchers ---
 
   async fetchChampionFull(
-    version: string
+    version: string,
   ): Promise<Record<string, ChampionData>> {
     const res = await fetch(
       `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/championFull.json`,
-      { cache: "no-store" }
+      { cache: "no-store" },
     );
     if (!res.ok) throw new Error(`Failed fetches champions ${version}`);
     const json = await res.json();
@@ -507,7 +507,7 @@ export const patchService = {
 
   async fetchItems(version: string): Promise<Record<string, ItemData>> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/item.json`
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/item.json`,
     );
     if (!res.ok) return {};
     const json = await res.json();
@@ -521,7 +521,7 @@ export const patchService = {
     contextMap: Record<
       string,
       { summary?: string; context?: string; changes?: string[] }
-    > = {}
+    > = {},
   ): ItemChange[] {
     const changes: ItemChange[] = [];
 
@@ -662,17 +662,17 @@ export const patchService = {
 
   async fetchRunes(version: string): Promise<RunePath[]> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/runesReforged.json`
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/runesReforged.json`,
     );
     if (!res.ok) return [];
     return await res.json();
   },
 
   async fetchSummoners(
-    version: string
+    version: string,
   ): Promise<Record<string, SummonerSpell>> {
     const res = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/summoner.json`
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/summoner.json`,
     );
     if (!res.ok) return {};
     const json = await res.json();
@@ -686,7 +686,7 @@ export const patchService = {
     contextMap: Record<
       string,
       { summary?: string; context?: string; changes?: string[] }
-    > = {}
+    > = {},
   ): ChampionChange[] {
     const changes: ChampionChange[] = [];
     for (const key in newData) {
@@ -703,28 +703,28 @@ export const patchService = {
         "hp",
         oldChamp.stats.hp,
         newChamp.stats.hp,
-        true
+        true,
       );
       this.compareStat(
         statChanges,
         "armor",
         oldChamp.stats.armor,
         newChamp.stats.armor,
-        true
+        true,
       );
       this.compareStat(
         statChanges,
         "attackdamage",
         oldChamp.stats.attackdamage,
         newChamp.stats.attackdamage,
-        true
+        true,
       );
       this.compareStat(
         statChanges,
         "movespeed",
         oldChamp.stats.movespeed,
         newChamp.stats.movespeed,
-        true
+        true,
       );
 
       // Spells comparison
@@ -769,7 +769,7 @@ export const patchService = {
         if (newSpell.effect && oldSpell.effect) {
           const limit = Math.min(
             newSpell.effect.length,
-            oldSpell.effect.length
+            oldSpell.effect.length,
           );
 
           for (let effectIdx = 0; effectIdx < limit; effectIdx++) {
@@ -874,7 +874,7 @@ export const patchService = {
           .replace(/[^a-z0-9]/g, "");
         const foundKey = Object.keys(contextMap).find(
           (key) =>
-            key.toLowerCase().replace(/[^a-z0-9]/g, "") === normalizedChampName
+            key.toLowerCase().replace(/[^a-z0-9]/g, "") === normalizedChampName,
         );
         if (foundKey) {
           context = contextMap[foundKey];
@@ -918,7 +918,7 @@ export const patchService = {
             // - Arrows: ->, =>, &rArr;, ⇒, →, ➤, >, -
             // - Spaces around elements
             const match = cleanLine.match(
-              /^([^:：]+)[:：]\s*(.+?)\s*(?:=>|->|&rArr;|⇒|→|➤|[-=]+>)\s*(.+?)[.]?$/
+              /^([^:：]+)[:：]\s*(.+?)\s*(?:=>|->|&rArr;|⇒|→|➤|[-=]+>)\s*(.+?)[.]?$/,
             );
 
             if (match) {
@@ -960,7 +960,7 @@ export const patchService = {
                 .map((c) =>
                   c.attribute === "description"
                     ? c.new
-                    : `${c.attribute}: ${c.old} -> ${c.new}`
+                    : `${c.attribute}: ${c.old} -> ${c.new}`,
                 )
                 .join("\n");
 
@@ -980,7 +980,7 @@ export const patchService = {
             if (keyIndex !== -1) {
               const spellKey = currentSection;
               const existingSpellChange = spellChanges.find(
-                (s) => s.key === spellKey
+                (s) => s.key === spellKey,
               );
               // Si no existe, lo creamos. Si existe, podríamos (opcionalmente) agregar cambios extra?
               // El plan original decía "si no existe". Mantengamos eso para evitar conflictos con API.
@@ -1084,7 +1084,7 @@ export const patchService = {
   // Compare Summoners
   compareSummoners(
     oldData: Record<string, SummonerSpell>,
-    newData: Record<string, SummonerSpell>
+    newData: Record<string, SummonerSpell>,
   ): SummonerChange[] {
     const changes: SummonerChange[] = [];
     for (const key in newData) {
@@ -1121,7 +1121,7 @@ export const patchService = {
     stat: string,
     oldVal: number,
     newVal: number,
-    higherBetter: boolean
+    higherBetter: boolean,
   ) {
     // Some stats are floating point, allow very small difference but be inclusive
     if (Math.abs(oldVal - newVal) > 0.0001) {

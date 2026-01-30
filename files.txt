@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RAW - CommunityDragon</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon"/>
+  <meta name="description" content="A community made to manage a custom API that serves static data.">
+  <link rel="stylesheet" href="/.theme/main.css?t=1"/>
+  <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.24/dist/js/uikit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/uikit@3.16.24/dist/js/uikit-icons.min.js"></script>
+  <script src="/.theme/main.js?t=2"></script>
+  <script type="application/javascript">
+    document.addEventListener("DOMContentLoaded", onContentLoaded);
+  </script>
+</head>
+<body>
+  <nav id="navbar">
+    <div class="navbar-left">
+      <a class="navbar-item" href="/">
+        <picture>
+          <source srcset="/.theme/logo-white.png" media="(prefers-color-scheme: dark)">
+          <img alt="CommunityDragon" src="/.theme/logo.png" height="50" width="50">
+        </picture>
+      </a>
+      <ul class="hide-screen-m">
+        <li>
+          <a href="https://www.communitydragon.org">Home</a>
+        </li>
+        <li>
+          <a href="https://cdn.communitydragon.org">CDN</a>
+        </li>
+        <li class="active">
+          <a href="https://raw.communitydragon.org">RAW</a>
+        </li>
+        <li>
+          <a href="https://github.com/communitydragon/docs/blob/master/assets.md">Docs</a>
+        </li>
+        <li>
+          <a href="/binviewer/">BinViewer</a>
+        </li>
+      </ul>
+      <div class="navbar-item hide-screen-m" style="flex-grow: 1">
+        <div id="search" class="uk-inline uk-width-expand">
+          <label>
+            <span id="search-spinner" class="form-icon hidden" uk-spinner="ratio: .75"></span>
+            <span id="search-close" class="form-icon hidden" uk-icon="close" onclick="displaySearchResults(false)"></span>
+            <span id="search-icon" class="form-icon" href="#" uk-icon="search"></span>
+            <input id="search-input" class="uk-input uk-input-disabled uk-form-width-small uk-width-expand" type="text" placeholder="Search" />
+            <span class="badges">
+              <a id="search-local" onclick="setSearchMode('local')">local</a>
+              <a id="search-global" onclick="setSearchMode('global')">global</a>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="navbar-right">
+      <ul>
+        <li>
+          <a target="_blank" rel="noreferrer noopener" href="https://discord.gg/rZQwuek">
+            <span class="navbar-button discord">
+              <picture>
+                <source srcset="/.theme/discord-white.png" media="(prefers-color-scheme: dark)">
+                <img alt="Discord" src="/.theme/discord.png" height="20" width="20">
+              </picture>
+              <span class="hide-screen-s">Discord</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a target="_blank" rel="noreferrer noopener" href="https://www.patreon.com/communitydragon">
+            <span class="navbar-button patreon">
+              <img alt="Patreon" src="/.theme/patreon.png" height="20" width="20">
+              <span class="hide-screen-s">Support us</span>
+            </span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <hr/>
+  <ul id="breadcrumbs" class="hide-screen-m"></ul>
+  <main>
+    <h1>
+/latest/plugins/rcp-fe-lol-match-history/global/default/</h1>
+<table id="list"><thead><tr><th style="width:55%"><a href="?C=N&amp;O=A">File Name</a>&nbsp;<a href="?C=N&amp;O=D">&nbsp;&darr;&nbsp;</a></th><th style="width:20%"><a href="?C=S&amp;O=A">File Size</a>&nbsp;<a href="?C=S&amp;O=D">&nbsp;&darr;&nbsp;</a></th><th style="width:25%"><a href="?C=M&amp;O=A">Date</a>&nbsp;<a href="?C=M&amp;O=D">&nbsp;&darr;&nbsp;</a></th></tr></thead>
+<tbody><tr><td class="link"><a href="../">Parent directory/</a></td><td class="size">-</td><td class="date">-</td></tr>
+<tr><td class="link"><a href="images/" title="images">images/</a></td><td class="size">-</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="air-100.png" title="air-100.png">air-100.png</a></td><td class="size">8.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="air-200.png" title="air-200.png">air-200.png</a></td><td class="size">8.7 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="arrow.png" title="arrow.png">arrow.png</a></td><td class="size">998 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="background.jpg" title="background.jpg">background.jpg</a></td><td class="size">57.3 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="baron-100.png" title="baron-100.png">baron-100.png</a></td><td class="size">8.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="baron-200.png" title="baron-200.png">baron-200.png</a></td><td class="size">8.7 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="bronze-hover.png" title="bronze-hover.png">bronze-hover.png</a></td><td class="size">3.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="bronze.png" title="bronze.png">bronze.png</a></td><td class="size">3.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="champion_frame.png" title="champion_frame.png">champion_frame.png</a></td><td class="size">11.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="chromatic-hover.png" title="chromatic-hover.png">chromatic-hover.png</a></td><td class="size">8.1 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="chromatic.png" title="chromatic.png">chromatic.png</a></td><td class="size">8.9 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dead_blue.png" title="dead_blue.png">dead_blue.png</a></td><td class="size">2.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dead_red.png" title="dead_red.png">dead_red.png</a></td><td class="size">1.9 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dot-empty.png" title="dot-empty.png">dot-empty.png</a></td><td class="size">2.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dot-hover.png" title="dot-hover.png">dot-hover.png</a></td><td class="size">1.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dot-me-empty.png" title="dot-me-empty.png">dot-me-empty.png</a></td><td class="size">2.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dot-me-hover.png" title="dot-me-hover.png">dot-me-hover.png</a></td><td class="size">1.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dragon-100.png" title="dragon-100.png">dragon-100.png</a></td><td class="size">5.3 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="dragon-200.png" title="dragon-200.png">dragon-200.png</a></td><td class="size">5.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="earth-100.png" title="earth-100.png">earth-100.png</a></td><td class="size">5.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="earth-200.png" title="earth-200.png">earth-200.png</a></td><td class="size">6.1 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="elder-100.png" title="elder-100.png">elder-100.png</a></td><td class="size">8.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="elder-200.png" title="elder-200.png">elder-200.png</a></td><td class="size">8.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="elemental-dragons.png" title="elemental-dragons.png">elemental-dragons.png</a></td><td class="size">27.6 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="fire-100.png" title="fire-100.png">fire-100.png</a></td><td class="size">6.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="fire-200.png" title="fire-200.png">fire-200.png</a></td><td class="size">6.7 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="gold-1.png" title="gold-1.png">gold-1.png</a></td><td class="size">4.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="gold.png" title="gold.png">gold.png</a></td><td class="size">3.9 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="herald-100.png" title="herald-100.png">herald-100.png</a></td><td class="size">8.6 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="herald-200.png" title="herald-200.png">herald-200.png</a></td><td class="size">9.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="icon_gold.png" title="icon_gold.png">icon_gold.png</a></td><td class="size">1.3 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="icon_minions.png" title="icon_minions.png">icon_minions.png</a></td><td class="size">2.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="icons.png" title="icons.png">icons.png</a></td><td class="size">2.2 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="inhibitor-100.png" title="inhibitor-100.png">inhibitor-100.png</a></td><td class="size">8.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="inhibitor-200.png" title="inhibitor-200.png">inhibitor-200.png</a></td><td class="size">8.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="inhibitor_building_blue.png" title="inhibitor_building_blue.png">inhibitor_building_blue.png</a></td><td class="size">1.1 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="inhibitor_building_red.png" title="inhibitor_building_red.png">inhibitor_building_red.png</a></td><td class="size">1.2 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="kills.png" title="kills.png">kills.png</a></td><td class="size">373 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="license.json" title="license.json">license.json</a></td><td class="size">585 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="main.css" title="main.css">main.css</a></td><td class="size">84.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="map11.png" title="map11.png">map11.png</a></td><td class="size">492.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="map12.png" title="map12.png">map12.png</a></td><td class="size">142.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="map21.png" title="map21.png">map21.png</a></td><td class="size">313.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="minion-100.jpg" title="minion-100.jpg">minion-100.jpg</a></td><td class="size">6.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="minion-200.jpg" title="minion-200.jpg">minion-200.jpg</a></td><td class="size">6.3 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="nexus_building_blue.png" title="nexus_building_blue.png">nexus_building_blue.png</a></td><td class="size">1.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="nexus_building_red.png" title="nexus_building_red.png">nexus_building_red.png</a></td><td class="size">1.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="player_object_border.png" title="player_object_border.png">player_object_border.png</a></td><td class="size">84 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="player_object_border_left.png" title="player_object_border_left.png">player_object_border_left.png</a></td><td class="size">115 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="player_object_hover_border.png" title="player_object_hover_border.png">player_object_hover_border.png</a></td><td class="size">211.1 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="player_object_me_border.png" title="player_object_me_border.png">player_object_me_border.png</a></td><td class="size">6.7 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="rcp-fe-lol-match-history.css" title="rcp-fe-lol-match-history.css">rcp-fe-lol-match-history.css</a></td><td class="size">119.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="rcp-fe-lol-match-history.js" title="rcp-fe-lol-match-history.js">rcp-fe-lol-match-history.js</a></td><td class="size">296.0 KiB</td><td class="date">2026-Jan-28 03:58</td></tr>
+<tr><td class="link"><a href="right_icons_grub.png" title="right_icons_grub.png">right_icons_grub.png</a></td><td class="size">47.4 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="roleicon-assassin.png" title="roleicon-assassin.png">roleicon-assassin.png</a></td><td class="size">2.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="roleicon-fighter.png" title="roleicon-fighter.png">roleicon-fighter.png</a></td><td class="size">2.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="roleicon-mage.png" title="roleicon-mage.png">roleicon-mage.png</a></td><td class="size">1.6 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="roleicon-marksman.png" title="roleicon-marksman.png">roleicon-marksman.png</a></td><td class="size">1.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="roleicon-support.png" title="roleicon-support.png">roleicon-support.png</a></td><td class="size">1.9 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="roleicon-tank.png" title="roleicon-tank.png">roleicon-tank.png</a></td><td class="size">2.1 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="sfx-uikit-generic-click-small.ogg" title="sfx-uikit-generic-click-small.ogg">sfx-uikit-generic-click-small.ogg</a></td><td class="size">10.2 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="sfx-uikit-grid-click.ogg" title="sfx-uikit-grid-click.ogg">sfx-uikit-grid-click.ogg</a></td><td class="size">15.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="sfx-uikit-grid-hover.ogg" title="sfx-uikit-grid-hover.ogg">sfx-uikit-grid-hover.ogg</a></td><td class="size">5.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="silver-hover.png" title="silver-hover.png">silver-hover.png</a></td><td class="size">3.7 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="silver.png" title="silver.png">silver.png</a></td><td class="size">3.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="spinner.png" title="spinner.png">spinner.png</a></td><td class="size">11.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="table_hover_border_body.png" title="table_hover_border_body.png">table_hover_border_body.png</a></td><td class="size">118 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="table_hover_border_body_rtl.png" title="table_hover_border_body_rtl.png">table_hover_border_body_rtl.png</a></td><td class="size">97 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="table_hover_border_top_bottom.png" title="table_hover_border_top_bottom.png">table_hover_border_top_bottom.png</a></td><td class="size">994 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="table_hover_border_top_bottom_rtl.png" title="table_hover_border_top_bottom_rtl.png">table_hover_border_top_bottom_rtl.png</a></td><td class="size">826 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="tft-piece-star-2.png" title="tft-piece-star-2.png">tft-piece-star-2.png</a></td><td class="size">1.3 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="tft-piece-star-3.png" title="tft-piece-star-3.png">tft-piece-star-3.png</a></td><td class="size">1.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="threat-hover.png" title="threat-hover.png">threat-hover.png</a></td><td class="size">3.6 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="threat.png" title="threat.png">threat.png</a></td><td class="size">1.6 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="tower-100.png" title="tower-100.png">tower-100.png</a></td><td class="size">980 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="tower-200.png" title="tower-200.png">tower-200.png</a></td><td class="size">1.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="tower_building_blue.png" title="tower_building_blue.png">tower_building_blue.png</a></td><td class="size">980 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="tower_building_red.png" title="tower_building_red.png">tower_building_red.png</a></td><td class="size">1.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="trans.json" title="trans.json">trans.json</a></td><td class="size">12.7 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="unique-hover.png" title="unique-hover.png">unique-hover.png</a></td><td class="size">11.1 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="unique.png" title="unique.png">unique.png</a></td><td class="size">11.2 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="vertmeter-container.png" title="vertmeter-container.png">vertmeter-container.png</a></td><td class="size">412 B</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="vertmeter-fill.png" title="vertmeter-fill.png">vertmeter-fill.png</a></td><td class="size">3.0 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="vilemaw-100.png" title="vilemaw-100.png">vilemaw-100.png</a></td><td class="size">7.3 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="vilemaw-200.png" title="vilemaw-200.png">vilemaw-200.png</a></td><td class="size">7.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="water-100.png" title="water-100.png">water-100.png</a></td><td class="size">7.5 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+<tr><td class="link"><a href="water-200.png" title="water-200.png">water-200.png</a></td><td class="size">7.8 KiB</td><td class="date">2026-Jan-11 23:23</td></tr>
+</tbody></table>  </main>
+  <div id="search-results" class="hidden">
+    <p></p>
+    <ul></ul>
+  </div>
+  <footer>
+    <div id="footer-links" class="hide-screen-s">
+      <div>
+        <ul>
+          <li class="header">Community</li>
+          <li><a target="_blank" rel="noreferrer noopener" href="https://discord.gg/rZQwuek">Discord</a></li>
+          <li class="header">Donations</li>
+          <li><a target="_blank" rel="noreferrer noopener" href="https://www.patreon.com/communitydragon">Patreon</a></li>
+        </ul>
+      </div>
+      <div>
+        <ul>
+          <li class="header">Projects</li>
+          <li><a href="https://github.com/communitydragon/cdtb">Toolbox</a></li>
+          <li><a href="https://hextechdocs.dev">Hexdocs</a></li>
+          <li><a href="https://github.com/communitydragon/awesome-league">Awesome</a></li>
+        </ul>
+      </div>
+      <div>
+        <ul>
+          <li class="header">Links</li>
+          <li><a href="https://www.communitydragon.org">Home</a></li>
+          <li><a href="https://github.com/communitydragon">GitHub</a></li>
+          <li><a href="https://github.com/communitydragon/docs/blob/master/assets.md">Docs</a></li>
+        </ul>
+      </div>
+      <div id="footer-icons" class="uk-light">
+        <ul>
+          <li>
+            <a class="uk-icon-button uk-icon" target="_blank" rel="noreferrer noopener" uk-icon="github" href="https://github.com/communitydragon" aria-label="GitHub"></a>
+          </li>
+          <li>
+            <a class="uk-icon-button uk-icon" target="_blank" rel="noreferrer noopener" uk-icon="discord" href="https://discord.gg/rZQwuek" aria-label="Discord"></a>
+          </li>
+          <li class="patreon">
+            <a class="uk-icon-button uk-icon" target="_blank" rel="noreferrer noopener" href="https://www.patreon.com/communitydragon" aria-label="Patreon">
+              <img src="/.theme/patreon.png" height="18" width="18" alt="Patreon">
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="legal">
+      <hr class="hide-screen-s" />
+      <div>CommunityDragon was created under Riot Games' <a target="_blank" rel="noreferrer noopener" href="https://www.riotgames.com/en/legal">"Legal Jibber Jabber"</a> policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.</div>
+    </div>
+  </footer>
+</body>
+</html>

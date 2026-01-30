@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // GET comments for a post
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = await createClient();
@@ -32,7 +32,7 @@ export async function GET(
           username,
           avatar_url
         )
-      `
+      `,
       )
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
@@ -52,7 +52,7 @@ export async function GET(
 // POST a new comment
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = await createClient();
@@ -71,7 +71,7 @@ export async function POST(
     if (!content?.trim() && !gif_url) {
       return NextResponse.json(
         { error: "Content or GIF is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -92,7 +92,7 @@ export async function POST(
           username,
           avatar_url
         )
-      `
+      `,
       )
       .single();
 
@@ -104,7 +104,7 @@ export async function POST(
     // Update comments_count on the post
     const { error: updateError } = await supabase.rpc(
       "increment_post_comments",
-      { post_id: postId }
+      { post_id: postId },
     );
 
     // If RPC doesn't exist, fallback to manual update
@@ -128,12 +128,46 @@ export async function POST(
       }
     }
 
+    // Process mentions
+    if (content) {
+      try {
+        // Fetch post info for URL construction (we need to know whose wall this is)
+        const { data: postData } = await supabase
+          .from("social_posts")
+          .select(
+            "target_user:perfiles!social_posts_target_user_id_fkey(username)",
+          )
+          .eq("id", postId)
+          .single();
+
+        const targetWallUsername =
+          (postData?.target_user as any)?.username || "usuario";
+        const sourceUrl = `/perfil/${targetWallUsername}`;
+        const authorName = comment.user?.username || "Alguien";
+
+        const { notifyMentions } = await import("@/lib/notificationService");
+        await notifyMentions({
+          content,
+          authorId: user.id,
+          authorName,
+          sourceId: comment.id,
+          sourceType: "comment",
+          sourceUrl,
+          previewText: content.replace(/<[^>]+>/g, ""),
+          // We don't exclude anyone here as per instructions (except self which is auto)
+          // "Es decir, le tiene que llegar la notificacion asi sea que lo mencione en una noticia, en un hilo, en comentario de cualquier cosa."
+        });
+      } catch (err) {
+        console.error("Failed to process comment mentions:", err);
+      }
+    }
+
     return NextResponse.json(comment);
   } catch (error) {
     console.error("Server error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

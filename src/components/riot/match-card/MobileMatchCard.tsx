@@ -24,8 +24,8 @@ import {
   getKeystonePerkId,
   RunesTooltip,
   type RunePerks,
-  usePerkAssets,
 } from "./RunesTooltip";
+import { useRunesReforged } from "@/hooks/use-runes-reforged";
 import { LPBadge } from "./LPBadge";
 
 interface RiotParticipant {
@@ -261,12 +261,14 @@ export function MobileMatchCard({
 
   const playerKeystonePerkId = getKeystonePerkId(currentParticipant?.perks);
   const opponentKeystonePerkId = getKeystonePerkId(laneOpponent?.perks);
-  const { perkIconById: playerPerkIconById, perkNameById: playerPerkNameById } =
-    usePerkAssets([playerKeystonePerkId]);
-  const {
-    perkIconById: opponentPerkIconById,
-    perkNameById: opponentPerkNameById,
-  } = usePerkAssets([opponentKeystonePerkId]);
+
+  const { getRuneIconUrl: fetchRuneIconUrl } = useRunesReforged();
+  const playerKeystoneUrl = playerKeystonePerkId
+    ? fetchRuneIconUrl(playerKeystonePerkId)
+    : null;
+  const opponentKeystoneUrl = opponentKeystonePerkId
+    ? fetchRuneIconUrl(opponentKeystonePerkId)
+    : null;
 
   const playerCs = currentParticipant
     ? (currentParticipant.totalMinionsKilled ?? 0) +
@@ -379,19 +381,13 @@ export function MobileMatchCard({
     );
   };
 
-  const renderKeystoneIcon = (
-    perkId: number | null,
-    icons: Record<number, string>,
-    names: Record<number, string>,
-  ) => {
-    if (!perkId) return null;
-    const icon = icons[perkId];
-    if (!icon) return null;
+  const renderKeystoneIcon = (url: string | null, alt: string) => {
+    if (!url) return null;
     return (
       <div className="relative w-6 h-6 rounded-full overflow-hidden bg-slate-900">
         <Image
-          src={icon}
-          alt={names[perkId] ?? "Keystone"}
+          src={url}
+          alt={alt}
           fill
           sizes="24px"
           className="object-cover p-0.5"
@@ -463,11 +459,8 @@ export function MobileMatchCard({
                 <div className="flex items-center">
                   <RunesTooltip perks={currentParticipant?.perks}>
                     <div className="flex items-center">
-                      {renderKeystoneIcon(
-                        playerKeystonePerkId,
-                        playerPerkIconById,
-                        playerPerkNameById,
-                      ) ?? renderRuneIcon(playerPrimaryRune, "Primary Style")}
+                      {renderKeystoneIcon(playerKeystoneUrl, "Keystone") ??
+                        renderRuneIcon(playerPrimaryRune, "Primary Style")}
                       {renderRuneIcon(playerSecondaryRune, "Secondary Rune")}
                     </div>
                   </RunesTooltip>
@@ -538,9 +531,8 @@ export function MobileMatchCard({
                       <RunesTooltip perks={laneOpponent?.perks}>
                         <div className="flex items-center">
                           {renderKeystoneIcon(
-                            opponentKeystonePerkId,
-                            opponentPerkIconById,
-                            opponentPerkNameById,
+                            opponentKeystoneUrl,
+                            "Enemy Keystone",
                           ) ??
                             renderRuneIcon(
                               opponentPrimaryRune,

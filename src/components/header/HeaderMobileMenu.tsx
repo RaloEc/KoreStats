@@ -12,6 +12,7 @@ import {
   Plus,
   ChevronDown,
   Loader2,
+  Settings,
 } from "lucide-react";
 import { ForoCategoria } from "./useHeaderLogic";
 import { LegalModal } from "@/components/legal/LegalModal";
@@ -35,10 +36,11 @@ interface HeaderMobileMenuProps {
   foroCategorias: ForoCategoria[];
   expandedCategories: Record<string, boolean>;
   setExpandedCategories: (
-    value: React.SetStateAction<Record<string, boolean>>
+    value: React.SetStateAction<Record<string, boolean>>,
   ) => void;
   isAdmin: boolean;
   isLoggingOut?: boolean;
+  setIsSettingsModalOpen: (value: boolean) => void;
 }
 
 export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
@@ -57,6 +59,7 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
   setExpandedCategories,
   isAdmin,
   isLoggingOut = false,
+  setIsSettingsModalOpen,
 }) => {
   const [adminMenuOpen, setAdminMenuOpen] = React.useState(false);
   const [legalOpen, setLegalOpen] = React.useState(false);
@@ -163,7 +166,7 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                         authUser?.user_metadata?.full_name ||
                         "",
                       1,
-                      "U"
+                      "U",
                     )}
                   </AvatarFallback>
                 </Avatar>
@@ -188,35 +191,14 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-4 p-4">
-                <p className="text-sm font-medium text-center text-gray-500 dark:text-gray-400 mb-1">
-                  Únete a la comunidad
-                </p>
-                <div className="flex flex-col gap-3">
-                  <Button
-                    variant="outline"
-                    className="w-full mx-0 py-2 h-auto transition-all duration-200 hover:shadow-md"
-                    onClick={() => openAuthModal("login")}
-                    style={
-                      {
-                        "--tw-shadow":
-                          "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
-                        "--tw-shadow-colored":
-                          "0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)",
-                      } as React.CSSProperties
-                    }
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Iniciar Sesión
-                  </Button>
-                  <Button
-                    className="w-full mx-0 py-2 h-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 hover:shadow-lg"
-                    onClick={() => openAuthModal("register")}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear Cuenta
-                  </Button>
-                </div>
+              <div className="flex flex-col gap-4 p-5">
+                <Button
+                  className="w-full py-3 h-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg rounded-xl"
+                  onClick={() => openAuthModal("login")}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Acceder a la comunidad
+                </Button>
               </div>
             )}
           </div>
@@ -228,17 +210,30 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
               scrollbarColor: "#9ca3af #e5e7eb",
             }}
           >
-            {/* Sección de Perfil */}
+            {/* Sección de Perfil y Ajustes */}
             {authUser && (
-              <li className="menu-item">
-                <Link
-                  href="/perfil"
-                  className="flex items-center gap-2 p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  onClick={closeAllMenus}
-                >
-                  <User size={18} /> Mi Perfil
-                </Link>
-              </li>
+              <>
+                <li className="menu-item">
+                  <Link
+                    href="/perfil"
+                    className="flex items-center gap-2 p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={closeAllMenus}
+                  >
+                    <User size={18} /> Mi Perfil
+                  </Link>
+                </li>
+                <li className="menu-item">
+                  <button
+                    onClick={() => {
+                      setIsSettingsModalOpen(true);
+                      closeAllMenus();
+                    }}
+                    className="flex items-center w-full gap-2 p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <Settings size={18} /> Ajustes
+                  </button>
+                </li>
+              </>
             )}
 
             {/* Sección de Administración */}

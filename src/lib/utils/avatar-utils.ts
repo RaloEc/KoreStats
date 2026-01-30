@@ -12,7 +12,7 @@
 export function getUserInitials(
   username: string | null | undefined,
   numChars: number = 1,
-  defaultChar: string = "?"
+  defaultChar: string = "?",
 ): string {
   if (!username) return defaultChar;
 
@@ -60,14 +60,14 @@ export function getAvatarColor(username: string | null | undefined): string {
  * Normaliza y valida la URL del avatar
  * - Si es null o vacío, retorna null (mostrará fallback)
  * - Si es una ruta local (/images/...), retorna null (no es URL válida)
- * - Si es URL de Google, retorna null (puede tener CORS issues)
+ * - Si es URL de Google, retorna la URL (asegurarse de configurar remotePatterns)
  * - Si es URL de Supabase Storage, retorna la URL
  * - Si es otra URL válida, retorna la URL
  * @param avatarUrl URL del avatar a normalizar
  * @returns URL normalizada o null para usar fallback
  */
 export function normalizeAvatarUrl(
-  avatarUrl: string | null | undefined
+  avatarUrl: string | null | undefined,
 ): string | null {
   // Si no hay URL, retornar null
   if (!avatarUrl) return null;
@@ -81,7 +81,7 @@ export function normalizeAvatarUrl(
   if (trimmedUrl.startsWith("/")) {
     console.warn(
       "[normalizeAvatarUrl] Ruta local detectada, usando fallback:",
-      trimmedUrl
+      trimmedUrl,
     );
     return null;
   }
@@ -99,7 +99,7 @@ export function normalizeAvatarUrl(
   // Cualquier otra cosa, retornar null
   console.warn(
     "[normalizeAvatarUrl] URL no reconocida, usando fallback:",
-    trimmedUrl
+    trimmedUrl,
   );
   return null;
 }

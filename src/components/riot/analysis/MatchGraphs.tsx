@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MatchGraphsProps {
   timeline: any;
@@ -50,203 +51,247 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
 
     return {
       minute: index,
-      goldDiff: isFocusTeamBlue ? goldDiff : -goldDiff,
-      xpDiff: isFocusTeamBlue ? xpDiff : -xpDiff,
+      blueGold,
+      redGold,
+      blueXp,
+      redXp,
+      goldDiff: Math.abs(blueGold - redGold),
+      xpDiff: Math.abs(blueXp - redXp),
+      isBlueLeading: blueGold > redGold,
+      isBlueXpLeading: blueXp > redXp,
     };
   });
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const value = payload[0].value;
-      const isFocusLead = value > 0;
+      // Find team values in payload
+      const blueVal =
+        payload.find(
+          (p: any) => p.dataKey === "blueGold" || p.dataKey === "blueXp",
+        )?.value || 0;
+      const redVal =
+        payload.find(
+          (p: any) => p.dataKey === "redGold" || p.dataKey === "redXp",
+        )?.value || 0;
+      const diff = Math.abs(blueVal - redVal);
+      const blueLeading = blueVal > redVal;
+
       return (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2 rounded shadow-xl text-xs">
-          <p className="text-slate-500 dark:text-slate-400 mb-1">{label} min</p>
-          <p
-            className={`font-bold ${
-              isFocusLead
-                ? isFocusTeamBlue
-                  ? "text-cyan-600 dark:text-cyan-400"
-                  : "text-rose-600 dark:text-rose-400"
-                : isFocusTeamBlue
-                ? "text-rose-600 dark:text-rose-400"
-                : "text-cyan-600 dark:text-cyan-400"
-            }`}
-          >
-            {isFocusLead ? "Ventaja tu equipo" : "Ventaja enemigo"}:{" "}
-            {Math.abs(value).toLocaleString()}
+        <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 p-3 rounded-lg shadow-2xl backdrop-blur-md min-w-[180px]">
+          <p className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 border-b border-slate-100 dark:border-white/10 pb-1 text-center font-bold">
+            Minuto {label}
           </p>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center bg-blue-500/5 dark:bg-blue-500/10 p-1.5 rounded border border-blue-500/10 dark:border-blue-500/20">
+              <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
+                Equipo Azul
+              </span>
+              <span className="font-mono text-slate-900 dark:text-white text-sm font-bold">
+                {blueVal.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-rose-500/5 dark:bg-rose-500/10 p-1.5 rounded border border-rose-500/10 dark:border-rose-500/20">
+              <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-tighter">
+                Equipo Rojo
+              </span>
+              <span className="font-mono text-slate-900 dark:text-white text-sm font-bold">
+                {redVal.toLocaleString()}
+              </span>
+            </div>
+            <div className="pt-1 flex flex-col items-center border-t border-slate-100 dark:border-white/5">
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 font-bold">
+                Ventaja
+              </span>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full shadow-sm",
+                    blueLeading ? "bg-blue-500" : "bg-rose-500",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-base font-black font-mono",
+                    blueLeading
+                      ? "text-blue-600 dark:text-blue-500"
+                      : "text-rose-600 dark:text-rose-500",
+                  )}
+                >
+                  {diff.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
     return null;
   };
 
-  const gradientOffset = () => {
-    const dataMax = Math.max(...data.map((i: any) => i.goldDiff));
-    const dataMin = Math.min(...data.map((i: any) => i.goldDiff));
+  // Improved gradient logic to ensure sharp transition
+  const renderGradient = (id: string) => (
+    <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+      <stop offset={off} stopColor={focusColorHex} stopOpacity={0.6} />
+      <stop offset={off} stopColor={focusColorHex} stopOpacity={0.1} />
+      <stop offset={off} stopColor={enemyColorHex} stopOpacity={0.1} />
+      <stop offset={off} stopColor={enemyColorHex} stopOpacity={0.6} />
+    </linearGradient>
+  );
 
+  const dataMax = Math.max(
+    ...data.map((i: any) => Math.max(i.goldDiff, i.xpDiff, 1000)),
+  );
+  const dataMin = Math.min(
+    ...data.map((i: any) => Math.min(i.goldDiff, i.xpDiff, -1000)),
+  );
+
+  const gradientOffsetValue = () => {
     if (dataMax <= 0) return 0;
     if (dataMin >= 0) return 1;
-
     return dataMax / (dataMax - dataMin);
   };
 
-  const off = gradientOffset();
+  const off = gradientOffsetValue();
+
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+        <div className="h-[320px] bg-slate-100/5 dark:bg-slate-900/20 animate-pulse rounded-xl" />
+        <div className="h-[320px] bg-slate-100/5 dark:bg-slate-900/20 animate-pulse rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
       {/* Gold Graph */}
-      <Card className="bg-white/30 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 min-w-0">
-        <CardHeader>
-          <CardTitle className="text-lg text-slate-900 dark:text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-yellow-500" />
-            Ventaja de Oro
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px] p-0 min-w-0">
-          <div className="w-full h-full min-h-[200px] min-w-0">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={200}
-              minHeight={200}
-            >
-              <AreaChart
-                data={data}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset={off}
-                      stopColor={focusColorHex}
-                      stopOpacity={0.3}
-                    />
-                    <stop
-                      offset={off}
-                      stopColor={enemyColorHex}
-                      stopOpacity={0.3}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="currentColor"
-                  className="text-slate-200 dark:text-slate-800"
-                  opacity={0.5}
-                />
-                <XAxis
-                  dataKey="minute"
-                  stroke="currentColor"
-                  className="text-slate-400 dark:text-slate-500"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="currentColor"
-                  className="text-slate-400 dark:text-slate-500"
-                  fontSize={12}
-                  tickLine={false}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  wrapperStyle={{ zIndex: 1000 }}
-                />
-                <ReferenceLine
-                  y={0}
-                  stroke="currentColor"
-                  className="text-slate-300 dark:text-slate-700"
-                  strokeDasharray="3 3"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="goldDiff"
-                  stroke={focusColorHex}
-                  strokeWidth={2}
-                  fill="url(#splitColor)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+      <Card className="bg-white/5 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5 overflow-hidden">
+        <CardHeader className="pb-2 border-b border-white/5">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+              Ventaja de Oro
+            </CardTitle>
           </div>
+        </CardHeader>
+        <CardContent className="h-[250px] p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="white"
+                opacity={0.05}
+              />
+              <XAxis dataKey="minute" hide />
+              <YAxis
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="blueGold"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#blueGrad)"
+                animationDuration={1000}
+              />
+              <Area
+                type="monotone"
+                dataKey="redGold"
+                stroke="#ef4444"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#redGrad)"
+                animationDuration={1000}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
       {/* XP Graph */}
-      <Card className="bg-white/30 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 min-w-0">
-        <CardHeader>
-          <CardTitle className="text-lg text-slate-900 dark:text-white flex items-center gap-2">
-            <Zap className="w-5 h-5 text-purple-500" />
-            Ventaja de Experiencia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px] p-0 min-w-0">
-          <div className="w-full h-full min-h-[200px] min-w-0">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={200}
-              minHeight={200}
-            >
-              <AreaChart
-                data={data}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="splitColorXp" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset={off}
-                      stopColor={focusColorHex}
-                      stopOpacity={0.3}
-                    />
-                    <stop
-                      offset={off}
-                      stopColor={enemyColorHex}
-                      stopOpacity={0.3}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="currentColor"
-                  className="text-slate-200 dark:text-slate-800"
-                  opacity={0.5}
-                />
-                <XAxis
-                  dataKey="minute"
-                  stroke="currentColor"
-                  className="text-slate-400 dark:text-slate-500"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="currentColor"
-                  className="text-slate-400 dark:text-slate-500"
-                  fontSize={12}
-                  tickLine={false}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  wrapperStyle={{ zIndex: 1000 }}
-                />
-                <ReferenceLine
-                  y={0}
-                  stroke="currentColor"
-                  className="text-slate-300 dark:text-slate-700"
-                  strokeDasharray="3 3"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="xpDiff"
-                  stroke={focusColorHex}
-                  strokeWidth={2}
-                  fill="url(#splitColorXp)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+      <Card className="bg-white/5 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5 overflow-hidden">
+        <CardHeader className="pb-2 border-b border-white/5">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-indigo-500" />
+              Ventaja de Experiencia
+            </CardTitle>
           </div>
+        </CardHeader>
+        <CardContent className="h-[250px] p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="blueGradXp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="redGradXp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="white"
+                opacity={0.05}
+              />
+              <XAxis dataKey="minute" hide />
+              <YAxis
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="blueXp"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#blueGradXp)"
+                animationDuration={1000}
+              />
+              <Area
+                type="monotone"
+                dataKey="redXp"
+                stroke="#ef4444"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#redGradXp)"
+                animationDuration={1000}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
     </div>

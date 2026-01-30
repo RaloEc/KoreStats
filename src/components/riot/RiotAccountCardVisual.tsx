@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinkedAccountRiot } from "@/types/riot";
+import { useLiveGameRealtime } from "@/hooks/use-live-game-realtime";
+import { usePlayerLiveStatus } from "@/hooks/use-player-live-status";
 import {
   getRankEmblemUrl,
   getTierColor,
@@ -27,6 +29,8 @@ import {
   Award,
   History,
   Users,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -88,6 +92,37 @@ function hexToRgb(hex: string): string | null {
       )}`
     : null;
 }
+
+const PHASE_LABELS: Record<
+  string,
+  { label: string; color: string; textColor: string }
+> = {
+  InProgress: {
+    label: "EN PARTIDA",
+    color: "bg-emerald-500",
+    textColor: "text-emerald-600 dark:text-emerald-400",
+  },
+  ChampSelect: {
+    label: "SELECCIÓN",
+    color: "bg-blue-500",
+    textColor: "text-blue-600 dark:text-blue-400",
+  },
+  Matchmaking: {
+    label: "BUSCANDO",
+    color: "bg-amber-500",
+    textColor: "text-amber-600 dark:text-amber-400",
+  },
+  ReadyCheck: {
+    label: "ACEPTANDO",
+    color: "bg-purple-500",
+    textColor: "text-purple-600 dark:text-purple-400",
+  },
+  Lobby: {
+    label: "SALA",
+    color: "bg-slate-400",
+    textColor: "text-slate-600 dark:text-slate-400",
+  },
+};
 
 interface MatchSimple {
   match_id: string;
@@ -155,10 +190,42 @@ export function RiotAccountCardVisual({
   profileColor,
 }: RiotAccountCardVisualProps) {
   const router = useRouter();
+
+  // Realtime Status Hook - Solo en cliente para evitar error de hidratación
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const { gameData: realtimeData } = useLiveGameRealtime(
+    isMounted ? account.puuid : undefined,
+  );
+
+  // Hook para detectar si el programa está Online/Offline
+  const playerStatus = usePlayerLiveStatus(
+    isMounted ? account.puuid : undefined,
+  );
+
+  // DEBUG VISUAL
+  useEffect(() => {
+    if (isMounted && account.puuid) {
+      console.log("Visual Component Status:", {
+        isOnline: playerStatus.isOnline,
+        phase: playerStatus.phase,
+        minsAgo: playerStatus.minutesAgo,
+      });
+    }
+  }, [playerStatus, isMounted, account.puuid]);
+
+  const phase = realtimeData?.phase;
+  const phaseConfig = phase ? PHASE_LABELS[phase] : null;
   const [userId, setUserId] = useState<string | null>(
     propUserId ?? account.user_id ?? null,
   );
   const [topChampionName, setTopChampionName] = useState<string | null>(null);
+
+  // Estado para controlar el colapso en móvil
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // --- Datos de Rango ---
   const soloTier = account.solo_tier ?? account.tier ?? "UNRANKED";
@@ -263,7 +330,11 @@ export function RiotAccountCardVisual({
     queryFn: async () => {
       if (!userId || !account.puuid) return null;
       const response = await fetch("/api/riot/champion-mastery", {
-        headers: { "x-user-id": userId, "x-puuid": account.puuid },
+        headers: {
+          "x-user-id": userId,
+          "x-puuid": account.puuid,
+          "x-region": account.active_shard || account.region || "la1",
+        },
       });
       if (!response.ok) return null;
       const data = await response.json();
@@ -284,7 +355,7 @@ export function RiotAccountCardVisual({
       if (!userId) return null;
       // Pedimos 25 para asegurar tener 20 válidas si hay filtrado
       const response = await fetch(
-        `/api/riot/matches?userId=${userId}&limit=25`,
+        `/api/riot/matches?userId=${userId}&limit=25&summary=true`,
       );
       if (!response.ok) return null;
       const data = await response.json();
@@ -448,47 +519,42 @@ export function RiotAccountCardVisual({
     const badgeCount = new Map<string, number>();
 
     recentMatchesData.forEach((match) => {
-      // Los badges se calculan a partir de las estadísticas de la partida
-      // Revisamos el JSON completo para ver qué badges aplicarían
-      const fullJson = match.matches?.full_json;
-      if (!fullJson?.info?.participants) return;
-
-      const participant: any = fullJson.info.participants.find(
-        (p: any) => p.puuid === account.puuid,
-      );
-      if (!participant) return;
+      // Los badges ahora se calculan a partir de los campos planos optimizados
+      // ya no dependemos de full_json que es muy pesado
 
       // Verificar multikills
-      if (participant.pentaKills > 0) {
+      if ((match.penta_kills || 0) > 0) {
         badgeCount.set("PentaKill", (badgeCount.get("PentaKill") || 0) + 1);
-      } else if (participant.quadraKills > 0) {
+      } else if ((match.quadra_kills || 0) > 0) {
         badgeCount.set("QuadraKill", (badgeCount.get("QuadraKill") || 0) + 1);
-      } else if (participant.tripleKills > 0) {
-        badgeCount.set("TripleKill", (badgeCount.get("TripleKill") || 0) + 1);
       }
 
       // Revisar farmeador (CS > 7.5 por minuto)
-      const gameDurationMin = (fullJson.info as any).gameDuration / 60;
+      const gameDurationMin = (match.matches?.game_duration || 1) / 60; // Evitar div/0
       const totalCs =
-        (participant.totalMinionsKilled || 0) +
-        (participant.neutralMinionsKilled || 0);
+        (match.total_minions_killed || 0) + (match.neutral_minions_killed || 0);
+
       const csPerMin = totalCs / gameDurationMin;
       if (csPerMin >= 7.5) {
         badgeCount.set("Farmeador", (badgeCount.get("Farmeador") || 0) + 1);
       }
 
-      // MVP (KDA > 5 y alto daño)
-      const kda =
-        participant.deaths > 0
-          ? (participant.kills + participant.assists) / participant.deaths
-          : participant.kills + participant.assists;
+      // MVP (KDA > 5 y alto daño) - usamos el KDA precalculado si existe
+      // o lo calculamos
+      let kda = match.kda;
+      if (kda === undefined || kda === null) {
+        const deaths = match.deaths || 0;
+        const kills = match.kills || 0;
+        const assists = match.assists || 0;
+        kda = deaths > 0 ? (kills + assists) / deaths : kills + assists;
+      }
+
       if (kda >= 5) {
         badgeCount.set("MVP", (badgeCount.get("MVP") || 0) + 1);
       }
 
       // Visionario
-      const visionScorePerMin =
-        (participant.visionScore || 0) / gameDurationMin;
+      const visionScorePerMin = (match.vision_score || 0) / gameDurationMin;
       if (visionScorePerMin >= 1.5) {
         badgeCount.set("Visionario", (badgeCount.get("Visionario") || 0) + 1);
       }
@@ -642,24 +708,6 @@ export function RiotAccountCardVisual({
     return list;
   }, [currentStreak, recentAvgKda, frequentBadges, account.summoner_level]);
 
-  const [achievementIndex, setAchievementIndex] = useState(0);
-
-  useEffect(() => {
-    if (allAchievements.length <= 2) return;
-    const interval = setInterval(() => {
-      setAchievementIndex((prev) => (prev + 2) % allAchievements.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [allAchievements.length]);
-
-  const visibleAchievements = useMemo(() => {
-    if (allAchievements.length <= 2) return allAchievements;
-    return [
-      allAchievements[achievementIndex % allAchievements.length],
-      allAchievements[(achievementIndex + 1) % allAchievements.length],
-    ];
-  }, [allAchievements, achievementIndex]);
-
   // ... inside render ...
 
   // --- Render ---
@@ -730,182 +778,213 @@ export function RiotAccountCardVisual({
         {/* Content Grid */}
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-8">
           {/* --- LEFT COLUMN: Identity & Ranks --- */}
-          <div className="lg:col-span-5 p-6 md:p-8 flex flex-col justify-between bg-gradient-to-b from-slate-200/40 dark:from-white/5 to-transparent lg:border-r border-slate-300/60 dark:border-white/5">
+          <div className="lg:col-span-5 p-5 md:p-8 flex flex-col lg:justify-between bg-gradient-to-b from-slate-200/40 dark:from-white/5 to-transparent lg:border-r border-slate-300/60 dark:border-white/5 transition-all duration-300">
             {/* 1. Account Info (Top Left) - Ultra Compact Version */}
-            <div className="flex flex-col gap-3 mb-4">
-              <div className="flex items-center gap-3">
-                {/* Icon - Smaller */}
-                <div className="relative group/icon cursor-pointer flex-shrink-0">
-                  <div
-                    className="absolute inset-0 rounded-full blur-md opacity-20 group-hover/icon:opacity-40 transition-opacity duration-500"
-                    style={{ backgroundColor: tierColor }}
-                  />
-                  <div className="relative w-14 h-14 rounded-full border-2 border-slate-300/70 dark:border-white/10 shadow-lg overflow-hidden bg-slate-200 dark:bg-slate-800 group-hover/icon:scale-105 transition-transform duration-300">
-                    {account.profile_icon_id ? (
-                      <Image
-                        src={`https://cdn.communitydragon.org/latest/profile-icon/${account.profile_icon_id}`}
-                        alt="Icon"
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-slate-800" />
+            <div className="flex justify-between items-start mb-1 lg:mb-4">
+              <div className="flex flex-col gap-3 flex-1 overflow-hidden">
+                <div className="flex items-center gap-3">
+                  {/* Icon - Smaller */}
+                  <div className="relative group/icon cursor-pointer flex-shrink-0">
+                    <div
+                      className="absolute inset-0 rounded-full blur-md opacity-20 group-hover/icon:opacity-40 transition-opacity duration-500"
+                      style={{ backgroundColor: tierColor }}
+                    />
+                    <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-slate-300/70 dark:border-white/10 shadow-lg overflow-hidden bg-slate-200 dark:bg-slate-800 group-hover/icon:scale-105 transition-transform duration-300">
+                      {account.profile_icon_id ? (
+                        <Image
+                          src={`https://cdn.communitydragon.org/latest/profile-icon/${account.profile_icon_id}`}
+                          alt="Icon"
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-slate-800" />
+                      )}
+                    </div>
+                    {account.summoner_level && (
+                      <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 bg-slate-700 dark:bg-[#0d0f17] text-white text-[8px] font-black px-1.5 py-0 rounded-full border-2 border-slate-400 dark:border-white/10 shadow-md whitespace-nowrap z-20">
+                        {account.summoner_level}
+                      </div>
                     )}
                   </div>
-                  {account.summoner_level && (
-                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 bg-slate-700 dark:bg-[#0d0f17] text-white text-[8px] font-black px-1.5 py-0 rounded-full border-2 border-slate-400 dark:border-white/10 shadow-md whitespace-nowrap z-20">
-                      {account.summoner_level}
-                    </div>
-                  )}
-                </div>
 
-                {/* Names & Region - Very Tight */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0">
-                    <Badge
-                      variant="outline"
-                      className="bg-slate-300/70 dark:bg-white/5 border-slate-500/50 dark:border-white/10 text-slate-600 dark:text-white/40 text-[8px] uppercase font-bold tracking-tighter px-1 py-0 h-3.5"
-                    >
-                      {regionName}
-                    </Badge>
-                  </div>
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate flex items-baseline gap-1">
-                    {account.game_name}
-                    <span className="text-sm font-medium text-slate-500 dark:text-white/20">
-                      #{account.tag_line}
-                    </span>
-                  </h2>
-
-                  {/* Winrate Mini Bar - Ultra Sharp */}
-                  <div className="max-w-[140px] mt-1">
-                    <div className="flex justify-between text-[8px] font-black mb-0.5 uppercase tracking-tighter">
-                      <span
-                        className={
-                          winrate >= 50
-                            ? "text-emerald-500/80"
-                            : "text-rose-500/80"
-                        }
+                  {/* Names & Region - Very Tight */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0">
+                      <Badge
+                        variant="outline"
+                        className="bg-slate-300/70 dark:bg-white/5 border-slate-500/50 dark:border-white/10 text-slate-600 dark:text-white/40 text-[8px] uppercase font-bold tracking-tighter px-1 py-0 h-3.5"
                       >
-                        {winrate}% WR
-                      </span>
-                      <span className="text-slate-400 dark:text-white/10">
-                        {soloWins}W {soloLosses}L
-                      </span>
+                        {regionName}
+                      </Badge>
                     </div>
-                    <div className="h-0.5 bg-slate-300/70 dark:bg-white/5 rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full ${winrateColor}`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${winrate}%` }}
-                        transition={{ duration: 1 }}
-                      />
+                    <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate flex items-baseline gap-1">
+                      {account.game_name}
+                      <span className="text-sm font-medium text-slate-500 dark:text-white/20">
+                        #{account.tag_line}
+                      </span>
+                    </h2>
+
+                    {/* Winrate Mini Bar - Ultra Sharp */}
+                    <div
+                      className={`max-w-[140px] mt-1 transition-all duration-300 ${
+                        !isExpanded
+                          ? "opacity-0 h-0 lg:opacity-100 lg:h-auto"
+                          : "opacity-100 h-auto"
+                      }`}
+                    >
+                      <div className="flex justify-between text-[8px] font-black mb-0.5 uppercase tracking-tighter">
+                        <span
+                          className={
+                            winrate >= 50
+                              ? "text-emerald-500/80"
+                              : "text-rose-500/80"
+                          }
+                        >
+                          {winrate}% WR
+                        </span>
+                        <span className="text-slate-400 dark:text-white/10">
+                          {soloWins}W {soloLosses}L
+                        </span>
+                      </div>
+                      <div className="h-0.5 bg-slate-300/70 dark:bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full ${winrateColor}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${winrate}%` }}
+                          transition={{ duration: 1 }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Botón Toggle Móvil */}
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="lg:hidden p-2 -mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white transition-colors"
+              >
+                {isExpanded ? (
+                  <ChevronUp className="w-5 h-5" />
+                ) : (
+                  <ChevronDown className="w-5 h-5" />
+                )}
+              </button>
             </div>
 
-            {/* 2. Rank Emblems (Left Bottom) */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-600 dark:text-white/30 flex items-center gap-2">
-                <Trophy className="w-3 h-3" /> Clasificatorias
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {queueStats.map((queue) => (
-                  <div
-                    key={queue.id}
-                    className="relative bg-slate-200/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/10 rounded-lg p-2 flex flex-col items-center text-center gap-1 hover:bg-slate-300/60 dark:hover:bg-white/10 transition-all group/card"
-                  >
-                    <div className="absolute top-1.5 right-1.5 text-[7px] font-black text-slate-400 dark:text-white/10 uppercase tracking-widest">
-                      {queue.label === "Solo / Duo" ? "SOLO" : "FLEX"}
-                    </div>
-
-                    {/* Emblem Container - Tiny */}
-                    <div className="relative w-20 h-20 my-0.5 flex items-center justify-center">
-                      <div
-                        className="absolute inset-0 rounded-full blur-xl opacity-5 group-hover/card:opacity-20 transition-opacity duration-500"
-                        style={{ backgroundColor: queue.tierColor }}
-                      />
-                      <Image
-                        src={queue.emblemUrl}
-                        alt={queue.label}
-                        fill
-                        unoptimized
-                        className="object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] group-hover/card:scale-110 transition-transform duration-500 z-10"
-                      />
-                    </div>
-
-                    <div className="z-10 bg-slate-100/90 dark:bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-300 dark:border-white/5 w-full">
-                      <div className="text-[11px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight truncate">
-                        {queue.hasData ? queue.tierName : "Unranked"}
-                        {queue.hasData && (
-                          <span className="text-slate-500 dark:text-white/40 ml-1">
-                            {queue.rank}
-                          </span>
-                        )}
+            {/* Contenido desplegable en móvil */}
+            <div
+              className={`${
+                isExpanded ? "block" : "hidden"
+              } lg:block space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 lg:animate-none`}
+            >
+              {/* 2. Rank Emblems (Left Bottom) */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-600 dark:text-white/30 flex items-center gap-2">
+                  <Trophy className="w-3 h-3" /> Clasificatorias
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {queueStats.map((queue) => (
+                    <div
+                      key={queue.id}
+                      className="relative bg-slate-200/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/10 rounded-lg p-2 flex flex-col items-center text-center gap-1 hover:bg-slate-300/60 dark:hover:bg-white/10 transition-all group/card"
+                    >
+                      <div className="absolute top-1.5 right-1.5 text-[7px] font-black text-slate-400 dark:text-white/10 uppercase tracking-widest">
+                        {queue.label === "Solo / Duo" ? "SOLO" : "FLEX"}
                       </div>
-                      <div className="text-[9px] font-black mt-0 text-slate-600 dark:text-white/60">
-                        {queue.hasData ? `${queue.lp} LP` : "0 LP"}
+
+                      {/* Emblem Container - Tiny */}
+                      <div className="relative w-20 h-20 my-0.5 flex items-center justify-center">
+                        <div
+                          className="absolute inset-0 rounded-full blur-xl opacity-5 group-hover/card:opacity-20 transition-opacity duration-500"
+                          style={{ backgroundColor: queue.tierColor }}
+                        />
+                        <Image
+                          src={queue.emblemUrl}
+                          alt={queue.label}
+                          fill
+                          unoptimized
+                          className="object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] group-hover/card:scale-110 transition-transform duration-500 z-10"
+                        />
+                      </div>
+
+                      <div className="z-10 bg-slate-100/90 dark:bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-300 dark:border-white/5 w-full">
+                        <div className="text-[11px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight truncate">
+                          {queue.hasData ? queue.tierName : "Unranked"}
+                          {queue.hasData && (
+                            <span className="text-slate-500 dark:text-white/40 ml-1">
+                              {queue.rank}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[9px] font-black mt-0 text-slate-600 dark:text-white/60">
+                          {queue.hasData ? `${queue.lp} LP` : "0 LP"}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Actions Footer (Mobile only visible here, Desktop integrated) */}
-            <div className="mt-6 flex items-center gap-3">
-              {onSync && !hideSync && (
-                <button
-                  onClick={onSync}
-                  disabled={isSyncing || cooldownSeconds > 0}
-                  className="flex-1 py-2 px-3 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/10 hover:bg-indigo-500/30 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-2 border-indigo-500/40 dark:border-indigo-500/20 transition-all disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn"
-                >
-                  <RefreshCw
-                    size={12}
-                    className={
-                      isSyncing
-                        ? "animate-spin"
-                        : "group-hover/btn:rotate-180 transition-transform duration-500"
-                    }
-                  />
-                  {isSyncing
-                    ? "..."
-                    : cooldownSeconds > 0
-                      ? `${cooldownSeconds}s`
-                      : "Actualizar"}
-                </button>
-              )}
-              {account.puuid && (
-                <a
-                  href={`https://www.leagueofgraphs.com/summoner/${
-                    LOG_REGIONS[account.region] || account.region
-                  }/${account.game_name?.replace(/\s+/g, "+")}-${
-                    account.tag_line
-                  }`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-slate-400/70 dark:hover:bg-white/10 text-slate-700 dark:text-white/60 hover:text-slate-900 dark:hover:text-white border-2 border-slate-400 dark:border-white/10 transition-all text-[10px] font-bold"
-                  title="Ver en League of Graphs"
-                >
-                  <ExternalLink size={14} />
-                </a>
-              )}
-              {onUnlink && (
-                <button
-                  onClick={onUnlink}
-                  className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 text-slate-700 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 border-2 border-slate-400 dark:border-white/10 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all text-[10px] font-bold"
-                  title="Desvincular cuenta"
-                >
-                  <Unlink size={14} />
-                </button>
-              )}
+              {/* Actions Footer */}
+              <div className="mt-6 flex items-center gap-3">
+                {onSync && !hideSync && (
+                  <button
+                    onClick={onSync}
+                    disabled={isSyncing || cooldownSeconds > 0}
+                    className="flex-1 py-2 px-3 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/10 hover:bg-indigo-500/30 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-2 border-indigo-500/40 dark:border-indigo-500/20 transition-all disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn"
+                  >
+                    <RefreshCw
+                      size={12}
+                      className={
+                        isSyncing
+                          ? "animate-spin"
+                          : "group-hover/btn:rotate-180 transition-transform duration-500"
+                      }
+                    />
+                    {isSyncing
+                      ? "..."
+                      : cooldownSeconds > 0
+                        ? `${cooldownSeconds}s`
+                        : "Actualizar"}
+                  </button>
+                )}
+                {account.puuid && (
+                  <a
+                    href={`https://www.leagueofgraphs.com/summoner/${
+                      LOG_REGIONS[account.region] || account.region
+                    }/${account.game_name?.replace(/\s+/g, "+")}-${
+                      account.tag_line
+                    }`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-slate-400/70 dark:hover:bg-white/10 text-slate-700 dark:text-white/60 hover:text-slate-900 dark:hover:text-white border-2 border-slate-400 dark:border-white/10 transition-all text-[10px] font-bold"
+                    title="Ver en League of Graphs"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+                {onUnlink && (
+                  <button
+                    onClick={onUnlink}
+                    className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 text-slate-700 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 border-2 border-slate-400 dark:border-white/10 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all text-[10px] font-bold"
+                    title="Desvincular cuenta"
+                  >
+                    <Unlink size={14} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {/* --- RIGHT COLUMN: Stats Grid (2x2 Compact) --- */}
-          <div className="lg:col-span-7 p-6 md:p-8 flex flex-col justify-center">
+          <div
+            className={`lg:col-span-7 p-4 md:p-8 flex-col justify-center ${
+              isExpanded ? "flex" : "hidden lg:flex"
+            }`}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
               {/* 1. Recent Activity (Top Left) */}
               <div className="bg-white/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/5 rounded-2xl p-4 backdrop-blur-md flex flex-col h-40">
@@ -1006,40 +1085,27 @@ export function RiotAccountCardVisual({
                   {allAchievements.length > 0 ? (
                     <motion.div
                       animate={{
-                        x: [0, -1035], // Desplazamiento basado en el contenido duplicado
+                        x: [0, -(allAchievements.length * 128)], // Desplazamiento exacto de un set completo (120px + 8px gap)
                       }}
                       transition={{
-                        duration: 30, // Velocidad lenta y constante
+                        duration: Math.max(10, allAchievements.length * 5), // Velocidad constante basada en cantidad
                         ease: "linear",
                         repeat: Infinity,
                       }}
                       className="flex gap-2 absolute left-0"
                       style={{ width: "max-content" }}
                     >
-                      {/* Renderizamos el set original y un duplicado para el bucle infinito */}
-                      {allAchievements.map((achievement, idx) => (
-                        <div
-                          key={`orig-${idx}`}
-                          className="w-[120px] h-16 shrink-0"
-                        >
-                          {achievement}
-                        </div>
-                      ))}
-                      {allAchievements.map((achievement, idx) => (
-                        <div
-                          key={`dup-${idx}`}
-                          className="w-[120px] h-16 shrink-0"
-                        >
-                          {achievement}
-                        </div>
-                      ))}
-                      {/* Un tercer set para asegurar que no haya huecos en pantallas anchas */}
-                      {allAchievements.map((achievement, idx) => (
-                        <div
-                          key={`dup2-${idx}`}
-                          className="w-[120px] h-16 shrink-0"
-                        >
-                          {achievement}
+                      {/* Generamos suficientes copias para asegurar el loop infinito sin huecos */}
+                      {Array.from({ length: 10 }).map((_, setIdx) => (
+                        <div key={`set-${setIdx}`} className="flex gap-2">
+                          {allAchievements.map((achievement, idx) => (
+                            <div
+                              key={`set-${setIdx}-item-${idx}`}
+                              className="w-[120px] h-16 shrink-0"
+                            >
+                              {achievement}
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </motion.div>

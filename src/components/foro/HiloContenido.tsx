@@ -42,7 +42,7 @@ const TwitterEmbedLoader = ({ url }: { url: string }) => {
     const fetchTweet = async () => {
       try {
         const response = await fetch(
-          `/api/twitter/oembed?url=${encodeURIComponent(url)}`
+          `/api/twitter/oembed?url=${encodeURIComponent(url)}`,
         );
         if (!response.ok) throw new Error("Failed to fetch tweet");
         const data = await response.json();
@@ -115,7 +115,7 @@ const YoutubePlayer = dynamic<{
         <div className="animate-pulse text-gray-400">Cargando video...</div>
       </div>
     ),
-  }
+  },
 );
 
 const DynamicHighlightedContent = dynamic<{
@@ -124,12 +124,12 @@ const DynamicHighlightedContent = dynamic<{
 }>(
   () =>
     import("@/components/ui/HighlightedContent").then(
-      (mod) => mod.HighlightedContent
+      (mod) => mod.HighlightedContent,
     ),
   {
     ssr: false,
     loading: () => <ContentSkeleton />,
-  }
+  },
 );
 
 interface HiloContenidoProps {
@@ -211,9 +211,6 @@ export default function HiloContenido({
       try {
         const images =
           currentContentRef.querySelectorAll<HTMLImageElement>("img");
-        console.log(
-          `[HiloContenido] Encontradas ${images.length} imágenes para procesar`
-        );
 
         for (const img of Array.from(images)) {
           const src = img.getAttribute("src");
@@ -221,18 +218,11 @@ export default function HiloContenido({
 
           // Omitir imágenes que ya tienen URLs permanentes
           if (src.includes("supabase.co") || src.includes("/api/storage/")) {
-            console.log(`[HiloContenido] Omitiendo imagen con URL permanente`);
             continue;
           }
 
           // Procesar imágenes blob
           if (src.startsWith("blob:")) {
-            console.log(
-              `[HiloContenido] Procesando imagen blob: ${src.substring(
-                0,
-                30
-              )}...`
-            );
             try {
               const response = await fetch(src);
               if (!response.ok)
@@ -247,9 +237,6 @@ export default function HiloContenido({
               const file = new File([blob], fileName, { type: blob.type });
 
               // Subir a Supabase
-              console.log(
-                `[HiloContenido] Subiendo imagen a Supabase (${file.size} bytes)`
-              );
               const formData = new FormData();
               formData.append("file", file);
 
@@ -268,21 +255,14 @@ export default function HiloContenido({
               }
 
               // Actualizar src de la imagen
-              console.log(`[HiloContenido] Imagen subida: ${uploadData.url}`);
               img.setAttribute("src", uploadData.url);
               img.setAttribute("data-processed", "true");
             } catch (error) {
-              console.error(
-                `[HiloContenido] Error procesando imagen blob:`,
-                error
-              );
               // Dejar la imagen como está si falla
             }
           }
         }
-      } catch (error) {
-        console.error("[HiloContenido] Error en processImages:", error);
-      }
+      } catch (error) {}
     };
 
     // Procesar imágenes después de que el contenido se renderice
@@ -300,44 +280,32 @@ export default function HiloContenido({
     const timeoutId = setTimeout(() => {
       // Ahora encontrar todos los tweets en su lugar
       const tweetNodes = currentContentRef.querySelectorAll<HTMLDivElement>(
-        'div[data-type="twitter-embed"]'
+        'div[data-type="twitter-embed"]',
       );
 
       if (tweetNodes.length === 0) {
-        console.log("[HiloContenido] No hay tweets para hidratar");
         return;
       }
 
       const theme = resolvedTheme === "dark" ? "dark" : "light";
       const themeChanged = previousTheme && previousTheme !== resolvedTheme;
 
-      console.log(
-        `[HiloContenido] Hidratando ${tweetNodes.length} tweets en el lugar (tema: ${theme})`
-      );
-
       // Procesar cada nodo de tweet DE FORMA NATIVA (Mutación del DOM)
       tweetNodes.forEach((node, index) => {
         const dataTwitterAttribute = node.getAttribute("data-twitter");
         if (!dataTwitterAttribute) {
-          console.warn(
-            `[HiloContenido] Tweet ${index} - No tiene atributo data-twitter`
-          );
           return;
         }
 
         try {
           const data = JSON.parse(dataTwitterAttribute);
           if (!data.html) {
-            console.warn(`[HiloContenido] Tweet ${index} - No tiene HTML`);
             return;
           }
 
           // Si el tema cambió, preparar la animación
           if (themeChanged) {
             const currentHeight = node.offsetHeight;
-            console.log(
-              `[HiloContenido] Tweet ${index} - Fijando altura a ${currentHeight}px`
-            );
             node.style.minHeight = `${currentHeight}px`;
             node.style.transition = "opacity 0.3s ease-in-out";
             node.style.opacity = "0";
@@ -347,18 +315,13 @@ export default function HiloContenido({
           let decodedHtml = decodeURIComponent(escape(atob(data.html)));
           decodedHtml = decodedHtml.replace(
             '<blockquote class="twitter-tweet"',
-            `<blockquote class="twitter-tweet" data-theme="${theme}"`
-          );
-
-          console.log(
-            `[HiloContenido] Tweet ${index} - Inyectado data-theme="${theme}"`
+            `<blockquote class="twitter-tweet" data-theme="${theme}"`,
           );
 
           // Inyectar el nuevo HTML (el <blockquote>)
           // Si el tema cambió, esto pasa mientras el nodo es invisible
           node.innerHTML = decodedHtml;
         } catch (e) {
-          console.error(`[HiloContenido] Tweet ${index} - Error:`, e);
           node.innerHTML = "<p>Error al cargar el tweet.</p>";
         }
       });
@@ -367,11 +330,10 @@ export default function HiloContenido({
       // El script de Twitter es seguro dejar cargado permanentemente
       // No intentamos eliminarlo en la limpieza para evitar conflictos con React
       let existingScript = document.querySelector(
-        'script[src*="platform.twitter.com"]'
+        'script[src*="platform.twitter.com"]',
       );
 
       if (!existingScript) {
-        console.log("[HiloContenido] Creando script de Twitter");
         const script = document.createElement("script");
         script.src = "https://platform.twitter.com/widgets.js";
         script.async = true;
@@ -383,15 +345,9 @@ export default function HiloContenido({
       // Esperar a que el script esté disponible y llamar a load()
       const loadTwitterWidgets = () => {
         if (window.twttr && window.twttr.widgets) {
-          console.log(
-            `[HiloContenido] Hidratando ${tweetNodes.length} tweets con window.twttr.widgets.load()`
-          );
-
           window.twttr.widgets
             .load(currentContentRef)
             .then(() => {
-              console.log("[HiloContenido] Tweets hidratados exitosamente");
-
               // Si el tema cambió, revelar los tweets
               if (themeChanged) {
                 tweetNodes.forEach((node) => {
@@ -404,9 +360,7 @@ export default function HiloContenido({
                 });
               }
             })
-            .catch((e) => {
-              console.error("[HiloContenido] Error hidratando tweets:", e);
-            });
+            .catch((e) => {});
         } else {
           // Reintentar si window.twttr aún no está disponible
           setTimeout(loadTwitterWidgets, 100);
@@ -480,29 +434,15 @@ export default function HiloContenido({
       // Encontrar todos los iframes de YouTube
       const youtubeIframes =
         currentContentRef.querySelectorAll<HTMLIFrameElement>(
-          'iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"]'
+          'iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"]',
         );
-
-      console.log(
-        `[HiloContenido] Encontrados ${youtubeIframes.length} iframes de YouTube`
-      );
 
       youtubeIframes.forEach((iframe, index) => {
         // Eliminar atributos width y height para permitir CSS responsive
         if (iframe.hasAttribute("width")) {
-          console.log(
-            `[HiloContenido] Removiendo width="${iframe.getAttribute(
-              "width"
-            )}" del iframe ${index}`
-          );
           iframe.removeAttribute("width");
         }
         if (iframe.hasAttribute("height")) {
-          console.log(
-            `[HiloContenido] Removiendo height="${iframe.getAttribute(
-              "height"
-            )}" del iframe ${index}`
-          );
           iframe.removeAttribute("height");
         }
 
@@ -516,7 +456,7 @@ export default function HiloContenido({
 
         // Asegurar que el contenedor padre tenga los estilos correctos
         const wrapper = iframe.closest(
-          ".youtube-embed-wrapper, [data-youtube-video]"
+          ".youtube-embed-wrapper, [data-youtube-video]",
         );
         if (wrapper instanceof HTMLElement) {
           wrapper.style.width = "100%";
@@ -618,6 +558,25 @@ export default function HiloContenido({
               color: #666;
               text-align: center;
               font-style: italic;
+            }
+
+            /* Fix de alineación para todas las menciones (Usuario y LoL) */
+            .foro-hilo-content .mention,
+            .foro-hilo-content span[data-image] {
+              display: inline-flex !important;
+              align-items: center !important;
+              vertical-align: middle !important;
+              height: 1.6em !important; /* Altura consistente */
+              line-height: 1 !important;
+              margin: 0 2px !important;
+            }
+
+            /* Reset específico para imágenes dentro de menciones LoL */
+            .foro-hilo-content span[data-image] img {
+              margin: 0 4px 0 0 !important;
+              height: 1.25em !important; /* Ajuste relativo al texto */
+              width: auto !important;
+              display: block !important;
             }
           `,
         }}

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
+import UserAvatar from "@/components/UserAvatar";
 import { CommentForm } from "./CommentForm";
 import { useAuth } from "@/context/AuthContext";
 import type { Comment } from "./types";
@@ -16,6 +17,18 @@ import {
 import { Votacion } from "@/components/ui/Votacion";
 import BotonReportarNoticia from "@/components/noticias/BotonReportarNoticia";
 import BotonReportar from "@/components/foro/BotonReportar";
+import dynamic from "next/dynamic";
+import { RichTextRenderer } from "@/components/tiptap-editor/components/RichTextRenderer";
+
+const MinimalEditor = dynamic(
+  () => import("@/components/tiptap-editor/MinimalEditor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[60px] w-full bg-gray-100 dark:bg-white/5 rounded-lg animate-pulse" />
+    ),
+  },
+);
 
 interface CommentCardProps {
   comment: Comment;
@@ -23,7 +36,7 @@ interface CommentCardProps {
     commentId: string,
     text: string,
     repliedTo?: { id: string; author: string; text: string; color?: string },
-    gifUrl?: string | null
+    gifUrl?: string | null,
   ) => Promise<boolean> | boolean | void;
   onQuotedReplyClick: (commentId: string) => void;
   onEdit?: (commentId: string, newText: string) => void;
@@ -177,13 +190,6 @@ export const CommentCard: React.FC<CommentCardProps> = ({
   // Debug: ver estructura del usuario (solo una vez)
   React.useEffect(() => {
     if (user && !comment.repliedTo) {
-      console.log("[CommentCard] Usuario y Perfil:", {
-        userId: user.id,
-        profileId: authProfile?.id,
-        profileColor: authProfile?.color,
-        authorColor: comment.authorColor,
-        finalColor: userColor,
-      });
     }
   }, []);
 
@@ -205,12 +211,6 @@ export const CommentCard: React.FC<CommentCardProps> = ({
       text: comment.text,
       color: comment.authorColor,
     };
-    console.log("[CommentCard] Enviando respuesta al comentario:", {
-      commentId: comment.id,
-      text: text.substring(0, 20) + "...",
-      gifUrl: gifUrl || null,
-      repliedTo,
-    });
 
     // Esperar a que se complete la respuesta
     const result = onReply(comment.id, text, repliedTo, gifUrl);
@@ -230,10 +230,6 @@ export const CommentCard: React.FC<CommentCardProps> = ({
   // Manejar la edición de un comentario
   const handleEditSubmit = () => {
     if (onEdit && editText.trim() !== comment.text) {
-      console.log("[CommentCard] Editando comentario:", {
-        commentId: comment.id,
-        newText: editText.substring(0, 20) + "...",
-      });
       onEdit(comment.id, editText);
     }
     setIsEditing(false);
@@ -242,9 +238,6 @@ export const CommentCard: React.FC<CommentCardProps> = ({
   // Manejar la eliminación de un comentario
   const handleDelete = () => {
     if (onDelete) {
-      console.log("[CommentCard] Eliminando comentario:", {
-        commentId: comment.id,
-      });
       onDelete(comment.id);
     }
     setShowDeleteConfirm(false);
@@ -258,7 +251,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }
+    },
   );
 
   // Detectar si es un comentario temporal (recién creado)
@@ -288,7 +281,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
         <button
           onClick={() => {
             const parentElement = document.getElementById(
-              `comment-${comment.parentCommentId}`
+              `comment-${comment.parentCommentId}`,
             );
             if (parentElement) {
               parentElement.scrollIntoView({
@@ -327,16 +320,13 @@ export const CommentCard: React.FC<CommentCardProps> = ({
       <div className="flex gap-3">
         {/* Avatar */}
         <div className="flex-shrink-0">
-          <Avatar className="h-10 w-10">
-            <img
-              src={
-                comment.avatarUrl ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author}`
-              }
-              alt={comment.author}
-              className="h-full w-full object-cover"
-            />
-          </Avatar>
+          <UserAvatar
+            username={comment.author}
+            avatarUrl={comment.avatarUrl}
+            size="md"
+            className="h-10 w-10"
+            color={userColor}
+          />
         </div>
 
         {/* Contenido del comentario */}
@@ -419,11 +409,14 @@ export const CommentCard: React.FC<CommentCardProps> = ({
             {/* Texto del comentario */}
             {isEditing ? (
               <div className="mt-2">
-                <textarea
+                <MinimalEditor
                   value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  className="w-full p-2 rounded-lg focus:outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                  rows={3}
+                  onChange={setEditText}
+                  className="min-h-[60px]"
+                  restrictMentionsToFriends={
+                    tipoContexto === "noticia" ? false : false
+                  } // Asumimos false para ambos por ahora
+                  currentUserId={authUser?.id}
                 />
                 <div className="mt-2 flex gap-2">
                   <button
@@ -452,14 +445,28 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                 ) : (
                   <>
                     {comment.text && (
-                      <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed break-words mb-2">
-                        {comment.text}
+                      <div className="relative mb-2">
+                        <RichTextRenderer
+                          content={comment.text}
+                          className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed break-words prose prose-sm dark:prose-invert max-w-none [&>p]:mb-0"
+                        />
+                        <style jsx global>{`
+                          .prose .lol-mention img {
+                            margin: 0 !important;
+                            display: inline-block !important;
+                          }
+                          .prose .lol-mention,
+                          .prose .user-mention {
+                            vertical-align: middle;
+                            line-height: 1.1;
+                          }
+                        `}</style>
                         {comment.isEdited && (
-                          <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 italic">
+                          <span className="inline-block ml-1 text-xs text-gray-500 dark:text-gray-400 italic align-top">
                             (editado)
                           </span>
                         )}
-                      </p>
+                      </div>
                     )}
 
                     {/* Renderizar GIF si existe */}
@@ -501,7 +508,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                       // Usar setTimeout para asegurar que el DOM se haya actualizado
                       setTimeout(() => {
                         const replyForm = document.getElementById(
-                          `reply-form-${comment.id}`
+                          `reply-form-${comment.id}`,
                         );
                         if (replyForm) {
                           replyForm.scrollIntoView({
@@ -525,8 +532,8 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                   !user
                     ? "Inicia sesión para responder"
                     : isReplying
-                    ? "Cancelar"
-                    : "Responder"
+                      ? "Cancelar"
+                      : "Responder"
                 }
               >
                 {isReplying ? "Cancelar" : "Responder"}

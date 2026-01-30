@@ -317,12 +317,12 @@ function getSummonerDisplayName(participant: Record<string, unknown>): string {
     return fallbackName;
   }
 
-  console.warn(
+  /* console.warn(
     "[GET /api/riot/matches/active] Unable to resolve participant name; using fallback",
     {
       keys: Object.keys(participant),
     },
-  );
+  ); */
 
   return "Invocador";
 }
@@ -624,10 +624,10 @@ export async function GET(request: NextRequest) {
 
     // Otros errores (rate limit / permisos / etc)
     const riotErrorBody = await spectatorResponse.json().catch(() => ({}));
-    console.error("[GET /api/riot/matches/active] Riot Spectator error:", {
+    /* console.error("[GET /api/riot/matches/active] Riot Spectator error:", {
       status: spectatorResponse.status,
       error: riotErrorBody,
-    });
+    }); */
 
     return NextResponse.json(
       {
@@ -638,7 +638,7 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("[GET /api/riot/matches/active] Unexpected error:", error);
+    // console.error("[GET /api/riot/matches/active] Unexpected error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

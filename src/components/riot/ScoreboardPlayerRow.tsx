@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import Image from "next/image";
 import { BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PlayerNoteButton } from "./PlayerNoteButton";
+import { PlayerNoteModal } from "./PlayerNoteModal";
 
 // Helper functions duplicated to avoid complex exports/migrations
 const getParticipantKey = (player: any) =>
@@ -111,7 +112,7 @@ const PerformanceTooltipContent = ({
             "flex justify-between text-[11px]",
             breakdown.penalties > 0
               ? "text-rose-600 dark:text-rose-400"
-              : "text-emerald-600 dark:text-emerald-400"
+              : "text-emerald-600 dark:text-emerald-400",
           )}
         >
           <span>Ajustes Especiales</span>
@@ -145,6 +146,7 @@ export interface ScoreboardPlayerRowProps {
   saveNote: (data: any) => void;
   deleteNote: (puuid: string) => void;
   perkIconById: Record<string, string>;
+  isListMode?: boolean;
 }
 
 export const ScoreboardPlayerRow = memo(
@@ -164,7 +166,10 @@ export const ScoreboardPlayerRow = memo(
     saveNote,
     deleteNote,
     perkIconById,
+    isListMode = false,
   }: ScoreboardPlayerRowProps) => {
+    const [isNoteOpen, setIsNoteOpen] = useState(false);
+
     // Basic stats extraction using the helper
     const cs =
       (player.total_minions_killed ?? player.totalMinionsKilled ?? 0) +
@@ -173,7 +178,7 @@ export const ScoreboardPlayerRow = memo(
     const dmgToChamps = getValue(
       player,
       "total_damage_dealt_to_champions",
-      "totalDamageDealtToChampions"
+      "totalDamageDealtToChampions",
     );
     const vision = getValue(player, "vision_score", "visionScore");
     const gold = getValue(player, "gold_earned", "goldEarned");
@@ -188,15 +193,187 @@ export const ScoreboardPlayerRow = memo(
     const savedKey = `${matchId}:${player.puuid ?? ""}`;
     const isSaved = savedBuildKeys.includes(savedKey);
     const canSave = Boolean(
-      matchId && typeof player.puuid === "string" && player.puuid
+      matchId && typeof player.puuid === "string" && player.puuid,
     );
+
+    if (isListMode) {
+      return (
+        <div
+          className={cn(
+            "flex flex-row items-center gap-2 px-2.5 py-1.5 border-b border-slate-200/30 dark:border-slate-800/30 last:border-0 transition-all duration-200",
+            isCurrentUser
+              ? isWinner
+                ? "bg-blue-500/15"
+                : "bg-red-500/15"
+              : "bg-white/5 dark:bg-black/25",
+          )}
+        >
+          {/* Avatar + Spells/Runes compacto */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="relative shrink-0">
+              <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                <Image
+                  src={getChampionImg(player.champion_name, gameVersion)}
+                  alt={player.champion_name}
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+
+              {/* Rank Position Badge - Sobrepuesto en esquina superior derecha */}
+              <span
+                className={cn(
+                  "absolute -top-0.5 -right-0.5 z-10 text-[7px] font-black w-[14px] h-[14px] flex items-center justify-center rounded-full shadow-lg border transition-colors",
+                  rankPos === 1
+                    ? "bg-amber-400 text-slate-900 border-amber-500"
+                    : rankPos <= 3
+                      ? "bg-sky-400 text-slate-900 border-sky-500"
+                      : "bg-slate-100/95 text-slate-600 dark:bg-slate-800/95 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+                )}
+              >
+                {rankPos || "-"}
+              </span>
+              {(player.champ_level || player.champLevel) && (
+                <div className="absolute -bottom-1 -right-1 bg-slate-900 text-[7px] text-white px-1 rounded-full border border-slate-700 z-10">
+                  {player.champ_level || player.champLevel}
+                </div>
+              )}
+            </div>
+
+            {/* Cuadrícula 2x2 para Spells y Runas */}
+            <div className="grid grid-cols-2 grid-rows-2 gap-0.5 shrink-0">
+              {/* Spells */}
+              {[
+                player.summoner1_id || player.summoner1Id,
+                player.summoner2_id || player.summoner2Id,
+              ]
+                .filter(Boolean)
+                .map((sid, i) => (
+                  <div
+                    key={`s-${i}`}
+                    className="w-4 h-4 rounded-sm border border-slate-300/30 dark:border-slate-700/30 overflow-hidden bg-black/20"
+                  >
+                    <Image
+                      src={getSpellImg(sid, gameVersion)!}
+                      alt="Spell"
+                      width={16}
+                      height={16}
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              {/* Runas */}
+              <div className="w-4 h-4 rounded-full bg-slate-900 border border-slate-700/50 overflow-hidden flex items-center justify-center">
+                {player.keystone_id && perkIconById[player.keystone_id] && (
+                  <img
+                    src={perkIconById[player.keystone_id]}
+                    alt="Key"
+                    className="w-full h-full object-contain scale-110"
+                  />
+                )}
+              </div>
+              <div className="w-4 h-4 rounded-full bg-slate-800 border border-slate-700/30 overflow-hidden flex items-center justify-center">
+                {(player.sub_style_id ||
+                  player.perk_sub_style ||
+                  player.perkSubStyle) && (
+                  <img
+                    src={
+                      getRuneStyleImg(
+                        player.sub_style_id ||
+                          player.perk_sub_style ||
+                          player.perkSubStyle,
+                      )!
+                    }
+                    alt="Sub"
+                    className="w-full h-full object-contain p-[2px]"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Nombre y KDA base */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "text-[11px] font-bold truncate",
+                  isCurrentUser
+                    ? "text-blue-500 dark:text-blue-400"
+                    : "text-slate-900 dark:text-slate-100",
+                )}
+              >
+                {player.summoner_name}
+              </span>
+              {badges.includes("MVP") && (
+                <span className="text-[7px] font-black bg-amber-400 text-slate-900 px-1 rounded-sm">
+                  MVP
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] tabular-nums">
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                {player.kills}/{player.deaths}/{player.assists}
+              </span>
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span className="text-slate-500 dark:text-slate-400">
+                {cs} CS
+              </span>
+            </div>
+          </div>
+
+          {/* Stats secundarias (Dmg/Oro) */}
+          <div className="hidden min-[380px]:flex flex-col items-end justify-center px-2 border-r border-slate-200 dark:border-slate-800">
+            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+              {(dmgToChamps / 1000).toFixed(1)}k{" "}
+              <span className="text-[8px] font-normal text-slate-400">dmg</span>
+            </span>
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500">
+              {(gold / 1000).toFixed(1)}k{" "}
+              <span className="text-[8px] font-normal text-slate-400">oro</span>
+            </span>
+          </div>
+
+          {/* Items ultra compactos */}
+          <div className="flex gap-0.5 shrink-0 px-1">
+            {[
+              player.item0,
+              player.item1,
+              player.item2,
+              player.item3,
+              player.item4,
+              player.item5,
+            ].map((id, i) => (
+              <div
+                key={i}
+                className="w-4 h-4 rounded-sm bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300/20 dark:border-slate-700/20 overflow-hidden relative"
+              >
+                {id ? (
+                  <Image
+                    src={getItemImg(id, gameVersion)!}
+                    alt="Item"
+                    fill
+                    sizes="16px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div
         className={cn(
-          "flex flex-row items-center gap-2 px-3 py-2.5 sm:px-4 sm:py-2.5 border-b border-slate-200/60 dark:border-slate-800/60 last:border-0 transition-all duration-200 bg-white/50 dark:bg-slate-900/40 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 group/row",
-          isCurrentUser && isWinner && "bg-blue-50/70 dark:bg-blue-500/10",
-          isCurrentUser && !isWinner && "bg-rose-50/70 dark:bg-red-500/10"
+          "flex flex-row items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 border-b border-slate-200/40 dark:border-slate-800/40 last:border-0 transition-all duration-200 bg-white/40 dark:bg-slate-900/30 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 group/row",
+          isCurrentUser && isWinner && "bg-blue-500/10 dark:bg-blue-500/20",
+          isCurrentUser && !isWinner && "bg-rose-500/10 dark:bg-red-500/20",
         )}
       >
         {/* SECTION 1: Avatar, Spells, Runes & Name */}
@@ -218,30 +395,50 @@ export const ScoreboardPlayerRow = memo(
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Desktop Spells */}
-            <div className="hidden sm:flex justify-between gap-1">
-              {[
-                player.summoner1_id || player.summoner1Id,
-                player.summoner2_id || player.summoner2Id,
-              ]
-                .filter(Boolean)
-                .map((sid, i) => (
-                  <div
-                    key={i}
-                    className="w-[18px] h-[18px] rounded border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-sm"
-                  >
-                    <Image
-                      src={getSpellImg(sid, gameVersion)!}
-                      alt="Spell"
-                      width={18}
-                      height={18}
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
-                ))}
+              {/* Rank Position Badge - Sobrepuesto en esquina superior derecha */}
+              {/* Desktop version with tooltip */}
+              <div className="hidden sm:block absolute -top-1 -right-1 z-10">
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          "text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 transition-all cursor-help",
+                          rankPos === 1
+                            ? "bg-amber-400 text-slate-900 border-amber-500"
+                            : rankPos <= 3
+                              ? "bg-sky-400 text-slate-900 border-sky-500"
+                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+                        )}
+                      >
+                        {rankPos || "-"}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="p-3 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-xl">
+                      <PerformanceTooltipContent
+                        score={score}
+                        ranking={rankPos}
+                        breakdown={breakdown}
+                      />
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              {/* Mobile version without tooltip */}
+              <span
+                className={cn(
+                  "sm:hidden absolute -top-1 -right-1 z-10 text-[8px] font-black w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-lg border-2 transition-colors",
+                  rankPos === 1
+                    ? "bg-amber-400 text-slate-900 border-amber-500"
+                    : rankPos <= 3
+                      ? "bg-sky-400 text-slate-900 border-sky-500"
+                      : "bg-slate-100/90 text-slate-600 dark:bg-slate-800/90 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+                )}
+              >
+                {rankPos || "-"}
+              </span>
             </div>
 
             {/* Mobile Runes */}
@@ -267,7 +464,7 @@ export const ScoreboardPlayerRow = memo(
                       getRuneStyleImg(
                         player.sub_style_id ||
                           player.perk_sub_style ||
-                          player.perkSubStyle
+                          player.perkSubStyle,
                       )!
                     }
                     alt="Sub"
@@ -300,25 +497,30 @@ export const ScoreboardPlayerRow = memo(
                   />
                 </div>
               ))}
-            {/* Mobile Rank Position */}
-            <span
-              className={cn(
-                "mt-0.5 text-[8px] font-black w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-sm border transition-colors shrink-0",
-                rankPos === 1
-                  ? "bg-amber-400 text-slate-900 border-amber-500"
-                  : rankPos <= 3
-                  ? "bg-sky-400 text-slate-900 border-sky-500"
-                  : "bg-slate-100/80 text-slate-600 dark:bg-slate-800/80 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-              )}
-            >
-              #{rankPos || "-"}
-            </span>
           </div>
 
-          {/* Desktop Runes */}
-          <div className="hidden sm:flex flex-col gap-1 justify-center shrink-0">
-            {player.keystone_id && (
-              <div className="w-[18px] h-[18px] rounded-full bg-slate-900 border border-slate-700/50 overflow-hidden shadow-sm flex items-center justify-center">
+          {/* Desktop Spells & Runes (2x2 Grid) */}
+          <div className="hidden sm:grid grid-cols-2 grid-rows-2 gap-1 shrink-0">
+            {/* Row 1: Spell 1 + Rune 1 (Keystone) */}
+            <div className="w-[18px] h-[18px] rounded border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-sm">
+              {(player.summoner1_id || player.summoner1Id) && (
+                <Image
+                  src={
+                    getSpellImg(
+                      player.summoner1_id || player.summoner1Id,
+                      gameVersion,
+                    )!
+                  }
+                  alt="Spell 1"
+                  width={18}
+                  height={18}
+                  className="object-cover"
+                  unoptimized
+                />
+              )}
+            </div>
+            <div className="w-[18px] h-[18px] rounded-full bg-slate-900 border border-slate-700/50 overflow-hidden shadow-sm flex items-center justify-center">
+              {player.keystone_id && (
                 <img
                   src={
                     perkIconById[player.keystone_id] ||
@@ -327,51 +529,44 @@ export const ScoreboardPlayerRow = memo(
                   alt="Keystone"
                   className="w-full h-full object-contain scale-110"
                 />
-              </div>
-            )}
-            {(player.sub_style_id ||
-              player.perk_sub_style ||
-              player.perkSubStyle) && (
-              <div className="w-[14px] h-[14px] rounded-full bg-slate-800 border border-slate-700/30 self-center overflow-hidden shadow-sm">
+              )}
+            </div>
+
+            {/* Row 2: Spell 2 + Rune 2 (SubStyle) */}
+            <div className="w-[18px] h-[18px] rounded border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-sm">
+              {(player.summoner2_id || player.summoner2Id) && (
+                <Image
+                  src={
+                    getSpellImg(
+                      player.summoner2_id || player.summoner2Id,
+                      gameVersion,
+                    )!
+                  }
+                  alt="Spell 2"
+                  width={18}
+                  height={18}
+                  className="object-cover"
+                  unoptimized
+                />
+              )}
+            </div>
+            <div className="w-[14px] h-[14px] rounded-full bg-slate-800 border border-slate-700/30 overflow-hidden shadow-sm flex items-center justify-center self-center justify-self-center">
+              {(player.sub_style_id ||
+                player.perk_sub_style ||
+                player.perkSubStyle) && (
                 <img
                   src={
                     getRuneStyleImg(
                       player.sub_style_id ||
                         player.perk_sub_style ||
-                        player.perkSubStyle
+                        player.perkSubStyle,
                     )!
                   }
                   alt="SubStyle"
                   className="w-full h-full object-contain p-[2px]"
                 />
-              </div>
-            )}
-            {/* Ranking Position Badge */}
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className={cn(
-                      "mt-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full shadow-sm text-center cursor-help border transition-colors",
-                      rankPos === 1
-                        ? "bg-amber-400 text-slate-900 border-amber-500"
-                        : rankPos <= 3
-                        ? "bg-sky-400 text-slate-900 border-sky-500"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                    )}
-                  >
-                    #{rankPos || "-"}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="p-3 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-xl">
-                  <PerformanceTooltipContent
-                    score={score}
-                    ranking={rankPos}
-                    breakdown={breakdown}
-                  />
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              )}
+            </div>
           </div>
 
           <div className="hidden sm:flex flex-col flex-1 min-w-0 gap-0">
@@ -380,7 +575,7 @@ export const ScoreboardPlayerRow = memo(
                 "text-sm sm:text-[13px] font-medium truncate tracking-tighter sm:tracking-tight w-full",
                 isCurrentUser
                   ? "text-blue-600 dark:text-blue-400"
-                  : "text-slate-900 dark:text-white"
+                  : "text-slate-900 dark:text-white",
               )}
             >
               {player.summoner_name || "Unknown"}
@@ -396,7 +591,7 @@ export const ScoreboardPlayerRow = memo(
                   "text-[10px] sm:text-[9px] font-bold italic uppercase tracking-wider",
                   rankBadge && rankBadge !== "Unranked"
                     ? rankColor
-                    : "text-slate-400 dark:text-slate-500"
+                    : "text-slate-400 dark:text-slate-500",
                 )}
               >
                 {rankBadge && rankBadge !== "Unranked" ? rankBadge : "S/R"}
@@ -416,7 +611,7 @@ export const ScoreboardPlayerRow = memo(
                 "text-xs font-semibold truncate",
                 isCurrentUser
                   ? "text-blue-600 dark:text-blue-400"
-                  : "text-slate-900 dark:text-white"
+                  : "text-slate-900 dark:text-white",
               )}
             >
               {player.summoner_name || "Unknown"}
@@ -503,7 +698,7 @@ export const ScoreboardPlayerRow = memo(
                 isSaved
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
                   : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-500",
-                (!canSave || isSaving) && "opacity-40"
+                (!canSave || isSaving) && "opacity-40",
               )}
             >
               <BookmarkPlus className="w-3 h-3" />
@@ -513,7 +708,11 @@ export const ScoreboardPlayerRow = memo(
                 targetPuuid={player.puuid}
                 gameName={player.summoner_name}
                 tagLine={""}
+                championName={player.champion_name}
+                gameVersion={gameVersion}
                 existingNote={notes[player.puuid]}
+                isOpen={isNoteOpen}
+                onOpenChange={setIsNoteOpen}
                 onSave={async (data) =>
                   saveNote({
                     target_puuid: player.puuid,
@@ -561,7 +760,7 @@ export const ScoreboardPlayerRow = memo(
                     "aspect-square w-[26px] sm:w-[24px] bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300/30 dark:border-slate-700/30 overflow-hidden relative shadow-inner transition-transform hover:scale-110 hover:z-10",
                     i === 6
                       ? "rounded-full ring-1 ring-amber-500/20 sm:row-span-2 sm:ml-1"
-                      : "rounded-[4px]"
+                      : "rounded-[4px]",
                   )}
                 >
                   {id ? (
@@ -613,7 +812,7 @@ export const ScoreboardPlayerRow = memo(
             </div>
           </div>
 
-          <div className="hidden sm:grid order-3 grid-cols-2 sm:col-span-1 border-l border-slate-200/40 dark:border-slate-800/40 pl-6 gap-x-10 gap-y-3">
+          <div className="hidden sm:grid order-3 grid-cols-2 sm:col-span-1 border-l border-slate-200/40 dark:border-slate-800/40 pl-4 gap-x-6 gap-y-2">
             {[
               { val: cs, lab: "CS" },
               { val: `${(dmgToChamps / 1000).toFixed(1)}k`, lab: "DMG" },
@@ -652,7 +851,7 @@ export const ScoreboardPlayerRow = memo(
                 isSaved
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
                   : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-500 hover:border-blue-500/50",
-                (!canSave || isSaving) && "opacity-40"
+                (!canSave || isSaving) && "opacity-40",
               )}
             >
               <BookmarkPlus className="w-4 h-4" />
@@ -662,7 +861,11 @@ export const ScoreboardPlayerRow = memo(
                 targetPuuid={player.puuid}
                 gameName={player.summoner_name}
                 tagLine={""}
+                championName={player.champion_name}
+                gameVersion={gameVersion}
                 existingNote={notes[player.puuid]}
+                isOpen={isNoteOpen}
+                onOpenChange={setIsNoteOpen}
                 onSave={async (data) =>
                   saveNote({
                     target_puuid: player.puuid,
@@ -677,9 +880,28 @@ export const ScoreboardPlayerRow = memo(
             )}
           </div>
         </div>
+        <PlayerNoteModal
+          isOpen={isNoteOpen}
+          onClose={() => setIsNoteOpen(false)}
+          targetPuuid={player.puuid}
+          gameName={player.summoner_name}
+          tagLine={""}
+          championName={player.champion_name}
+          gameVersion={gameVersion}
+          existingNote={notes[player.puuid]}
+          onSave={async (data) =>
+            saveNote({
+              target_puuid: player.puuid,
+              target_game_name: player.summoner_name,
+              target_tag_line: "",
+              ...data,
+            })
+          }
+          onDelete={async () => deleteNote(player.puuid)}
+        />
       </div>
     );
-  }
+  },
 );
 
 ScoreboardPlayerRow.displayName = "ScoreboardPlayerRow";

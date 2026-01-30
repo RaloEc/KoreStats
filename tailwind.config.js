@@ -149,8 +149,10 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", ...fontFamily.sans],
-        heading: ["Inter", ...fontFamily.sans],
+        sans: ["var(--font-inter)", ...fontFamily.sans],
+        heading: ["var(--font-inter)", ...fontFamily.sans],
+        inter: ["var(--font-inter)", ...fontFamily.sans],
+        unbounded: ["var(--font-unbounded)", ...fontFamily.sans],
         minecraft: ["Inter", ...fontFamily.sans],
       },
       backgroundImage: {

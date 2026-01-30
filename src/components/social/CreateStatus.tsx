@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   Image as ImageIcon,
   Send,
@@ -11,6 +11,16 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+import dynamic from "next/dynamic";
+
+// Importar MinimalEditor de forma lazy para evitar problemas de SSR
+const MinimalEditor = dynamic(
+  () => import("@/components/tiptap-editor/MinimalEditor"),
+  {
+    ssr: false,
+    loading: () => <div className="h-24 animate-pulse bg-muted rounded-md" />,
+  },
+);
 
 interface CreateStatusProps {
   targetUserId?: string; // If posting to another user's wall
@@ -97,7 +107,7 @@ export default function CreateStatus({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && !mediaUrl) return;
+    if ((!content.trim() || content === "<p></p>") && !mediaUrl) return;
 
     try {
       setIsLoading(true);
@@ -159,15 +169,16 @@ export default function CreateStatus({
         )}
 
         <div className="mb-4">
-          <textarea
+          <MinimalEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={setContent}
             placeholder={
               isWallPost
                 ? `Escribe algo en el muro de ${targetUsername}...`
                 : "¿Qué estás pensando?"
             }
-            className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/5 rounded-lg p-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-0 resize-none min-h-[80px] transition-colors"
+            restrictMentionsToFriends={true}
+            currentUserId={authUser?.id}
           />
         </div>
 
@@ -256,11 +267,18 @@ export default function CreateStatus({
 
           <button
             type="submit"
-            disabled={(!content.trim() && !mediaUrl) || isLoading}
+            disabled={
+              ((!content.trim() || content === "<p></p>") && !mediaUrl) ||
+              isLoading
+            }
             className="px-4 py-2 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm hover:shadow-md"
             style={{
               backgroundColor: userColor,
-              opacity: (!content.trim() && !mediaUrl) || isLoading ? 0.5 : 1,
+              opacity:
+                ((!content.trim() || content === "<p></p>") && !mediaUrl) ||
+                isLoading
+                  ? 0.5
+                  : 1,
             }}
           >
             {isLoading ? (

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { normalizeAvatarUrl } from "@/lib/utils/avatar-utils";
 import { SupabaseImage } from "@/components/ui/SupabaseImage";
+import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
   username: string;
@@ -11,6 +12,7 @@ interface UserAvatarProps {
   className?: string;
   color?: string;
   borderColor?: string;
+  sizes?: string;
 }
 
 const generateColor = (name: string) => {
@@ -36,6 +38,7 @@ export default function UserAvatar({
   className = "",
   color,
   borderColor,
+  sizes,
 }: UserAvatarProps) {
   const initials = getInitials(username || "");
   const avatarColor = useMemo(() => {
@@ -64,15 +67,20 @@ export default function UserAvatar({
   if (normalizedUrl) {
     return (
       <div
-        className={`${sizeClasses[size]} ${className} relative rounded-full overflow-hidden flex-shrink-0 border-2 border-border/10`}
+        className={cn(
+          `${sizeClasses[size]} relative rounded-full overflow-hidden flex-shrink-0 border-2 border-border/10`,
+          className,
+        )}
         style={borderColor ? { borderColor } : {}}
       >
         <SupabaseImage
           src={normalizedUrl}
           alt={username}
           fill
-          className="object-cover"
-          sizes={size === "sm" ? "32px" : size === "md" ? "40px" : "48px"}
+          className="object-cover !m-0 !p-0"
+          sizes={
+            sizes || (size === "sm" ? "32px" : size === "md" ? "40px" : "48px")
+          }
         />
       </div>
     );
@@ -80,7 +88,10 @@ export default function UserAvatar({
 
   return (
     <div
-      className={`${sizeClasses[size]} ${className} rounded-full flex items-center justify-center font-bold text-white flex-shrink-0`}
+      className={cn(
+        `${sizeClasses[size]} rounded-full flex items-center justify-center font-bold text-white flex-shrink-0`,
+        className,
+      )}
       style={avatarStyle}
     >
       {initials}

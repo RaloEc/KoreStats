@@ -1,59 +1,60 @@
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // Función para calcular trends (porcentaje de cambio)
 function calcularTrends(data: any) {
   const trends: any = {};
-  
+
   // 1. Trend de Total Noticias (comparar mes actual vs mes anterior)
   if (data.noticias_por_mes && data.noticias_por_mes.length >= 2) {
     const mesActual = data.noticias_por_mes[0]?.cantidad || 0;
     const mesAnterior = data.noticias_por_mes[1]?.cantidad || 0;
-    
+
     if (mesAnterior > 0) {
-      trends.total_noticias = Math.round(((mesActual - mesAnterior) / mesAnterior) * 100);
+      trends.total_noticias = Math.round(
+        ((mesActual - mesAnterior) / mesAnterior) * 100,
+      );
     } else if (mesActual > 0) {
       trends.total_noticias = 100; // 100% si no había noticias el mes anterior
     } else {
       trends.total_noticias = 0;
     }
   }
-  
+
   // 2. Trend de Total Vistas (comparar últimos 30 días vs 30-60 días atrás)
-  if (data.vistas_ultimos_30_dias !== undefined && data.vistas_30_60_dias_atras !== undefined) {
+  if (
+    data.vistas_ultimos_30_dias !== undefined &&
+    data.vistas_30_60_dias_atras !== undefined
+  ) {
     const vistasRecientes = data.vistas_ultimos_30_dias;
     const vistasAnteriores = data.vistas_30_60_dias_atras;
-    
+
     if (vistasAnteriores > 0) {
-      trends.total_vistas = Math.round(((vistasRecientes - vistasAnteriores) / vistasAnteriores) * 100);
+      trends.total_vistas = Math.round(
+        ((vistasRecientes - vistasAnteriores) / vistasAnteriores) * 100,
+      );
     } else if (vistasRecientes > 0) {
       trends.total_vistas = 100; // 100% si no había vistas en el periodo anterior
     } else {
       trends.total_vistas = 0;
     }
-    
-    console.log('📊 Cálculo de trend de vistas:', {
-      vistasRecientes,
-      vistasAnteriores,
-      trend: trends.total_vistas
-    });
   }
-  
+
   // 3. Trend de Últimos 30 días (porcentaje del total)
   if (data.noticias_30d !== undefined && data.total_noticias) {
     const porcentajeRecientes = (data.noticias_30d / data.total_noticias) * 100;
     trends.ultimos_30_dias = Math.round(porcentajeRecientes);
   }
-  
+
   // 4. Trend de Pendientes (negativo si hay pendientes)
   if (data.noticias_pendientes !== undefined) {
     trends.pendientes = data.noticias_pendientes > 0 ? -3 : 0;
   }
-  
+
   return trends;
 }
 
@@ -113,21 +114,22 @@ export function useAdminEstadisticas() {
     error,
     refetch,
   } = useQuery<EstadisticasAdmin>({
-    queryKey: ['admin-estadisticas'],
+    queryKey: ["admin-estadisticas"],
     queryFn: async () => {
-      console.log('🔄 Obteniendo estadísticas frescas...');
-      const response = await fetch('/api/admin/noticias/estadisticas?admin=true', {
-        cache: 'no-store', // Forzar no usar cache del navegador
-      });
+      const response = await fetch(
+        "/api/admin/noticias/estadisticas?admin=true",
+        {
+          cache: "no-store", // Forzar no usar cache del navegador
+        },
+      );
       if (!response.ok) {
-        throw new Error('Error al cargar estadísticas');
+        throw new Error("Error al cargar estadísticas");
       }
       const data = await response.json();
-      console.log('✅ Estadísticas obtenidas:', { total_vistas: data.total_vistas });
-      
+
       // Calcular trends basados en datos del mes anterior
       const trends = calcularTrends(data);
-      
+
       return { ...data, trends };
     },
     staleTime: 0, // Siempre considerar datos como stale
@@ -140,47 +142,45 @@ export function useAdminEstadisticas() {
   useEffect(() => {
     // Función para invalidar caché y refrescar datos
     const handleRealtimeUpdate = (payload: any) => {
-      console.log('📡 Cambio detectado en tiempo real:', payload);
       setLastUpdate(new Date());
-      
+
       // Invalidar caché de estadísticas
-      queryClient.invalidateQueries({ queryKey: ['admin-estadisticas'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-noticias-recientes'] });
+      queryClient.invalidateQueries({ queryKey: ["admin-estadisticas"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-noticias-recientes"] });
     };
 
     // Crear canal de suscripción
     const channel = supabase
-      .channel('admin-noticias-changes')
+      .channel("admin-noticias-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'noticias',
+          event: "*",
+          schema: "public",
+          table: "noticias",
         },
-        handleRealtimeUpdate
+        handleRealtimeUpdate,
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'categorias',
+          event: "*",
+          schema: "public",
+          table: "categorias",
         },
-        handleRealtimeUpdate
+        handleRealtimeUpdate,
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'comentarios_noticias',
+          event: "*",
+          schema: "public",
+          table: "comentarios_noticias",
         },
-        handleRealtimeUpdate
+        handleRealtimeUpdate,
       )
       .subscribe((status) => {
-        console.log('📡 Estado de suscripción en tiempo real:', status);
-        setIsRealTimeActive(status === 'SUBSCRIBED');
+        setIsRealTimeActive(status === "SUBSCRIBED");
       });
 
     channelRef.current = channel;
@@ -217,11 +217,11 @@ export function useNoticiasRecientes(limit: number = 5) {
     error,
     refetch,
   } = useQuery<NoticiaReciente[]>({
-    queryKey: ['admin-noticias-recientes', limit],
+    queryKey: ["admin-noticias-recientes", limit],
     queryFn: async () => {
       const response = await fetch(`/api/noticias?admin=true&limit=${limit}`);
       if (!response.ok) {
-        throw new Error('Error al cargar noticias recientes');
+        throw new Error("Error al cargar noticias recientes");
       }
       const data = await response.json();
       return data.success ? data.data : [];
@@ -233,22 +233,20 @@ export function useNoticiasRecientes(limit: number = 5) {
   // Configurar suscripción en tiempo real para noticias
   useEffect(() => {
     const handleRealtimeUpdate = (payload: any) => {
-      console.log('📰 Noticia actualizada en tiempo real:', payload);
-      
       // Invalidar caché de noticias recientes
-      queryClient.invalidateQueries({ queryKey: ['admin-noticias-recientes'] });
+      queryClient.invalidateQueries({ queryKey: ["admin-noticias-recientes"] });
     };
 
     const channel = supabase
-      .channel('admin-noticias-recientes-changes')
+      .channel("admin-noticias-recientes-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'noticias',
+          event: "*",
+          schema: "public",
+          table: "noticias",
         },
-        handleRealtimeUpdate
+        handleRealtimeUpdate,
       )
       .subscribe();
 
@@ -276,13 +274,15 @@ export function useActividadReciente() {
   const supabase = createClient();
 
   return useQuery({
-    queryKey: ['admin-actividad-reciente'],
+    queryKey: ["admin-actividad-reciente"],
     queryFn: async () => {
       // Obtener últimas noticias creadas/actualizadas
       const { data: noticias, error: errorNoticias } = await supabase
-        .from('noticias')
-        .select('id, titulo, creada_en, actualizada_en, autor_id, perfiles(username)')
-        .order('actualizada_en', { ascending: false })
+        .from("noticias")
+        .select(
+          "id, titulo, creada_en, actualizada_en, autor_id, perfiles(username)",
+        )
+        .order("actualizada_en", { ascending: false })
         .limit(10);
 
       if (errorNoticias) throw errorNoticias;

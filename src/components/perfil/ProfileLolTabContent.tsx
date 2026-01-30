@@ -126,6 +126,12 @@ export function ProfileLolTabContent({
         {/* Historial de partidas */}
         <MatchHistoryList
           userId={userId}
+          puuid={riotAccount.puuid}
+          riotId={
+            riotAccount.game_name
+              ? `${riotAccount.game_name}#${riotAccount.tag_line}`
+              : undefined
+          }
           externalSyncPending={unifiedSyncPending}
           externalCooldownSeconds={unifiedSyncCooldown}
         />

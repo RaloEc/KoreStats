@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   getChampionImg,
   getSpellImg,
@@ -64,7 +64,7 @@ function formatElapsed(seconds: number | null | undefined): string {
 
 function assignParticipantsToRoles(
   participants: ActiveParticipant[],
-  roles: Array<{ key: string; label: string }>
+  roles: Array<{ key: string; label: string }>,
 ): Map<string, ActiveParticipant> {
   const byRole = new Map<string, ActiveParticipant>();
   const leftovers: ActiveParticipant[] = [];
@@ -208,7 +208,7 @@ function ParticipantRow({
 }
 
 function isEndedSnapshot(
-  snapshot: ActiveMatchSnapshot
+  snapshot: ActiveMatchSnapshot,
 ): snapshot is EndedSnapshot {
   return snapshot.hasActiveMatch === true;
 }
@@ -218,6 +218,8 @@ export function EndedMatchPreviewCard({
 }: {
   snapshot: ActiveMatchSnapshot;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (!isEndedSnapshot(snapshot)) return null;
   const teams = snapshot.teams;
   if (!teams) return null;
@@ -249,48 +251,93 @@ export function EndedMatchPreviewCard({
   const timer = formatElapsed(snapshot.elapsedSeconds);
 
   return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="text-sm font-semibold text-slate-100">
-            Partida finalizada
+    <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 transition-all">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex w-full items-center justify-between p-4 text-left hover:bg-amber-500/5 transition-colors rounded-xl"
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-2 w-2">
+            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
           </div>
-          <div className="text-xs text-slate-400">
-            {queueLabel}
-            {timer ? ` • ${timer}` : ""}
-            {" • sincronizando..."}
+          <div>
+            <div className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+              Sincronizando Partida Finalizada...
+            </div>
+            <div className="text-xs text-slate-400">
+              {queueLabel}
+              {timer ? ` • ${timer}` : ""}
+            </div>
           </div>
         </div>
-        <div className="text-[11px] text-slate-500">
-          {snapshot.platformId ?? ""}
-        </div>
-      </div>
+        {isExpanded ? (
+          <div className="text-slate-500">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m18 15-6-6-6 6" />
+            </svg>
+          </div>
+        ) : (
+          <div className="text-slate-500">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </div>
+        )}
+      </button>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-sky-300">Equipo azul</div>
-          {ROLE_ORDER.map((role) => (
-            <ParticipantRow
-              key={`blue-ended-${role.key}`}
-              participant={team100ByPos.get(role.key) ?? null}
-              side="blue"
-              perkIconById={perkIconById}
-            />
-          ))}
-        </div>
+      {isExpanded && (
+        <div className="p-4 pt-0 border-t border-amber-500/10">
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="space-y-1">
+              <div className="text-xs font-semibold text-sky-300">
+                Equipo azul
+              </div>
+              {ROLE_ORDER.map((role) => (
+                <ParticipantRow
+                  key={`blue-ended-${role.key}`}
+                  participant={team100ByPos.get(role.key) ?? null}
+                  side="blue"
+                  perkIconById={perkIconById}
+                />
+              ))}
+            </div>
 
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-rose-300">Equipo rojo</div>
-          {ROLE_ORDER.map((role) => (
-            <ParticipantRow
-              key={`red-ended-${role.key}`}
-              participant={team200ByPos.get(role.key) ?? null}
-              side="red"
-              perkIconById={perkIconById}
-            />
-          ))}
+            <div className="space-y-1">
+              <div className="text-xs font-semibold text-rose-300">
+                Equipo rojo
+              </div>
+              {ROLE_ORDER.map((role) => (
+                <ParticipantRow
+                  key={`red-ended-${role.key}`}
+                  participant={team200ByPos.get(role.key) ?? null}
+                  side="red"
+                  perkIconById={perkIconById}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

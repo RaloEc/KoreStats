@@ -102,9 +102,12 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
   // Referencias
   const toolbarScrollRef = useRef<HTMLDivElement>(null);
 
-  // Manejador de scroll optimizado
-  const handleWheel = React.useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
+  // Manejador de scroll optimizado con useEffect para soportar passive: false
+  useEffect(() => {
+    const toolbar = toolbarScrollRef.current;
+    if (!toolbar) return;
+
+    const onWheel = (e: WheelEvent) => {
       // Verificar si algún menú está abierto
       const isAnyMenuOpen = moreMenuOpen || fontMenuOpen;
 
@@ -112,17 +115,19 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !isAnyMenuOpen) {
         e.preventDefault();
 
-        if (toolbarScrollRef.current) {
-          // Aplicar desplazamiento suave
-          toolbarScrollRef.current.scrollTo({
-            left: toolbarScrollRef.current.scrollLeft + e.deltaY,
-            behavior: "smooth",
-          });
-        }
+        toolbar.scrollTo({
+          left: toolbar.scrollLeft + e.deltaY,
+          behavior: "smooth",
+        });
       }
-    },
-    [moreMenuOpen, fontMenuOpen]
-  );
+    };
+
+    toolbar.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      toolbar.removeEventListener("wheel", onWheel);
+    };
+  }, [moreMenuOpen, fontMenuOpen]);
 
   if (!editor) {
     return null;
@@ -233,7 +238,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
             title={props.title}
             className={cn(
               "toolbar-button focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1",
-              props.isActive && "is-active"
+              props.isActive && "is-active",
             )}
             onClick={props.onClick}
           >
@@ -367,7 +372,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       onClick: (e: React.MouseEvent) =>
         applyStyle(
           () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-          e
+          e,
         ),
       isActive: editor.isActive("heading", { level: 1 }),
       title: "Encabezado 1",
@@ -377,7 +382,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       onClick: (e: React.MouseEvent) =>
         applyStyle(
           () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-          e
+          e,
         ),
       isActive: editor.isActive("heading", { level: 2 }),
       title: "Encabezado 2",
@@ -387,7 +392,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       onClick: (e: React.MouseEvent) =>
         applyStyle(
           () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-          e
+          e,
         ),
       isActive: editor.isActive("heading", { level: 3 }),
       title: "Encabezado 3",
@@ -433,7 +438,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       onClick: (e: React.MouseEvent) =>
         applyStyle(
           () => editor.chain().focus().setTextAlign("center").run(),
-          e
+          e,
         ),
       isActive: editor.isActive({ textAlign: "center" }),
       title: "Centrar",
@@ -450,7 +455,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
       onClick: (e: React.MouseEvent) =>
         applyStyle(
           () => editor.chain().focus().setTextAlign("justify").run(),
-          e
+          e,
         ),
       isActive: editor.isActive({ textAlign: "justify" }),
       title: "Justificar",
@@ -460,11 +465,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
   return (
     <div className="tiptap-toolbar flex items-center gap-3">
       {/* Contenedor con scroll horizontal */}
-      <div
-        className="toolbar-scroll flex-1 min-w-0"
-        ref={toolbarScrollRef}
-        onWheel={handleWheel}
-      >
+      <div className="toolbar-scroll flex-1 min-w-0" ref={toolbarScrollRef}>
         {/* Grupo de Deshacer/Rehacer */}
         <div className="toolbar-group">
           <ToolbarButton
@@ -500,7 +501,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                 shortcut={tool.shortcut}
                 disabled={tool.disabled}
               />
-            )
+            ),
           )}
         </div>
 
@@ -598,7 +599,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                   key={font.name}
                   className={cn(
                     "cursor-pointer hover:bg-gray-800 hover:text-white transition-colors",
-                    currentFontFamily === font.name && "bg-gray-800 text-white"
+                    currentFontFamily === font.name && "bg-gray-800 text-white",
                   )}
                   onSelect={(e) => {
                     e.preventDefault(); // evita que Radix cierre el menú
@@ -646,7 +647,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
               onInteractOutside={(e) => {
                 if (
                   (e.target as HTMLElement).closest(
-                    "[data-radix-dropdown-menu-trigger]"
+                    "[data-radix-dropdown-menu-trigger]",
                   )
                 ) {
                   e.preventDefault();
@@ -659,7 +660,7 @@ export const Toolbar = React.memo(function Toolbar(props: ToolbarProps) {
                     key={`additional-${index}`}
                     className={cn(
                       "cursor-pointer hover:bg-gray-800 hover:text-white transition-colors",
-                      tool.isActive && "bg-gray-800 text-white"
+                      tool.isActive && "bg-gray-800 text-white",
                     )}
                     onSelect={(e) => {
                       e.preventDefault(); // 🔥 evita que Radix cierre
@@ -777,7 +778,7 @@ export const FloatingToolbar = React.memo(function FloatingToolbar(props: {
         onClick={(e) =>
           applyStyle(
             () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-            e
+            e,
           )
         }
         type="button"
@@ -790,7 +791,7 @@ export const FloatingToolbar = React.memo(function FloatingToolbar(props: {
         onClick={(e) =>
           applyStyle(
             () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-            e
+            e,
           )
         }
         type="button"

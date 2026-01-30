@@ -10,11 +10,8 @@ import {
   formatDuration,
   getRuneIconUrl,
 } from "./helpers";
-import {
-  getKeystonePerkId,
-  type RunePerks,
-  usePerkAssets,
-} from "./RunesTooltip";
+import { getKeystonePerkId, type RunePerks } from "./RunesTooltip";
+import { useRunesReforged } from "@/hooks/use-runes-reforged";
 import { LPBadge } from "./LPBadge";
 import {
   computeParticipantScores,
@@ -146,7 +143,10 @@ export function CompactMobileMatchCard({
   const playerPrimaryRune = match.perk_primary_style;
   const playerSecondaryRune = match.perk_sub_style;
   const playerKeystonePerkId = getKeystonePerkId(currentParticipant?.perks);
-  const { perkIconById, perkNameById } = usePerkAssets([playerKeystonePerkId]);
+  const { getRuneIconUrl: fetchRuneIconUrl } = useRunesReforged();
+  const keystoneIconUrl = playerKeystonePerkId
+    ? fetchRuneIconUrl(playerKeystonePerkId)
+    : null;
 
   // Calcular ranking del jugador
   const scoreEntries = computeParticipantScores(
@@ -230,12 +230,12 @@ export function CompactMobileMatchCard({
   };
 
   const renderKeystoneIcon = () => {
-    if (playerKeystonePerkId && perkIconById[playerKeystonePerkId]) {
+    if (keystoneIconUrl) {
       return (
         <div className="relative w-5 h-5 rounded-full overflow-hidden bg-slate-900">
           <Image
-            src={perkIconById[playerKeystonePerkId]}
-            alt={perkNameById[playerKeystonePerkId] ?? "Keystone"}
+            src={keystoneIconUrl}
+            alt="Keystone"
             fill
             sizes="20px"
             className="object-cover"

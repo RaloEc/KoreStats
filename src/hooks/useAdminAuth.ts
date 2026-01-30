@@ -42,16 +42,6 @@ export function useAdminAuth(): AdminAuthState {
       isAdmin = true;
     }
 
-    console.log("[useAdminAuth] Estado actual:", {
-      isLoading,
-      isAdmin,
-      hasUser: !!user,
-      hasProfile: !!profile,
-      profileRole: profile?.role,
-      appMetadataRole: user?.app_metadata?.role,
-      userMetadataRole: user?.user_metadata?.role,
-    });
-
     return {
       isLoading,
       isAdmin,

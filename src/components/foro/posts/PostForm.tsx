@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useAuth } from "@/hooks/useAuth";
+
+// Importar TiptapEditor de forma lazy para evitar problemas de SSR
+const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), {
+  ssr: false,
+  loading: () => <div className="h-48 animate-pulse bg-muted rounded-md" />,
+});
 
 interface PostFormProps {
   hiloId: string;
@@ -13,6 +20,7 @@ interface PostFormProps {
   placeholder?: string;
   submitText?: string;
   initialValue?: string;
+  restrictMentionsToFriends?: boolean;
 }
 
 export default function PostForm({
@@ -23,7 +31,9 @@ export default function PostForm({
   placeholder = "Escribe tu respuesta...",
   submitText = "Publicar respuesta",
   initialValue = "",
+  restrictMentionsToFriends = false,
 }: PostFormProps) {
+  const { user } = useAuth();
   const [contenido, setContenido] = useState(initialValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +41,7 @@ export default function PostForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!contenido.trim()) {
+    if (!contenido.trim() || contenido === "<p></p>") {
       setError("El contenido no puede estar vacío");
       return;
     }
@@ -44,7 +54,7 @@ export default function PostForm({
       setContenido("");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error al publicar la respuesta"
+        err instanceof Error ? err.message : "Error al publicar la respuesta",
       );
     } finally {
       setIsSubmitting(false);
@@ -54,13 +64,12 @@ export default function PostForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Textarea
+        <TiptapEditor
           value={contenido}
-          onChange={(e) => setContenido(e.target.value)}
+          onChange={setContenido}
           placeholder={placeholder}
-          rows={6}
-          className="w-full resize-none"
-          disabled={isSubmitting}
+          restrictMentionsToFriends={restrictMentionsToFriends}
+          currentUserId={user?.id}
         />
         {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
       </div>

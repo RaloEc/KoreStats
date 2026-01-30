@@ -5,10 +5,10 @@ export async function processMatchesForProfile(
   partidasData: any[],
   userPuuid: string | null | undefined,
   isOwner: boolean,
-  hiddenActivities: Set<string>
+  hiddenActivities: Set<string>,
 ) {
   const filteredPartidas = partidasData.filter(
-    (e: any) => isOwner || !hiddenActivities.has(`lol_match:${e.match_id}`)
+    (e: any) => isOwner || !hiddenActivities.has(`lol_match:${e.match_id}`),
   );
 
   const matchIds = filteredPartidas.map((partida: any) => partida.match_id);
@@ -77,7 +77,7 @@ export async function processMatchesForProfile(
             summoner1_id, summoner2_id, perk_primary_style, perk_sub_style,
             ranking_position, performance_score, win,
             matches(match_id, game_creation, game_duration, queue_id, data_version, full_json)
-          `
+          `,
         )
         .eq("match_id", entry.match_id)
         .eq("puuid", effectivePuuid)
@@ -180,7 +180,7 @@ export async function processMatchesForProfile(
       // We rely on effectivePuuid
       const participantDetail = participants.find(
         (participant: any) =>
-          participant.puuid === (matchParticipant?.puuid || effectivePuuid)
+          participant.puuid === (matchParticipant?.puuid || effectivePuuid),
       );
       perks = participantDetail?.perks ?? null;
 
@@ -199,23 +199,23 @@ export async function processMatchesForProfile(
 
       const playerTeamId = participantDetail?.teamId;
       const teamParticipants = participants.filter(
-        (p: any) => p.teamId === playerTeamId
+        (p: any) => p.teamId === playerTeamId,
       );
       const enemyParticipants = participants.filter(
-        (p: any) => p.teamId !== playerTeamId
+        (p: any) => p.teamId !== playerTeamId,
       );
 
       teamTotalDamage = teamParticipants.reduce(
         (sum: number, p: any) => sum + (p.totalDamageDealtToChampions || 0),
-        0
+        0,
       );
       teamTotalGold = teamParticipants.reduce(
         (sum: number, p: any) => sum + (p.goldEarned || 0),
-        0
+        0,
       );
       const enemyTotalGold = enemyParticipants.reduce(
         (sum: number, p: any) => sum + (p.goldEarned || 0),
-        0
+        0,
       );
       if ((participantDetail?.win ?? false) && teamTotalGold < enemyTotalGold) {
         goldDeficit = enemyTotalGold - teamTotalGold;
@@ -223,7 +223,7 @@ export async function processMatchesForProfile(
 
       teamTotalKills = teamParticipants.reduce(
         (sum: number, p: any) => sum + (p.kills || 0),
-        0
+        0,
       );
 
       const teamCount = teamParticipants.length || 5;
@@ -241,7 +241,7 @@ export async function processMatchesForProfile(
       teamAvgVisionScore =
         teamParticipants.reduce(
           (sum: number, p: any) => sum + (p.visionScore || 0),
-          0
+          0,
         ) / teamCount;
       const minutes = Math.max(1, gameDurationMinutes);
       teamAvgCsPerMin =
@@ -253,7 +253,7 @@ export async function processMatchesForProfile(
       teamAvgDamageToTurrets =
         teamParticipants.reduce(
           (sum: number, p: any) => sum + (p.damageDealtToTurrets || 0),
-          0
+          0,
         ) / teamCount;
 
       objectivesStolen =
@@ -298,6 +298,7 @@ export async function processMatchesForProfile(
         summoner2Id: p.summoner2Id,
         perkPrimaryStyle: p.perks?.styles?.[0]?.style,
         perkSubStyle: p.perks?.styles?.[1]?.style,
+        keystoneId: p.perks?.styles?.[0]?.selections?.[0]?.perk,
         item0: p.item0,
         item1: p.item1,
         item2: p.item2,
@@ -305,6 +306,7 @@ export async function processMatchesForProfile(
         item4: p.item4,
         item5: p.item5,
         item6: p.item6,
+        totalCS: (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0),
       }));
     }
 
@@ -344,7 +346,7 @@ export async function processMatchesForProfile(
       perks,
       rankingPosition: matchParticipant?.ranking_position || null,
       performanceScore: matchParticipant?.performance_score || null,
-      result: matchParticipant?.win ?? metadata.win ? "win" : "loss",
+      result: (matchParticipant?.win ?? metadata.win) ? "win" : "loss",
       queueId: matchInfo?.queue_id || metadata.queueId || 0,
       gameDuration: matchInfo?.game_duration || metadata.gameDuration || 0,
       gameCreation: matchInfo?.game_creation || metadata.gameCreation || 0,

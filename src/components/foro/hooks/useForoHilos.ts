@@ -133,7 +133,6 @@ export function useForoHilos({
       }
 
       const data = await response.json();
-      console.log("[useForoHilos] Respuesta de API:", data);
       return data.hilos || [];
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
@@ -218,14 +217,14 @@ export function useForoHilos({
                 voto_usuario: nuevoVoto,
                 votos_conteo: nuevoConteo,
               };
-            })
+            }),
           );
 
           return {
             ...oldData,
             pages: newPages,
           };
-        }
+        },
       );
 
       return { previousData };
@@ -235,7 +234,7 @@ export function useForoHilos({
       if (context?.previousData) {
         queryClient.setQueryData(
           ["foro", "hilos", activeTab, timeRange, user?.id],
-          context.previousData
+          context.previousData,
         );
       }
     },
@@ -259,22 +258,20 @@ export function useForoHilos({
 
   // Función para eliminar un hilo del caché
   const handleDeleteHilo = (hiloId: string) => {
-    console.log("[useForoHilos] Eliminando hilo del caché:", hiloId);
     queryClient.setQueryData(
       ["foro", "hilos", activeTab, timeRange, user?.id],
       (oldData: any) => {
         if (!oldData || !oldData.pages) return { pages: [], pageParams: [] };
 
         const newPages = oldData.pages.map((page: Hilo[]) =>
-          page.filter((hilo) => hilo.id !== hiloId)
+          page.filter((hilo) => hilo.id !== hiloId),
         );
 
-        console.log("[useForoHilos] Caché actualizado, hilo eliminado");
         return {
           ...oldData,
           pages: newPages,
         };
-      }
+      },
     );
   };
 

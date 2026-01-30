@@ -26,7 +26,7 @@ export function TeamPlayerList({
     (profileUserId: string) => {
       router.push(`/perfil/${profileUserId}?tab=lol`);
     },
-    [router]
+    [router],
   );
 
   return (
@@ -47,8 +47,8 @@ export function TeamPlayerList({
               isCurrentPlayer
                 ? "bg-blue-500/30 font-semibold"
                 : hasProfile
-                ? "hover:bg-white/10 cursor-pointer"
-                : ""
+                  ? "hover:bg-white/10 cursor-pointer"
+                  : ""
             } ${linkedHighlightClasses}`}
           >
             <div className="relative w-4 h-4 rounded overflow-hidden flex-shrink-0 border border-slate-700">

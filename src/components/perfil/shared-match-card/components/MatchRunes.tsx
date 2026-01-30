@@ -23,6 +23,7 @@ interface MatchRunesProps {
   perkSubStyle: number;
   perkIconById: Record<number, string>;
   perkNameById: Record<number, string>;
+  mode?: "all" | "primary" | "secondary";
 }
 
 export const MatchRunes: React.FC<MatchRunesProps> = memo(
@@ -34,13 +35,14 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
     perkSubStyle,
     perkIconById,
     perkNameById,
+    mode = "all",
   }) => {
     const hasDetailedRunes = Boolean(
       (primaryStyle?.selections && primaryStyle.selections.length > 0) ||
-        (secondaryStyle?.selections && secondaryStyle.selections.length > 0) ||
-        statPerks?.offense ||
-        statPerks?.flex ||
-        statPerks?.defense
+      (secondaryStyle?.selections && secondaryStyle.selections.length > 0) ||
+      statPerks?.offense ||
+      statPerks?.flex ||
+      statPerks?.defense,
     );
 
     const renderRuneSelections = (style?: RuneStyle) => {
@@ -156,34 +158,33 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
 
     const runeIcons = (
       <>
-        {keystoneIcon ? (
-          <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
-            <Image
-              src={keystoneIcon}
-              alt={keystoneName ?? "Keystone"}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-            {/* Brillo superior */}
-            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
-          </div>
-        ) : (
-          perkPrimaryStyle > 0 && (
+        {(mode === "all" || mode === "primary") &&
+          (keystoneIcon ? (
             <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
               <Image
-                src={getRuneIconUrl(perkPrimaryStyle)}
-                alt="Estilo primario"
+                src={keystoneIcon}
+                alt={keystoneName ?? "Keystone"}
                 fill
                 className="object-cover"
                 unoptimized
               />
-              {/* Brillo superior */}
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
             </div>
-          )
-        )}
-        {perkSubStyle > 0 && (
+          ) : (
+            perkPrimaryStyle > 0 && (
+              <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
+                <Image
+                  src={getRuneIconUrl(perkPrimaryStyle)}
+                  alt="Estilo primario"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
+              </div>
+            )
+          ))}
+        {(mode === "all" || mode === "secondary") && perkSubStyle > 0 && (
           <div className="group/rune relative w-full h-full rounded overflow-hidden bg-gradient-to-br from-white/30 to-white/10 dark:from-white/20 dark:to-white/5 border border-white/40 dark:border-white/20 shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md">
             <Image
               src={getRuneIconUrl(perkSubStyle)}
@@ -192,7 +193,6 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
               className="object-cover"
               unoptimized
             />
-            {/* Brillo superior */}
             <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
           </div>
         )}
@@ -211,5 +211,5 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
     }
 
     return runeIcons;
-  }
+  },
 );

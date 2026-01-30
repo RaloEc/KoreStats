@@ -51,6 +51,7 @@ type MobileViewMode = "full" | "compact";
 interface MatchHistoryListProps {
   userId?: string;
   puuid?: string;
+  riotId?: string;
   externalSyncPending?: boolean;
   externalCooldownSeconds?: number;
   hideShareButton?: boolean;
@@ -144,22 +145,13 @@ const DEFAULT_STATS: PlayerStats = {
 export function MatchHistoryList({
   userId: propUserId,
   puuid,
+  riotId,
   externalSyncPending = false,
   externalCooldownSeconds = 0,
   hideShareButton = false,
   initialMatchesData,
   initialStats,
 }: MatchHistoryListProps = {}) {
-  // DEBUG: Logs de inicialización
-  useEffect(() => {
-    console.log("[MatchHistoryList] 🟢 MOUNTED", {
-      propUserId,
-      localUserId: "calculated-inside",
-      puuid,
-      hasInitialMatches: !!initialMatchesData,
-    });
-  }, [propUserId, puuid, initialMatchesData]);
-
   const queryClient = useQueryClient();
   const { profile, loading, session } = useAuth();
   const isMobile = useIsMobile();
@@ -361,26 +353,11 @@ export function MatchHistoryList({
 
       const response = await fetch(`/api/riot/matches?${params.toString()}`);
 
-      console.log(
-        "[MatchHistoryList] Fetch URL:",
-        `/api/riot/matches?${params.toString()}`,
-      );
-
       if (!response.ok) {
-        console.error(
-          "[MatchHistoryList] ❌ Fetch Error:",
-          response.status,
-          response.statusText,
-        );
         throw new Error("Failed to fetch matches");
       }
 
       const data = (await response.json()) as MatchHistoryPage;
-      console.log("[MatchHistoryList] ✅ Data received:", {
-        matchesCount: data.matches?.length,
-        hasMore: data.hasMore,
-        success: data.success,
-      });
       return data;
     },
     getNextPageParam: (lastPage) =>
@@ -786,81 +763,8 @@ export function MatchHistoryList({
       (matchesToRender.length > 0 || hasCachedMatches)) ||
     syncMutation.isPending;
 
-  if (shouldShowInitialSkeleton) {
-    return (
-      <div className="space-y-4 py-2">
-        {Array.from({ length: 5 }).map((_, idx) => (
-          <div
-            key={`match-skeleton-${idx}`}
-            className="animate-pulse rounded-xl border-l-4 border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 p-3"
-          >
-            <div className="flex flex-col md:grid md:grid-cols-[60px,auto,180px,90px,200px] gap-4 items-center">
-              {/* Metadata Skeleton */}
-              <div className="flex flex-col gap-2 w-full md:w-auto">
-                <div className="h-3 w-12 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-4 w-16 rounded bg-slate-300 dark:bg-slate-700" />
-                <div className="h-3 w-14 rounded bg-slate-200 dark:bg-slate-800" />
-              </div>
-
-              {/* Champion Summary Skeleton */}
-              <div className="flex items-center justify-center gap-4 w-full border-r border-slate-200 dark:border-slate-800/60 pr-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-14 w-14 rounded-lg bg-slate-300 dark:bg-slate-700" />
-                  <div className="space-y-2">
-                    <div className="h-3 w-10 rounded bg-slate-200 dark:bg-slate-800" />
-                    <div className="h-3 w-8 rounded bg-slate-200 dark:bg-slate-800" />
-                  </div>
-                </div>
-                <div className="h-4 w-4 rounded-full bg-slate-200 dark:bg-slate-800" />
-                <div className="flex items-center gap-3">
-                  <div className="space-y-2">
-                    <div className="h-3 w-10 rounded bg-slate-200 dark:bg-slate-800" />
-                    <div className="h-3 w-8 rounded bg-slate-200 dark:bg-slate-800" />
-                  </div>
-                  <div className="h-14 w-14 rounded-lg bg-slate-300 dark:bg-slate-700" />
-                </div>
-              </div>
-
-              {/* Items Skeleton */}
-              <div className="hidden md:flex items-center gap-2">
-                <div className="grid grid-cols-3 gap-1">
-                  {Array.from({ length: 6 }).map((__, i) => (
-                    <div
-                      key={i}
-                      className="h-7 w-7 rounded bg-slate-200 dark:bg-slate-800"
-                    />
-                  ))}
-                </div>
-                <div className="h-7 w-7 rounded bg-slate-200 dark:bg-slate-800" />
-              </div>
-
-              {/* Stats Skeleton */}
-              <div className="hidden md:flex flex-col gap-2 items-center">
-                <div className="h-4 w-8 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-6 w-12 rounded bg-slate-300 dark:bg-slate-700" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-        Error al cargar historial de partidas
-      </div>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <div className="p-6 text-center text-slate-400 bg-slate-900/40 border border-slate-800 rounded-xl">
-        Conecta tu cuenta de Riot para ver tu historial de partidas.
-      </div>
-    );
-  }
+  // ELIMINADO: Early returns que bloqueaban la visualización de la partida en vivo
+  // Ahora manejamos los estados (skeleton, error, vacío) dentro del return principal
 
   return (
     <div className="space-y-4">
@@ -868,235 +772,263 @@ export function MatchHistoryList({
         userId={userId || undefined}
         recentMatches={matchesToRender}
         puuid={puuid}
+        riotId={riotId}
       />
+
       {isOwnProfile && endedSnapshot ? (
         <EndedMatchPreviewCard snapshot={endedSnapshot} />
       ) : null}
-      {/* Encabezado con Estadísticas y filtros */}
-      <div className="flex flex-col gap-3 flex-shrink-0">
-        <div className="flex flex-wrap items-center gap-3 justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-slate-600 dark:text-white">
-                Historial de Partidas
-              </h3>
-              {/* Indicador de actualización en background eliminado a petición del usuario */}
-            </div>
-            {isOwnProfile && sessionStats?.success ? (
-              <div
-                className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-sm
-                  ${
-                    streakTone === "loss"
-                      ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100"
-                      : streakTone === "win"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
-                        : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
-                  }
-                `}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  {streakTone ? (
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide
-                        ${
-                          streakTone === "loss"
-                            ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-200"
-                            : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-                        }
-                      `}
-                    >
-                      {streakTone === "loss" ? "Racha" : "On fire"}
-                    </span>
-                  ) : null}
 
-                  <div className="font-medium opacity-90">{todayMessage}</div>
-                </div>
-
-                {streakMessage ? (
-                  <div className="mt-1 opacity-80">{streakMessage}</div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+      {/* --- Switch de Estados Principales --- */}
+      {error ? (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+          Error al cargar historial de partidas
         </div>
-
-        {/* Toggle de vista para móvil */}
-        {isMobile && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              Vista:
-            </span>
-            <button
-              onClick={() =>
-                setMobileViewMode(
-                  mobileViewMode === "full" ? "compact" : "full",
-                )
-              }
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-                border border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700
-                text-slate-700 dark:text-slate-200
-              `}
-              title={
-                mobileViewMode === "full"
-                  ? "Cambiar a vista compacta"
-                  : "Cambiar a vista completa"
-              }
+      ) : !userId && !isLoading ? (
+        <div className="p-6 text-center text-slate-400 bg-slate-900/40 border border-slate-800 rounded-xl">
+          Conecta tu cuenta de Riot para ver tu historial de partidas.
+        </div>
+      ) : shouldShowInitialSkeleton ? (
+        <div className="space-y-4 py-2">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <div
+              key={`match-skeleton-${idx}`}
+              className="animate-pulse rounded-xl border-l-4 border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 p-3"
             >
-              {mobileViewMode === "full" ? (
-                <>
-                  <LayoutList className="w-3.5 h-3.5" />
-                  <span>Compacta</span>
-                </>
-              ) : (
-                <>
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Completa</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {QUEUE_FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => {
-                setQueueFilter(filter.value);
-                if (scrollContainerRef.current) {
-                  scrollContainerRef.current.scrollTo({
-                    top: 0,
-                    behavior: "smooth",
-                  });
-                }
-              }}
-              disabled={!userId}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border
-                ${
-                  queueFilter === filter.value
-                    ? "bg-white text-slate-900 border-white"
-                    : "text-slate-400 border-slate-700 hover:text-white hover:border-slate-500"
-                }
-                ${!userId ? "opacity-60 cursor-not-allowed" : ""}
-              `}
-            >
-              {filter.label}
-            </button>
+              <div className="flex flex-col md:grid md:grid-cols-[60px,auto,180px,90px,200px] gap-4 items-center">
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <div className="h-3 w-12 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-4 w-16 rounded bg-slate-300 dark:bg-slate-700" />
+                </div>
+                <div className="flex items-center justify-center gap-4 w-full border-r border-slate-200 dark:border-slate-800/60 pr-4">
+                  <div className="h-14 w-14 rounded-lg bg-slate-300 dark:bg-slate-700" />
+                  <div className="h-4 w-4 rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-14 w-14 rounded-lg bg-slate-300 dark:bg-slate-700" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
-
-      {/* Lista de Partidas */}
-      {/* Lista de Partidas Virtualizada */}
-      <div ref={scrollContainerRef} className="w-full relative min-h-[100px]">
-        {matchesToRender.length === 0 ? (
-          <div className="p-4 text-center text-slate-400">
-            No hay partidas registradas
-          </div>
-        ) : (
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const match = matchesToRender[virtualRow.index];
-              const idx = virtualRow.index;
-
-              return (
-                <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={rowVirtualizer.measureElement}
-                  className="absolute top-0 left-0 w-full"
-                  style={{
-                    transform: `translateY(${virtualRow.start - listOffset}px)`,
-                  }}
-                >
-                  <div className="pb-2">
-                    {" "}
-                    {/* Spacing wrapper */}
-                    {/* Publicidad móvil: compacta cada 12, completa cada 5 */}
-                    {isMobile &&
-                      idx > 0 &&
-                      idx % (mobileViewMode === "compact" ? 12 : 5) === 0 && (
-                        <div className="mb-2">
-                          <MobileMatchHistoryAdBanner />
-                        </div>
-                      )}
-                    {/* Publicidad desktop cada 6 partidas */}
-                    {!isMobile && idx > 0 && idx % 6 === 0 && (
-                      <div className="mb-2">
-                        <MatchHistoryAdBanner />
-                      </div>
-                    )}
-                    {/* Match Card */}
-                    {isMobile ? (
-                      mobileViewMode === "compact" ? (
-                        <MemoizedCompactMobileMatchCard
-                          match={match}
-                          version={ddragonVersion}
-                          userId={userId}
-                          isOwnProfile={isOwnProfile}
-                          priority={idx < 3}
-                          onSelectMatch={handleSelectMatch}
-                          onHoverMatch={handlePrefetchMatch}
-                        />
-                      ) : (
-                        <MemoizedMobileMatchCard
-                          match={match}
-                          version={ddragonVersion}
-                          recentMatches={matchesToRender}
-                          hideShareButton={hideShareButton}
-                          userId={userId}
-                          isOwnProfile={isOwnProfile}
-                          priority={idx < 2}
-                          onSelectMatch={handleSelectMatch}
-                          onHoverMatch={handlePrefetchMatch}
-                          linkedAccountsMap={linkedAccountsMap}
-                        />
-                      )
-                    ) : (
-                      <MemoizedMatchCard
-                        match={match}
-                        version={ddragonVersion}
-                        linkedAccountsMap={linkedAccountsMap}
-                        recentMatches={matchesToRender}
-                        hideShareButton={hideShareButton}
-                        userId={userId}
-                        isOwnProfile={isOwnProfile}
-                        priority={idx < 3}
-                        onSelectMatch={handleSelectMatch}
-                        onHoverMatch={handlePrefetchMatch}
-                      />
-                    )}
-                  </div>
+      ) : (
+        <>
+          {/* Encabezado con Estadísticas y filtros */}
+          <div className="flex flex-col gap-3 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-3 justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-slate-600 dark:text-white">
+                    Historial de Partidas
+                  </h3>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {isOwnProfile && sessionStats?.success ? (
+                  <div
+                    className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-sm
+                      ${
+                        streakTone === "loss"
+                          ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100"
+                          : streakTone === "win"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
+                            : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
+                      }
+                    `}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      {streakTone ? (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide
+                            ${
+                              streakTone === "loss"
+                                ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-200"
+                                : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
+                            }
+                          `}
+                        >
+                          {streakTone === "loss" ? "Racha" : "On fire"}
+                        </span>
+                      ) : null}
+                      <div className="font-medium opacity-90">
+                        {todayMessage}
+                      </div>
+                    </div>
+                    {streakMessage ? (
+                      <div className="mt-1 opacity-80">{streakMessage}</div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
 
-        {hasNextPage && (
-          <div
-            id="match-list-sentinel"
-            className="h-10 w-full flex items-center justify-center py-8 bg-transparent"
-          >
-            {isFetchingNextPage && (
-              <div className="flex items-center gap-2 text-slate-400 animate-pulse">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-xs uppercase tracking-widest font-bold">
-                  Cargando más...
+            {/* Toggle de vista para móvil */}
+            {isMobile && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Vista:
                 </span>
+                <button
+                  onClick={() =>
+                    setMobileViewMode(
+                      mobileViewMode === "full" ? "compact" : "full",
+                    )
+                  }
+                  className={`
+                    flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                    border border-slate-300 dark:border-slate-600
+                    bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700
+                    text-slate-700 dark:text-slate-200
+                  `}
+                >
+                  {mobileViewMode === "full" ? (
+                    <>
+                      <LayoutList className="w-3.5 h-3.5" />
+                      <span>Compacta</span>
+                    </>
+                  ) : (
+                    <>
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span>Completa</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {QUEUE_FILTERS.map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => {
+                    setQueueFilter(filter.value);
+                    if (scrollContainerRef.current) {
+                      scrollContainerRef.current.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                      });
+                    }
+                  }}
+                  disabled={!userId}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border
+                    ${
+                      queueFilter === filter.value
+                        ? "bg-white text-slate-900 border-white"
+                        : "text-slate-400 border-slate-700 hover:text-white hover:border-slate-500"
+                    }
+                    ${!userId ? "opacity-60 cursor-not-allowed" : ""}
+                  `}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lista de Partidas Virtualizada */}
+          <div
+            ref={scrollContainerRef}
+            className="w-full relative min-h-[100px]"
+          >
+            {matchesToRender.length === 0 && !isLoading ? (
+              <div className="p-4 text-center text-slate-400">
+                No hay partidas registradas
+              </div>
+            ) : (
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const match = matchesToRender[virtualRow.index];
+                  const idx = virtualRow.index;
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      className="absolute top-0 left-0 w-full"
+                      style={{
+                        transform: `translateY(${virtualRow.start - listOffset}px)`,
+                      }}
+                    >
+                      <div className="pb-2">
+                        {isMobile &&
+                          idx > 0 &&
+                          idx % (mobileViewMode === "compact" ? 12 : 5) ===
+                            0 && (
+                            <div className="mb-2">
+                              <MobileMatchHistoryAdBanner />
+                            </div>
+                          )}
+                        {!isMobile && idx > 0 && idx % 6 === 0 && (
+                          <div className="mb-2">
+                            <MatchHistoryAdBanner />
+                          </div>
+                        )}
+                        {isMobile ? (
+                          mobileViewMode === "compact" ? (
+                            <MemoizedCompactMobileMatchCard
+                              match={match}
+                              version={ddragonVersion}
+                              userId={userId}
+                              isOwnProfile={isOwnProfile}
+                              priority={idx < 3}
+                              onSelectMatch={handleSelectMatch}
+                              onHoverMatch={handlePrefetchMatch}
+                            />
+                          ) : (
+                            <MemoizedMobileMatchCard
+                              match={match}
+                              version={ddragonVersion}
+                              recentMatches={matchesToRender}
+                              hideShareButton={hideShareButton}
+                              userId={userId}
+                              isOwnProfile={isOwnProfile}
+                              priority={idx < 2}
+                              onSelectMatch={handleSelectMatch}
+                              onHoverMatch={handlePrefetchMatch}
+                              linkedAccountsMap={linkedAccountsMap}
+                            />
+                          )
+                        ) : (
+                          <MemoizedMatchCard
+                            match={match}
+                            version={ddragonVersion}
+                            linkedAccountsMap={linkedAccountsMap}
+                            recentMatches={matchesToRender}
+                            hideShareButton={hideShareButton}
+                            userId={userId}
+                            isOwnProfile={isOwnProfile}
+                            priority={idx < 3}
+                            onSelectMatch={handleSelectMatch}
+                            onHoverMatch={handlePrefetchMatch}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {hasNextPage && (
+              <div
+                id="match-list-sentinel"
+                className="h-10 w-full flex items-center justify-center py-8 bg-transparent"
+              >
+                {isFetchingNextPage && (
+                  <div className="flex items-center gap-2 text-slate-400 animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-xs uppercase tracking-widest font-bold">
+                      Cargando más...
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Modal centralizado para mejor rendimiento */}
       {selectedMatchId && (

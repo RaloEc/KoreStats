@@ -25,8 +25,6 @@ export function useUnifiedRiotSync() {
   // Mutación para sincronizar cuenta + partidas
   const syncMutation = useMutation({
     mutationFn: async (): Promise<UnifiedSyncResult> => {
-      console.log("[useUnifiedRiotSync] Iniciando sincronización unificada...");
-
       const results: UnifiedSyncResult = {
         accountSync: { success: false },
         matchesSync: { success: false },
@@ -34,7 +32,6 @@ export function useUnifiedRiotSync() {
 
       // 1. Sincronizar cuenta de Riot
       try {
-        console.log("[useUnifiedRiotSync] Sincronizando cuenta...");
         const accountResponse = await fetch("/api/riot/sync", {
           method: "POST",
         });
@@ -43,22 +40,15 @@ export function useUnifiedRiotSync() {
           const errorData = await accountResponse.json();
           results.accountSync.error =
             errorData.error || "Error al sincronizar cuenta";
-          console.error(
-            "[useUnifiedRiotSync] Error en sincronización de cuenta:",
-            results.accountSync.error
-          );
         } else {
           results.accountSync.success = true;
-          console.log("[useUnifiedRiotSync] ✅ Cuenta sincronizada");
         }
       } catch (error: any) {
         results.accountSync.error = error.message || "Error desconocido";
-        console.error("[useUnifiedRiotSync] Excepción en cuenta:", error);
       }
 
       // 2. Sincronizar historial de partidas
       try {
-        console.log("[useUnifiedRiotSync] Sincronizando historial...");
         const matchesResponse = await fetch("/api/riot/matches/sync", {
           method: "POST",
           headers: {
@@ -71,29 +61,20 @@ export function useUnifiedRiotSync() {
           const errorData = await matchesResponse.json();
           results.matchesSync.error =
             errorData.error || "Error al sincronizar partidas";
-          console.error(
-            "[useUnifiedRiotSync] Error en sincronización de partidas:",
-            results.matchesSync.error
-          );
         } else {
           results.matchesSync.success = true;
-          console.log("[useUnifiedRiotSync] ✅ Historial sincronizado");
         }
       } catch (error: any) {
         results.matchesSync.error = error.message || "Error desconocido";
-        console.error("[useUnifiedRiotSync] Excepción en partidas:", error);
       }
 
       return results;
     },
     onSuccess: async (results) => {
-      console.log("[useUnifiedRiotSync] Sincronización completada:", results);
-
       // Iniciar cooldown de 60 segundos
       setCooldownSeconds(60);
 
       // Limpiar cachés de ambas operaciones
-      console.log("[useUnifiedRiotSync] Limpiando cachés...");
 
       // Cachés de cuenta
       await queryClient.cancelQueries({ queryKey: ["riot-account"] });
@@ -142,7 +123,6 @@ export function useUnifiedRiotSync() {
       }
     },
     onError: (error: any) => {
-      console.error("[useUnifiedRiotSync] Error en mutación:", error);
       toast({
         title: "Error",
         description: error.message || "Error al sincronizar",

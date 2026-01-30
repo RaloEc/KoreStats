@@ -19,6 +19,7 @@ interface Profile {
   following_count?: number;
   friends_count?: number;
   connected_accounts?: Record<string, string> | string;
+  settings?: Record<string, any>;
 }
 
 // Keys para las queries
@@ -202,6 +203,7 @@ export function useProfileQuery(userId: string | null | undefined) {
                 following_count: (data as any).following_count ?? 0,
                 friends_count: (data as any).friends_count ?? 0,
                 connected_accounts: (data as any).connected_accounts ?? {},
+                settings: (data as any).settings ?? {},
               };
 
               logger.success(

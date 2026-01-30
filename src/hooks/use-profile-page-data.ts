@@ -135,7 +135,7 @@ async function fetchStaticProfileData(): Promise<StaticProfileData> {
     `/api/perfil/initial-data?tier=static&_t=${timestamp}`,
     {
       cache: "no-store",
-    }
+    },
   );
   if (!response.ok) {
     throw new Error("Error al cargar datos estáticos del perfil");
@@ -144,10 +144,10 @@ async function fetchStaticProfileData(): Promise<StaticProfileData> {
 }
 
 async function fetchDynamicProfileData(
-  userId: string
+  userId: string,
 ): Promise<DynamicProfileData> {
   const response = await fetch(
-    `/api/perfil/initial-data?tier=dynamic&userId=${userId}`
+    `/api/perfil/initial-data?tier=dynamic&userId=${userId}`,
   );
   if (!response.ok) {
     throw new Error("Error al cargar datos dinámicos del perfil");
@@ -161,7 +161,7 @@ async function fetchDynamicProfileData(
 
 export function useProfilePageData(
   initialStaticData?: StaticProfileData | null,
-  initialDynamicData?: DynamicProfileData | null
+  initialDynamicData?: DynamicProfileData | null,
 ) {
   const { user, session, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -210,10 +210,6 @@ export function useProfilePageData(
 
   // Función para invalidar Y refetch inmediatamente (para vinculación manual)
   const invalidateAndRefetchStatic = async () => {
-    console.log(
-      "[useProfilePageData] Invalidando y refetching datos estáticos..."
-    );
-
     // Resetear caché completamente (forzar nuevo fetch)
     await queryClient.resetQueries({
       queryKey: ["profile", "static", user?.id],
@@ -221,11 +217,6 @@ export function useProfilePageData(
 
     // Refetch explícito
     const result = await staticQuery.refetch();
-
-    console.log("[useProfilePageData] Refetch completado:", {
-      hasRiotAccount: !!result.data?.riotAccount,
-      riotAccountData: result.data?.riotAccount,
-    });
 
     return result;
   };

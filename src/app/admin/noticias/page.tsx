@@ -58,6 +58,8 @@ import {
   Table as TableIcon,
   BarChart3,
   Flag,
+  Trash2,
+  Wand2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -116,6 +118,8 @@ function AdminNoticiasContent() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const confirmDeleteBorrador = (id: string) => {
     setItemToDelete(id);
@@ -151,6 +155,41 @@ function AdminNoticiasContent() {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const executeDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      const response = await fetch(`/api/admin/noticias/masivas?admin=true`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accion: "eliminar_borradores",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar los borradores");
+      }
+
+      toast({
+        title: "Borradores eliminados",
+        description: "Todos los borradores han sido eliminados correctamente.",
+      });
+      refetchNoticias();
+      setIsDeleteAllModalOpen(false);
+    } catch (error) {
+      console.error("Error al eliminar todos los borradores:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar los borradores.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -245,6 +284,14 @@ function AdminNoticiasContent() {
             isActive={isRealTimeActive}
             lastUpdate={lastUpdate}
           />
+          <Button
+            onClick={() => router.push("/admin/noticias/parche-preview")}
+            variant="outline"
+            className="hover:bg-accent"
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Manual de Parche
+          </Button>
           <Button
             onClick={() => router.push("/admin/noticias/crear")}
             style={
@@ -450,6 +497,17 @@ function AdminNoticiasContent() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Borradores</h2>
+            {noticiasBorradores && noticiasBorradores.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDeleteAllModalOpen(true)}
+                className="text-destructive hover:text-destructive-foreground hover:bg-destructive gap-2 h-8"
+              >
+                <Trash2 className="h-4 w-4" />
+                Borrar todos
+              </Button>
+            )}
           </div>
           {loadingNoticias ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -597,6 +655,18 @@ function AdminNoticiasContent() {
         onConfirm={executeDelete}
         isLoading={isDeleting}
         confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous={true}
+      />
+
+      <ConfirmDeleteModal
+        open={isDeleteAllModalOpen}
+        onOpenChange={setIsDeleteAllModalOpen}
+        title="¿Eliminar todos los borradores?"
+        description="Esta acción eliminará permanentemente TODOS los borradores de noticias. Esta operación no se puede deshacer."
+        onConfirm={executeDeleteAll}
+        isLoading={isDeletingAll}
+        confirmText="Eliminar todos"
         cancelText="Cancelar"
         isDangerous={true}
       />

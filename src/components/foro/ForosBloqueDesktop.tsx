@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ChevronRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
-import HiloItem, { HiloDTO } from './HiloItem';
-import type { WeaponStats } from '@/types/weapon';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+import HiloItem, { HiloDTO } from "./HiloItem";
+import type { WeaponStats } from "@/types/weapon";
 
 // Tipos
 type Hilo = {
@@ -38,60 +38,65 @@ type Hilo = {
   } | null;
 };
 
-type TabKey = 'destacados' | 'recientes' | 'sin_respuestas';
+type TabKey = "destacados" | "recientes" | "sin_respuestas";
 
 interface ForosBloqueDesktopProps {
   limit?: number;
 }
 
-export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProps) {
+export default function ForosBloqueDesktop({
+  limit = 5,
+}: ForosBloqueDesktopProps) {
   const [hilos, setHilos] = useState<Record<TabKey, Hilo[]>>({
     destacados: [],
     recientes: [],
-    sin_respuestas: []
+    sin_respuestas: [],
   });
   const [loading, setLoading] = useState<Record<TabKey, boolean>>({
     destacados: true,
     recientes: true,
-    sin_respuestas: true
+    sin_respuestas: true,
   });
   const [errors, setErrors] = useState<Record<TabKey, string | null>>({
     destacados: null,
     recientes: null,
-    sin_respuestas: null
+    sin_respuestas: null,
   });
 
   // Formatear fecha relativa
   const formatearFecha = (fecha: string) => {
     try {
-      return formatDistanceToNow(new Date(fecha), { addSuffix: true, locale: es });
+      return formatDistanceToNow(new Date(fecha), {
+        addSuffix: true,
+        locale: es,
+      });
     } catch (e) {
-      return 'fecha desconocida';
+      return "fecha desconocida";
     }
   };
 
   // Cargar hilos para todas las pestañas
   const cargarTodosLosHilos = async () => {
-    const tabs: TabKey[] = ['destacados', 'recientes', 'sin_respuestas'];
-    
+    const tabs: TabKey[] = ["destacados", "recientes", "sin_respuestas"];
+
     // Iniciar carga para todas las pestañas
     setLoading({
       destacados: true,
       recientes: true,
-      sin_respuestas: true
+      sin_respuestas: true,
     });
-    
+
     // Limpiar errores
     setErrors({
       destacados: null,
       recientes: null,
-      sin_respuestas: null
+      sin_respuestas: null,
     });
-    
+
     // Cargar cada pestaña con un timeout de seguridad
     try {
       // Crear promesas para todas las pestañas
-      const promesas = tabs.map(tab => {
+      const promesas = tabs.map((tab) => {
         // Promesa con timeout para cada pestaña
         return Promise.race([
           cargarHilos(tab),
@@ -99,14 +104,13 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
             setTimeout(() => {
               reject(new Error(`Tiempo de espera agotado al cargar ${tab}`));
             }, 8000); // 8 segundos de timeout
-          })
+          }),
         ]);
       });
-      
+
       // Ejecutar todas las promesas en paralelo
       await Promise.allSettled(promesas);
     } catch (error) {
-      console.error('Error al cargar los hilos:', error);
       // Los errores individuales ya se manejan en cargarHilos
     }
   };
@@ -117,25 +121,27 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
     if (hilos[tab].length > 0 && !loading[tab]) {
       return;
     }
-    
-    setLoading(prev => ({ ...prev, [tab]: true }));
-    setErrors(prev => ({ ...prev, [tab]: null }));
-    
+
+    setLoading((prev) => ({ ...prev, [tab]: true }));
+    setErrors((prev) => ({ ...prev, [tab]: null }));
+
     try {
       // Usar la API con el nuevo formato
-      const response = await fetch(`/api/foro/hilos?tipo=${tab}&limit=${limit}`);
-      
+      const response = await fetch(
+        `/api/foro/hilos?tipo=${tab}&limit=${limit}`,
+      );
+
       if (!response.ok) {
         throw new Error(`Error al obtener hilos: ${response.statusText}`);
       }
-      
+
       const apiData = await response.json();
-      
+
       // El nuevo formato de la API devuelve { hilos: [...], hasNextPage: boolean, total: number }
       if (!apiData.hilos) {
-        throw new Error('Respuesta inválida de la API');
+        throw new Error("Respuesta inválida de la API");
       }
-      
+
       // Transformar los datos de la API al formato esperado
       const hilosTransformados = apiData.hilos.map((hilo: any) => ({
         id: hilo.id,
@@ -147,33 +153,41 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
         vistas: hilo.vistas,
         votos_conteo: hilo.votos_conteo,
         respuestas_conteo: hilo.respuestas_conteo,
-        perfiles: hilo.autor ? {
-          username: hilo.autor.username || 'Anónimo',
-          public_id: hilo.autor.public_id ?? null,
-          rol: hilo.autor.role || 'usuario',
-          avatar_url: hilo.autor.avatar_url,
-          color: hilo.autor.color ?? null,
-        } : null,
-        foro_categorias: hilo.categoria ? {
-          nombre: hilo.categoria.nombre,
-          color: hilo.categoria.color
-        } : null,
-        weapon_stats_record: hilo.weapon_stats_record
+        perfiles: hilo.autor
+          ? {
+              username: hilo.autor.username || "Anónimo",
+              public_id: hilo.autor.public_id ?? null,
+              rol: hilo.autor.role || "usuario",
+              avatar_url: hilo.autor.avatar_url,
+              color: hilo.autor.color ?? null,
+            }
+          : null,
+        foro_categorias: hilo.categoria
+          ? {
+              nombre: hilo.categoria.nombre,
+              color: hilo.categoria.color,
+            }
+          : null,
+        weapon_stats_record: hilo.weapon_stats_record,
       }));
 
       // Para la pestaña sin_respuestas, filtramos en el cliente
       let hilosFiltrados = hilosTransformados;
-      if (tab === 'sin_respuestas') {
-        hilosFiltrados = hilosTransformados.filter(hilo => hilo.respuestas_conteo === 0).slice(0, limit);
+      if (tab === "sin_respuestas") {
+        hilosFiltrados = hilosTransformados
+          .filter((hilo) => hilo.respuestas_conteo === 0)
+          .slice(0, limit);
       }
 
       // Actualizar estado
-      setHilos(prev => ({ ...prev, [tab]: hilosFiltrados }));
+      setHilos((prev) => ({ ...prev, [tab]: hilosFiltrados }));
     } catch (err) {
-      console.error(`Error al cargar hilos (${tab}):`, err);
-      setErrors(prev => ({ ...prev, [tab]: `No se pudieron cargar los hilos de ${tab}` }));
+      setErrors((prev) => ({
+        ...prev,
+        [tab]: `No se pudieron cargar los hilos de ${tab}`,
+      }));
     } finally {
-      setLoading(prev => ({ ...prev, [tab]: false }));
+      setLoading((prev) => ({ ...prev, [tab]: false }));
     }
   };
 
@@ -181,44 +195,42 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
-    
+
     const cargarDatos = async () => {
       try {
         // Establecer un timeout global para toda la carga
         const timeoutPromise = new Promise<void>((_, reject) => {
           timeoutId = setTimeout(() => {
-            reject(new Error('Tiempo de espera global agotado al cargar los foros'));
+            reject(
+              new Error("Tiempo de espera global agotado al cargar los foros"),
+            );
           }, 10000); // 10 segundos de timeout global
         });
-        
+
         // Intentar cargar los datos con un tiempo límite global
-        await Promise.race([
-          cargarTodosLosHilos(),
-          timeoutPromise
-        ]);
-        
+        await Promise.race([cargarTodosLosHilos(), timeoutPromise]);
+
         // Limpiar el timeout ya que la carga se completó
         clearTimeout(timeoutId);
       } catch (err) {
-        console.error('Error global en ForosBloqueDesktop:', err);
         // Solo actualizar el estado si el componente sigue montado
         if (isMounted) {
           setErrors({
-            destacados: 'Error al cargar los foros',
-            recientes: 'Error al cargar los foros',
-            sin_respuestas: 'Error al cargar los foros'
+            destacados: "Error al cargar los foros",
+            recientes: "Error al cargar los foros",
+            sin_respuestas: "Error al cargar los foros",
           });
           setLoading({
             destacados: false,
             recientes: false,
-            sin_respuestas: false
+            sin_respuestas: false,
           });
         }
       }
     };
-    
+
     cargarDatos();
-    
+
     // Limpiar al desmontar
     return () => {
       isMounted = false;
@@ -231,27 +243,43 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
     // Extraer el valor numérico de votos_conteo
     let votos = 0;
     if (hilo.votos_conteo !== null) {
-      if (Array.isArray(hilo.votos_conteo) && hilo.votos_conteo.length > 0 && hilo.votos_conteo[0]) {
+      if (
+        Array.isArray(hilo.votos_conteo) &&
+        hilo.votos_conteo.length > 0 &&
+        hilo.votos_conteo[0]
+      ) {
         votos = (hilo.votos_conteo[0] as any).count ?? 0;
-      } else if (hilo.votos_conteo !== null && typeof hilo.votos_conteo === 'object' && 'count' in (hilo.votos_conteo as any)) {
+      } else if (
+        hilo.votos_conteo !== null &&
+        typeof hilo.votos_conteo === "object" &&
+        "count" in (hilo.votos_conteo as any)
+      ) {
         votos = ((hilo.votos_conteo as any).count ?? 0) as number;
-      } else if (typeof hilo.votos_conteo === 'number') {
+      } else if (typeof hilo.votos_conteo === "number") {
         votos = hilo.votos_conteo;
       }
     }
-    
+
     // Extraer el valor numérico de respuestas_conteo
     let respuestas = 0;
     if (hilo.respuestas_conteo !== null) {
-      if (Array.isArray(hilo.respuestas_conteo) && hilo.respuestas_conteo.length > 0 && hilo.respuestas_conteo[0]) {
+      if (
+        Array.isArray(hilo.respuestas_conteo) &&
+        hilo.respuestas_conteo.length > 0 &&
+        hilo.respuestas_conteo[0]
+      ) {
         respuestas = (hilo.respuestas_conteo[0] as any).count ?? 0;
-      } else if (hilo.respuestas_conteo !== null && typeof hilo.respuestas_conteo === 'object' && 'count' in (hilo.respuestas_conteo as any)) {
+      } else if (
+        hilo.respuestas_conteo !== null &&
+        typeof hilo.respuestas_conteo === "object" &&
+        "count" in (hilo.respuestas_conteo as any)
+      ) {
         respuestas = ((hilo.respuestas_conteo as any).count ?? 0) as number;
-      } else if (typeof hilo.respuestas_conteo === 'number') {
+      } else if (typeof hilo.respuestas_conteo === "number") {
         respuestas = hilo.respuestas_conteo;
       }
     }
-    
+
     // Normalizar weapon_stats_record (puede venir como array o como objeto)
     let record = hilo.weapon_stats_record ?? null;
     if (Array.isArray(record) && record.length > 0) {
@@ -259,15 +287,13 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
     } else if (Array.isArray(record)) {
       record = null;
     }
-    
+
     let parsedStats: WeaponStats | null = null;
     if (record?.stats) {
-      if (typeof record.stats === 'string') {
+      if (typeof record.stats === "string") {
         try {
           parsedStats = JSON.parse(record.stats) as WeaponStats;
-        } catch (error) {
-          console.error('[ForosBloqueDesktop] No se pudieron parsear las estadísticas del arma', error);
-        }
+        } catch (error) {}
       } else {
         parsedStats = record.stats as WeaponStats;
       }
@@ -281,25 +307,34 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
       respuestas_count: respuestas,
       vistas: 0, // No tenemos este dato en el tipo Hilo
       votos: votos,
-      subcategoria: hilo.foro_categorias ? {
-        id: '', // No tenemos este dato en el tipo Hilo
-        nombre: hilo.foro_categorias.nombre,
-        slug: null,
-        color: hilo.foro_categorias.color
-      } : null,
-      autor: hilo.perfiles ? {
-        id: hilo.autor_id,
-        username: hilo.perfiles.username,
-        avatar_url: hilo.perfiles.avatar_url,
-        public_id: hilo.perfiles.public_id ?? null,
-        color: hilo.perfiles.color ?? undefined
-      } : null,
-      weapon_stats_record: record && parsedStats
-        ? { id: record.id, weapon_name: record.weapon_name ?? null, stats: parsedStats }
-        : null
+      subcategoria: hilo.foro_categorias
+        ? {
+            id: "", // No tenemos este dato en el tipo Hilo
+            nombre: hilo.foro_categorias.nombre,
+            slug: null,
+            color: hilo.foro_categorias.color,
+          }
+        : null,
+      autor: hilo.perfiles
+        ? {
+            id: hilo.autor_id,
+            username: hilo.perfiles.username,
+            avatar_url: hilo.perfiles.avatar_url,
+            public_id: hilo.perfiles.public_id ?? null,
+            color: hilo.perfiles.color ?? undefined,
+          }
+        : null,
+      weapon_stats_record:
+        record && parsedStats
+          ? {
+              id: record.id,
+              weapon_name: record.weapon_name ?? null,
+              stats: parsedStats,
+            }
+          : null,
     };
   };
-  
+
   // Renderizar un hilo usando el componente HiloItem
   const renderHilo = (hilo: Hilo) => (
     <div key={hilo.id} className="mb-3">
@@ -321,9 +356,9 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
       return (
         <div className="text-center py-4 text-muted-foreground">
           <p>{errors[tab]}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="mt-2"
             onClick={() => cargarHilos(tab)}
           >
@@ -357,8 +392,8 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
           <Button asChild variant="outline" size="sm">
             <Link href="/foro/crear-hilo">Crear nuevo hilo</Link>
           </Button>
-          <Link 
-            href="/foro" 
+          <Link
+            href="/foro"
             className="inline-flex items-center text-sm font-medium text-primary hover:text-primary/80 transition-colors"
           >
             Ver todos <ChevronRight className="ml-1 h-4 w-4" />
@@ -368,13 +403,13 @@ export default function ForosBloqueDesktop({ limit = 5 }: ForosBloqueDesktopProp
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-1">
-          {renderColumnContent('destacados', 'Hilos Destacados')}
+          {renderColumnContent("destacados", "Hilos Destacados")}
         </div>
         <div className="col-span-1">
-          {renderColumnContent('recientes', 'Hilos Recientes')}
+          {renderColumnContent("recientes", "Hilos Recientes")}
         </div>
         <div className="col-span-1">
-          {renderColumnContent('sin_respuestas', 'Sin Respuestas')}
+          {renderColumnContent("sin_respuestas", "Sin Respuestas")}
         </div>
       </div>
     </section>

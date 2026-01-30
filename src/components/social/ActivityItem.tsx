@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useState } from "react";
 import StatusCard from "./StatusCard";
@@ -100,14 +102,43 @@ export default function ActivityItem({
                   {activity.category}
                 </span>
               </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-1 group-hover:text-[var(--hover-color)] transition-colors">
+              <h3 className="text-gray-900 dark:text-white font-semibold mb-1 transition-colors">
                 {activity.title}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
-                {activity.preview}
-              </p>
+              <div
+                className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 prose prose-sm dark:prose-invert max-w-none pointer-events-none"
+                dangerouslySetInnerHTML={{ __html: activity.content }}
+              />
+              <style jsx global>{`
+                .prose .lol-mention img {
+                  margin: 0 !important;
+                  display: inline-block !important;
+                }
+                .prose .lol-mention,
+                .prose .user-mention {
+                  vertical-align: middle;
+                  line-height: 1.1;
+                }
+                /* Ajustes adicionales para que se vea bien en activity feed */
+                .prose p {
+                  margin: 0 !important;
+                }
+                .prose {
+                  font-size: 0.875rem !important;
+                  line-height: 1.25rem !important;
+                }
+              `}</style>
             </div>
           </div>
+          {/* Envolver toda la tarjeta en un Link para navegar al hilo */}
+          <Link
+            href={
+              activity.slug
+                ? `/foro/hilos/${activity.slug}`
+                : `/foro/${activity.id.replace("hilo-", "")}`
+            }
+            className="absolute inset-0 z-10"
+          />
         </div>
       </div>
     );
@@ -161,7 +192,7 @@ export default function ActivityItem({
                   {activity.category}
                 </span>
               </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-2 group-hover:text-[var(--hover-color)] transition-colors line-clamp-2">
+              <h3 className="text-gray-900 dark:text-white font-semibold mb-2 transition-colors line-clamp-2">
                 {activity.title}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">

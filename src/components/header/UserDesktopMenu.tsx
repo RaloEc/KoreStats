@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserInitials, normalizeAvatarUrl } from "@/lib/utils/avatar-utils";
-import { User, LogOut, Loader2 } from "lucide-react";
+import { User, LogOut, Loader2, Settings } from "lucide-react";
 import { LegalModal } from "@/components/legal/LegalModal";
 
 interface UserDesktopMenuProps {
@@ -19,6 +19,7 @@ interface UserDesktopMenuProps {
   userButtonRef: React.RefObject<HTMLButtonElement>;
   userMenuRef: React.RefObject<HTMLDivElement>;
   isLoggingOut: boolean;
+  onOpenSettings: () => void;
 }
 
 export const UserDesktopMenu: React.FC<UserDesktopMenuProps> = ({
@@ -31,6 +32,7 @@ export const UserDesktopMenu: React.FC<UserDesktopMenuProps> = ({
   userButtonRef,
   userMenuRef,
   isLoggingOut,
+  onOpenSettings,
 }) => {
   return (
     <div className="relative">
@@ -62,7 +64,7 @@ export const UserDesktopMenu: React.FC<UserDesktopMenuProps> = ({
             {getUserInitials(
               profile?.username || authUser?.user_metadata?.full_name || "",
               1,
-              "U"
+              "U",
             )}
           </AvatarFallback>
         </Avatar>
@@ -98,7 +100,7 @@ export const UserDesktopMenu: React.FC<UserDesktopMenuProps> = ({
                       authUser?.user_metadata?.full_name ||
                       "",
                     1,
-                    "U"
+                    "U",
                   )}
                 </AvatarFallback>
               </Avatar>
@@ -141,6 +143,16 @@ export const UserDesktopMenu: React.FC<UserDesktopMenuProps> = ({
                   </button>
                 }
               />
+              <button
+                onClick={() => {
+                  onOpenSettings();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <Settings className="h-4 w-4" />
+                Ajustes
+              </button>
               <div className="border-t border-gray-200/70 dark:border-gray-800/70" />
               <button
                 onClick={onLogout}

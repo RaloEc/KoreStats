@@ -13,35 +13,23 @@ interface DamageChartProps {
   gameVersion?: string;
 }
 
-const COLORS = [
-  "#7c8ba1", // Soft Slate
-  "#8b94f6", // Soft Indigo
-  "#f68ba2", // Soft Rose
-  "#8bf6d4", // Soft Mint
-  "#f6c58b", // Soft Peach
-];
-
-const COLORS_RED = [
-  "#ef4444", // Red 500
-  "#f97316", // Orange 500
-  "#eab308", // Yellow 500
-  "#ec4899", // Pink 500
-  "#be123c", // Rose 700
-];
-
-const COLORS_BLUE = [
-  "#3b82f6", // Blue 500
-  "#06b6d4", // Cyan 500
-  "#8b5cf6", // Violet 500
-  "#10b981", // Emerald 500
-  "#6366f1", // Indigo 500
+const DISTINCT_COLORS = [
+  "#3b82f6", // Blue
+  "#22c55e", // Green
+  "#f59e0b", // Amber
+  "#a855f7", // Purple
+  "#ec4899", // Pink
+  "#06b6d4", // Cyan
+  "#f97316", // Orange
+  "#84cc16", // Lime
+  "#6366f1", // Indigo
+  "#ef4444", // Red
 ];
 
 function TeamDamageSection({
   data,
   title,
   totalDamage,
-  colorPalette,
   gameVersion,
   alignRight = false,
 }: any) {
@@ -49,8 +37,7 @@ function TeamDamageSection({
     <div className="flex flex-col gap-6">
       <div
         className={cn(
-          "flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2",
-          alignRight ? "justify-end" : "justify-start",
+          "flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2 justify-start",
         )}
       >
         <h4
@@ -69,7 +56,7 @@ function TeamDamageSection({
       <div className="grid grid-cols-[1fr,1.5fr] gap-4 items-center">
         {/* Chart */}
         <div className="relative h-[160px] w-full flex justify-center items-center">
-          <PieChart width={160} height={160}>
+          <PieChart width={160} height={160} style={{ outline: "none" }}>
             <Pie
               data={data}
               cx="50%"
@@ -79,12 +66,10 @@ function TeamDamageSection({
               paddingAngle={2}
               dataKey="value"
               stroke="none"
+              style={{ outline: "none" }}
             >
               {data.map((entry: any, index: number) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={colorPalette[index % colorPalette.length]}
-                />
+                <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
             <Tooltip
@@ -95,8 +80,13 @@ function TeamDamageSection({
                     totalDamage > 0 ? (pData.value / totalDamage) * 100 : 0;
                   return (
                     <div className="bg-slate-900/90 border border-slate-700 p-2 rounded text-xs text-white shadow-xl pointer-events-none">
-                      <p className="font-bold mb-1">{pData.championName}</p>
-                      <p>
+                      <p className="font-bold text-blue-400 mb-0.5 text-sm">
+                        {pData.name}
+                      </p>
+                      <p className="text-slate-400 mb-1.5 text-[10px] uppercase tracking-wider">
+                        {pData.championName}
+                      </p>
+                      <p className="font-mono text-xs pt-1 border-t border-white/10">
                         {pData.value.toLocaleString()} ({percent.toFixed(1)}%)
                       </p>
                     </div>
@@ -134,14 +124,19 @@ function TeamDamageSection({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-0.5">
-                    <span
-                      className={cn(
-                        "font-bold truncate",
-                        isTop ? "text-amber-500" : "text-slate-300",
-                      )}
-                    >
-                      {player.championName}
-                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span
+                        className={cn(
+                          "font-bold truncate text-[11px]",
+                          isTop ? "text-amber-500" : "text-slate-200",
+                        )}
+                      >
+                        {player.name}
+                      </span>
+                      <span className="text-[9px] text-slate-500 truncate dark:text-slate-400 uppercase tracking-tighter">
+                        {player.championName}
+                      </span>
+                    </div>
                     <span className="text-slate-500">
                       {percent.toFixed(0)}%
                     </span>
@@ -151,8 +146,7 @@ function TeamDamageSection({
                       className="h-full rounded-full"
                       style={{
                         width: `${percent}%`,
-                        backgroundColor:
-                          colorPalette[index % colorPalette.length],
+                        backgroundColor: player.color,
                       }}
                     />
                   </div>
@@ -173,9 +167,12 @@ export function DamageChart({ participants, gameVersion }: DamageChartProps) {
         .filter((p) => p.teamId === teamId)
         .map((p) => ({
           participantId: p.participantId,
-          name: p.summonerName,
+          name:
+            p.riotIdGameName || p.summonerName || p.summoner_name || "Jugador",
           championName: p.championName,
           value: p.totalDamageDealtToChampions || 0,
+          color:
+            DISTINCT_COLORS[(p.participantId - 1) % DISTINCT_COLORS.length],
         }))
         .sort((a, b) => b.value - a.value);
 
@@ -188,6 +185,19 @@ export function DamageChart({ participants, gameVersion }: DamageChartProps) {
       redTeam: processTeam(200),
     };
   }, [participants]);
+
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <Card className="bg-transparent border-slate-200/50 dark:border-slate-800/50 shadow-none overflow-hidden min-h-[380px] col-span-1 lg:col-span-2 animate-pulse">
+        <div className="h-[380px]" />
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-transparent border-slate-200/50 dark:border-slate-800/50 shadow-none overflow-hidden min-h-[380px] col-span-1 lg:col-span-2">
@@ -203,14 +213,12 @@ export function DamageChart({ participants, gameVersion }: DamageChartProps) {
             data={blueTeam.data}
             totalDamage={blueTeam.total}
             title="Equipo Azul"
-            colorPalette={COLORS_BLUE}
             gameVersion={gameVersion}
           />
           <TeamDamageSection
             data={redTeam.data}
             totalDamage={redTeam.total}
             title="Equipo Rojo"
-            colorPalette={COLORS_RED}
             gameVersion={gameVersion}
             alignRight
           />

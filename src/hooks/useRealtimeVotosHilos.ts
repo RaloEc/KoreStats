@@ -24,17 +24,10 @@ export function useRealtimeVotosHilos() {
   const queryClient = useQueryClient();
   const supabase = createClient();
 
-  console.log("[useRealtimeVotosHilos] Hook montado");
-
   useEffect(() => {
-    console.log("[useRealtimeVotosHilos] useEffect ejecutándose");
     let channel: RealtimeChannel | null = null;
 
     const setupRealtimeSubscription = async () => {
-      console.log(
-        "[useRealtimeVotosHilos] Configurando suscripción para votos de hilos"
-      );
-
       // Crear canal de Realtime para votos de hilos con configuración específica
       channel = supabase
         .channel("votos-hilos-global", {
@@ -51,24 +44,12 @@ export function useRealtimeVotosHilos() {
             table: "foro_votos_hilos",
           },
           (payload) => {
-            console.log(
-              "[useRealtimeVotosHilos] Cambio detectado en votos de hilos:",
-              payload
-            );
-            console.log(
-              "[useRealtimeVotosHilos] Tipo de evento:",
-              payload.eventType
-            );
-
             // Obtener el hilo_id del payload de forma segura
             const newRecord = payload.new as VotoHiloPayload | null;
             const oldRecord = payload.old as VotoHiloPayload | null;
             const hiloId = newRecord?.hilo_id || oldRecord?.hilo_id;
 
             if (!hiloId) {
-              console.warn(
-                "[useRealtimeVotosHilos] No se pudo obtener hilo_id del payload"
-              );
               return;
             }
 
@@ -79,18 +60,11 @@ export function useRealtimeVotosHilos() {
               exact: false,
               refetchType: "none",
             });
-
-            console.log(
-              "[useRealtimeVotosHilos] Queries invalidadas para hilo:",
-              hiloId
-            );
-          }
+          },
         )
         .subscribe((status, err) => {
           if (err) {
-            console.error("[useRealtimeVotosHilos] Error en suscripción:", err);
           }
-          console.log("[useRealtimeVotosHilos] Estado de suscripción:", status);
         });
     };
 
@@ -99,9 +73,6 @@ export function useRealtimeVotosHilos() {
     // Cleanup: desuscribirse cuando el componente se desmonte
     return () => {
       if (channel) {
-        console.log(
-          "[useRealtimeVotosHilos] Desuscribiendo del canal de votos de hilos"
-        );
         supabase.removeChannel(channel);
       }
     };

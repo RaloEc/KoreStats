@@ -56,13 +56,13 @@ export const TeamComparison: React.FC<TeamComparisonProps> = memo(
     const getDeltaLabel = (
       value: number,
       avg: number,
-      isPercentage = false
+      isPercentage = false,
     ) => {
       if (avg <= 0) return undefined;
       if (isPercentage) {
         const delta = value - avg;
         const sign = delta >= 0 ? "+" : "";
-        return `${sign}${delta.toFixed(0)}pp`;
+        return `${sign}${delta.toFixed(0)}%`; // pp es técnicamente correcto pero % es más común
       }
       const delta = (value / avg - 1) * 100;
       const sign = delta >= 0 ? "+" : "";
@@ -70,70 +70,75 @@ export const TeamComparison: React.FC<TeamComparisonProps> = memo(
     };
 
     return (
-      <div className="group/comparison space-y-3 p-4 rounded-2xl border border-white/40 dark:border-white/20 bg-white/70 dark:bg-slate-900/70 shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-colors duration-200">
-        <h4 className="text-[9px] sm:text-[10px] uppercase font-black text-slate-700 dark:text-slate-200 tracking-widest mb-1">
-          Comparativa vs Equipo
-        </h4>
+      <div className="group/comparison flex flex-col gap-6 p-5 rounded-2xl border border-slate-200/60 dark:border-white/[0.03] bg-white/80 dark:bg-black/80 backdrop-blur-md transition-all duration-300">
+        <div className="flex items-center justify-between">
+          <h4 className="text-[10px] uppercase font-bold text-black tracking-[0.2em] dark:text-white">
+            Rendimiento vs Equipo
+          </h4>
+          <div className="h-px flex-1 bg-slate-200/50 dark:bg-white/[0.03] ml-4" />
+        </div>
 
-        {teamTotalDamage && (
-          <ComparativeBullet
-            label="Daño a Campeones"
-            valueLabel={`${(damageToChampions / 1000).toFixed(1)}k`}
-            value={damageToChampions}
-            avg={teamAvgDamageToChampions}
-            avgLabel={`${(teamAvgDamageToChampions / 1000).toFixed(1)}k`}
-            deltaLabel={getDeltaLabel(
-              damageToChampions,
-              teamAvgDamageToChampions
-            )}
-            isBetter={isBetterThanAvgDamage}
-            userColor={userColor}
-          />
-        )}
+        <div className="grid gap-6">
+          {teamTotalDamage && (
+            <ComparativeBullet
+              label="Daño Causado"
+              valueLabel={`${(damageToChampions / 1000).toFixed(1)}k`}
+              value={damageToChampions}
+              avg={teamAvgDamageToChampions}
+              avgLabel={`${(teamAvgDamageToChampions / 1000).toFixed(1)}k`}
+              deltaLabel={getDeltaLabel(
+                damageToChampions,
+                teamAvgDamageToChampions,
+              )}
+              isBetter={isBetterThanAvgDamage}
+              userColor={userColor}
+            />
+          )}
 
-        {teamTotalKills && teamAvgKillParticipation > 0 && (
-          <ComparativeBullet
-            label="Participación en Kills"
-            valueLabel={`${killParticipation.toFixed(0)}%`}
-            value={killParticipation}
-            avg={teamAvgKillParticipation}
-            avgLabel={`${teamAvgKillParticipation.toFixed(0)}%`}
-            deltaLabel={getDeltaLabel(
-              killParticipation,
-              teamAvgKillParticipation,
-              true
-            )}
-            isBetter={isBetterThanAvgKP}
-            userColor={userColor}
-          />
-        )}
+          {teamTotalKills && teamAvgKillParticipation > 0 && (
+            <ComparativeBullet
+              label="Participación"
+              valueLabel={`${killParticipation.toFixed(0)}%`}
+              value={killParticipation}
+              avg={teamAvgKillParticipation}
+              avgLabel={`${teamAvgKillParticipation.toFixed(0)}%`}
+              deltaLabel={getDeltaLabel(
+                killParticipation,
+                teamAvgKillParticipation,
+                true,
+              )}
+              isBetter={isBetterThanAvgKP}
+              userColor={userColor}
+            />
+          )}
 
-        {teamTotalGold && (
-          <ComparativeBullet
-            label="Oro"
-            valueLabel={`${(goldEarned / 1000).toFixed(1)}k`}
-            value={goldEarned}
-            avg={teamAvgGoldEarned}
-            avgLabel={`${(teamAvgGoldEarned / 1000).toFixed(1)}k`}
-            deltaLabel={getDeltaLabel(goldEarned, teamAvgGoldEarned)}
-            isBetter={isBetterThanAvgGold}
-            userColor={userColor}
-          />
-        )}
+          {teamTotalGold && (
+            <ComparativeBullet
+              label="Oro Obtenido"
+              valueLabel={`${(goldEarned / 1000).toFixed(1)}k`}
+              value={goldEarned}
+              avg={teamAvgGoldEarned}
+              avgLabel={`${(teamAvgGoldEarned / 1000).toFixed(1)}k`}
+              deltaLabel={getDeltaLabel(goldEarned, teamAvgGoldEarned)}
+              isBetter={isBetterThanAvgGold}
+              userColor={userColor}
+            />
+          )}
 
-        {teamAvgVisionScore > 0 && (
-          <ComparativeBullet
-            label="Visión"
-            valueLabel={`${visionScore}`}
-            value={visionScore}
-            avg={teamAvgVisionScore}
-            avgLabel={`${teamAvgVisionScore.toFixed(0)}`}
-            deltaLabel={getDeltaLabel(visionScore, teamAvgVisionScore)}
-            isBetter={isBetterThanAvgVision}
-            userColor={userColor}
-          />
-        )}
+          {teamAvgVisionScore > 0 && (
+            <ComparativeBullet
+              label="Puntuación Visión"
+              valueLabel={`${visionScore}`}
+              value={visionScore}
+              avg={teamAvgVisionScore}
+              avgLabel={`${teamAvgVisionScore.toFixed(0)}`}
+              deltaLabel={getDeltaLabel(visionScore, teamAvgVisionScore)}
+              isBetter={isBetterThanAvgVision}
+              userColor={userColor}
+            />
+          )}
+        </div>
       </div>
     );
-  }
+  },
 );

@@ -111,36 +111,14 @@ export default function UserProfileClient({
 
       setLoadingRiotAccount(true);
       try {
-        console.log(
-          "[UserProfilePage] Cargando cuenta de Riot para:",
-          publicId,
-        );
         const response = await fetch(
           `/api/riot/account/public?publicId=${publicId}&_t=${Date.now()}`,
         );
         if (response.ok) {
           const data = await response.json();
-          console.log(
-            "[UserProfilePage] ✅ Cuenta encontrada (FULL):",
-            JSON.stringify(
-              {
-                id: data.account?.id,
-                puuid: data.account?.puuid?.substring(0, 10) + "...",
-                gameName: data.account?.game_name,
-                riotIdName: data.account?.riot_id_name,
-              },
-              null,
-              2,
-            ),
-          );
           setRiotAccount(data.account);
           setRiotUserId(data.profile?.id ?? null);
         } else {
-          console.log(
-            "[UserProfilePage] ⚠️ No hay cuenta vinculada (Status:",
-            response.status,
-            ")",
-          );
           // Solo resetear si realmente no existe (404)
           if (response.status === 404) {
             setRiotAccount(null);
@@ -148,10 +126,6 @@ export default function UserProfileClient({
           }
         }
       } catch (error) {
-        console.error(
-          "[UserProfilePage] ❌ Error loading Riot account:",
-          error,
-        );
         // No reseteamos a null en caso de error de red para evitar parpadeos
       } finally {
         setLoadingRiotAccount(false);
@@ -168,18 +142,8 @@ export default function UserProfileClient({
       const targetUserId = riotUserId || profile?.id;
 
       if (!targetUserId) {
-        console.error("[UserProfilePage] No hay userId disponible:", {
-          riotUserId,
-          profileId: profile?.id,
-        });
         throw new Error("No hay ID de usuario disponible");
       }
-
-      console.log("[UserProfilePage] Iniciando sincronización...");
-      console.log("[UserProfilePage] Target User ID:", targetUserId);
-      console.log("[UserProfilePage] Profile ID:", profile?.id);
-      console.log("[UserProfilePage] Riot User ID:", riotUserId);
-      console.log("[UserProfilePage] Public ID:", publicId);
 
       const response = await fetch("/api/riot/account/public/sync", {
         method: "POST",
@@ -190,7 +154,6 @@ export default function UserProfileClient({
           userId: targetUserId,
         }),
       });
-      console.log("[UserProfilePage] Response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -200,7 +163,6 @@ export default function UserProfileClient({
       return response.json();
     },
     onSuccess: async (data) => {
-      console.log("[UserProfilePage] Sincronización exitosa:", data);
       setSyncError(null);
 
       // Invalidar queries para refrescar datos
@@ -230,29 +192,17 @@ export default function UserProfileClient({
       );
       if (newResponse.ok) {
         const newData = await newResponse.json();
-        console.log(
-          "[UserProfilePage] Datos de cuenta recargados:",
-          newData.account ? "OK" : "NULL",
-        );
         // IMPORTANTE: Solo actualizar si recibimos datos válidos.
         // Si el endpoint devuelve null/undefined (por error momentáneo), NO borrar la cuenta existente.
         if (newData.account) {
           setRiotAccount(newData.account);
           setRiotUserId(newData.profile?.id ?? null);
         } else {
-          console.warn(
-            "[UserProfilePage] Recarga de cuenta devolvió null, manteniendo datos anteriores.",
-          );
         }
       } else {
-        console.error(
-          "[UserProfilePage] Error recargando cuenta:",
-          newResponse.status,
-        );
       }
     },
     onError: (error: any) => {
-      console.error("[UserProfilePage] Error en sincronización:", error);
       setSyncError(error.message);
     },
   });
@@ -358,6 +308,11 @@ export default function UserProfileClient({
                   <MatchHistoryList
                     userId={riotUserId ?? profile.id}
                     puuid={riotAccount.puuid}
+                    riotId={
+                      riotAccount.game_name
+                        ? `${riotAccount.game_name}#${riotAccount.tag_line}`
+                        : undefined
+                    }
                     hideShareButton={true}
                     initialMatchesData={initialMatchesData}
                     initialStats={initialStats}

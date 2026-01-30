@@ -2,6 +2,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | undefined;
+const isBrowser = typeof window !== "undefined";
 
 /**
  * Crea un cliente de Supabase para Client Components
@@ -11,6 +12,10 @@ let client: SupabaseClient | undefined;
  * IMPORTANTE: Solo debe usarse en componentes con 'use client'
  */
 export function createClient(): SupabaseClient {
+  if (isBrowser && (window as any)._supabaseClient) {
+    return (window as any)._supabaseClient;
+  }
+
   if (client) return client;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -21,6 +26,10 @@ export function createClient(): SupabaseClient {
       flowType: "pkce",
     },
   });
+
+  if (isBrowser) {
+    (window as any)._supabaseClient = client;
+  }
 
   return client;
 }

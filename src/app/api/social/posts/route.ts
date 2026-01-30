@@ -47,7 +47,7 @@ export async function GET(request: Request) {
           avatar_url
         )
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
         if (simpleError) {
           return NextResponse.json(
             { error: simpleError.message },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -134,10 +134,19 @@ export async function GET(request: Request) {
     console.error("Server error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
+
+// Import notifyMentions at the top (I can't put imports here with replace_file_content in the middle of functions, I should use write_to_file or be careful)
+// Actually I need to add the import at the top of the file. I'll use multi_replace or separate calls.
+// Let's assume I'll add the import first.
+
+// wait, I can use the trick of replace imports and function body.
+// But better to separate.
+
+// This tool call will ONLY update the POST function. Use a separate call for imports.
 
 export async function POST(request: Request) {
   try {
@@ -156,7 +165,7 @@ export async function POST(request: Request) {
     if (!content && !media_url) {
       return NextResponse.json(
         { error: "Content or media is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -164,12 +173,18 @@ export async function POST(request: Request) {
       .from("social_posts")
       .insert({
         user_id: user.id,
-        target_user_id: target_user_id || user.id, // Default to self-wall if not specified
+        target_user_id: target_user_id || user.id,
         content,
         media_url,
         media_type,
       })
-      .select()
+      .select(
+        `
+        *,
+        user:perfiles!social_posts_user_id_fkey(username),
+        target_user:perfiles!social_posts_target_user_id_fkey(username)
+      `,
+      )
       .single();
 
     if (error) {
@@ -177,12 +192,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Process mentions
+    if (content) {
+      console.log(
+        `[API Post] Processing potential mentions for post ${data.id}`,
+      );
+      // safe check for data existence
+      const authorName = data.user?.username || "Alguien";
+      const targetUsername = data.target_user?.username || "usuario";
+      // URL del muro donde se publicó
+      const sourceUrl = `/perfil/${targetUsername}`;
+
+      // Exclude target user (profile owner) from mention notifications because they get a separate "posted on your wall" notification (assumed)
+      // Also user.id is excluded by default in notifyMentions
+      const excludeIds = [target_user_id || user.id];
+
+      // We don't await this to speed up response time?
+      // Next.js functions might terminate if we don't await. Better await.
+      try {
+        const { notifyMentions, notifyProfilePost } =
+          await import("@/lib/notificationService");
+        await notifyMentions({
+          content,
+          authorId: user.id,
+          authorName,
+          sourceId: data.id,
+          sourceType: "post",
+          sourceUrl,
+          previewText: content.replace(/<[^>]+>/g, ""), // Strip HTML for preview
+          excludeUserIds: excludeIds,
+        });
+
+        // Notify profile owner if someone else posted on their wall
+        if (target_user_id && target_user_id !== user.id) {
+          await notifyProfilePost({
+            targetUserId: target_user_id,
+            authorId: user.id,
+            authorName,
+            sourceUrl,
+            previewText: content.replace(/<[^>]+>/g, ""),
+          });
+        }
+      } catch (err) {
+        console.error("Failed to process notifications:", err);
+      }
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Server error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -83,10 +83,21 @@ export default function BtnFlotanteInteligente({
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [submenuCategorias, setSubmenuCategorias] = useState(false);
   const [categoriasAbiertas, setCategoriasAbiertas] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
-  const colorPersonalizado = profile?.color || "hsl(222.2, 47.4%, 11.2%)";
+  // Detectar PWA
+  const [isPWA, setIsPWA] = useState(false);
+
+  useEffect(() => {
+    // Check if running in standalone mode
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+    setIsPWA(isStandalone);
+  }, []);
+
+  const colorPersonalizado = profile?.color || "#5da1f9";
   const isAdmin = profile?.role === "admin";
   const isRedactor = profile?.role === "redactor";
   const puedeCrearNoticia = isAdmin || isRedactor;
@@ -107,17 +118,6 @@ export default function BtnFlotanteInteligente({
   if (enPaginaCreacion) {
     return null;
   }
-
-  // Detectar PWA
-  const [isPWA, setIsPWA] = useState(false);
-
-  useEffect(() => {
-    // Check if running in standalone mode
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
-    setIsPWA(isStandalone);
-  }, []);
 
   if (isPWA) {
     return null;
@@ -483,7 +483,7 @@ export default function BtnFlotanteInteligente({
                                   categoria.subcategorias &&
                                   categoria.subcategorias.length > 0;
                                 const estaAbierta = categoriasAbiertas.has(
-                                  categoria.id
+                                  categoria.id,
                                 );
 
                                 return (
@@ -556,7 +556,7 @@ export default function BtnFlotanteInteligente({
                                                 key={subcategoria.id}
                                                 onClick={() =>
                                                   handleCategoriaClick(
-                                                    subcategoria.id
+                                                    subcategoria.id,
                                                   )
                                                 }
                                                 className={`flex items-center w-full pl-12 pr-6 py-2 text-left text-sm transition-colors group ${
@@ -588,7 +588,7 @@ export default function BtnFlotanteInteligente({
                                                 )}
                                               </button>
                                             );
-                                          }
+                                          },
                                         )}
                                       </motion.div>
                                     )}
@@ -611,9 +611,10 @@ export default function BtnFlotanteInteligente({
           onClick={toggleMenu}
           className="flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all duration-300 
             bg-white dark:bg-black 
-            border-2 border-gray-700 dark:border-gray-300
+            border-2
             hover:bg-gray-50 dark:hover:bg-zinc-900 
             hover:scale-110 active:scale-95"
+          style={{ borderColor: colorPersonalizado }}
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
         >
           <motion.div
@@ -621,9 +622,9 @@ export default function BtnFlotanteInteligente({
             transition={{ duration: 0.2 }}
           >
             {menuAbierto ? (
-              <X size={24} className="text-gray-700 dark:text-white" />
+              <X size={24} color={colorPersonalizado} />
             ) : (
-              <PlusIcon size={24} className="text-gray-700 dark:text-white" />
+              <PlusIcon size={24} color={colorPersonalizado} />
             )}
           </motion.div>
         </button>

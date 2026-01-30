@@ -17,7 +17,7 @@ export function useForoPosts(hiloId: string) {
 
       const { data, error } = await supabase
         .from("foro_posts_con_perfil")
-        .select('*')
+        .select("*")
         .eq("hilo_id", hiloId)
         .order("created_at", { ascending: true });
 
@@ -26,15 +26,15 @@ export function useForoPosts(hiloId: string) {
       }
 
       // Mapear los datos para asegurar que la estructura sea consistente
-      const posts = (data || []).map(post => ({
+      const posts = (data || []).map((post) => ({
         ...post,
         autor: {
           id: post.autor_id,
           username: post.username,
           avatar_url: post.avatar_url,
           role: post.role,
-          color: post.color
-        }
+          color: post.color,
+        },
       }));
 
       return posts as ForoPostConAutor[];
@@ -57,22 +57,26 @@ export function useCreatePost() {
       const supabase = createClient();
 
       // Obtener el ID del usuario autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
-        throw new Error('Debes iniciar sesión para publicar');
+        throw new Error("Debes iniciar sesión para publicar");
       }
 
       // Insertar el post con el autor_id
       const { data: newPost, error } = await supabase
-        .from('foro_posts')
-        .insert([{
-          contenido: data.contenido,
-          hilo_id: data.hilo_id,
-          post_padre_id: data.post_padre_id || null,
-          autor_id: user.id, // Asegurarse de incluir el autor_id
-        }])
-        .select('*')
+        .from("foro_posts")
+        .insert([
+          {
+            contenido: data.contenido,
+            hilo_id: data.hilo_id,
+            post_padre_id: data.post_padre_id || null,
+            autor_id: user.id, // Asegurarse de incluir el autor_id
+          },
+        ])
+        .select("*")
         .single();
 
       if (error) {
@@ -81,13 +85,12 @@ export function useCreatePost() {
 
       // Obtener el perfil del autor
       const { data: perfil, error: perfilError } = await supabase
-        .from('perfiles')
-        .select('*')
-        .eq('id', newPost.autor_id)
+        .from("perfiles")
+        .select("*")
+        .eq("id", newPost.autor_id)
         .single();
 
       if (perfilError) {
-        console.error('Error al obtener perfil:', perfilError);
       }
 
       // Crear el objeto de respuesta con la estructura correcta
@@ -95,15 +98,15 @@ export function useCreatePost() {
         ...newPost,
         autor: {
           id: newPost.autor_id,
-          username: perfil?.username || 'Usuario',
+          username: perfil?.username || "Usuario",
           avatar_url: perfil?.avatar_url || null,
           role: perfil?.role,
-          color: perfil?.color
+          color: perfil?.color,
         },
         username: perfil?.username,
         avatar_url: perfil?.avatar_url,
         role: perfil?.role,
-        color: perfil?.color
+        color: perfil?.color,
       };
 
       return postConAutor;
@@ -167,9 +170,9 @@ export function useUpdatePost() {
 
       // Luego obtenemos el post actualizado con los datos del perfil
       const { data: updatedPost, error } = await supabase
-        .from('foro_posts_con_perfil')
-        .select('*')
-        .eq('id', postId)
+        .from("foro_posts_con_perfil")
+        .select("*")
+        .eq("id", postId)
         .single();
 
       if (error) {
@@ -184,8 +187,8 @@ export function useUpdatePost() {
           username: updatedPost.username,
           avatar_url: updatedPost.avatar_url,
           role: updatedPost.role,
-          color: updatedPost.color
-        }
+          color: updatedPost.color,
+        },
       };
 
       if (error) {

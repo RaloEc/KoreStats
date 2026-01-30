@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       targetUserId = headerUserId;
       console.log(
         "[GET /api/riot/champion-mastery] Consulta pública para userId:",
-        targetUserId
+        targetUserId,
       );
     } else {
       // Consulta propia - requiere autenticación
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       if (sessionError || !session?.user?.id) {
         console.error(
           "[GET /api/riot/champion-mastery] Usuario no autenticado:",
-          sessionError
+          sessionError,
         );
         return NextResponse.json({ error: "No autenticado" }, { status: 401 });
       }
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       targetUserId = session.user.id;
       console.log(
         "[GET /api/riot/champion-mastery] Consulta autenticada para userId:",
-        targetUserId
+        targetUserId,
       );
     }
 
@@ -79,17 +79,17 @@ export async function GET(request: NextRequest) {
     const { data: riotAccount, error: accountError } = await supabase
       .from("linked_accounts_riot")
       .select("active_shard")
-      .eq("user_id", targetUserId)
+      .eq("puuid", puuid)
       .single();
 
     if (accountError || !riotAccount) {
       console.error(
         "[GET /api/riot/champion-mastery] Error obteniendo cuenta:",
-        accountError
+        accountError,
       );
       return NextResponse.json(
         { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -98,11 +98,11 @@ export async function GET(request: NextRequest) {
 
     if (!apiKey) {
       console.error(
-        "[GET /api/riot/champion-mastery] RIOT_API_KEY no configurada"
+        "[GET /api/riot/champion-mastery] RIOT_API_KEY no configurada",
       );
       return NextResponse.json(
         { error: "Configuración de servidor incompleta" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       console.log(
         "[GET /api/riot/champion-mastery] ✅ Datos obtenidos del caché:",
         cachedMasteries.length,
-        "campeones"
+        "campeones",
       );
 
       // Convertir formato de caché al formato de Riot API
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
           masteries: formattedMasteries,
           source: "cache",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
 
     console.log(
       "[GET /api/riot/champion-mastery] Fetching from Riot API:",
-      riotApiUrl
+      riotApiUrl,
     );
 
     // Hacer request a Riot API
@@ -160,11 +160,11 @@ export async function GET(request: NextRequest) {
       console.error(
         "[GET /api/riot/champion-mastery] Error from Riot API:",
         response.status,
-        await response.text()
+        await response.text(),
       );
       return NextResponse.json(
         { error: "Error al obtener datos de Riot API" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
     console.log(
       "[GET /api/riot/champion-mastery] ✅ Datos obtenidos de Riot API:",
       masteryData.length,
-      "campeones"
+      "campeones",
     );
 
     // Cachear los datos en BD (sin esperar)
@@ -196,12 +196,12 @@ export async function GET(request: NextRequest) {
         console.log(
           "[GET /api/riot/champion-mastery] ✅ Caché actualizado:",
           cacheInserts.length,
-          "registros"
+          "registros",
         );
       } catch (err) {
         console.error(
           "[GET /api/riot/champion-mastery] Error cacheando datos:",
-          err
+          err,
         );
       }
     })();
@@ -212,14 +212,14 @@ export async function GET(request: NextRequest) {
         masteries: masteryData,
         source: "riot-api",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("[GET /api/riot/champion-mastery] Error inesperado:", error);
 
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

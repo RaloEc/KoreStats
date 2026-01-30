@@ -40,7 +40,7 @@ export function BannerUploader({
       setError(
         `El archivo es demasiado grande. El tamaño máximo es ${
           MAX_FILE_SIZE / 1024 / 1024
-        }MB.`
+        }MB.`,
       );
       return false;
     }
@@ -49,8 +49,8 @@ export function BannerUploader({
     if (!ALLOWED_FORMATS.includes(file.type)) {
       setError(
         `Formato no soportado. Formatos permitidos: ${ALLOWED_FORMATS.map(
-          (f) => f.split("/")[1]
-        ).join(", ")}.`
+          (f) => f.split("/")[1],
+        ).join(", ")}.`,
       );
       return false;
     }
@@ -195,7 +195,7 @@ export function BannerUploader({
           />
           <label
             htmlFor="banner-upload"
-            className="cursor-pointer bg-primary text-primary-foreground px-3 py-2 rounded-md flex items-center gap-2 hover:opacity-90 transition-opacity text-sm"
+            className="cursor-pointer bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90 transition-opacity text-sm font-medium shadow-sm"
           >
             <ImagePlus size={16} />
             {currentBanner ? "Cambiar banner" : "Subir banner"}

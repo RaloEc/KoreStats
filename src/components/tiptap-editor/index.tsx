@@ -42,6 +42,8 @@ interface TiptapEditorProps {
   userColor?: string;
   onImageChange?: (hasTemporaryImages: boolean) => void;
   statusSlot?: React.ReactNode;
+  restrictMentionsToFriends?: boolean;
+  currentUserId?: string;
 }
 
 // Componente base del editor
@@ -52,6 +54,8 @@ const TiptapEditorBase = ({
   className = "",
   onImageChange,
   statusSlot,
+  restrictMentionsToFriends = false,
+  currentUserId,
 }: TiptapEditorProps) => {
   // Referencias
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +80,15 @@ const TiptapEditorBase = ({
       },
     },
     immediatelyRender: false,
+    onCreate: ({ editor }) => {
+      // Configure user mention search options
+      if (editor.storage.userMention) {
+        editor.storage.userMention.searchOptions = {
+          onlyFriends: restrictMentionsToFriends,
+          currentUserId: currentUserId,
+        };
+      }
+    },
   });
 
   // Hooks modularizados para lógica del editor

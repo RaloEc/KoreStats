@@ -1123,7 +1123,12 @@ export async function getMatchHistory(
   puuid: string,
   options:
     | number
-    | { limit?: number; cursor?: number | null; queueIds?: number[] } = {},
+    | {
+        limit?: number;
+        cursor?: number | null;
+        queueIds?: number[];
+        excludeFullJson?: boolean;
+      } = {},
 ): Promise<{
   matches: any[];
   hasMore: boolean;
@@ -1138,6 +1143,7 @@ export async function getMatchHistory(
       ? Number(normalizedOptions.cursor)
       : null;
     const queueIds = normalizedOptions.queueIds;
+    const excludeFullJson = normalizedOptions.excludeFullJson ?? false;
 
     let query = supabase
       .from("match_participants")
@@ -1171,6 +1177,10 @@ export async function getMatchHistory(
         perk_sub_style,
         lane,
         role,
+        penta_kills,
+        quadra_kills,
+        total_minions_killed,
+        neutral_minions_killed,
         created_at,
         ranking_position,
         performance_score,
@@ -1181,6 +1191,7 @@ export async function getMatchHistory(
           game_mode,
           queue_id,
           ingest_status,
+          ${excludeFullJson ? "" : "full_json,"}
           match_participants (
             puuid,
             summoner_name,

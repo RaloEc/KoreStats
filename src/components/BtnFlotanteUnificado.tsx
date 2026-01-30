@@ -74,10 +74,10 @@ export default function BtnFlotanteUnificado({
   const [submenuFiltros, setSubmenuFiltros] = useState(false);
   const [submenuCategorias, setSubmenuCategorias] = useState(false);
   const [categoriasAbiertas, setCategoriasAbiertas] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const { profile } = useAuth();
-  const colorPersonalizado = profile?.color || "hsl(222.2, 47.4%, 11.2%)"; // Color por defecto
+  const colorPersonalizado = profile?.color || "#5da1f9"; // Color por defecto
 
   // Validar si el usuario puede crear contenido (solo admin o redactor)
   const puedeCrear =
@@ -341,7 +341,7 @@ export default function BtnFlotanteUnificado({
                               categoria.subcategorias &&
                               categoria.subcategorias.length > 0;
                             const estaAbierta = categoriasAbiertas.has(
-                              categoria.id
+                              categoria.id,
                             );
 
                             return (
@@ -418,7 +418,7 @@ export default function BtnFlotanteUnificado({
                                             key={subcategoria.id}
                                             onClick={() =>
                                               handleCategoriaClick(
-                                                subcategoria.id
+                                                subcategoria.id,
                                               )
                                             }
                                             className={`flex items-center w-full pl-12 pr-6 py-2 text-left text-sm transition-colors group ${
@@ -454,7 +454,7 @@ export default function BtnFlotanteUnificado({
                                             )}
                                           </button>
                                         );
-                                      }
+                                      },
                                     )}
                                   </motion.div>
                                 )}

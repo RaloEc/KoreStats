@@ -105,10 +105,16 @@ interface SummonerChange {
 interface PatchData {
   version: string;
   displayVersion?: string;
+  summary?: string;
   champions: ChampionChange[];
   items: ItemChange[];
   runes: RuneChange[];
   summoners: SummonerChange[];
+  systemChanges?: Array<{
+    name: string;
+    details: string;
+    type: "buff" | "nerf" | "adjustment";
+  }>;
 }
 
 interface LolPatchContentProps {
@@ -206,7 +212,7 @@ const cleanSpellName = (spellName: string, championName: string) => {
 };
 
 const parseChangeLine = (
-  line: string
+  line: string,
 ): { label: string | null; content: string } => {
   const colonIndex = line.indexOf(":");
   if (colonIndex === -1 || colonIndex === line.length - 1) {
@@ -464,7 +470,7 @@ const ChampionCard = ({
                       </p>
                       {(() => {
                         const parsed = parseChangeLine(
-                          champ.passive.descriptionChange?.new || ""
+                          champ.passive.descriptionChange?.new || "",
                         );
                         return (
                           <div className="space-y-1">
@@ -498,7 +504,11 @@ const ChampionCard = ({
                       >
                         <div className="flex items-center gap-3 mb-3">
                           <img
-                            src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${spell.image}`}
+                            src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/${
+                              spell.key === "Pasiva" || spell.key === "P"
+                                ? "passive"
+                                : "spell"
+                            }/${spell.image}`}
                             alt={spell.key}
                             className="w-10 h-10 shrink-0 rounded border border-border object-cover"
                           />
@@ -574,8 +584,8 @@ const ChampionCard = ({
                               stat.type === "buff"
                                 ? "text-green-500"
                                 : stat.type === "nerf"
-                                ? "text-red-500"
-                                : "text-orange-500"
+                                  ? "text-red-500"
+                                  : "text-orange-500"
                             }`}
                           >
                             {stat.new}
@@ -594,7 +604,13 @@ const ChampionCard = ({
   );
 };
 
-const ItemCard = ({ item, version }: { item: ItemChange; version: string }) => {
+const ItemCard = ({
+  item,
+  version,
+}: {
+  item: ItemChange & { _customIcon?: string };
+  version: string;
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -604,12 +620,28 @@ const ItemCard = ({ item, version }: { item: ItemChange; version: string }) => {
     >
       <div className="flex items-center gap-3 mb-3">
         <div className="relative">
-          <img
-            src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${item.image}`}
-            alt={item.name}
-            className="w-12 h-12 rounded border border-border bg-black/50 object-cover group-hover:scale-110 transition-transform"
-          />
-          <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5">
+          {item._customIcon ? (
+            <img
+              src={item._customIcon}
+              alt={item.name}
+              className="w-12 h-12 rounded border border-border bg-black/50 object-cover group-hover:scale-110 transition-transform p-1.5"
+            />
+          ) : item.image ? (
+            <img
+              src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${item.image}`}
+              alt={item.name}
+              className="w-12 h-12 rounded border border-border bg-black/50 object-cover group-hover:scale-110 transition-transform"
+              onError={(e) => {
+                // Si falla la carga, ocultamos la imagen rota
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded border border-border bg-muted flex items-center justify-center">
+              <Shield className="w-6 h-6 text-muted-foreground/40" />
+            </div>
+          )}
+          <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 shadow-sm">
             <ChangeTypeIcon type={item.type} />
           </div>
         </div>
@@ -659,8 +691,8 @@ const ItemCard = ({ item, version }: { item: ItemChange; version: string }) => {
                         stat.type === "buff"
                           ? "text-green-500"
                           : stat.type === "nerf"
-                          ? "text-red-500"
-                          : "text-orange-500"
+                            ? "text-red-500"
+                            : "text-orange-500"
                       }`}
                     >
                       {stat.new}
@@ -725,19 +757,27 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
   const totalBuffs = champions.filter(
     (c) =>
       c.stats.some((s) => s.type === "buff") ||
-      c.spells.some((sp) => sp.changes.some((ch) => ch.type === "buff"))
+      c.spells.some((sp) => sp.changes.some((ch) => ch.type === "buff")),
   ).length;
 
   const totalNerfs = champions.filter(
     (c) =>
       c.stats.some((s) => s.type === "nerf") ||
-      c.spells.some((sp) => sp.changes.some((ch) => ch.type === "nerf"))
+      c.spells.some((sp) => sp.changes.some((ch) => ch.type === "nerf")),
   ).length;
 
   // Estado para controlar la tab activa
   const [currentTab, setCurrentTab] = useState("summary");
   // Estado para controlar qué tarjeta expandir automáticamente
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Lógica de Filtrado: Objetos Nuevos vs Regulares
+  const newItems = items.filter(
+    (i) =>
+      i.developerContext?.section?.toLowerCase().includes("nuevo") ||
+      i.developerContext?.section?.toLowerCase().includes("new"),
+  );
+  const regularItems = items.filter((i) => !newItems.includes(i));
 
   // Función para navegar a un detalle específico
   const handleNavigate = (tab: string, elementId: string) => {
@@ -763,324 +803,395 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
   return (
     <div className="space-y-8">
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        {/* Lógica de Filtrado: Objetos Nuevos vs Regulares */}
-        {(() => {
-          const newItems = items.filter(
-            (i) =>
-              i.developerContext?.section?.toLowerCase().includes("nuevo") ||
-              i.developerContext?.section?.toLowerCase().includes("new")
-          );
-          const regularItems = items.filter((i) => !newItems.includes(i));
+        <TabsList className="flex items-center w-full h-auto p-1.5 gap-1.5 bg-background/60 dark:bg-black/40 border border-border/50 backdrop-blur-xl sticky top-4 z-40 rounded-2xl shadow-xl overflow-x-auto no-scrollbar">
+          <TabsTrigger
+            value="summary"
+            className="flex-1 min-w-[100px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            title="Resumen"
+          >
+            <LayoutDashboard className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-semibold text-sm">Resumen</span>
+          </TabsTrigger>
 
-          return (
-            <>
-              <TabsList className="grid w-full grid-cols-5 h-auto p-1 gap-1 bg-white/50 dark:bg-black/40 border border-gray-200/50 dark:border-white/10 backdrop-blur-xl sticky top-4 z-40 rounded-xl shadow-sm">
-                <TabsTrigger
-                  value="summary"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all border border-transparent data-[state=active]:border-gray-200/50 dark:data-[state=active]:border-primary/10 py-2 md:py-1.5"
-                  title="Resumen"
-                >
-                  <LayoutDashboard className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
-                  <span className="hidden md:inline">Resumen</span>
-                </TabsTrigger>
+          <TabsTrigger
+            value="champions"
+            className="flex-1 min-w-[110px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            title="Campeones"
+          >
+            <Users className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-semibold text-sm">Campeones</span>
+            <Badge
+              variant="secondary"
+              className="ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+            >
+              {champions.length}
+            </Badge>
+          </TabsTrigger>
 
-                <TabsTrigger
-                  value="champions"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all border border-transparent data-[state=active]:border-gray-200/50 dark:data-[state=active]:border-primary/10 py-2 md:py-1.5"
-                  title="Campeones"
-                >
-                  <Users className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
-                  <span className="hidden md:inline">Campeones</span>
-                  <span className="hidden md:inline-flex ml-2 text-xs opacity-70 bg-gray-100 dark:bg-black/40 px-1.5 py-0.5 rounded-full">
-                    {champions.length}
-                  </span>
-                </TabsTrigger>
-
-                {/* Tab Dinámica: Objetos Nuevos (o placeholder invisible si no hay, para mantener grid?) 
-                    Mejor renderizado condicional. Si no hay nuevos items, el grid debería ser de 4 cols.
-                    Pero como estoy forzando grid-cols-5, si quito uno quedará un hueco.
-                    Voy a ajustar el grid-cols dinámicamente.
-                */}
-                {newItems.length > 0 ? (
-                  <TabsTrigger
-                    value="new_items"
-                    className="rounded-lg data-[state=active]:bg-yellow-50 dark:data-[state=active]:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 data-[state=active]:text-yellow-700 dark:data-[state=active]:text-yellow-300 data-[state=active]:shadow-sm transition-all border border-transparent data-[state=active]:border-yellow-200/50 dark:data-[state=active]:border-yellow-500/20 py-2 md:py-1.5"
-                    title="Nuevos Objetos"
-                  >
-                    <Sparkles className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
-                    <span className="hidden md:inline">Nuevos</span>
-                    <span className="hidden md:inline-flex ml-2 text-xs opacity-70 bg-yellow-100/50 dark:bg-black/40 px-1.5 py-0.5 rounded-full">
-                      {newItems.length}
-                    </span>
-                  </TabsTrigger>
-                ) : /* Espacio vacío o reajuste de grid. Por simplicidad, asumimos que siempre hay nuevos items en parches grandes, 
-                      o el usuario prefiere esta estructura. Si no hay nuevos items, esto dejará un hueco si mantengo grid-cols-5.
-                      Cambiaré el className del padre para usar style dinámico o condicionar el grid.
-                   */
-                null}
-
-                <TabsTrigger
-                  value="items"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all border border-transparent data-[state=active]:border-gray-200/50 dark:data-[state=active]:border-primary/10 py-2 md:py-1.5"
-                  title="Objetos"
-                >
-                  <Shield className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
-                  <span className="hidden md:inline">Objetos</span>
-                  <span className="hidden md:inline-flex ml-2 text-xs opacity-70 bg-gray-100 dark:bg-black/40 px-1.5 py-0.5 rounded-full">
-                    {regularItems.length}
-                  </span>
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="runes"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all border border-transparent data-[state=active]:border-gray-200/50 dark:data-[state=active]:border-primary/10 py-2 md:py-1.5"
-                  title="Runas"
-                >
-                  <Zap className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
-                  <span className="hidden md:inline">Runas</span>
-                </TabsTrigger>
-              </TabsList>
-
-              {/* ... Contenido de otras tabs ... */}
-
-              <TabsContent
-                value="summary"
-                className="mt-6 space-y-8 animate-in fade-in slide-in-from-bottom-2"
+          {newItems.length > 0 && (
+            <TabsTrigger
+              value="new_items"
+              className="flex-1 min-w-[100px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500 data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-yellow-500/20 hover:bg-yellow-500/5 group text-yellow-600/80 dark:text-yellow-400/80"
+              title="Nuevos Objetos"
+            >
+              <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
+              <span className="font-semibold text-sm">Nuevos</span>
+              <Badge
+                variant="secondary"
+                className="ml-2 h-5 px-1.5 text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 border-none font-bold"
               >
-                {/* Header Resumen */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/20 p-6 rounded-2xl border border-white/5">
-                  <div>
-                    <h2 className="text-3xl font-bold flex items-center gap-3">
-                      <Sparkles className="w-8 h-8 text-yellow-500 fill-yellow-500/20" />
-                      Resumen del Parche
-                    </h2>
-                    <p className="text-muted-foreground mt-1">
-                      Todos los cambios importantes en un solo vistazo. Haz clic
-                      en los iconos para ver detalles.
+                {newItems.length}
+              </Badge>
+            </TabsTrigger>
+          )}
+
+          <TabsTrigger
+            value="items"
+            className="flex-1 min-w-[100px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            title="Objetos"
+          >
+            <Shield className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-semibold text-sm">Objetos</span>
+            <Badge
+              variant="secondary"
+              className="ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+            >
+              {regularItems.length}
+            </Badge>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="runes"
+            className="flex-1 min-w-[90px] rounded-xl py-2.5 transition-all duration-300 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-inner border border-transparent data-[state=active]:border-primary/20 hover:bg-muted/50"
+            title="Runas"
+          >
+            <Zap className="w-4 h-4 mr-2 opacity-70 group-data-[state=active]:opacity-100" />
+            <span className="font-semibold text-sm">Runas</span>
+            <Badge
+              variant="secondary"
+              className="ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+            >
+              {runes.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent
+          value="summary"
+          className="mt-6 space-y-8 animate-in fade-in slide-in-from-bottom-2"
+        >
+          {/* Header Resumen */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/20 p-6 rounded-2xl border border-white/5">
+            <div>
+              <h2 className="text-3xl font-bold flex items-center gap-3">
+                <Sparkles className="w-8 h-8 text-yellow-500 fill-yellow-500/20" />
+                Resumen del Parche
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                Todos los cambios importantes en un solo vistazo. Haz clic en
+                los iconos para ver detalles.
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className="text-2xl px-6 py-2 font-bold border-2 bg-background/50"
+            >
+              {data.displayVersion || data.version}
+            </Badge>
+          </div>
+
+          {/* Resumen Ejecutivo de la IA */}
+          {data.summary && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative overflow-hidden bg-primary/5 border border-primary/20 p-6 rounded-2xl"
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <Sparkles className="w-12 h-12" />
+              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                Resumen Ejecutivo (AI)
+              </h3>
+              <p className="text-lg text-foreground/90 leading-relaxed font-medium italic">
+                "{data.summary}"
+              </p>
+            </motion.div>
+          )}
+
+          {/* 1. Campeones */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+              <Users className="w-5 h-5" />
+              Campeones Modificados
+              <Badge variant="secondary" className="ml-2">
+                {champions.length}
+              </Badge>
+            </h3>
+            <div className="flex flex-wrap gap-3 p-4 bg-muted/10 rounded-xl border border-white/5">
+              {champions.map((champ) => {
+                // Detectar buff/nerf simple
+                const isBuff =
+                  champ.stats.some((s) => s.type === "buff") ||
+                  champ.spells.some((s) =>
+                    s.changes.some((c) => c.type === "buff"),
+                  );
+                const isNerf =
+                  champ.stats.some((s) => s.type === "nerf") ||
+                  champ.spells.some((s) =>
+                    s.changes.some((c) => c.type === "nerf"),
+                  );
+                const borderClass = isBuff
+                  ? "group-hover:border-green-500"
+                  : isNerf
+                    ? "group-hover:border-red-500"
+                    : "group-hover:border-orange-500";
+
+                return (
+                  <button
+                    key={champ.id}
+                    onClick={() => handleNavigate("champions", champ.id)}
+                    className={`group relative w-14 h-14 rounded-lg overflow-hidden border-2 border-transparent bg-black transition-all hover:scale-110 hover:shadow-lg hover:z-10 ${borderClass}`}
+                    title={`Ver cambios de ${champ.name}`}
+                  >
+                    <img
+                      src={`https://ddragon.leagueoflegends.com/cdn/${data.version}/img/champion/${champ.image}`}
+                      alt={champ.name}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                    />
+                    {/* Indicador de esquina */}
+                    {isBuff && (
+                      <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-bl-lg" />
+                    )}
+                    {isNerf && (
+                      <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-bl-lg" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Objetos Nuevos */}
+          {newItems.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-yellow-400">
+                <Sparkles className="w-5 h-5" />
+                Objetos Nuevos
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                >
+                  {newItems.length}
+                </Badge>
+              </h3>
+              <div className="flex flex-wrap gap-3 p-4 bg-yellow-500/5 rounded-xl border border-yellow-500/10">
+                {newItems.map((item, idx) => (
+                  <button
+                    key={`${item.name}-new-${idx}`}
+                    onClick={() =>
+                      handleNavigate(
+                        "new_items",
+                        `new-item-${item.name.replace(/\s+/g, "-")}`,
+                      )
+                    }
+                    className="group relative w-14 h-14 rounded-lg overflow-hidden border-2 border-transparent bg-black transition-all hover:scale-110 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20 hover:z-10"
+                    title={`Ver nuevo objeto: ${item.name}`}
+                  >
+                    <img
+                      src={`https://ddragon.leagueoflegends.com/cdn/${data.version}/img/item/${item.image}`}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-lg group-hover:ring-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Ajustes de Objetos */}
+          {regularItems.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                <Shield className="w-5 h-5 text-blue-400" />
+                Ajustes de Objetos
+                <Badge variant="secondary" className="ml-2">
+                  {regularItems.length}
+                </Badge>
+              </h3>
+              <div className="flex flex-wrap gap-3 p-4 bg-muted/10 rounded-xl border border-white/5">
+                {regularItems.map((item, idx) => (
+                  <button
+                    key={`${item.name}-${idx}`}
+                    onClick={() =>
+                      handleNavigate(
+                        "items",
+                        `item-${item.name.replace(/\s+/g, "-")}`,
+                      )
+                    }
+                    className="group relative w-12 h-12 rounded-lg overflow-hidden border border-border bg-black transition-all hover:scale-110 hover:border-blue-400 hover:shadow-lg hover:z-10"
+                    title={`Ver cambios de ${item.name}`}
+                  >
+                    <img
+                      src={`https://ddragon.leagueoflegends.com/cdn/${data.version}/img/item/${item.image}`}
+                      alt={item.name}
+                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Runas */}
+          {data.runes && data.runes.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                <Zap className="w-5 h-5 text-yellow-400" />
+                Ajustes de Runas
+                <Badge variant="secondary" className="ml-2">
+                  {data.runes.length}
+                </Badge>
+              </h3>
+              <div className="flex flex-wrap gap-3 p-4 bg-muted/10 rounded-xl border border-white/5">
+                {data.runes.map((rune, idx) => (
+                  <button
+                    key={`${rune.name}-${idx}`}
+                    onClick={() => handleNavigate("runes", `rune-${rune.id}`)}
+                    className="group relative w-12 h-12 rounded-lg overflow-hidden border border-border bg-black transition-all hover:scale-110 hover:border-yellow-400 hover:shadow-lg hover:z-10"
+                    title={`Ver cambios de ${rune.name}`}
+                  >
+                    <img
+                      src={`https://ddragon.leagueoflegends.com/cdn/img/${rune.icon.replace(/^\/?/, "")}`}
+                      alt={rune.name}
+                      className="w-full h-full object-contain p-1 opacity-80 group-hover:opacity-100 transition-opacity filter brightness-110"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Cambios al Sistema */}
+          {data.systemChanges && data.systemChanges.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-orange-400">
+                <Zap className="w-5 h-5" />
+                Cambios al Sistema
+                <Badge variant="secondary" className="ml-2">
+                  {data.systemChanges.length}
+                </Badge>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {data.systemChanges.map((change, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 rounded-xl border border-white/5 bg-muted/10"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <ChangeTypeIcon type={change.type} />
+                      <h4 className="font-bold text-foreground">
+                        {change.name}
+                      </h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground italic leading-relaxed">
+                      {change.details}
                     </p>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="text-2xl px-6 py-2 font-bold border-2 bg-background/50"
-                  >
-                    {data.version}
-                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="champions" className="mt-6 space-y-4">
+          {/* ... (Contenido de campeones igual que antes) ... */}
+          <div className="grid grid-cols-1 gap-4">
+            {champions.map((champ) => (
+              <div id={champ.id} key={champ.id} className="scroll-mt-24">
+                <ChampionCard
+                  champ={champ}
+                  version={data.version}
+                  forceExpanded={expandedId === champ.id}
+                />
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Tab Content: Objetos Nuevos */}
+        {newItems.length > 0 && (
+          <TabsContent
+            value="new_items"
+            className="mt-6 space-y-8 animate-in fade-in slide-in-from-bottom-4"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {newItems.map((item, idx) => (
+                <div
+                  key={`${item.name}-new-${idx}`}
+                  id={`new-item-${item.name.replace(/\s+/g, "-")}`}
+                  className="scroll-mt-24"
+                >
+                  <ItemCard item={item} version={data.version} />
                 </div>
+              ))}
+            </div>
+          </TabsContent>
+        )}
 
-                {/* 1. Campeones */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
-                    <Users className="w-5 h-5" />
-                    Campeones Modificados
-                    <Badge variant="secondary" className="ml-2">
-                      {champions.length}
-                    </Badge>
-                  </h3>
-                  <div className="flex flex-wrap gap-3 p-4 bg-muted/10 rounded-xl border border-white/5">
-                    {champions.map((champ) => {
-                      // Detectar buff/nerf simple
-                      const isBuff =
-                        champ.stats.some((s) => s.type === "buff") ||
-                        champ.spells.some((s) =>
-                          s.changes.some((c) => c.type === "buff")
-                        );
-                      const isNerf =
-                        champ.stats.some((s) => s.type === "nerf") ||
-                        champ.spells.some((s) =>
-                          s.changes.some((c) => c.type === "nerf")
-                        );
-                      const borderClass = isBuff
-                        ? "group-hover:border-green-500"
-                        : isNerf
-                        ? "group-hover:border-red-500"
-                        : "group-hover:border-orange-500";
+        {/* Tab Content: Resto de Objetos (Agrupados) */}
+        <TabsContent value="items" className="mt-6 space-y-8">
+          {(() => {
+            // Agrupar items REGULARES por sección
+            const groupedItems = regularItems.reduce(
+              (acc, item) => {
+                const section =
+                  item.developerContext?.section || "Ajustes Generales";
+                if (!acc[section]) acc[section] = [];
+                acc[section].push(item);
+                return acc;
+              },
+              {} as Record<string, typeof regularItems>,
+            );
 
-                      return (
-                        <button
-                          key={champ.id}
-                          onClick={() => handleNavigate("champions", champ.id)}
-                          className={`group relative w-14 h-14 rounded-lg overflow-hidden border-2 border-transparent bg-black transition-all hover:scale-110 hover:shadow-lg hover:z-10 ${borderClass}`}
-                          title={`Ver cambios de ${champ.name}`}
-                        >
-                          <img
-                            src={`https://ddragon.leagueoflegends.com/cdn/${data.version}/img/champion/${champ.image}`}
-                            alt={champ.name}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                          />
-                          {/* Indicador de esquina */}
-                          {isBuff && (
-                            <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-bl-lg" />
-                          )}
-                          {isNerf && (
-                            <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-bl-lg" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+            const sections = Object.keys(groupedItems).sort((a, b) => {
+              if (a === "Ajustes Generales") return 1;
+              if (b === "Ajustes Generales") return -1;
+              return a.localeCompare(b);
+            });
+
+            // Si no hay secciones (ej: todos eran nuevos y se movieron), mostrar mensaje
+            if (regularItems.length === 0) {
+              return (
+                <div className="text-center text-muted-foreground py-10">
+                  Todos los cambios de objetos están en la pestaña "Nuevos".
                 </div>
+              );
+            }
 
-                {/* 2. Objetos Nuevos */}
-                {newItems.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold flex items-center gap-2 text-yellow-400">
-                      <Sparkles className="w-5 h-5" />
-                      Objetos Nuevos
-                      <Badge
-                        variant="secondary"
-                        className="ml-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                      >
-                        {newItems.length}
-                      </Badge>
-                    </h3>
-                    <div className="flex flex-wrap gap-3 p-4 bg-yellow-500/5 rounded-xl border border-yellow-500/10">
-                      {newItems.map((item, idx) => (
-                        <button
-                          key={`${item.name}-new-${idx}`}
-                          onClick={() =>
-                            handleNavigate(
-                              "new_items",
-                              `new-item-${item.name.replace(/\s+/g, "-")}`
-                            )
-                          }
-                          className="group relative w-14 h-14 rounded-lg overflow-hidden border-2 border-transparent bg-black transition-all hover:scale-110 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20 hover:z-10"
-                          title={`Ver nuevo objeto: ${item.name}`}
-                        >
-                          <img
-                            src={`https://ddragon.leagueoflegends.com/cdn/${data.version}/img/item/${item.image}`}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-lg group-hover:ring-0" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Ajustes de Objetos */}
-                {regularItems.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
-                      <Shield className="w-5 h-5 text-blue-400" />
-                      Ajustes de Objetos
-                      <Badge variant="secondary" className="ml-2">
-                        {regularItems.length}
-                      </Badge>
-                    </h3>
-                    <div className="flex flex-wrap gap-3 p-4 bg-muted/10 rounded-xl border border-white/5">
-                      {regularItems.map((item, idx) => (
-                        <button
-                          key={`${item.name}-${idx}`}
-                          onClick={() =>
-                            handleNavigate(
-                              "items",
-                              `item-${item.name.replace(/\s+/g, "-")}`
-                            )
-                          }
-                          className="group relative w-12 h-12 rounded-lg overflow-hidden border border-border bg-black transition-all hover:scale-110 hover:border-blue-400 hover:shadow-lg hover:z-10"
-                          title={`Ver cambios de ${item.name}`}
-                        >
-                          <img
-                            src={`https://ddragon.leagueoflegends.com/cdn/${data.version}/img/item/${item.image}`}
-                            alt={item.name}
-                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="champions" className="mt-6 space-y-4">
-                {/* ... (Contenido de campeones igual que antes) ... */}
-                <div className="grid grid-cols-1 gap-4">
-                  {champions.map((champ) => (
-                    <div id={champ.id} key={champ.id} className="scroll-mt-24">
-                      <ChampionCard
-                        champ={champ}
-                        version={data.version}
-                        forceExpanded={expandedId === champ.id}
-                      />
+            return sections.map((sectionTitle) => (
+              <div key={sectionTitle} className="space-y-4">
+                <h3 className="text-xl font-bold flex items-center gap-2 text-primary/90 border-b border-white/5 pb-2">
+                  <Shield className="w-5 h-5 text-blue-500" />
+                  {sectionTitle.charAt(0).toUpperCase() + sectionTitle.slice(1)}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {groupedItems[sectionTitle].map((item, idx) => (
+                    <div
+                      key={`${item.name}-${idx}`}
+                      id={`item-${item.name.replace(/\s+/g, "-")}`}
+                      className="scroll-mt-24"
+                    >
+                      <ItemCard item={item} version={data.version} />
                     </div>
                   ))}
                 </div>
-              </TabsContent>
-
-              {/* Tab Content: Objetos Nuevos */}
-              {newItems.length > 0 && (
-                <TabsContent
-                  value="new_items"
-                  className="mt-6 space-y-8 animate-in fade-in slide-in-from-bottom-4"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {newItems.map((item, idx) => (
-                      <div
-                        key={`${item.name}-new-${idx}`}
-                        id={`new-item-${item.name.replace(/\s+/g, "-")}`}
-                        className="scroll-mt-24"
-                      >
-                        <ItemCard item={item} version={data.version} />
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-              )}
-
-              {/* Tab Content: Resto de Objetos (Agrupados) */}
-              <TabsContent value="items" className="mt-6 space-y-8">
-                {(() => {
-                  // Agrupar items REGULARES por sección
-                  const groupedItems = regularItems.reduce((acc, item) => {
-                    const section =
-                      item.developerContext?.section || "Ajustes Generales";
-                    if (!acc[section]) acc[section] = [];
-                    acc[section].push(item);
-                    return acc;
-                  }, {} as Record<string, typeof regularItems>);
-
-                  const sections = Object.keys(groupedItems).sort((a, b) => {
-                    if (a === "Ajustes Generales") return 1;
-                    if (b === "Ajustes Generales") return -1;
-                    return a.localeCompare(b);
-                  });
-
-                  // Si no hay secciones (ej: todos eran nuevos y se movieron), mostrar mensaje
-                  if (regularItems.length === 0) {
-                    return (
-                      <div className="text-center text-muted-foreground py-10">
-                        Todos los cambios de objetos están en la pestaña
-                        "Nuevos".
-                      </div>
-                    );
-                  }
-
-                  return sections.map((sectionTitle) => (
-                    <div key={sectionTitle} className="space-y-4">
-                      <h3 className="text-xl font-bold flex items-center gap-2 text-primary/90 border-b border-white/5 pb-2">
-                        <Shield className="w-5 h-5 text-blue-500" />
-                        {sectionTitle.charAt(0).toUpperCase() +
-                          sectionTitle.slice(1)}
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {groupedItems[sectionTitle].map((item, idx) => (
-                          <div
-                            key={`${item.name}-${idx}`}
-                            id={`item-${item.name.replace(/\s+/g, "-")}`}
-                            className="scroll-mt-24"
-                          >
-                            <ItemCard item={item} version={data.version} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </TabsContent>
-            </>
-          );
-        })()}
+              </div>
+            ));
+          })()}
+        </TabsContent>
 
         {/* Runes Tab */}
         <TabsContent value="runes" className="space-y-3">
@@ -1092,9 +1203,16 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
               className="flex items-center gap-4 p-4 border border-border rounded-lg bg-card hover:border-primary/30 transition-colors"
             >
               <img
-                src={`https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`}
+                src={`https://ddragon.leagueoflegends.com/cdn/img/${rune.icon.replace(/^\/?/, "")}`}
                 alt={rune.name}
-                className="w-12 h-12 filter brightness-110"
+                className="w-12 h-12 filter brightness-110 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  // Si falla, intentamos con la ruta de la versión por si acaso
+                  if (!target.src.includes(`/${data.version}/`)) {
+                    target.src = `https://ddragon.leagueoflegends.com/cdn/${data.version}/img/${rune.icon.replace(/^\/?/, "")}`;
+                  }
+                }}
               />
               <div className="flex-1">
                 <p className="font-semibold">{rune.name}</p>

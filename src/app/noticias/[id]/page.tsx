@@ -1,25 +1,7 @@
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
-import { createClient } from "@/lib/supabase/server";
-import { getNoticiaById, getNoticias } from "@/lib/noticias/noticias-data";
-import { procesarContenido } from "@/lib/utils/html-processing";
-import { NoticiaLoading } from "@/components/noticias/NoticiaLoading";
-import NoticiaCabecera from "@/components/noticias/NoticiaCabecera";
-import NoticiaAutor from "@/components/noticias/NoticiaAutor";
-import NoticiaImagen from "@/components/noticias/NoticiaImagen";
-import NoticiaContenido from "@/components/noticias/NoticiaContenido";
-import NoticiaCategorias from "@/components/noticias/NoticiaCategorias";
-import NoticiasRelacionadas from "@/components/noticias/NoticiasRelacionadas";
-import NoticiaComentariosOptimizado from "@/components/noticias/NoticiaComentariosOptimizado";
-import LolPatchContent from "@/components/noticias/LolPatchContent";
-import NoticiaVistaCounter from "@/components/noticias/NoticiaVistaCounter";
-import NoticiaScrollbarStyles from "@/components/noticias/NoticiaScrollbarStyles";
-
-export const revalidate = 60; // Revalidar cada minuto
-export const dynamic = "force-dynamic"; // Forzar renderizado dinámico para evitar errores 500
-
 import { getServiceClient } from "@/lib/supabase/server";
+
+export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   // Solo generar params estáticos para mobile build
@@ -46,6 +28,23 @@ export async function generateStaticParams() {
     return [];
   }
 }
+
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
+import { createClient } from "@/lib/supabase/server";
+import { getNoticiaById, getNoticias } from "@/lib/noticias/noticias-data";
+import { procesarContenido } from "@/lib/utils/html-processing";
+import NoticiaCabecera from "@/components/noticias/NoticiaCabecera";
+import NoticiaAutor from "@/components/noticias/NoticiaAutor";
+import NoticiaImagen from "@/components/noticias/NoticiaImagen";
+import NoticiaContenido from "@/components/noticias/NoticiaContenido";
+import NoticiaCategorias from "@/components/noticias/NoticiaCategorias";
+import NoticiasRelacionadas from "@/components/noticias/NoticiasRelacionadas";
+import NoticiaComentariosOptimizado from "@/components/noticias/NoticiaComentariosOptimizado";
+import LolPatchContent from "@/components/noticias/LolPatchContent";
+import NoticiaVistaCounter from "@/components/noticias/NoticiaVistaCounter";
+import NoticiaScrollbarStyles from "@/components/noticias/NoticiaScrollbarStyles";
 
 export default async function NoticiaDetalle({
   params,
@@ -104,7 +103,7 @@ export default async function NoticiaDetalle({
         } catch (relError) {
           console.error(
             "[NoticiaDetalle] Error cargando relacionadas:",
-            relError
+            relError,
           );
         }
       }
@@ -113,13 +112,28 @@ export default async function NoticiaDetalle({
     // Procesar contenido
     const contenidoProcesado = procesarContenido(noticia.contenido);
 
+    // Preparar fuentes válidas con validación robusta
+    const validSources = [
+      ...(Array.isArray(noticia.fuentes) ? noticia.fuentes : []),
+      ...(noticia.fuente ? [noticia.fuente] : []),
+    ].filter((f): f is string => typeof f === "string" && f.trim().length > 0);
+
+    const getSafeHostname = (urlStr: string) => {
+      try {
+        if (!urlStr.startsWith("http")) return urlStr;
+        const url = new URL(urlStr);
+        return url.hostname.replace(/^www\./, "");
+      } catch (e) {
+        return urlStr;
+      }
+    };
+
     return (
       <div className="min-h-screen bg-background">
         <NoticiaScrollbarStyles />
         <NoticiaVistaCounter noticiaId={params.id} />
 
-        <main className="container py-4 px-4">
-          {/* Cabecera con título y botón de volver */}
+        <main className="container py-4 px-4 overflow-hidden">
           <NoticiaCabecera
             titulo={noticia.titulo}
             descripcion={
@@ -129,7 +143,6 @@ export default async function NoticiaDetalle({
             noticiaId={params.id}
           />
 
-          {/* Información del autor */}
           <NoticiaAutor
             nombre={noticia.autor_nombre || ""}
             autorId={noticia.autor_public_id}
@@ -140,7 +153,6 @@ export default async function NoticiaDetalle({
             vistas={noticia.vistas || 0}
           />
 
-          {/* Imagen de portada */}
           {(noticia.imagen_url || noticia.imagen_portada) && (
             <NoticiaImagen
               src={noticia.imagen_url || noticia.imagen_portada || ""}
@@ -149,80 +161,81 @@ export default async function NoticiaDetalle({
             />
           )}
 
-          {/* Contenido de la noticia (Ocultar para parches de LoL para evitar duplicidad con el componente interactivo) */}
-          {noticia.type !== "lol_patch" && (
+          {noticia.type !== "lol_patch" ? (
             <NoticiaContenido contenido={contenidoProcesado} />
-          )}
+          ) : noticia.data ? (
+            <div className="max-w-4xl mx-auto mb-8">
+              <LolPatchContent data={noticia.data} />
+            </div>
+          ) : null}
 
-          {/* Fuente de la noticia */}
-          {/* Fuentes de la noticia */}
-          {(noticia.fuentes && noticia.fuentes.length > 0) || noticia.fuente ? (
-            <div className="max-w-4xl mx-auto -mt-2 mb-8 px-2 md:px-0">
-              <div className="text-xs text-muted-foreground/70 italic flex items-center gap-1.5 overflow-hidden flex-wrap">
-                <span className="font-medium shrink-0">
-                  Fuente
-                  {noticia.fuentes && noticia.fuentes.length > 1 ? "s" : ""}:
+          {validSources.length > 0 && (
+            <div className="max-w-4xl mx-auto mt-4 mb-8 px-4 md:px-0">
+              <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50 flex items-center gap-2 overflow-hidden flex-wrap">
+                <span className="font-semibold shrink-0 flex items-center gap-1.5 text-foreground/80">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-link"
+                  >
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                  Fuente{validSources.length > 1 ? "s" : ""}:
                 </span>
-                {(noticia.fuentes && noticia.fuentes.length > 0
-                  ? noticia.fuentes
-                  : [noticia.fuente]
-                ).map((fuente, index, arr) => (
+                {validSources.map((fuente, index, arr) => (
                   <span key={index} className="inline-flex items-center">
-                    {fuente && fuente.match(/^https?:\/\//) ? (
+                    {fuente.match(/^https?:\/\//) ? (
                       <a
                         href={fuente}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:underline text-primary/80 hover:text-primary transition-colors truncate max-w-[200px] md:max-w-[300px]"
+                        className="hover:underline text-primary font-medium hover:text-primary/80 transition-colors truncate max-w-[200px] md:max-w-[400px]"
                       >
-                        {fuente}
+                        {getSafeHostname(fuente)}
                       </a>
                     ) : (
-                      <span className="truncate max-w-[200px] md:max-w-[300px]">
-                        {fuente || ""}
+                      <span className="truncate max-w-[200px] md:max-w-[400px]">
+                        {fuente}
                       </span>
                     )}
-                    {index < arr.length - 1 && <span className="mr-1">,</span>}
+                    {index < arr.length - 1 && (
+                      <span className="mx-2 text-muted-foreground/50">•</span>
+                    )}
                   </span>
                 ))}
               </div>
             </div>
-          ) : null}
-
-          {/* Contenido especial para parches de LoL */}
-          {noticia.type === "lol_patch" && noticia.data && (
-            <div className="max-w-4xl mx-auto mb-8">
-              <LolPatchContent data={noticia.data} />
-            </div>
           )}
 
-          {/* Divisor después del contenido */}
           <div className="max-w-4xl mx-auto mb-8">
             <Separator className="my-4" />
           </div>
 
-          {/* Temas relacionados */}
           <NoticiaCategorias
             categoria={noticia.categoria}
             categorias={noticia.categorias}
           />
 
-          {/* Noticias relacionadas */}
-          {/* Usamos Suspense si quisiéramos cargarlo streamed, pero aquí ya lo tenemos */}
           <NoticiasRelacionadas noticias={noticiasRelacionadas} />
 
-          {/* Divisor antes de comentarios */}
           <div className="max-w-4xl mx-auto mb-8">
-            <Separator className="my-4" />
+            <Separator className="my-10" />
           </div>
 
-          {/* Sección de comentarios */}
           <Suspense
             fallback={
-              <div className="h-64 animate-pulse bg-muted rounded-lg" />
+              <div className="h-64 animate-pulse bg-muted rounded-lg max-w-4xl mx-auto" />
             }
           >
-            <NoticiaComentariosOptimizado noticiaId={noticia.id.toString()} />
+            <NoticiaComentariosOptimizado noticiaId={params.id} />
           </Suspense>
         </main>
       </div>

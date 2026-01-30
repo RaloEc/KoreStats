@@ -110,6 +110,11 @@ export default function MobileUserProfileLayout({
                     <MatchHistoryList
                       userId={riotUserId ?? profile.id}
                       puuid={riotAccount.puuid}
+                      riotId={
+                        riotAccount.game_name && riotAccount.tag_line
+                          ? `${riotAccount.game_name}#${riotAccount.tag_line}`
+                          : undefined
+                      }
                       hideShareButton={!isOwnProfile}
                     />
                   )}

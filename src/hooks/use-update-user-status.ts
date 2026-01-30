@@ -18,7 +18,6 @@ export function useUpdateUserStatus(): UseUpdateUserStatusReturn {
   const updateStatus = useCallback(
     async (status: StatusType) => {
       if (!user?.id) {
-        console.warn("[useUpdateUserStatus] No user ID available");
         return;
       }
 
@@ -29,7 +28,6 @@ export function useUpdateUserStatus(): UseUpdateUserStatusReturn {
           .eq("id", user.id);
 
         if (error) {
-          console.error("[useUpdateUserStatus] Error updating status:", error);
           toast({
             title: "Error",
             description: "No se pudo actualizar el estado",
@@ -37,10 +35,7 @@ export function useUpdateUserStatus(): UseUpdateUserStatusReturn {
           });
           return;
         }
-
-        console.log("[useUpdateUserStatus] Status updated to:", status);
       } catch (error) {
-        console.error("[useUpdateUserStatus] Unexpected error:", error);
         toast({
           title: "Error",
           description: "Error inesperado al actualizar estado",

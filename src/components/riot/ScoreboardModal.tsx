@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -10,13 +11,14 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScoreboardModalTable } from "@/components/riot/ScoreboardModalTable";
+import { ScoreboardTable } from "@/components/riot/ScoreboardTable";
 import {
   getQueueName,
   formatDuration,
   getRelativeTime,
 } from "@/components/riot/match-card/helpers";
 import { useMatchDetails } from "@/hooks/useMatchDetails";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ScoreboardModalProps {
   matchId: string;
@@ -40,6 +42,7 @@ export function ScoreboardModal({
   currentUserPuuid,
 }: ScoreboardModalProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   // Usar React Query con caché automático - solo fetch cuando está abierto
   const {
@@ -120,7 +123,7 @@ export function ScoreboardModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-full max-w-[98vw] lg:w-[1100px] xl:max-w-[1500px] 2xl:max-w-[1680px] bg-white text-slate-900 border-slate-200 dark:bg-black dark:text-white dark:border-slate-800 max-h-[90vh] p-0 flex flex-col rounded-2xl overflow-hidden focus-visible:outline-none"
+        className="w-full max-w-[98vw] lg:w-[1100px] xl:max-w-[1500px] 2xl:max-w-[1680px] bg-white text-slate-900 border-slate-200 dark:bg-black dark:text-white dark:border-slate-800 lg:max-h-none max-h-[90vh] p-0 flex flex-col rounded-2xl overflow-hidden focus-visible:outline-none"
       >
         <div className="sr-only">
           <DialogTitle>Scoreboard de la partida</DialogTitle>
@@ -128,21 +131,35 @@ export function ScoreboardModal({
             Estadísticas detalladas de ambos equipos.
           </DialogDescription>
         </div>
-        <div className="flex flex-1 flex-col">
-          <div className="flex flex-col gap-4 px-2 py-0 sm:px-6 overflow-hidden">
-            {!loading && !errorMessage && match && headerInfo && (
-              <div className="flex flex-col gap-2 border-b border-slate-200 dark:border-slate-800 py-4">
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
-                  {headerInfo.headerTitle}
-                  <span className="text-slate-500 text-sm font-normal">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Header Fijo */}
+          {!loading && !errorMessage && match && headerInfo && (
+            <div className="px-4 sm:px-6 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between py-2 sm:py-3 h-auto">
+                <div className="flex items-center gap-2 px-1">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                    {headerInfo.headerTitle}
+                  </h2>
+                  <span className="text-slate-500 text-xs font-medium">
                     • {headerInfo.headerDuration}
                   </span>
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm flex flex-wrap items-center gap-2">
-                  {headerInfo.headerRelativeTime}
-                </p>
+                </div>
+                {headerInfo.headerRelativeTime && (
+                  <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight px-1">
+                    {headerInfo.headerRelativeTime}
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Contenido Scrollable (solo en móvil) */}
+          <div
+            className={cn(
+              "flex-1 px-2 py-4 sm:px-6",
+              isMobile ? "overflow-y-auto" : "overflow-y-hidden",
             )}
+          >
             {loading && (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -156,30 +173,29 @@ export function ScoreboardModal({
             )}
 
             {!loading && !errorMessage && matchData && headerInfo && (
-              <ScoreboardModalTable
+              <ScoreboardTable
                 matchId={matchId}
                 participants={participants}
                 currentUserPuuid={currentUserPuuid}
                 gameVersion={headerInfo.gameVersion}
                 gameDuration={headerInfo.durationSeconds}
                 matchInfo={match?.full_json?.info}
-                linkedAccountsMap={linkedAccountsMap}
               />
             )}
           </div>
 
           {!loading && !errorMessage && matchData && (
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-center justify-end border-slate-200 dark:border-slate-800 px-4 mb-2 sm:px-6 bg-white dark:bg-black w-full">
+            <div className="flex flex-row gap-2 items-center justify-end border-t border-slate-200 dark:border-slate-800 px-4 py-3 bg-white dark:bg-black w-full">
               <Button
                 variant="outline"
                 onClick={handleClose}
-                className="h-8 px-3 text-xs border-slate-600 hover:bg-slate-800"
+                className="flex-1 sm:flex-none h-9 px-4 text-xs border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 Cerrar
               </Button>
               <Button
                 onClick={handleViewAnalysis}
-                className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700"
+                className="flex-1 sm:flex-none h-9 px-4 text-xs bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Ver análisis
               </Button>

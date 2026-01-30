@@ -1,25 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { Noticia, CategoriaNoticia } from '@/types';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
+import { Noticia, CategoriaNoticia } from "@/types";
 
 // Tipos para filtros
 export type FiltroNoticias = {
   busqueda?: string;
   autor?: string;
   categoria?: string;
-  ordenFecha?: 'asc' | 'desc';
-  tipo?: 'recientes' | 'populares' | 'destacadas' | 'mas-comentadas';
+  ordenFecha?: "asc" | "desc";
+  tipo?: "recientes" | "populares" | "destacadas" | "mas-comentadas";
 };
 
 // Tipo para categorías
 export type Categoria = CategoriaNoticia;
 
 // Hook personalizado para gestionar las noticias con prefetching y optimizaciones
-export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number = 16) {
+export function useNoticias(
+  initialFiltros: FiltroNoticias = {},
+  limit: number = 16,
+) {
   const queryClient = useQueryClient();
-  
+
   // Estado para los filtros - ahora se actualiza con initialFiltros
   const [filtros, setFiltros] = useState<FiltroNoticias>(initialFiltros);
   const [page, setPage] = useState(1);
@@ -28,48 +35,46 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
   // Actualizar filtros cuando cambien los initialFiltros
   useEffect(() => {
     setFiltros(initialFiltros);
-  }, [initialFiltros.busqueda, initialFiltros.autor, initialFiltros.categoria, initialFiltros.ordenFecha, initialFiltros.tipo]);
+  }, [
+    initialFiltros.busqueda,
+    initialFiltros.autor,
+    initialFiltros.categoria,
+    initialFiltros.ordenFecha,
+    initialFiltros.tipo,
+  ]);
 
   // Función para construir la URL de la API con los filtros
   const buildApiUrl = (pageParam: number = 1): string => {
-    const baseUrl = '/api/noticias?';
+    const baseUrl = "/api/noticias?";
     const params = new URLSearchParams();
-    
+
     // Añadir parámetros de filtros si existen
-    if (filtros.busqueda) params.append('busqueda', filtros.busqueda);
-    if (filtros.autor) params.append('autor', filtros.autor);
-    if (filtros.categoria) params.append('categoria', filtros.categoria);
-    if (filtros.tipo) params.append('tipo', filtros.tipo);
-    if (filtros.ordenFecha) params.append('ordenFecha', filtros.ordenFecha);
-    
+    if (filtros.busqueda) params.append("busqueda", filtros.busqueda);
+    if (filtros.autor) params.append("autor", filtros.autor);
+    if (filtros.categoria) params.append("categoria", filtros.categoria);
+    if (filtros.tipo) params.append("tipo", filtros.tipo);
+    if (filtros.ordenFecha) params.append("ordenFecha", filtros.ordenFecha);
+
     // Añadir parámetros de paginación
-    params.append('page', pageParam.toString());
-    params.append('pageSize', pageSize.toString());
-    
+    params.append("page", pageParam.toString());
+    params.append("pageSize", pageSize.toString());
+
     return `${baseUrl}${params.toString()}`;
   };
 
   // Consulta de categorías
   const { data: categorias = [] } = useQuery({
-    queryKey: ['noticias', 'categorias'],
+    queryKey: ["noticias", "categorias"],
     queryFn: async () => {
-      console.log('[useNoticias] Iniciando carga de categorías...');
-      const response = await fetch('/api/noticias/categorias');
-      console.log('[useNoticias] Response status:', response.status);
-      
+      const response = await fetch("/api/noticias/categorias");
+
       if (!response.ok) {
-        console.error('[useNoticias] Error en response:', response.status, response.statusText);
-        throw new Error('Error al cargar categorías');
+        throw new Error("Error al cargar categorías");
       }
-      
+
       const data = await response.json();
-      console.log('[useNoticias] Datos recibidos:', data);
-      console.log('[useNoticias] data.success:', data.success);
-      console.log('[useNoticias] Array.isArray(data.data):', Array.isArray(data.data));
-      console.log('[useNoticias] data.data:', data.data);
-      
+
       if (!(data.success && Array.isArray(data.data))) {
-        console.warn('[useNoticias] Formato de datos inválido, retornando array vacío');
         return [] as Categoria[];
       }
 
@@ -100,25 +105,22 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
         })),
       }));
 
-      console.log('[useNoticias] Categorías procesadas (raíces):', raices);
-      console.log('[useNoticias] Total de categorías raíz:', raices.length);
-      
       return raices as unknown as Categoria[];
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
-  
-  console.log('[useNoticias] Categorías en estado:', categorias);
-  console.log('[useNoticias] Total categorías:', categorias.length);
 
   // Memoizar la query key para evitar re-renders innecesarios
-  const queryKey = useMemo(() => ['noticias', 'lista', filtros], [
-    filtros.busqueda,
-    filtros.autor,
-    filtros.categoria,
-    filtros.ordenFecha,
-    filtros.tipo
-  ]);
+  const queryKey = useMemo(
+    () => ["noticias", "lista", filtros],
+    [
+      filtros.busqueda,
+      filtros.autor,
+      filtros.categoria,
+      filtros.ordenFecha,
+      filtros.tipo,
+    ],
+  );
 
   // Consulta principal de noticias con paginación infinita
   const {
@@ -130,35 +132,34 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
     refetch,
     fetchNextPage,
     hasNextPage,
-    isFetchingNextPage
+    isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey,
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const url = buildApiUrl(pageParam);
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           throw new Error(`Error al obtener noticias: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           // Verificar si hay más páginas
           const hasMore = result.data.length >= pageSize;
-          
+
           // Devolver tanto los datos como la información de paginación
           return {
             data: result.data,
             hasMore,
-            total: result.total || 0
+            total: result.total || 0,
           };
         } else {
-          throw new Error(result.message || 'Error al cargar noticias');
+          throw new Error(result.message || "Error al cargar noticias");
         }
       } catch (error) {
-        console.error('Error al cargar noticias:', error);
         throw error;
       }
     },
@@ -171,37 +172,45 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
       return lastPage.hasMore ? allPages.length + 1 : undefined;
     },
   });
-  
+
   // Extraer todas las noticias de las páginas
-  const noticias = data?.pages.flatMap(page => page.data) || [];
+  const noticias = data?.pages.flatMap((page) => page.data) || [];
 
   // Función para prefetch de la siguiente página
   const prefetchNextPage = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       const nextPage = (data?.pages.length || 0) + 1;
       const nextPageUrl = buildApiUrl(nextPage);
-      
+
       queryClient.prefetchQuery({
         queryKey: [...queryKey, nextPage],
         queryFn: async () => {
           const response = await fetch(nextPageUrl);
-          if (!response.ok) throw new Error('Error al prefetch');
+          if (!response.ok) throw new Error("Error al prefetch");
           const result = await response.json();
-          
+
           if (result.success) {
             return {
               data: result.data,
               hasMore: result.data.length >= pageSize,
-              total: result.total || 0
+              total: result.total || 0,
             };
           }
-          
+
           return { data: [], hasMore: false, total: 0 };
         },
         staleTime: 5 * 60 * 1000,
       });
     }
-  }, [hasNextPage, isFetchingNextPage, data?.pages.length, buildApiUrl, queryClient, queryKey, pageSize]);
+  }, [
+    hasNextPage,
+    isFetchingNextPage,
+    data?.pages.length,
+    buildApiUrl,
+    queryClient,
+    queryKey,
+    pageSize,
+  ]);
 
   // Función para cargar más noticias
   const loadMoreNoticias = useCallback(() => {
@@ -212,17 +221,17 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
 
   // Función para actualizar filtros
   const updateFiltros = useCallback((newFiltros: FiltroNoticias) => {
-    setFiltros(prev => ({ ...prev, ...newFiltros }));
+    setFiltros((prev) => ({ ...prev, ...newFiltros }));
     setPage(1); // Reiniciar paginación
   }, []);
 
   // Función para limpiar filtros
   const clearFiltros = useCallback(() => {
     setFiltros({
-      busqueda: '',
-      autor: '',
-      categoria: '',
-      ordenFecha: 'desc'
+      busqueda: "",
+      autor: "",
+      categoria: "",
+      ordenFecha: "desc",
     });
     setPage(1);
   }, []);
@@ -234,7 +243,7 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
       const timer = setTimeout(() => {
         prefetchNextPage();
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [noticias.length, hasNextPage, isFetchingNextPage, prefetchNextPage]);
@@ -242,20 +251,25 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
   // Efecto para manejar la visibilidad de la página
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // Opcional: refrescar datos solo si han pasado X minutos desde la última actualización
-        const lastUpdate = queryClient.getQueryState(['noticias', 'lista', filtros])?.dataUpdatedAt;
+        const lastUpdate = queryClient.getQueryState([
+          "noticias",
+          "lista",
+          filtros,
+        ])?.dataUpdatedAt;
         const now = Date.now();
-        
-        if (lastUpdate && (now - lastUpdate > 5 * 60 * 1000)) { // 5 minutos
+
+        if (lastUpdate && now - lastUpdate > 5 * 60 * 1000) {
+          // 5 minutos
           refetch();
         }
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [filtros, queryClient, refetch]);
 
@@ -271,6 +285,6 @@ export function useNoticias(initialFiltros: FiltroNoticias = {}, limit: number =
     clearFiltros,
     loadMoreNoticias,
     hasNextPage,
-    isFetchingNextPage
+    isFetchingNextPage,
   };
 }

@@ -55,11 +55,11 @@ export function useHiloComentarios(
   pageSize: number = 20,
   order: "asc" | "desc" = "asc",
   sortBy: "recent" | "replies" | "votes" = "recent",
-  initialUser?: ComentariosUser | null
+  initialUser?: ComentariosUser | null,
 ) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<ComentariosUser | null>(
-    typeof initialUser === "undefined" ? null : initialUser
+    typeof initialUser === "undefined" ? null : initialUser,
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +113,7 @@ export function useHiloComentarios(
     queryFn: async ({ pageParam = 0 }) => {
       try {
         const url = `/api/comentarios?contentType=hilo&contentId=${encodeURIComponent(
-          hiloId
+          hiloId,
         )}&limite=${pageSize}&offset=${pageParam}&orden=${order}&sortBy=${sortBy}`;
 
         const response = await fetch(url);
@@ -134,14 +134,13 @@ export function useHiloComentarios(
           nextOffset: (pageParam as number) + pageSize,
         };
       } catch (err) {
-        console.error("Error al cargar comentarios del hilo:", err);
         throw err;
       }
     },
     getNextPageParam: (lastPage, allPages) => {
       const loadedCount = allPages.reduce(
         (total, page) => total + page.comentarios.length,
-        0 as number
+        0 as number,
       );
       return loadedCount < lastPage.total ? lastPage.nextOffset : undefined;
     },
@@ -206,9 +205,8 @@ export function useHiloComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al crear comentario:", err);
       setError(
-        err instanceof Error ? err.message : "Error al crear comentario"
+        err instanceof Error ? err.message : "Error al crear comentario",
       );
       return false;
     } finally {
@@ -221,7 +219,7 @@ export function useHiloComentarios(
     parentId: string,
     text: string,
     repliedTo?: { id: string; author: string; text: string; color?: string },
-    gifUrl?: string | null
+    gifUrl?: string | null,
   ) => {
     if (!user) {
       setError("Debes iniciar sesión para responder");
@@ -306,7 +304,6 @@ export function useHiloComentarios(
       }
 
       const data = await response.json();
-      console.log("[useHiloComentarios] Respuesta creada exitosamente:", data);
 
       // Reemplazar la respuesta temporal con la real del servidor
       queryClient.setQueryData(["comentarios", "hilo", hiloId], (old: any) => {
@@ -321,7 +318,7 @@ export function useHiloComentarios(
                   comment.replies?.map((reply) =>
                     reply.id === optimisticReply.id
                       ? { ...reply, id: data.id } // Reemplazar con ID real
-                      : reply
+                      : reply,
                   ) || [],
               };
             } else if (comment.replies && comment.replies.length > 0) {
@@ -345,7 +342,6 @@ export function useHiloComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al crear respuesta:", err);
       setError(err instanceof Error ? err.message : "Error al crear respuesta");
       return false;
     } finally {
@@ -387,8 +383,6 @@ export function useHiloComentarios(
         throw new Error(data.error || "Error al editar comentario");
       }
 
-      console.log("[useHiloComentarios] Comentario editado exitosamente");
-
       // Resetear completamente la query para forzar recarga desde cero
       await queryClient.resetQueries({
         queryKey: ["comentarios", "hilo", hiloId],
@@ -396,9 +390,8 @@ export function useHiloComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al editar comentario:", err);
       setError(
-        err instanceof Error ? err.message : "Error al editar comentario"
+        err instanceof Error ? err.message : "Error al editar comentario",
       );
       return false;
     } finally {
@@ -476,8 +469,6 @@ export function useHiloComentarios(
         throw new Error(data.error || "Error al eliminar comentario");
       }
 
-      console.log("[useHiloComentarios] Comentario eliminado exitosamente");
-
       // Invalidar en background para sincronizar con el servidor
       setTimeout(() => {
         queryClient.invalidateQueries({
@@ -488,9 +479,8 @@ export function useHiloComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al eliminar comentario:", err);
       setError(
-        err instanceof Error ? err.message : "Error al eliminar comentario"
+        err instanceof Error ? err.message : "Error al eliminar comentario",
       );
       return false;
     } finally {
@@ -564,11 +554,10 @@ export function useHiloComentarios(
 
       return true;
     } catch (err) {
-      console.error("Error al marcar/desmarcar solución:", err);
       setError(
         err instanceof Error
           ? err.message
-          : "Error al marcar/desmarcar solución"
+          : "Error al marcar/desmarcar solución",
       );
       return false;
     } finally {

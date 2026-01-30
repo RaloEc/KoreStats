@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
@@ -21,24 +21,16 @@ export default function AdminProtection({
   const { isLoading, isAdmin, user, profile } = useAdminAuth();
   const hasRedirectedRef = useRef(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout>();
-
-  console.log("[AdminProtection] Render:", {
-    isLoading,
-    isAdmin,
-    hasUser: !!user,
-    hasProfile: !!profile,
-    role: profile?.role,
-  });
+  // Use a state to force re-render if timeout occurs
+  const [isTimeout, setIsTimeout] = useState(false);
 
   useEffect(() => {
     // ✅ TIMEOUT: Si está cargando más de 5 segundos, asumir que el perfil no cargará
-    // y usar app_metadata como fuente de verdad
-    if (isLoading && !loadingTimeoutRef.current) {
+    // y usar app_metadata como fuente de verdad (o fallar si no hay nada)
+    if (isLoading && !loadingTimeoutRef.current && !isTimeout) {
       loadingTimeoutRef.current = setTimeout(() => {
-        console.warn(
-          "[AdminProtection] Timeout de carga > 5s, usando app_metadata como fallback"
-        );
         // Forzar re-render para que use el fallback de app_metadata
+        setIsTimeout(true);
       }, 5000);
     } else if (!isLoading && loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
@@ -48,14 +40,12 @@ export default function AdminProtection({
     // ✅ OPTIMIZADO: No esperar a que cargue el perfil si ya sabemos que es admin
     // Si hay usuario y es admin (ya sea por perfil o app_metadata), permitir acceso
     if (user && isAdmin) {
-      console.log("[AdminProtection] ✅ Usuario es admin, acceso permitido");
       hasRedirectedRef.current = true; // Marcar como procesado
       return;
     }
 
     // Si no está cargando y hay usuario pero no es admin, denegar acceso
     if (!isLoading && user && !isAdmin) {
-      console.log("[AdminProtection] ❌ Usuario no es admin, acceso denegado");
       return;
     }
 
@@ -64,12 +54,8 @@ export default function AdminProtection({
       const currentPath =
         typeof window !== "undefined" ? window.location.pathname : "";
       const redirectUrl = `${fallbackUrl}?redirect=${encodeURIComponent(
-        currentPath
+        currentPath,
       )}`;
-      console.log(
-        "[AdminProtection] No hay sesión, redirigiendo a:",
-        redirectUrl
-      );
       hasRedirectedRef.current = true;
       router.push(redirectUrl);
       return;
@@ -80,10 +66,11 @@ export default function AdminProtection({
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, [isLoading, isAdmin, user, profile, router, fallbackUrl]);
+  }, [isLoading, isAdmin, user, profile, router, fallbackUrl, isTimeout]);
 
   // Mientras está cargando, mostrar spinner
-  if (isLoading) {
+  // Consideramos loading si está cargando Y no ha ocurrido timeout
+  if (isLoading && !isTimeout) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -119,5 +106,6 @@ export default function AdminProtection({
   }
 
   // Si todo está bien (usuario autenticado y es admin), mostrar el contenido
-  return <>{children}</>;
+  // Renderizamos dentro de un fragmento/div estable para evitar problemas de re-renderizado
+  return <div className="admin-content-wrapper w-full">{children}</div>;
 }
