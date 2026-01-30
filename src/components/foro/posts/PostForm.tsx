@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 
 // Importar TiptapEditor de forma lazy para evitar problemas de SSR
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), {

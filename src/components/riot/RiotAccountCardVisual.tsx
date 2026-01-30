@@ -134,7 +134,17 @@ interface MatchSimple {
   champion_name: string;
   win: boolean;
   kda?: number;
+  kills?: number;
+  deaths?: number;
+  assists?: number;
+  total_minions_killed?: number;
+  neutral_minions_killed?: number;
+  vision_score?: number;
+  penta_kills?: number;
+  quadra_kills?: number;
+  triple_kills?: number;
   matches?: {
+    game_duration?: number;
     full_json?: {
       info?: {
         participants: {
