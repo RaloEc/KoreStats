@@ -39,6 +39,7 @@ interface ResultadoBusqueda {
   bio?: string;
   followers_count?: number;
   hilos_count?: number;
+  profile_type?: "user" | "public_profile";
 }
 
 function BuscarContent() {
@@ -78,7 +79,7 @@ function BuscarContent() {
 
       if (isUserSearch) {
         const res = await fetch(
-          `/api/usuarios/buscar?q=${encodeURIComponent(queryToSearch)}`
+          `/api/usuarios/buscar?q=${encodeURIComponent(queryToSearch)}`,
         );
         const data = res.ok ? await res.json() : { usuarios: [] };
 
@@ -97,13 +98,13 @@ function BuscarContent() {
         const [noticiasRes, hilosRes] = await Promise.all([
           fetch(
             `/api/noticias?busqueda=${encodeURIComponent(
-              queryToSearch
-            )}&limit=20`
+              queryToSearch,
+            )}&limit=20`,
           ),
           fetch(
             `/api/foro/hilos?buscar=${encodeURIComponent(
-              queryToSearch
-            )}&limit=20`
+              queryToSearch,
+            )}&limit=20`,
           ),
         ]);
 
@@ -116,13 +117,13 @@ function BuscarContent() {
           noticiasData.data?.map((item: any) => ({
             ...item,
             tipo: "noticia" as const,
-          })) || []
+          })) || [],
         );
         setHilos(
           hilosData.items?.map((item: any) => ({
             ...item,
             tipo: "hilo" as const,
-          })) || []
+          })) || [],
         );
         setUsuarios([]);
         setActiveTab("todos");
@@ -142,14 +143,21 @@ function BuscarContent() {
   };
 
   const ResultadoCard = ({ resultado }: { resultado: ResultadoBusqueda }) => {
-    const href =
-      resultado.tipo === "noticia"
-        ? `/noticias/${resultado.id}`
-        : resultado.tipo === "hilo"
-        ? `/foro/hilos/${resultado.id}`
+    let href = "";
+
+    if (resultado.tipo === "noticia") {
+      href = `/noticias/${resultado.id}`;
+    } else if (resultado.tipo === "hilo") {
+      href = `/foro/hilos/${resultado.id}`;
+    } else {
+      // Usuario
+      const isPublicProfile = resultado.profile_type === "public_profile";
+      href = isPublicProfile
+        ? `/pro/${resultado.public_id}`
         : `/perfil/${encodeURIComponent(
-            resultado.public_id || resultado.username || ""
+            resultado.public_id || resultado.username || "",
           )}`;
+    }
 
     if (resultado.tipo === "usuario") {
       return (
@@ -181,12 +189,24 @@ function BuscarContent() {
                     </h3>
                   </div>
                   {resultado.rol && resultado.rol !== "user" && (
-                    <Badge className="flex-shrink-0 bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 border dark:bg-amber-500/10">
+                    <Badge
+                      className={`flex-shrink-0 border ${
+                        resultado.rol === "pro_player"
+                          ? "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                          : resultado.rol === "streamer"
+                            ? "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                            : "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 dark:bg-amber-500/10"
+                      }`}
+                    >
                       {resultado.rol === "admin"
                         ? "👑 Admin"
                         : resultado.rol === "moderator"
-                        ? "🛡️ Mod"
-                        : resultado.rol}
+                          ? "🛡️ Mod"
+                          : resultado.rol === "pro_player"
+                            ? "PRO"
+                            : resultado.rol === "streamer"
+                              ? "LIVE"
+                              : resultado.rol}
                     </Badge>
                   )}
                 </div>

@@ -15,6 +15,8 @@ interface Usuario {
   rol?: string;
   bio?: string;
   tipo: "usuario";
+  profile_type?: "user" | "public_profile";
+  team_name?: string;
 }
 
 interface Noticia {
@@ -133,10 +135,15 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   const renderResultItem = (resultado: Resultado) => {
     if (resultado.tipo === "usuario") {
       const usuario = resultado as Usuario;
+      const isPublicProfile = usuario.profile_type === "public_profile";
+      const href = isPublicProfile
+        ? `/pro/${usuario.public_id}` // public_id contiene el slug para perfiles públicos
+        : `/perfil/${encodeURIComponent(usuario.public_id || usuario.username || "")}`;
+
       return (
         <Link
           key={`${usuario.tipo}-${usuario.id}`}
-          href={`/perfil/${encodeURIComponent(usuario.public_id || usuario.username || "")}`}
+          href={href}
           onClick={onClose}
         >
           <div className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors cursor-pointer">
@@ -152,8 +159,24 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold truncate text-sm text-gray-900 dark:text-white">
-                {usuario.username}
+              <h4 className="font-semibold truncate text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                {isPublicProfile ? (
+                  <>
+                    <span className="text-blue-600 dark:text-blue-400">
+                      @{usuario.public_id}
+                    </span>
+                    <span className="text-gray-400 dark:text-gray-500 font-normal text-[11px]">
+                      ({usuario.username})
+                    </span>
+                  </>
+                ) : (
+                  usuario.username
+                )}
+                {isPublicProfile && usuario.team_name && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-400 font-bold uppercase transition-colors">
+                    {usuario.team_name}
+                  </span>
+                )}
               </h4>
               {usuario.bio && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -161,9 +184,16 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
                 </p>
               )}
             </div>
-            {usuario.rol && usuario.rol !== "user" && (
-              <Badge className="flex-shrink-0 bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                {usuario.rol === "admin" ? "👑" : "🛡️"}
+            {(usuario.rol === "pro_player" || usuario.rol === "admin") && (
+              <Badge
+                variant="outline"
+                className={`flex-shrink-0 text-[10px] font-black tracking-widest px-1.5 py-0.5 border-0 h-fit ${
+                  usuario.rol === "pro_player"
+                    ? "bg-blue-500/5 text-blue-500/60 dark:text-blue-400/40"
+                    : "bg-amber-500/5 text-amber-500/60 dark:text-amber-400/40"
+                }`}
+              >
+                {usuario.rol === "pro_player" ? "PRO" : "ADM"}
               </Badge>
             )}
           </div>

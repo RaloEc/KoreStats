@@ -11,28 +11,44 @@ export async function GET(request: NextRequest) {
     const supabase = getServiceClient();
     // CORREGIDO: Usar query param en lugar de header
     const userId = request.nextUrl.searchParams.get("userId");
+    const paramPuuid = request.nextUrl.searchParams.get("puuid");
 
-    if (!userId) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!userId && !paramPuuid) {
+      // Necesitamos al menos uno
+      return NextResponse.json(
+        { error: "No context provided" },
+        { status: 400 },
+      );
     }
 
-    const { data: riotAccount, error: accountError } = await supabase
-      .from("linked_accounts_riot")
-      .select("puuid")
-      .eq("user_id", userId)
-      .single();
+    let targetPuuid = paramPuuid;
+    let targetUserId = userId; // Puede ser "public" o user ID
 
-    if (accountError || !riotAccount) {
-      return NextResponse.json(
-        { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 }
-      );
+    // Si no hay PUUID directo, buscar cuenta vinculada (solo si hay userId válido)
+    if (!targetPuuid && userId && userId !== "public") {
+      const { data: riotAccount, error: accountError } = await supabase
+        .from("linked_accounts_riot")
+        .select("puuid")
+        .eq("user_id", userId)
+        .single();
+
+      if (accountError || !riotAccount) {
+        return NextResponse.json(
+          { error: "No hay cuenta de Riot vinculada" },
+          { status: 404 },
+        );
+      }
+      targetPuuid = riotAccount.puuid;
+    }
+
+    if (!targetPuuid) {
+      return NextResponse.json({ error: "PUUID requerido" }, { status: 400 });
     }
 
     // Intentar usar caché
     const cachedMatches = await getCachedMatchHistory(
-      userId,
-      riotAccount.puuid
+      targetUserId || "public",
+      targetPuuid,
     );
 
     if (cachedMatches.length > 0) {
@@ -40,16 +56,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Fallback: obtener primeras 5 partidas y refrescar caché
-    const { matches } = await getMatchHistory(riotAccount.puuid, { limit: 5 });
+    const { matches } = await getMatchHistory(targetPuuid, { limit: 5 });
 
-    // Actualizar caché en background
+    // Actualizar caché en background solo si tenemos un userId válido (no public)
+    // O si queremos cachear "public" también? Sería bueno cachear public.
+    const cacheUserId = targetUserId || "public";
+
     (async () => {
       try {
-        await refreshMatchHistoryCache(userId, riotAccount.puuid);
+        await refreshMatchHistoryCache(cacheUserId, targetPuuid!); // ! es seguro por chequeo previo
       } catch (err) {
         console.error(
           "[GET /api/riot/matches/cache] Error refrescando caché:",
-          err
+          err,
         );
       }
     })();
@@ -59,7 +78,7 @@ export async function GET(request: NextRequest) {
     console.error("[GET /api/riot/matches/cache] Error:", error.message);
     return NextResponse.json(
       { error: "Error al obtener caché de partidas" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

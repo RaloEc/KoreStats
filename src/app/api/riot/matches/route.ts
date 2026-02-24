@@ -93,25 +93,34 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getServiceClient();
 
-    // Obtener user_id del query param (userId)
+    // Obtener user_id del query param (userId) O puuid directo
     const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    const puuidParam = request.nextUrl.searchParams.get("puuid");
+
+    let puuid = puuidParam;
+
+    if (!puuid) {
+      if (!userId) {
+        return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      }
+
+      // Obtener cuenta de Riot vinculada solo si no hay puuid directo
+      const { data: riotAccount, error: accountError } = await supabase
+        .from("linked_accounts_riot")
+        .select("puuid, active_shard")
+        .eq("user_id", userId)
+        .single();
+
+      if (accountError || !riotAccount) {
+        return NextResponse.json(
+          { error: "No hay cuenta de Riot vinculada" },
+          { status: 404 },
+        );
+      }
+      puuid = riotAccount.puuid;
     }
 
-    // Obtener cuenta de Riot vinculada
-    const { data: riotAccount, error: accountError } = await supabase
-      .from("linked_accounts_riot")
-      .select("puuid, active_shard")
-      .eq("user_id", userId)
-      .single();
-
-    if (accountError || !riotAccount) {
-      return NextResponse.json(
-        { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 },
-      );
-    }
+    // Si llegamos aquí tenemos un puuid válido (ya sea directo o de BD)
 
     // Obtener parámetro de límite
     const limitParam = request.nextUrl.searchParams.get("limit");
@@ -134,13 +143,13 @@ export async function GET(request: NextRequest) {
     // IMPORTANTE: Stats siempre se calcula con límite de 40 para consistencia,
     // independientemente del límite de partidas mostradas (que puede ser 5 para lazy load)
     const [matchHistory, stats] = await Promise.all([
-      getMatchHistory(riotAccount.puuid, {
+      getMatchHistory(puuid!, {
         limit,
         cursor,
         queueIds,
         excludeFullJson: summary,
       }),
-      getPlayerStatsOptimized(supabase, riotAccount.puuid, {
+      getPlayerStatsOptimized(supabase, puuid!, {
         limit: DEFAULT_MATCH_LIMIT, // Siempre 40 para stats consistentes
         queueIds,
       }),
@@ -173,26 +182,39 @@ export async function POST(request: NextRequest) {
     // Obtener userId del body
     const body = await request.json().catch(() => null);
     const userId = body?.userId;
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId es requerido" },
-        { status: 400 },
-      );
+    const directPuuid = body?.puuid;
+    const directRegion = body?.region;
+
+    let puuid = directPuuid;
+    let region = directRegion;
+
+    if (!puuid) {
+      if (!userId) {
+        return NextResponse.json(
+          { error: "userId o puuid es requerido" },
+          { status: 400 },
+        );
+      }
+
+      // Obtener cuenta de Riot vinculada
+      const { data: riotAccount, error: accountError } = await supabase
+        .from("linked_accounts_riot")
+        .select("puuid, active_shard, access_token")
+        .eq("user_id", userId)
+        .single();
+
+      if (accountError || !riotAccount) {
+        return NextResponse.json(
+          { error: "No hay cuenta de Riot vinculada" },
+          { status: 404 },
+        );
+      }
+      puuid = riotAccount.puuid;
+      region = riotAccount.active_shard || "la1";
     }
 
-    // Obtener cuenta de Riot vinculada
-    const { data: riotAccount, error: accountError } = await supabase
-      .from("linked_accounts_riot")
-      .select("puuid, active_shard, access_token")
-      .eq("user_id", userId)
-      .single();
-
-    if (accountError || !riotAccount) {
-      return NextResponse.json(
-        { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 },
-      );
-    }
+    // Si no tenemos región (caso directo sin región), default a la1 o error?
+    if (!region) region = "la1";
 
     // Obtener API Key de Riot
     const apiKey = process.env.RIOT_API_KEY;
@@ -208,8 +230,8 @@ export async function POST(request: NextRequest) {
 
     // Sincronizar partidas
     const result = await syncMatchHistory(
-      riotAccount.puuid,
-      riotAccount.active_shard || "la1",
+      puuid,
+      region,
       apiKey,
       100, // Sincronizar últimas 100 partidas
     );
@@ -222,18 +244,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener historial actualizado
-    const matchHistory = await getMatchHistory(riotAccount.puuid, {
+    const matchHistory = await getMatchHistory(puuid!, {
       limit: DEFAULT_MATCH_LIMIT,
     });
-    const stats = await getPlayerStats(riotAccount.puuid, DEFAULT_MATCH_LIMIT);
+    const stats = await getPlayerStats(puuid!, DEFAULT_MATCH_LIMIT);
 
-    // Refrescar caché de últimas 5 partidas en background
-    refreshMatchHistoryCache(userId, riotAccount.puuid).catch((err) =>
-      console.error(
-        "[POST /api/riot/matches/sync] Error refrescando caché:",
-        err,
-      ),
-    );
+    // Refrescar caché de últimas 5 partidas en background solo si hay userId
+    if (userId) {
+      refreshMatchHistoryCache(userId, puuid!).catch((err) =>
+        console.error(
+          "[POST /api/riot/matches/sync] Error refrescando caché:",
+          err,
+        ),
+      );
+    }
 
     return NextResponse.json({
       success: true,

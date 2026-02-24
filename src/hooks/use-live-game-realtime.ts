@@ -62,11 +62,13 @@ export const useLiveGameRealtime = (
   const [gameData, setGameData] = useState<LiveGameDataLCU | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
+  const [isStale, setIsStale] = useState(false);
 
   useEffect(() => {
     const targetPuuid = userPuuid || null;
 
-    if (!targetPuuid && !riotId) {
+    if (!targetPuuid && !riotId && !userId) {
       setGameData(null);
       setIsConnected(false);
       return;
@@ -77,41 +79,80 @@ export const useLiveGameRealtime = (
     const fetchAndSubscribe = async () => {
       setIsLoading(true);
 
-      // --- 1. CARGA INICIAL (SNAPSHOT DB) ---
+      // 1. CARGA INICIAL (SNAPSHOT DB) ---
       let dbId = targetPuuid ? `live-${targetPuuid}` : null;
       let availablePuuid = targetPuuid;
+      let foundData = null;
 
-      // Si no tenemos PUUID, intentamos buscar el ID row por RiotID (Fallback)
-      if (!dbId && riotId) {
-        const { data: searchData } = await supabase
+      // 0. Si no tenemos PUUID pero si userId, buscamos PUUID
+      if (!availablePuuid && !riotId && userId) {
+        const { data: acc, error: accError } = await supabase
+          .from("linked_accounts_riot")
+          .select("puuid")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (accError) {
+          console.error("Error fetching linked account:", accError);
+        }
+
+        if (acc?.puuid) {
+          availablePuuid = acc.puuid;
+          dbId = `live-${availablePuuid}`;
+        }
+      }
+
+      // --- ESTRATEGIA DE BÚSQUEDA ---
+
+      // A. Intento Directo (El jugador es el informador)
+      if (dbId) {
+        const { data, error } = await supabase
+          .from("live_game_states")
+          .select("id, data")
+          .eq("id", dbId)
+          .maybeSingle();
+
+        if (data?.data) {
+          foundData = { id: data.id, data: data.data };
+        }
+      }
+
+      // B. Intento por PUUID en livePlayers (El jugador está en la partida de otro)
+      if (!foundData && availablePuuid) {
+        const { data: searchData, error: searchError } = await supabase
+          .from("live_game_states")
+          .select("id, data")
+          .contains("data", { livePlayers: [{ puuid: availablePuuid }] })
+          .limit(1)
+          .maybeSingle();
+
+        if (searchData?.data) {
+          foundData = { id: searchData.id, data: searchData.data };
+        }
+      }
+
+      // C. Intento por RiotID en livePlayers (Fallback)
+      if (!foundData && riotId) {
+        const { data: searchData, error: searchError } = await supabase
           .from("live_game_states")
           .select("id, data")
           .contains("data", { livePlayers: [{ riotId: riotId }] })
           .limit(1)
           .maybeSingle();
 
-        if (searchData) {
-          dbId = searchData.id;
-          availablePuuid = searchData.id.replace("live-", "");
-          if (searchData.data) {
-            // Normalizar datos iniciales (cs -> creepScore si es necesario)
-            const normalizedData = normalizeGameData(searchData.data as any);
-            setGameData(normalizedData);
-            setIsConnected(true);
-          }
+        if (searchData?.data) {
+          foundData = { id: searchData.id, data: searchData.data };
         }
-      } else if (dbId) {
-        const { data } = await supabase
-          .from("live_game_states")
-          .select("data")
-          .eq("id", dbId)
-          .maybeSingle();
+      }
 
-        if (data?.data) {
-          const normalizedData = normalizeGameData(data.data as any);
-          setGameData(normalizedData);
-          setIsConnected(true);
-        }
+      // Si encontramos algo, aplicamos
+      if (foundData) {
+        const reporterId = foundData.id;
+        availablePuuid = reporterId.replace("live-", "");
+
+        const normalizedData = normalizeGameData(foundData.data as any);
+        setGameData(normalizedData);
+        setIsConnected(true);
       }
 
       setIsLoading(false);
@@ -132,6 +173,8 @@ export const useLiveGameRealtime = (
               const normalized = normalizeGameData(payload.payload as any);
               setGameData(normalized);
               setIsConnected(true);
+              setLastUpdateTime(Date.now());
+              setIsStale(false);
             }
           })
           .on(
@@ -148,6 +191,8 @@ export const useLiveGameRealtime = (
                 const normalized = normalizeGameData(payload.new.data as any);
                 setGameData(normalized);
                 setIsConnected(true);
+                setLastUpdateTime(Date.now());
+                setIsStale(false);
               }
             },
           )
@@ -164,9 +209,41 @@ export const useLiveGameRealtime = (
       if (activeChannel) supabase.removeChannel(activeChannel);
       setIsConnected(false);
     };
-  }, [userPuuid, riotId]);
+  }, [userPuuid, riotId, userId]);
 
-  return { gameData, isConnected, isLoading };
+  // Efecto para detectar datos estancados (sin actualización en 30 segundos)
+  useEffect(() => {
+    if (!gameData) {
+      setIsStale(false);
+      return;
+    }
+
+    const STALE_THRESHOLD = 30000; // 30 segundos sin updates = marcar como stale
+    const CLEANUP_THRESHOLD = 300000; // 5 minutos sin updates = limpiar (partida probablemente terminada)
+
+    const checkInterval = setInterval(() => {
+      const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+
+      if (timeSinceLastUpdate > CLEANUP_THRESHOLD) {
+        // Si han pasado más de 5 minutos sin actualizaciones, asumir que la partida terminó
+        console.warn(
+          `🧹 Limpiando datos de partida obsoletos (${Math.round(timeSinceLastUpdate / 1000)}s sin actualización)`,
+        );
+        setGameData(null);
+        setIsStale(false);
+        setIsConnected(false);
+      } else if (timeSinceLastUpdate > STALE_THRESHOLD) {
+        setIsStale(true);
+        console.warn(
+          `⚠️ Datos de partida en vivo estancados (${Math.round(timeSinceLastUpdate / 1000)}s sin actualización)`,
+        );
+      }
+    }, 5000); // Verificar cada 5 segundos
+
+    return () => clearInterval(checkInterval);
+  }, [gameData, lastUpdateTime]);
+
+  return { gameData, isConnected, isLoading, isStale, lastUpdateTime };
 };
 
 // Helper para asegurar que .creepScore siempre exista (UI legacy lo usa)

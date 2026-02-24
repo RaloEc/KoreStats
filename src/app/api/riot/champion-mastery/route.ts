@@ -80,20 +80,30 @@ export async function GET(request: NextRequest) {
       .from("linked_accounts_riot")
       .select("active_shard")
       .eq("puuid", puuid)
-      .single();
+      .maybeSingle();
 
-    if (accountError || !riotAccount) {
-      console.error(
-        "[GET /api/riot/champion-mastery] Error obteniendo cuenta:",
-        accountError,
-      );
-      return NextResponse.json(
-        { error: "No hay cuenta de Riot vinculada" },
-        { status: 404 },
-      );
+    let region = "la1";
+
+    if (riotAccount) {
+      region = riotAccount.active_shard || "la1";
+    } else {
+      // Fallback: Check header x-region
+      const headerRegion = request.headers.get("x-region");
+      if (headerRegion) {
+        region = headerRegion;
+      } else if (accountError) {
+        console.warn(
+          "[GET /api/riot/champion-mastery] Error buscando cuenta, usando default region:",
+          accountError.message,
+        );
+      } else {
+        // Si no hay cuenta ni header, asumimos LA1 pero podría no funcionar si el usuario es de KR
+        console.log(
+          "[GET /api/riot/champion-mastery] No linked account, using default/header region:",
+          region,
+        );
+      }
     }
-
-    const region = riotAccount.active_shard || "la1";
     const apiKey = process.env.RIOT_API_KEY;
 
     if (!apiKey) {

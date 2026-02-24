@@ -1162,6 +1162,7 @@ export async function getMatchHistory(
         assists,
         kda,
         total_damage_dealt,
+        total_damage_dealt_to_champions,
         gold_earned,
         vision_score,
         item0,

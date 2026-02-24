@@ -17,7 +17,6 @@ import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
 import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
-import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { UnifiedRiotSyncButton } from "@/components/riot/UnifiedRiotSyncButton";
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
 import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
@@ -171,7 +170,6 @@ export default function MobileProfileLayout({
                 />
 
                 <div className="grid grid-cols-1 gap-6">
-                  <ChampionStatsSummary puuid={riotAccount.puuid} />
                   <SavedBuildsPanel />
                   <div>
                     <MatchHistoryList

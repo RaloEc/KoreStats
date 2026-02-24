@@ -47,11 +47,11 @@ export function TeamPlayerList({
               isCurrentPlayer
                 ? "bg-blue-500/30 font-semibold"
                 : hasProfile
-                  ? "hover:bg-white/10 cursor-pointer"
+                  ? "hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer"
                   : ""
             } ${linkedHighlightClasses}`}
           >
-            <div className="relative w-4 h-4 rounded overflow-hidden flex-shrink-0 border border-slate-700">
+            <div className="relative w-4 h-4 rounded overflow-hidden flex-shrink-0 border border-slate-300 dark:border-slate-700">
               <Image
                 src={getChampionImageUrl(player.championName, version)}
                 alt={player.championName}

@@ -60,13 +60,12 @@ export function ReactQueryProvider({ children }: { children: ReactNode }) {
   // Optimización: Pausar consultas cuando la página no está visible
   useEffect(() => {
     const handleVisibilityChange = () => {
-      // Pausar consultas cuando la página no está visible
       if (document.visibilityState === "hidden") {
-        try {
-          queryClient.cancelQueries();
-        } catch (error) {
-          // Ignorar errores de cancelación
-        }
+        // Pausar/Cancelar consultas activas para ahorrar recursos
+        // Se añade .catch para evitar "Uncaught (in promise) CancelledError" en la consola
+        queryClient.cancelQueries().catch(() => {
+          /* Silent catch for intentional cancellations */
+        });
       }
     };
 

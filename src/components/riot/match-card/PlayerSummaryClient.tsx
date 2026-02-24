@@ -64,7 +64,7 @@ export function PlayerSummaryClient({
 
   const avatarBlock = (
     <div className="flex flex-col items-center gap-1.5 w-[72px]">
-      <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-slate-600 bg-slate-800">
+      <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-slate-300 bg-slate-200 dark:border-slate-600 dark:bg-slate-800">
         <Image
           src={getChampionImageUrl(data.championName, version)}
           alt={data.championName}
@@ -78,7 +78,7 @@ export function PlayerSummaryClient({
       {(data.summoner1Id || data.summoner2Id) && (
         <div className="flex gap-1">
           {data.summoner1Id && (
-            <div className="relative w-7 h-7 rounded border border-slate-600 overflow-hidden bg-slate-800">
+            <div className="relative w-7 h-7 rounded border border-slate-300 bg-slate-200 dark:border-slate-600 dark:bg-slate-800 overflow-hidden">
               {getSummonerSpellUrl(data.summoner1Id, version) && (
                 <Image
                   src={getSummonerSpellUrl(data.summoner1Id, version)}
@@ -92,7 +92,7 @@ export function PlayerSummaryClient({
             </div>
           )}
           {data.summoner2Id && (
-            <div className="relative w-7 h-7 rounded border border-slate-600 overflow-hidden bg-slate-800">
+            <div className="relative w-7 h-7 rounded border border-slate-300 bg-slate-200 dark:border-slate-600 dark:bg-slate-800 overflow-hidden">
               {getSummonerSpellUrl(data.summoner2Id, version) && (
                 <Image
                   src={getSummonerSpellUrl(data.summoner2Id, version)}
@@ -115,7 +115,7 @@ export function PlayerSummaryClient({
       <RunesTooltip perks={data.perks}>
         <div className={`flex flex-col gap-1.5 ${reverse ? "items-end" : ""}`}>
           {keystoneIconUrl ? (
-            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-900">
               <Image
                 src={keystoneIconUrl}
                 alt="Keystone"
@@ -126,7 +126,7 @@ export function PlayerSummaryClient({
               />
             </div>
           ) : data.primaryRune ? (
-            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-900">
               <Image
                 src={getRuneIconUrl(data.primaryRune)}
                 alt="Primary Style"
@@ -139,7 +139,7 @@ export function PlayerSummaryClient({
           ) : null}
 
           {data.secondaryRune && (
-            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-900">
+            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-900">
               <Image
                 src={getRuneIconUrl(data.secondaryRune)}
                 alt="Secondary Style"

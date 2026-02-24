@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Plus,
   Calendar,
+  Trophy,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,7 +75,7 @@ export default function DashboardContent() {
       const supabase = createClient();
       if (!supabase) {
         console.error(
-          "[Dashboard] No se pudo obtener el cliente Supabase para estadísticas"
+          "[Dashboard] No se pudo obtener el cliente Supabase para estadísticas",
         );
         setStatsLoading(false);
         return;
@@ -93,7 +94,7 @@ export default function DashboardContent() {
         ]);
 
       const getCount = (
-        result: PromiseSettledResult<{ count: number | null }>
+        result: PromiseSettledResult<{ count: number | null }>,
       ) =>
         result.status === "fulfilled" && result.value.count
           ? result.value.count
@@ -145,7 +146,7 @@ export default function DashboardContent() {
         const { data, error } = await supabase
           .from("noticias")
           .select(
-            "id, titulo, contenido, imagen_portada, fecha_publicacion, created_at, autor, autor_id"
+            "id, titulo, contenido, imagen_portada, fecha_publicacion, created_at, autor, autor_id",
           )
           .order("created_at", { ascending: false })
           .limit(4);
@@ -162,8 +163,8 @@ export default function DashboardContent() {
               [
                 ...list.map((n) => n.autor_id),
                 ...list.map((n) => n.autor),
-              ].filter((v): v is string => Boolean(v))
-            )
+              ].filter((v): v is string => Boolean(v)),
+            ),
           );
           if (ids.length > 0) {
             const { data: perfiles, error: perfilesError } = await supabase
@@ -358,6 +359,15 @@ export default function DashboardContent() {
                 <span className="text-sm">Noticias</span>
               </Button>
             </Link>
+            <Link href="/admin/perfiles-publicos">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2 dark:bg-zinc-950 dark:border-zinc-800/70 dark:hover:bg-zinc-900"
+              >
+                <Trophy className="h-4 w-4" />
+                <span className="text-sm">Pros & Streamers</span>
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
@@ -453,7 +463,7 @@ export default function DashboardContent() {
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 amoled:text-zinc-300 truncate">
                         {n.fecha_publicacion || n.created_at
                           ? new Date(
-                              n.fecha_publicacion || n.created_at || ""
+                              n.fecha_publicacion || n.created_at || "",
                             ).toLocaleString("es-ES", {
                               dateStyle: "medium",
                               timeStyle: "short",

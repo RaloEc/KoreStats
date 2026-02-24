@@ -767,11 +767,13 @@ export function ActiveMatchCard({
   recentMatches = [],
   puuid: currentPuuid,
   riotId,
+  staticData,
 }: {
   userId?: string;
   recentMatches?: Match[];
   puuid?: string | null;
   riotId?: string;
+  staticData?: any;
 }) {
   const { user, profile: contextProfile } = useAuth();
   const { data: profile } = useProfileQuery(user?.id);
@@ -814,7 +816,7 @@ export function ActiveMatchCard({
     summonerName: string,
     championName: string | null,
   ): LivePlayerLCU | undefined => {
-    if ((realtimeData as any).isApiFallback) return undefined;
+    if (!realtimeData || (realtimeData as any).isApiFallback) return undefined;
 
     // Función de normalización robusta
     const normalize = (s: string | null | undefined) => {
@@ -958,8 +960,17 @@ export function ActiveMatchCard({
       realtimeData.phase === "WaitingForStats" ||
       realtimeData.phase === "PreEndOfGame" ||
       realtimeData.phase === "TerminatedInError"
-    )
+    ) {
+      // Intentar usar staticData como fallback si existe y es válido
+      if (staticData && staticData.hasActiveMatch) {
+        return {
+          ...staticData,
+          isApiFallback: true,
+          phase: staticData.phase || "InProgress",
+        } as ActiveMatchResponse;
+      }
       return { hasActiveMatch: false, reason: "No data" };
+    }
 
     const mapToPart = (p: any): ActiveParticipant => ({
       teamId: p.teamId === 100 || p.team === "ORDER" ? 100 : 200,
@@ -1062,7 +1073,7 @@ export function ActiveMatchCard({
       teams: { team100: t100, team200: t200 },
       isApiFallback: (realtimeData as any).isApiFallback,
     };
-  }, [realtimeData]);
+  }, [realtimeData, staticData]);
 
   const hasMatch = data?.hasActiveMatch === true;
   const currentPhase = data?.hasActiveMatch ? data.phase : undefined;
@@ -1106,6 +1117,26 @@ export function ActiveMatchCard({
         : new Map<string, ActiveParticipant>(),
     [data, hasMatch],
   );
+
+  const currentUserParticipant = useMemo(() => {
+    if (!hasMatch || !data?.hasActiveMatch) return null;
+    const all = [...data.teams.team100, ...data.teams.team200];
+    return all.find((p) => p.puuid === currentPuuid);
+  }, [data, hasMatch, currentPuuid]);
+
+  const currentChampionImg = useMemo(() => {
+    if (!currentUserParticipant) return null;
+    const name = currentUserParticipant.championName;
+    const id = currentUserParticipant.championId;
+    if (!name && !id) return null;
+
+    const fixed = name ? CHAMPION_NAME_FIXES[name] || name : null;
+    let img = fixed ? getChampionImg(fixed) : null;
+    if (!img && id > 0) {
+      img = `https://cdn.communitydragon.org/latest/champion/${id}/square`;
+    }
+    return img;
+  }, [currentUserParticipant]);
 
   useEffect(() => {
     if (wasInGameRef.current && !hasMatch) {
@@ -1207,6 +1238,33 @@ export function ActiveMatchCard({
             {!isConnected && (
               <div className="text-xs text-slate-600 dark:text-slate-400">
                 En partida{timerText ? ` • ${timerText}` : ""}
+              </div>
+            )}
+            {!isExpanded && currentUserParticipant && currentChampionImg && (
+              <div className="flex items-center gap-2 mt-1.5 transition-opacity duration-300">
+                <div className="relative w-5 h-5 rounded-md overflow-hidden border border-slate-300 dark:border-slate-700 shadow-sm">
+                  <Image
+                    src={currentChampionImg}
+                    alt={currentUserParticipant.championName || "Champion"}
+                    fill
+                    sizes="20px"
+                    className="object-cover"
+                    unoptimized={currentChampionImg.startsWith("http")}
+                  />
+                </div>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-none">
+                  {currentUserParticipant.championName || "Seleccionado"}
+                </span>
+                {currentUserParticipant.summonerName && (
+                  <>
+                    <span className="text-slate-300 dark:text-slate-600">
+                      •
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {currentUserParticipant.summonerName}
+                    </span>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -1416,7 +1474,7 @@ export function ActiveMatchCard({
                         porque en modos como ARAM no hay roles definidos y se perderían jugadores. */}
                     {(currentPhase === "ChampSelect" ||
                     currentPhase === "BAN_PICK"
-                      ? data.teams.team100
+                      ? (data as any).teams.team100
                       : ROLE_ORDER
                     ).map((r, idx) => {
                       const p =
@@ -1461,7 +1519,7 @@ export function ActiveMatchCard({
                     {/* Misma lógica para equipo rojo */}
                     {(currentPhase === "ChampSelect" ||
                     currentPhase === "BAN_PICK"
-                      ? data.teams.team200
+                      ? (data as any).teams.team200
                       : ROLE_ORDER
                     ).map((r, idx) => {
                       const p =

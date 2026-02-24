@@ -338,7 +338,7 @@ export function MatchCardServer({
       </div>
 
       {/* 2. Champion summaries */}
-      <div className="flex items-stretch gap-4 pr-4 border-r border-slate-800/60">
+      <div className="flex items-stretch gap-4 pr-4 border-r border-slate-200 dark:border-slate-800/60">
         <div className="flex-[0.9] min-w-0">
           <PlayerSummaryClient
             data={playerSummary}
@@ -373,7 +373,7 @@ export function MatchCardServer({
               key={idx}
               className={`relative w-7 h-7 rounded overflow-hidden ${
                 itemId
-                  ? "border border-slate-600 bg-slate-800"
+                  ? "border border-slate-400 bg-slate-200 dark:border-slate-600 dark:bg-slate-800"
                   : "border border-slate-300 bg-slate-200/70 dark:border-slate-600 dark:bg-slate-800/40"
               }`}
             >
@@ -394,7 +394,7 @@ export function MatchCardServer({
           <div
             className={`relative w-7 h-7 rounded overflow-hidden ${
               trinketItem
-                ? "border border-slate-600 bg-slate-800"
+                ? "border border-slate-400 bg-slate-200 dark:border-slate-600 dark:bg-slate-800"
                 : "border border-slate-300 bg-slate-200/70 dark:border-slate-600 dark:bg-slate-800/40"
             }`}
           >

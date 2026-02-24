@@ -183,6 +183,7 @@ interface RiotAccountCardVisualProps {
   cooldownSeconds?: number;
   hideSync?: boolean;
   profileColor?: string;
+  staticData?: any;
 }
 
 // ... existing interfaces ...
@@ -198,6 +199,7 @@ export function RiotAccountCardVisual({
   cooldownSeconds = 0,
   hideSync = false,
   profileColor,
+  staticData,
 }: RiotAccountCardVisualProps) {
   const router = useRouter();
 
@@ -227,8 +229,51 @@ export function RiotAccountCardVisual({
     }
   }, [playerStatus, isMounted, account.puuid]);
 
-  const phase = realtimeData?.phase;
+  const rawPhase = realtimeData?.phase;
+
+  // Si no hay phase en realtimeData, pero si en staticData (Riot API fallback)
+  const phase =
+    rawPhase && rawPhase !== "None" && rawPhase !== "EndOfGame"
+      ? rawPhase
+      : staticData?.hasActiveMatch
+        ? staticData.phase || "InProgress"
+        : rawPhase;
+
   const phaseConfig = phase ? PHASE_LABELS[phase] : null;
+
+  const currentPlayerInGame = useMemo(() => {
+    // 1. Intentar con realtimeData (más rico en detalles)
+    if (realtimeData?.livePlayers && realtimeData.livePlayers.length > 0) {
+      const targetPuuid = account.puuid;
+      const targetName = account.game_name?.toLowerCase();
+
+      return realtimeData.livePlayers.find(
+        (p) =>
+          (p.puuid && p.puuid === targetPuuid) ||
+          (p.summonerName && p.summonerName.toLowerCase() === targetName) ||
+          (p.riotId && p.riotId.toLowerCase() === targetName),
+      );
+    }
+
+    // 2. Fallback a staticData (Riot API)
+    if (staticData?.hasActiveMatch && staticData.teams) {
+      const allPlayers = [
+        ...(staticData.teams.team100 || []),
+        ...(staticData.teams.team200 || []),
+      ];
+      const targetPuuid = account.puuid;
+      const targetName = account.game_name?.toLowerCase();
+
+      return allPlayers.find(
+        (p: any) =>
+          (p.puuid && p.puuid === targetPuuid) ||
+          (p.summonerName && p.summonerName.toLowerCase() === targetName),
+      );
+    }
+
+    return null;
+  }, [realtimeData, account, staticData]);
+
   const [userId, setUserId] = useState<string | null>(
     propUserId ?? account.user_id ?? null,
   );
@@ -829,12 +874,14 @@ export function RiotAccountCardVisual({
                         {regionName}
                       </Badge>
                     </div>
-                    <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate flex items-baseline gap-1">
-                      {account.game_name}
-                      <span className="text-sm font-medium text-slate-500 dark:text-white/20">
-                        #{account.tag_line}
-                      </span>
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate flex items-baseline gap-1">
+                        {account.game_name}
+                        <span className="text-sm font-medium text-slate-500 dark:text-white/20">
+                          {account.tag_line}
+                        </span>
+                      </h2>
+                    </div>
 
                     {/* Winrate Mini Bar - Ultra Sharp */}
                     <div

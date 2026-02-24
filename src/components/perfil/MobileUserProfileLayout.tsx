@@ -9,7 +9,6 @@ import StatusFeed from "@/components/social/StatusFeed";
 
 import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
-import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
 import { FriendsListCompact } from "@/components/social/FriendsListCompact";
 
@@ -24,6 +23,7 @@ interface MobileUserProfileLayoutProps {
   isSyncing?: boolean;
   syncError?: string | null;
   isOwnProfile?: boolean;
+  staticActiveMatch?: any;
 }
 
 export default function MobileUserProfileLayout({
@@ -34,6 +34,7 @@ export default function MobileUserProfileLayout({
   isSyncing = false,
   syncError = null,
   isOwnProfile = false,
+  staticActiveMatch = null,
 }: MobileUserProfileLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -97,14 +98,10 @@ export default function MobileUserProfileLayout({
                   syncError={syncError}
                   onSync={onSync}
                   profileColor={profile.color}
+                  staticData={staticActiveMatch}
                 />
 
                 <div className="grid grid-cols-1 gap-6">
-                  {/* Estadísticas de campeones */}
-                  {riotAccount.puuid && (
-                    <ChampionStatsSummary puuid={riotAccount.puuid} />
-                  )}
-
                   {/* Historial de partidas */}
                   {riotAccount.puuid && (
                     <MatchHistoryList
@@ -116,6 +113,7 @@ export default function MobileUserProfileLayout({
                           : undefined
                       }
                       hideShareButton={!isOwnProfile}
+                      staticActiveMatch={staticActiveMatch}
                     />
                   )}
                 </div>

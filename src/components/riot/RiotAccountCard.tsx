@@ -26,6 +26,8 @@ interface RiotAccountCardProps {
   externalCooldownSeconds?: number;
   initialAccount?: LinkedAccountRiot | null;
   profileColor?: string;
+  isPublicProfile?: boolean;
+  staticData?: any;
 }
 
 /**
@@ -39,6 +41,8 @@ export function RiotAccountCard({
   externalCooldownSeconds = 0,
   initialAccount,
   profileColor,
+  isPublicProfile = false,
+  staticData,
 }: RiotAccountCardProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -55,23 +59,24 @@ export function RiotAccountCard({
     externalSyncPending || (propOnSync ? false : unifiedSyncPending);
   const currentCooldown = Math.max(
     externalCooldownSeconds,
-    propOnSync ? 0 : unifiedSyncCooldown
+    propOnSync ? 0 : unifiedSyncCooldown,
   );
   const handleSync = propOnSync || unifiedSync;
 
   // Obtener información de la cuenta de Riot vinculada
+  // Solo se habilita si NO es un perfil público o si no tenemos datos iniciales
   const {
     data: riotAccount,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["riot-account", user?.id],
+    queryKey: [
+      "riot-account",
+      isPublicProfile ? "public" : user?.id,
+      initialAccount?.puuid,
+    ],
     queryFn: async () => {
-      // Si tenemos cuenta inicial y coincide con el usuario, usarla (aunque useQuery la reemplazará si es initialData, pero sirve de cache)
-      // Pero aquí fetchamos de /api/riot/account que es la cuenta DEL USUARIO LOGUEADO.
-      // Si initialAccount viene de un perfil PUBLICO, hay que tener cuidado.
-      // Pero RiotAccountCard parece diseñado para "Mi Cuenta" (por el botón de desvincular).
-      // Asumiremos que initialAccount es correcto para este contexto.
+      if (isPublicProfile && initialAccount) return initialAccount;
       if (!user?.id) throw new Error("No user");
 
       const response = await fetch("/api/riot/account");
@@ -88,10 +93,10 @@ export function RiotAccountCard({
 
       return data.account as LinkedAccountRiot;
     },
-    enabled: !!user?.id,
-    initialData: initialAccount || undefined, // Usa los datos iniciales si existen
-    staleTime: 30 * 60 * 1000, // 30 minutos - caché más agresivo
-    gcTime: 60 * 60 * 1000, // 1 hora
+    enabled: isPublicProfile ? true : !!user?.id,
+    initialData: initialAccount || undefined,
+    staleTime: isPublicProfile ? Infinity : 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   // NOTA: Se ha reemplazado la mutación local por useUnifiedRiotSync
@@ -164,6 +169,7 @@ export function RiotAccountCard({
         cooldownSeconds={currentCooldown}
         hideSync={false}
         profileColor={profileColor}
+        staticData={staticData}
       />
     );
   }

@@ -369,37 +369,65 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Obtener userId del query param (para perfiles públicos)
+    // Obtener parámetros directos (prioridad para perfiles públicos)
+    const puuid = requestUrl.searchParams.get("puuid");
+    const region = requestUrl.searchParams.get("region");
     const queryUserId = requestUrl.searchParams.get("userId");
 
-    let targetUserId: string;
+    let targetPuuid = puuid;
+    let platformRegion = (region || "la1").toLowerCase();
 
-    if (queryUserId) {
-      // Si se proporciona userId, no requerimos autenticación (perfil público)
-      targetUserId = queryUserId;
-    } else {
-      // Si no hay userId, requerimos autenticación para obtener el del usuario actual
-      const authHeader = request.headers.get("authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
+    if (!targetPuuid) {
+      // Si no hay PUUID directo, buscar por userId (comportamiento original)
+      let targetUserId: string;
+
+      if (queryUserId) {
+        targetUserId = queryUserId;
+      } else {
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader?.startsWith("Bearer ")) {
+          return NextResponse.json(
+            { error: "Missing or invalid authorization header" },
+            { status: 401 },
+          );
+        }
+
+        const token = authHeader.slice(7);
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser(token);
+
+        if (authError || !user) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        targetUserId = user.id;
+      }
+
+      // Obtener la cuenta Riot vinculada
+      const { data: riotAccount, error: riotError } = await supabase
+        .from("linked_accounts_riot")
+        .select("puuid, active_shard")
+        .eq("user_id", targetUserId)
+        .single();
+
+      if (riotError || !riotAccount) {
         return NextResponse.json(
-          { error: "Missing or invalid authorization header" },
-          { status: 401 },
+          { hasActiveMatch: false, reason: "No linked Riot account" },
+          { status: 200 },
         );
       }
 
-      const token = authHeader.slice(7);
+      targetPuuid = riotAccount.puuid;
+      platformRegion = (riotAccount.active_shard || "la1").toLowerCase();
+    }
 
-      // Verificar el token y obtener el usuario
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser(token);
-
-      if (authError || !user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      targetUserId = user.id;
+    if (!targetPuuid) {
+      return NextResponse.json(
+        { hasActiveMatch: false, reason: "Missing puuid" },
+        { status: 200 },
+      );
     }
 
     if (!RIOT_API_KEY) {
@@ -409,31 +437,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener la cuenta Riot vinculada del usuario objetivo
-    const { data: riotAccount, error: riotError } = await supabase
-      .from("linked_accounts_riot")
-      .select("puuid, active_shard, summoner_id")
-      .eq("user_id", targetUserId)
-      .single();
-
-    if (riotError || !riotAccount) {
-      return NextResponse.json(
-        { hasActiveMatch: false, reason: "No linked Riot account" },
-        { status: 200 },
-      );
-    }
-
-    if (!riotAccount.puuid) {
-      return NextResponse.json(
-        { hasActiveMatch: false, reason: "Missing puuid" },
-        { status: 200 },
-      );
-    }
-
-    const platformRegion = (riotAccount.active_shard || "la1").toLowerCase();
-
     // Spectator API v5 acepta PUUID directamente en /by-summoner/{encryptedPUUID}
-    const spectatorUrl = `https://${platformRegion}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${riotAccount.puuid}`;
+    const spectatorUrl = `https://${platformRegion}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${targetPuuid}`;
 
     const spectatorResponse = await fetch(spectatorUrl, {
       method: "GET",

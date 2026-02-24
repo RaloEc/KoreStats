@@ -307,6 +307,7 @@ export default function PerfilPageClient({
               unifiedSyncCooldown={unifiedSyncCooldown}
               onInvalidateCache={invalidateAndRefetchStatic}
               profileColor={perfil.color}
+              showChampionStats={false}
             />
           </div>
         )}

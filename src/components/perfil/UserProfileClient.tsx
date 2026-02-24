@@ -16,9 +16,10 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LinkedAccountRiot } from "@/types/riot";
 import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
-import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
 import { FriendsListCompact } from "@/components/social/FriendsListCompact";
+import { useMatchStatusDetector } from "@/hooks/use-match-status-detector";
+import type { ActiveMatchSnapshot } from "@/hooks/use-match-status-detector";
 
 import { ProfileData } from "@/hooks/use-perfil-usuario";
 
@@ -70,6 +71,9 @@ export default function UserProfileClient({
   const [riotUserId, setRiotUserId] = useState<string | null>(
     initialProfile?.id ?? null,
   );
+
+  const [activeMatchSnapshot, setActiveMatchSnapshot] =
+    useState<ActiveMatchSnapshot | null>(null);
 
   // Sincronizar estado local con props iniciales cuando estas cambian
   // OPTIMIZADO: No sobrescribir con null si ya tenemos datos y el usuario es el mismo
@@ -134,6 +138,20 @@ export default function UserProfileClient({
 
     loadRiotAccount();
   }, [publicId]); // Solo re-ejecutar si cambia el usuario visitado
+
+  const isOwnProfile = Boolean(user && profile && user.id === profile.id);
+
+  // Detector de partida activa para el dueño del perfil
+  useMatchStatusDetector({
+    enabled: isOwnProfile && !!riotAccount,
+    onSnapshotChange: (snapshot) => {
+      if (snapshot && snapshot.hasActiveMatch) {
+        setActiveMatchSnapshot(snapshot);
+      } else {
+        setActiveMatchSnapshot(null);
+      }
+    },
+  });
 
   // Mutación para sincronizar cuenta + partidas
   const syncMutation = useMutation({
@@ -219,8 +237,6 @@ export default function UserProfileClient({
     return <PerfilError error={new Error("Perfil no encontrado")} />;
   }
 
-  const isOwnProfile = Boolean(user && profile && user.id === profile.id);
-
   // isAdmin debe ser true si el usuario LOGUEADO es admin, no el perfil visitado
   const isCurrentUserAdmin = Boolean(
     currentUserProfile && currentUserProfile.role === "admin",
@@ -237,6 +253,7 @@ export default function UserProfileClient({
         isSyncing={syncMutation.isPending}
         syncError={syncError}
         isOwnProfile={isOwnProfile}
+        staticActiveMatch={activeMatchSnapshot}
       />
     );
   }
@@ -296,12 +313,8 @@ export default function UserProfileClient({
                   syncError={syncError}
                   onSync={() => syncMutation.mutate()}
                   profileColor={profile.color}
+                  staticData={activeMatchSnapshot}
                 />
-
-                {/* Resumen de campeones */}
-                {riotAccount.puuid && (
-                  <ChampionStatsSummary puuid={riotAccount.puuid} limit={5} />
-                )}
 
                 {/* Historial de partidas */}
                 {riotAccount.puuid && (
@@ -316,6 +329,7 @@ export default function UserProfileClient({
                     hideShareButton={true}
                     initialMatchesData={initialMatchesData}
                     initialStats={initialStats}
+                    staticActiveMatch={activeMatchSnapshot}
                   />
                 )}
               </>

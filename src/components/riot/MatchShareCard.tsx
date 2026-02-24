@@ -176,7 +176,7 @@ const MatchShareCardComponent = ({
   const teamKills = teamMates.reduce((sum: number, p: any) => sum + p.kills, 0);
   const teamDamage = teamMates.reduce(
     (sum: number, p: any) => sum + p.totalDamageDealtToChampions,
-    0
+    0,
   );
 
   const kp =
@@ -362,7 +362,7 @@ const MatchShareCardComponent = ({
                       style={{ width: "100%", height: "100%" }}
                     />
                   </div>
-                )
+                ),
             )}
           </div>
 
@@ -474,7 +474,7 @@ const MatchShareCardComponent = ({
                 fontFamily: "monospace",
               }}
             >
-              #{participant.riotIdTagline || "RIOT"}
+              {participant.riotIdTagline || "RIOT"}
             </span>
           </div>
           <div

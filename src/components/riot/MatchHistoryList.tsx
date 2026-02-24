@@ -48,7 +48,7 @@ const MemoizedCompactMobileMatchCard = React.memo(CompactMobileMatchCard);
 // Tipo para el modo de vista móvil
 type MobileViewMode = "full" | "compact";
 
-interface MatchHistoryListProps {
+export interface MatchHistoryListProps {
   userId?: string;
   puuid?: string;
   riotId?: string;
@@ -57,6 +57,7 @@ interface MatchHistoryListProps {
   hideShareButton?: boolean;
   initialMatchesData?: any;
   initialStats?: any;
+  staticActiveMatch?: ActiveMatchSnapshot | null;
 }
 
 interface PlayerStats {
@@ -151,6 +152,7 @@ export function MatchHistoryList({
   hideShareButton = false,
   initialMatchesData,
   initialStats,
+  staticActiveMatch,
 }: MatchHistoryListProps = {}) {
   const queryClient = useQueryClient();
   const { profile, loading, session } = useAuth();
@@ -167,6 +169,8 @@ export function MatchHistoryList({
     "offline",
   );
   const lastActiveSnapshotRef = useRef<ActiveMatchSnapshot | null>(null);
+  const [activeMatchSnapshot, setActiveMatchSnapshot] =
+    useState<ActiveMatchSnapshot | null>(null);
   const [endedSnapshot, setEndedSnapshot] =
     useState<ActiveMatchSnapshot | null>(null);
 
@@ -206,7 +210,7 @@ export function MatchHistoryList({
   useEffect(() => {
     if (!propUserId) {
       const id = localStorage.getItem("user_id");
-      setLocalUserId(id);
+      setLocalUserId(id || "00000000-0000-0000-0000-000000000000");
     }
   }, [propUserId]);
 
@@ -235,38 +239,41 @@ export function MatchHistoryList({
   // Query de caché optimizada: siempre habilitada para mostrar contenido instantáneo
   const { data: cachedMatchesData, isFetching: isFetchingCache } =
     useQuery<CachedMatchesResponse>({
-      queryKey: ["match-history-cache", userId],
+      queryKey: ["match-history-cache", userId, puuid],
       queryFn: async () => {
-        if (!userId) throw new Error("No user");
+        const params = new URLSearchParams();
+        if (userId && userId !== "public") params.set("userId", userId);
+        if (puuid) params.set("puuid", puuid);
+
+        if (!params.toString()) throw new Error("No user context");
 
         const response = await fetch(
-          `/api/riot/matches/cache?userId=${encodeURIComponent(userId)}`,
+          `/api/riot/matches/cache?${params.toString()}`,
         );
         if (!response.ok) {
-          throw new Error("Error al obtener caché de partidas");
+          // Si falla cache, no es crítico, retornamos vacío
+          return { matches: [] };
         }
         const data = (await response.json()) as CachedMatchesResponse;
 
         return data;
       },
-      enabled: !!userId, // Siempre habilitada para cualquier filtro
-      staleTime: 30 * 60 * 1000, // 30 minutos - el caché es muy estable
-      gcTime: 60 * 60 * 1000, // 1 hora en memoria
-      refetchOnMount: false, // No refetch si hay datos frescos
-      refetchOnWindowFocus: false, // El caché no necesita actualizarse al focus
+      enabled: !!(userId || puuid), // Habilitada si hay contexto
+      staleTime: 30 * 60 * 1000,
+      gcTime: 60 * 60 * 1000,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     });
 
   // El caché ahora se usa para cualquier filtro - se filtra localmente si es necesario
   const cachedMatches = useMemo<Match[]>(() => {
     const matches = cachedMatchesData?.matches ?? [];
-    // Para "all" retornamos todo, para otros filtros el caché igual ayuda visualmente
     return matches;
   }, [cachedMatchesData]);
 
   const hasCachedMatches = cachedMatches.length > 0;
 
-  // OPTIMIZADO: Session stats es secundario - solo cargar después de tener datos
-  // y solo para el perfil propio
+  // OPTIMIZADO: Session stats es secundario
   const { data: sessionStats } = useQuery<SessionStatsResponse>({
     queryKey: ["match-session-stats"],
     queryFn: async () => {
@@ -290,8 +297,8 @@ export function MatchHistoryList({
   });
 
   const matchHistoryQueryKey = useMemo(
-    () => ["match-history", userId, queueFilter],
-    [userId, queueFilter],
+    () => ["match-history", userId, puuid, queueFilter],
+    [userId, puuid, queueFilter],
   );
 
   // OPTIMIZADO: Linked accounts es terciario - solo cargar cuando se necesite
@@ -324,7 +331,7 @@ export function MatchHistoryList({
   const {
     data: matchPages,
     isLoading,
-    isFetching, // Nuevo: para saber si está actualizando en background
+    isFetching,
     error,
     fetchNextPage,
     hasNextPage,
@@ -333,10 +340,11 @@ export function MatchHistoryList({
   } = useInfiniteQuery<MatchHistoryPage>({
     queryKey: matchHistoryQueryKey,
     queryFn: async ({ pageParam }) => {
-      if (!userId) throw new Error("No user");
-
       const params = new URLSearchParams();
-      params.set("userId", userId);
+      if (userId && userId !== "public") params.set("userId", userId);
+      if (puuid) params.set("puuid", puuid);
+
+      if (!params.toString()) throw new Error("No user context");
 
       // Lazy load: primeras 5 partidas, después 15
       const isFirstPage = pageParam === null;
@@ -362,15 +370,15 @@ export function MatchHistoryList({
     },
     getNextPageParam: (lastPage) =>
       lastPage?.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutos para datos frescos
-    gcTime: 60 * 60 * 1000, // 60 minutos en caché antes de garbage collection
+    enabled: !!(userId || puuid),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     initialPageParam: null,
-    // OPTIMIZACIÓN: Mostrar datos anteriores mientras se refetch (evita skeleton flash)
     placeholderData: (previousData) => previousData,
-    // OPTIMIZACIÓN: Solo refetch si los datos son stale, no en cada mount
     refetchOnMount: true,
     refetchOnWindowFocus: false,
+    // ...
+
     initialData:
       initialMatchesData && (!queueFilter || queueFilter === "all")
         ? {
@@ -451,6 +459,10 @@ export function MatchHistoryList({
     onSnapshotChange: (snapshot) => {
       if (snapshot && snapshot.hasActiveMatch) {
         lastActiveSnapshotRef.current = snapshot;
+        setActiveMatchSnapshot(snapshot);
+      } else if (snapshot && !snapshot.hasActiveMatch) {
+        lastActiveSnapshotRef.current = null;
+        setActiveMatchSnapshot(null);
       }
     },
     onStatusChange: (status) => {
@@ -791,6 +803,7 @@ export function MatchHistoryList({
         recentMatches={matchesToRender}
         puuid={puuid}
         riotId={riotId}
+        staticData={activeMatchSnapshot || staticActiveMatch}
       />
 
       {isOwnProfile && endedSnapshot ? (

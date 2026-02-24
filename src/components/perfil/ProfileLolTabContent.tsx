@@ -1,97 +1,71 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { RiotAccountCard } from "@/components/riot/RiotAccountCard";
 import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
-import { ChampionStatsSummary } from "@/components/riot/ChampionStatsSummary";
 import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
 import { useToast } from "@/hooks/use-toast";
+import ProAccountCard from "@/components/riot/ProAccountCard";
+import { RiotAccountCard } from "@/components/riot/RiotAccountCard";
+import { LinkedAccountRiot } from "@/types/riot";
 
-// Dynamic import para MatchHistoryList
+// Dynamic import para evitar problemas de inicialización/circularidad
 const MatchHistoryList = dynamic(
   () =>
     import("@/components/riot/MatchHistoryList").then(
       (mod) => mod.MatchHistoryList,
     ),
   {
-    ssr: false,
     loading: () => (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="h-32 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"
-          />
-        ))}
+      <div className="w-full h-64 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     ),
+    ssr: false,
   },
 );
 
-interface RiotAccountData {
-  id: string;
-  user_id: string;
-  game_name: string;
-  tag_line: string;
-  puuid: string;
-  summoner_id?: string;
-  profile_icon_id?: number;
-  summoner_level?: number;
-  tier?: string;
-  rank?: string;
-  lp?: number;
-  wins?: number;
-  losses?: number;
-  region?: string;
-  last_match_sync?: string;
-  last_rank_sync?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
 interface ProfileLolTabContentProps {
-  riotAccount: RiotAccountData | null;
+  riotAccount: LinkedAccountRiot;
   userId: string;
-  isOwnProfile: boolean;
-  unifiedSyncPending: boolean;
-  unifiedSyncCooldown: number;
+  isOwnProfile?: boolean;
+  unifiedSyncPending?: boolean;
+  unifiedSyncCooldown?: number;
   onInvalidateCache: () => Promise<unknown>;
   profileColor?: string;
+  showChampionStats?: boolean;
+  isPublicProfile?: boolean;
 }
 
-export function ProfileLolTabContent({
+export default function ProfileLolTabContent({
   riotAccount,
   userId,
-  isOwnProfile,
-  unifiedSyncPending,
-  unifiedSyncCooldown,
+  isOwnProfile = false,
+  unifiedSyncPending = false,
+  unifiedSyncCooldown = 0,
   onInvalidateCache,
   profileColor,
+  showChampionStats = false,
+  isPublicProfile = false,
 }: ProfileLolTabContentProps) {
   const { toast } = useToast();
 
   const handleUnlink = async () => {
-    const confirmed = window.confirm(
-      "¿Estás seguro de que deseas desvincular tu cuenta de Riot Games? Se eliminarán todos los datos asociados.",
-    );
-    if (!confirmed) return;
-
     try {
-      const response = await fetch("/api/riot/account/unlink", {
-        method: "DELETE",
+      const response = await fetch("/api/riot/unlink", {
+        method: "POST",
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Error al desvincular la cuenta");
+        throw new Error("Error al desvincular la cuenta");
       }
 
       toast({
         title: "Cuenta desvinculada",
         description:
-          "Tu cuenta de Riot Games ha sido desvinculada exitosamente",
+          "Tu cuenta de Riot Games ha sido desvinculada correctamente.",
       });
 
+      // Recargar datos
       await onInvalidateCache();
     } catch (error: any) {
       toast({
@@ -106,22 +80,28 @@ export function ProfileLolTabContent({
     return (
       <>
         {/* Tarjeta de cuenta de Riot */}
-        <RiotAccountCard
-          useVisualDesign={true}
-          externalSyncPending={unifiedSyncPending}
-          externalCooldownSeconds={unifiedSyncCooldown}
-          onUnlink={isOwnProfile ? handleUnlink : undefined}
-          initialAccount={riotAccount as any} // Casting seguro, interfaces compatibles
-          profileColor={profileColor}
-        />
-
-        {/* Resumen de campeones */}
-        {riotAccount.puuid && (
-          <ChampionStatsSummary puuid={riotAccount.puuid} limit={5} />
+        {isPublicProfile ? (
+          <ProAccountCard
+            initialAccount={riotAccount}
+            onSync={onInvalidateCache}
+            externalSyncPending={unifiedSyncPending}
+            externalCooldownSeconds={unifiedSyncCooldown}
+            profileColor={profileColor}
+          />
+        ) : (
+          <RiotAccountCard
+            useVisualDesign={true}
+            externalSyncPending={unifiedSyncPending}
+            externalCooldownSeconds={unifiedSyncCooldown}
+            onUnlink={isOwnProfile ? handleUnlink : undefined}
+            initialAccount={riotAccount}
+            profileColor={profileColor}
+            isPublicProfile={isPublicProfile}
+          />
         )}
 
-        {/* Builds guardadas */}
-        <SavedBuildsPanel />
+        {/* builds guardadas */}
+        {!isPublicProfile && <SavedBuildsPanel />}
 
         {/* Historial de partidas */}
         <MatchHistoryList
@@ -141,18 +121,14 @@ export function ProfileLolTabContent({
 
   // CTA para vincular Riot cuando es su propio perfil
   if (isOwnProfile) {
-    return (
-      <RiotEmptyState
-        isOwnProfile
-        onLinkClick={() => {
-          window.location.href = "/api/riot/login";
-        }}
-        onManualLinkSuccess={async () => {
-          await onInvalidateCache();
-        }}
-      />
-    );
+    return <RiotEmptyState isOwnProfile={true} />;
   }
 
-  return null;
+  return (
+    <div className="bg-muted/30 rounded-lg p-8 text-center border-2 border-dashed">
+      <p className="text-muted-foreground">
+        Este usuario no ha vinculado su cuenta de Riot Games.
+      </p>
+    </div>
+  );
 }
