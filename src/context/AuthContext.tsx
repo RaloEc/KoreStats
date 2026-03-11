@@ -39,9 +39,9 @@ const defaultAuthState: AuthState = {
   loading: true,
   profile: null,
   supabase: null as any, // Se asignará en el Provider
-  signOut: async () => {},
-  refreshAuth: async () => {},
-  refreshProfile: async () => {},
+  signOut: async () => { },
+  refreshAuth: async () => { },
+  refreshProfile: async () => { },
 };
 
 export const AuthContext = React.createContext<AuthState>(defaultAuthState);
@@ -59,6 +59,8 @@ export function AuthProvider({
 
   // Usar React Query para gestionar el estado de autenticación
   // Pasar la sesión inicial del servidor para evitar flash de "sin sesión"
+
+  // Tracking del último usuario para evitar router.refresh() redundantes
 
   // Limpieza de migración de auth: Asegurar que no quede basura del storageKey antiguo
   React.useEffect(() => {
@@ -85,6 +87,9 @@ export function AuthProvider({
     invalidateAuth,
     refreshProfile: refreshProfileQuery,
   } = useAuthData(initialSession);
+
+  // Tracking del último usuario para evitar router.refresh() redundantes
+  const lastUserIdRef = React.useRef<string | null>(user?.id || null);
 
   // Suscribirse a cambios de autenticación de Supabase
   React.useEffect(() => {
@@ -127,7 +132,6 @@ export function AuthProvider({
         // NO llamar router.refresh() para INITIAL_SESSION - evita reload innecesario
       } else if (event === "TOKEN_REFRESHED") {
         // Token refrescado: solo actualizar la sesión en React Query
-        // NO invalidar perfil ni hacer router.refresh() - el token nuevo es suficiente
         queryClient.setQueryData(authKeys.session, newSession);
       } else if (event === "SIGNED_IN") {
         // Login nuevo: sincronizar sesión y perfil
@@ -139,9 +143,13 @@ export function AuthProvider({
           });
         }
 
-        // Pequeño delay para asegurar que React Query haya actualizado el estado
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        router.refresh();
+        // Solo refrescar si el usuario cambió realmente (para evitar recargas al recuperar foco de pestaña)
+        if (newSession?.user?.id !== lastUserIdRef.current) {
+          lastUserIdRef.current = newSession?.user?.id || null;
+          // Pequeño delay para asegurar que React Query haya actualizado el estado
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          router.refresh();
+        }
       } else {
         // Para otros eventos (USER_UPDATED, PASSWORD_RECOVERY, etc.)
         queryClient.setQueryData(authKeys.session, newSession);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { NoticiaMetaInfo } from "@/components/noticias/NoticiaMetaInfo";
 import { getExcerpt } from "@/lib/utils";
 import { Noticia } from "./types";
+import { LolPatchPreview } from "@/components/noticias/LolPatchPreview";
 
 interface FeaturedNewsProps {
   noticia: Noticia;
@@ -69,9 +70,17 @@ export function FeaturedNews({
               {noticia.titulo}
             </span>
           </h3>
-          <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-            {noticia.resumen || getExcerpt(noticia.contenido, 150)}
-          </div>
+
+          {/* Previsualización de Parche de LoL */}
+          {noticia.type === 'lol_patch' && noticia.data && (
+            <LolPatchPreview data={noticia.data} variant="featured" className="mb-6" />
+          )}
+
+          {!noticia.type?.includes('lol_patch') && (
+            <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+              {noticia.resumen || getExcerpt(noticia.contenido, 150)}
+            </div>
+          )}
           <div className="mt-3 pt-3 ">
             <NoticiaMetaInfo
               autor_nombre={noticia.autor_nombre}

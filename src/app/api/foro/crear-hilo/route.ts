@@ -21,8 +21,7 @@ function createSlug(title: string): string {
 }
 
 export async function POST(request: Request) {
-  const { titulo, contenido, categoria_id, weapon_stats_id } =
-    await request.json();
+  const { titulo, contenido, categoria_id, weapon_stats } = await request.json();
 
   const supabase = await createClient();
   const {
@@ -40,40 +39,34 @@ export async function POST(request: Request) {
     );
   }
 
-  // IMPORTANTE: No procesar imágenes en el servidor
-  // Las imágenes blob:// no existen en el servidor
-  // Se procesarán en el cliente cuando se visualice el hilo
-  // Simplemente guardar el contenido tal como viene del editor
   const contenidoProcesado = contenido;
-
-  console.log("[crear-hilo] Recibido POST para crear hilo");
-  console.log("[crear-hilo] Título:", titulo);
-  console.log("[crear-hilo] Categoría ID:", categoria_id);
-  console.log(
-    "[crear-hilo] Contenido (primeros 300 chars):",
-    contenido.substring(0, 300),
-  );
-
-  // Verificar si hay imágenes sin src
-  const imgSinSrcRegex = /<img[^>]*(?<!src=["'][^"']*["'])[^>]*>/gi;
-  const imagenessSinSrc = contenido.match(imgSinSrcRegex) || [];
-  if (imagenessSinSrc.length > 0) {
-    console.warn(
-      "[crear-hilo] ADVERTENCIA: Se detectaron imágenes sin src:",
-      imagenessSinSrc.length,
-    );
-    imagenessSinSrc.forEach((img, idx) => {
-      console.warn(`  [${idx + 1}] ${img.substring(0, 100)}`);
-    });
-  }
-
-  console.log(
-    "[crear-hilo] Guardando hilo con contenido (imágenes se procesarán en cliente)",
-  );
 
   const slug = createSlug(titulo);
 
-  // El `categoria_id` recibido del formulario es el UUID correcto para la inserción.
+  let finalWeaponStatsId = null;
+
+  // Si hay estadísticas del arma, creamos el registro en weapon_stats_records primero.
+  if (weapon_stats) {
+    try {
+      const { data: record, error: recordError } = await supabase
+        .from("weapon_stats_records")
+        .insert({
+          weapon_name: weapon_stats.nombreArma || weapon_stats.weapon_name || null,
+          stats: weapon_stats,
+        })
+        .select("id")
+        .single();
+
+      if (!recordError && record) {
+        finalWeaponStatsId = record.id;
+      } else {
+        console.error("[crear-hilo] Error insertando weapon_stats_records:", recordError);
+      }
+    } catch (e) {
+      console.error("[crear-hilo] Excepción al insertar weapon_stats_records:", e);
+    }
+  }
+
   const { data, error } = await supabase
     .from("foro_hilos")
     .insert({
@@ -82,7 +75,7 @@ export async function POST(request: Request) {
       categoria_id,
       autor_id: session.user.id,
       slug,
-      weapon_stats_id: weapon_stats_id ?? null,
+      weapon_stats_id: finalWeaponStatsId,
     })
     .select("id, slug") // Solo seleccionamos lo necesario para la redirección
     .single();

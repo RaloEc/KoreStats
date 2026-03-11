@@ -313,6 +313,7 @@ export async function POST(request: Request) {
       type: data.type || "standard",
       data: data.data || null,
       slug: data.slug || undefined,
+      juego_id: data.juego_id && data.juego_id !== "none" ? data.juego_id : null,
     };
 
     console.log("Datos de la noticia a crear:", {
@@ -477,6 +478,7 @@ export async function PUT(request: Request) {
         fuentes: data.fuentes || (data.fuente ? [data.fuente] : []),
         type: data.type || undefined,
         data: data.data || undefined,
+        juego_id: data.juego_id && data.juego_id !== "none" ? data.juego_id : null,
       })
       .eq("id", data.id);
 

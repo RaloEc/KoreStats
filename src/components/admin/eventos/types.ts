@@ -25,6 +25,7 @@ export type JuegoRow = {
   descripcion: string | null;
   desarrollador: string | null;
   fecha_lanzamiento: string | null;
+  imagen_portada_url: string | null;
 };
 
 export type TipoEvento = "actualizacion" | "parche" | "evento" | "torneo";

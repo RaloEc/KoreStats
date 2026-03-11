@@ -33,7 +33,7 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
     titulo: string
     descripcion: string
   } | null>(null)
-  
+
   const { mutate: ejecutarAccion, isPending } = useAccionesMasivas()
   const { toast } = useToast()
 
@@ -71,14 +71,14 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
 
   return (
     <>
-      <div className="flex items-center gap-2 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+      <div className="flex items-center gap-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-lg">
         <CheckSquare className="h-5 w-5 text-blue-600" />
         <span className="text-sm font-medium">
           {seleccionadas.length} {seleccionadas.length === 1 ? 'noticia seleccionada' : 'noticias seleccionadas'}
         </span>
-        
+
         <div className="flex-1" />
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" disabled={isPending}>
@@ -88,7 +88,7 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Acciones masivas</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuItem
               onClick={() =>
                 confirmarAccion(
@@ -101,7 +101,7 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
               <Eye className="mr-2 h-4 w-4" />
               Activar
             </DropdownMenuItem>
-            
+
             <DropdownMenuItem
               onClick={() =>
                 confirmarAccion(
@@ -114,9 +114,9 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
               <EyeOff className="mr-2 h-4 w-4" />
               Desactivar
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuItem
               onClick={() =>
                 confirmarAccion(
@@ -129,7 +129,7 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
               <Star className="mr-2 h-4 w-4" />
               Destacar
             </DropdownMenuItem>
-            
+
             <DropdownMenuItem
               onClick={() =>
                 confirmarAccion(
@@ -142,9 +142,9 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
               <StarOff className="mr-2 h-4 w-4" />
               Quitar destacado
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuItem
               onClick={() =>
                 confirmarAccion(
@@ -160,7 +160,7 @@ export function AccionesMasivas({ seleccionadas, onLimpiarSeleccion }: AccionesM
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         <Button variant="ghost" size="sm" onClick={onLimpiarSeleccion}>
           Cancelar
         </Button>

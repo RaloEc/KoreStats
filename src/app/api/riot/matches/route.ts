@@ -46,15 +46,33 @@ async function getPlayerStatsOptimized(
   // Guardar en caché sin esperar (fire and forget)
   (async () => {
     try {
+      // Buscar user_id en vinculaciones normales o en perfiles públicos
+      let userIdForCache = null;
+
       const { data: riotAccount } = await supabase
         .from("linked_accounts_riot")
         .select("user_id")
         .eq("puuid", puuid)
         .single();
-
+      
       if (riotAccount) {
+        userIdForCache = riotAccount.user_id;
+      } else {
+        // Buscar en perfiles públicos si no es una cuenta vinculada de usuario
+        const { data: publicProfile } = await supabase
+          .from("public_profiles")
+          .select("id")
+          .eq("puuid", puuid)
+          .single();
+        
+        if (publicProfile) {
+          userIdForCache = publicProfile.id;
+        }
+      }
+
+      if (userIdForCache) {
         await supabase.from("player_stats_cache").upsert({
-          user_id: riotAccount.user_id,
+          user_id: userIdForCache,
           puuid,
           total_games: stats.totalGames,
           wins: stats.wins,

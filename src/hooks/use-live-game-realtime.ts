@@ -108,12 +108,12 @@ export const useLiveGameRealtime = (
       if (dbId) {
         const { data, error } = await supabase
           .from("live_game_states")
-          .select("id, data")
+          .select("id, data, updated_at")
           .eq("id", dbId)
           .maybeSingle();
 
         if (data?.data) {
-          foundData = { id: data.id, data: data.data };
+          foundData = { id: data.id, data: data.data, updated_at: data.updated_at };
         }
       }
 
@@ -121,13 +121,13 @@ export const useLiveGameRealtime = (
       if (!foundData && availablePuuid) {
         const { data: searchData, error: searchError } = await supabase
           .from("live_game_states")
-          .select("id, data")
+          .select("id, data, updated_at")
           .contains("data", { livePlayers: [{ puuid: availablePuuid }] })
           .limit(1)
           .maybeSingle();
 
         if (searchData?.data) {
-          foundData = { id: searchData.id, data: searchData.data };
+          foundData = { id: searchData.id, data: searchData.data, updated_at: searchData.updated_at };
         }
       }
 
@@ -135,13 +135,13 @@ export const useLiveGameRealtime = (
       if (!foundData && riotId) {
         const { data: searchData, error: searchError } = await supabase
           .from("live_game_states")
-          .select("id, data")
+          .select("id, data, updated_at")
           .contains("data", { livePlayers: [{ riotId: riotId }] })
           .limit(1)
           .maybeSingle();
 
         if (searchData?.data) {
-          foundData = { id: searchData.id, data: searchData.data };
+          foundData = { id: searchData.id, data: searchData.data, updated_at: searchData.updated_at };
         }
       }
 
@@ -150,9 +150,25 @@ export const useLiveGameRealtime = (
         const reporterId = foundData.id;
         availablePuuid = reporterId.replace("live-", "");
 
-        const normalizedData = normalizeGameData(foundData.data as any);
-        setGameData(normalizedData);
-        setIsConnected(true);
+        const updatedAt = new Date(foundData.updated_at).getTime();
+        const now = Date.now();
+        const diff = now - updatedAt;
+        const CLEANUP_THRESHOLD = 300000; // 5 minutos
+
+        if (diff < CLEANUP_THRESHOLD) {
+          const normalizedData = normalizeGameData(foundData.data as any);
+          setGameData(normalizedData);
+          setLastUpdateTime(updatedAt);
+          setIsConnected(true);
+        } else {
+          console.warn(
+            `[useLiveGameRealtime] Ignorando snapshot obsoleto (${Math.round(diff / 1000)}s de antigüedad)`,
+          );
+          // Opcionalmente podríamos disparar un borrado aquí si somos el "owner"
+          if (foundData.id === dbId) {
+            supabase.from("live_game_states").delete().eq("id", dbId).then();
+          }
+        }
       }
 
       setIsLoading(false);
@@ -187,7 +203,11 @@ export const useLiveGameRealtime = (
             },
             (payload: any) => {
               // Recibimos persistencia (Backup)
-              if (payload.new?.data) {
+              if (payload.eventType === "DELETE") {
+                setGameData(null);
+                setIsConnected(false);
+                setIsStale(false);
+              } else if (payload.new?.data) {
                 const normalized = normalizeGameData(payload.new.data as any);
                 setGameData(normalized);
                 setIsConnected(true);

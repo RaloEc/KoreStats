@@ -12,6 +12,7 @@ export const juegoSchema = z.object({
   desarrollador: z.string().optional(),
   fecha_lanzamiento: z.date().optional().nullable(),
   icono_url: z.string().optional(),
+  imagen_portada_url: z.string().optional(),
 });
 
 export type JuegoFormValues = z.infer<typeof juegoSchema>;

@@ -25,6 +25,7 @@ import { ActiveMatchCard } from "./ActiveMatchCard";
 import { EndedMatchPreviewCard } from "./EndedMatchPreviewCard";
 import {
   MatchCard,
+  MatchCardPro,
   MobileMatchCard,
   CompactMobileMatchCard,
   getLatestDDragonVersion,
@@ -42,6 +43,7 @@ import { prefetchMatchDetails } from "@/hooks/useMatchDetails";
 
 // Memoize Match Cards for performance in virtual lists
 const MemoizedMatchCard = React.memo(MatchCard);
+const MemoizedMatchCardPro = React.memo(MatchCardPro);
 const MemoizedMobileMatchCard = React.memo(MobileMatchCard);
 const MemoizedCompactMobileMatchCard = React.memo(CompactMobileMatchCard);
 
@@ -58,6 +60,8 @@ export interface MatchHistoryListProps {
   initialMatchesData?: any;
   initialStats?: any;
   staticActiveMatch?: ActiveMatchSnapshot | null;
+  isPublicProfile?: boolean;
+  forceMobileView?: boolean;
 }
 
 interface PlayerStats {
@@ -153,6 +157,7 @@ export function MatchHistoryList({
   initialMatchesData,
   initialStats,
   staticActiveMatch,
+  isPublicProfile = false,
 }: MatchHistoryListProps = {}) {
   const queryClient = useQueryClient();
   const { profile, loading, session } = useAuth();
@@ -362,10 +367,16 @@ export function MatchHistoryList({
       const response = await fetch(`/api/riot/matches?${params.toString()}`);
 
       if (!response.ok) {
-        throw new Error("Failed to fetch matches");
+        throw new Error(`Failed to fetch matches: ${response.status}`);
       }
 
       const data = (await response.json()) as MatchHistoryPage;
+      // Debug match history
+      if (data.matches) {
+        console.log(`[MatchHistoryList] Received ${data.matches.length} matches. hasMore: ${data.hasMore}, nextCursor: ${data.nextCursor}`);
+      } else {
+        console.warn(`[MatchHistoryList] No matches returned in data object:`, data);
+      }
       return data;
     },
     getNextPageParam: (lastPage) =>
@@ -382,14 +393,14 @@ export function MatchHistoryList({
     initialData:
       initialMatchesData && (!queueFilter || queueFilter === "all")
         ? {
-            pages: [
-              {
-                ...initialMatchesData,
-                stats: initialStats || DEFAULT_STATS,
-              },
-            ],
-            pageParams: [null],
-          }
+          pages: [
+            {
+              ...initialMatchesData,
+              stats: initialStats || DEFAULT_STATS,
+            },
+          ],
+          pageParams: [null],
+        }
         : undefined,
   });
 
@@ -524,9 +535,8 @@ export function MatchHistoryList({
 
     const filtered = flatMatches.filter((match) => {
       const baseKey = match.match_id ?? match.id;
-      const fallbackKey = `${match.created_at ?? ""}-${
-        (match as { puuid?: string }).puuid ?? match.summoner_name ?? ""
-      }-${match.champion_name ?? ""}`;
+      const fallbackKey = `${match.created_at ?? ""}-${(match as { puuid?: string }).puuid ?? match.summoner_name ?? ""
+        }-${match.champion_name ?? ""}`;
       const uniqueKey = baseKey ?? fallbackKey;
 
       if (seenKeys.has(uniqueKey)) {
@@ -595,6 +605,19 @@ export function MatchHistoryList({
       : hasCachedMatches
         ? cachedMatches
         : lastStableMatches;
+
+  console.log('[MatchHistoryList] Render State:', {
+    userId,
+    puuid,
+    queueFilter,
+    isLoading,
+    isFetching,
+    matchesCount: matches.length,
+    cachedMatchesCount: cachedMatches.length,
+    lastStableCount: lastStableMatches.length,
+    hasCachedMatches,
+    matchesToRenderCount: matchesToRender.length
+  });
 
   const [listOffset, setListOffset] = useState(0);
 
@@ -696,32 +719,27 @@ export function MatchHistoryList({
 
     // Solo victorias
     if (losses === 0) {
-      return `Hoy llevas ${wins} victoria${
-        wins === 1 ? "" : "s"
-      } perfectas. ¡Sigue así!`;
+      return `Hoy llevas ${wins} victoria${wins === 1 ? "" : "s"
+        } perfectas. ¡Sigue así!`;
     }
 
     // Solo derrotas
     if (wins === 0) {
-      return `Hoy has perdido ${losses} partida${
-        losses === 1 ? "" : "s"
-      }. Tómate un respiro.`;
+      return `Hoy has perdido ${losses} partida${losses === 1 ? "" : "s"
+        }. Tómate un respiro.`;
     }
 
     // Hay ambas - mostrar lo que predomina
     if (wins > losses) {
-      return `Hoy llevas ${wins} victoria${
-        wins === 1 ? "" : "s"
-      } y ${losses} derrota${losses === 1 ? "" : "s"}. ¡Vas bien!`;
+      return `Hoy llevas ${wins} victoria${wins === 1 ? "" : "s"
+        } y ${losses} derrota${losses === 1 ? "" : "s"}. ¡Vas bien!`;
     } else if (losses > wins) {
-      return `Hoy llevas ${losses} derrota${
-        losses === 1 ? "" : "s"
-      } y ${wins} victoria${wins === 1 ? "" : "s"}. No te rindas.`;
+      return `Hoy llevas ${losses} derrota${losses === 1 ? "" : "s"
+        } y ${wins} victoria${wins === 1 ? "" : "s"}. No te rindas.`;
     } else {
       // Empate
-      return `Hoy llevas ${wins} victoria${
-        wins === 1 ? "" : "s"
-      } y ${losses} derrota${losses === 1 ? "" : "s"}. Todo equilibrado.`;
+      return `Hoy llevas ${wins} victoria${wins === 1 ? "" : "s"
+        } y ${losses} derrota${losses === 1 ? "" : "s"}. Todo equilibrado.`;
     }
   }, [isOwnProfile, sessionStats]);
 
@@ -732,17 +750,14 @@ export function MatchHistoryList({
     if (sessionStats.today.total === 0) return null;
 
     if (sessionStats.session.winStreak >= 2) {
-      return `Estás teniendo buena racha. Llevas ${
-        sessionStats.session.winStreak
-      } victoria${
-        sessionStats.session.winStreak === 1 ? "" : "s"
-      } seguidas. Sigue así.`;
+      return `Estás teniendo buena racha. Llevas ${sessionStats.session.winStreak
+        } victoria${sessionStats.session.winStreak === 1 ? "" : "s"
+        } seguidas. Sigue así.`;
     }
 
     if (sessionStats.session.lossStreak >= 2) {
-      return `Llevas ${sessionStats.session.lossStreak} derrota${
-        sessionStats.session.lossStreak === 1 ? "" : "s"
-      } seguidas. Tómate un respiro y vuelve con todo.`;
+      return `Llevas ${sessionStats.session.lossStreak} derrota${sessionStats.session.lossStreak === 1 ? "" : "s"
+        } seguidas. Tómate un respiro y vuelve con todo.`;
     }
 
     return null;
@@ -863,12 +878,11 @@ export function MatchHistoryList({
                 {isOwnProfile && sessionStats?.success ? (
                   <div
                     className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-sm
-                      ${
-                        streakTone === "loss"
-                          ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100"
-                          : streakTone === "win"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
-                            : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
+                      ${streakTone === "loss"
+                        ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100"
+                        : streakTone === "win"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
+                          : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-100"
                       }
                     `}
                   >
@@ -876,10 +890,9 @@ export function MatchHistoryList({
                       {streakTone ? (
                         <span
                           className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide
-                            ${
-                              streakTone === "loss"
-                                ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-200"
-                                : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
+                            ${streakTone === "loss"
+                              ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-200"
+                              : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
                             }
                           `}
                         >
@@ -947,10 +960,9 @@ export function MatchHistoryList({
                   }}
                   disabled={!userId}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border
-                    ${
-                      queueFilter === filter.value
-                        ? "bg-white text-slate-900 border-white"
-                        : "text-slate-400 border-slate-700 hover:text-white hover:border-slate-500"
+                    ${queueFilter === filter.value
+                      ? "bg-white text-slate-900 border-white"
+                      : "text-slate-400 border-slate-700 hover:text-white hover:border-slate-500"
                     }
                     ${!userId ? "opacity-60 cursor-not-allowed" : ""}
                   `}
@@ -1036,7 +1048,7 @@ export function MatchHistoryList({
                         {isMobile &&
                           idx > 0 &&
                           idx % (mobileViewMode === "compact" ? 12 : 5) ===
-                            0 && (
+                          0 && (
                             <div className="mb-2">
                               <MobileMatchHistoryAdBanner />
                             </div>
@@ -1072,18 +1084,33 @@ export function MatchHistoryList({
                             />
                           )
                         ) : (
-                          <MemoizedMatchCard
-                            match={match}
-                            version={ddragonVersion}
-                            linkedAccountsMap={linkedAccountsMap}
-                            recentMatches={matchesToRender}
-                            hideShareButton={hideShareButton}
-                            userId={userId}
-                            isOwnProfile={isOwnProfile}
-                            priority={idx < 3}
-                            onSelectMatch={handleSelectMatch}
-                            onHoverMatch={handlePrefetchMatch}
-                          />
+                          isPublicProfile ? (
+                            <MemoizedMatchCardPro
+                              match={match}
+                              version={ddragonVersion}
+                              linkedAccountsMap={linkedAccountsMap}
+                              recentMatches={matchesToRender}
+                              hideShareButton={hideShareButton}
+                              userId={userId}
+                              isOwnProfile={isOwnProfile}
+                              priority={idx < 3}
+                              onSelectMatch={handleSelectMatch}
+                              onHoverMatch={handlePrefetchMatch}
+                            />
+                          ) : (
+                            <MemoizedMatchCard
+                              match={match}
+                              version={ddragonVersion}
+                              linkedAccountsMap={linkedAccountsMap}
+                              recentMatches={matchesToRender}
+                              hideShareButton={hideShareButton}
+                              userId={userId}
+                              isOwnProfile={isOwnProfile}
+                              priority={idx < 3}
+                              onSelectMatch={handleSelectMatch}
+                              onHoverMatch={handlePrefetchMatch}
+                            />
+                          )
                         )}
                       </div>
                     </div>

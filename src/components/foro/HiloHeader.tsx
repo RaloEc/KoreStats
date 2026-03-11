@@ -56,7 +56,7 @@ export default function HiloHeader({ hilo, etiquetas }: HiloHeaderProps) {
   const groupedButtonClasses =
     "inline-flex items-center justify-center gap-2 rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted/70 hover:text-foreground sm:text-sm sm:min-w-[120px]";
 
-  const handleEliminar = async () => {  
+  const handleEliminar = async () => {
     if (
       !confirm(
         "¿Estás seguro de que deseas eliminar este hilo? Esta acción no se puede deshacer."
@@ -298,9 +298,8 @@ export default function HiloHeader({ hilo, etiquetas }: HiloHeaderProps) {
               <span className="hidden lg:inline">Seguir</span>
             </button>
             <ShareButton
-              url={`${
-                process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-              }/foro/hilos/${hilo.slug}`}
+              url={`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+                }/foro/hilos/${hilo.slug}`}
               title={hilo.titulo}
               description={hilo.contenido
                 .substring(0, 160)
@@ -358,6 +357,7 @@ export default function HiloHeader({ hilo, etiquetas }: HiloHeaderProps) {
             html={hilo.contenido ?? ""}
             className="prose max-w-none prose-headings:my-4 prose-p:my-3 prose-strong:text-gray-900 dark:prose-strong:text-white amoled:prose-invert amoled:prose-strong:text-white"
             weaponStatsRecord={hilo.weapon_stats_record ?? undefined}
+            statsDeleted={(hilo as any).stats_deleted}
           />
         ) : (
           <div className="space-y-4">
@@ -368,7 +368,7 @@ export default function HiloHeader({ hilo, etiquetas }: HiloHeaderProps) {
                 placeholder="Edita el contenido de tu hilo..."
               />
             </div>
-            
+
             {/* Botones de guardar y cancelar */}
             <div className="flex items-center gap-3 justify-end">
               <button

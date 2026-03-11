@@ -411,14 +411,9 @@ export const patchService = {
         runeChanges.length > 0 ||
         summonerChanges.length > 0;
 
-      // Generar resumen HTML usando la versión comercial si es posible
-      let contentHtml = `<h3>Resumen del Parche ${displayVersion} (${latestVersion})</h3>`;
-      contentHtml += `<ul>
-        <li>Campeones modificados: ${championChanges.length}</li>
-        <li>Objetos modificados: ${itemChanges.length}</li>
-        <li>Runas modificadas: ${runeChanges.length}</li>
-        <li>Hechizos modificados: ${summonerChanges.length}</li>
-      </ul>`;
+      // Generar plantilla de análisis (Impacto Probable) manual para que el admin lo edite
+      let contentHtml = `<h3>Impacto Probable (Análisis Rápido)</h3>`;
+      contentHtml += `<p><em>Escribe aquí tu análisis rápido. Ejemplo: "Este parche favorece campeones agresivos en fase temprana."</em></p>`;
 
       const payload = {
         titulo: `Notas del Parche ${displayVersion}`,

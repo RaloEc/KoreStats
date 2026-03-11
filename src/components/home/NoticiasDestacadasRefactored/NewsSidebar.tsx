@@ -8,6 +8,7 @@ import { es } from "date-fns/locale";
 import { Clock, ArrowRight } from "lucide-react";
 import EventosWidget from "@/components/home/EventosWidget";
 import { Noticia } from "./types";
+import { LolPatchPreview } from "@/components/noticias/LolPatchPreview";
 import { CATEGORIAS_PREDEFINIDAS } from "./constants";
 
 const ServerStatusWidget = dynamic(
@@ -45,11 +46,6 @@ export function NewsSidebar({
         } as React.CSSProperties
       }
     >
-      {/* Estado del servidor de Riot (solo si hay problemas) */}
-      <div className="hidden lg:block">
-        <ServerStatusWidget />
-      </div>
-
       {/* Últimas noticias */}
       <div
         className="rounded-xl p-4 transition-colors duration-300"
@@ -116,6 +112,12 @@ export function NewsSidebar({
                   >
                     {noticia.titulo}
                   </h4>
+
+                  {/* Previsualización compacta de Parche */}
+                  {noticia.type === 'lol_patch' && noticia.data && (
+                    <LolPatchPreview data={noticia.data} variant="compact" />
+                  )}
+
                   <div className="flex items-center text-xs text-muted-foreground mt-1">
                     <span>
                       {format(new Date(noticia.created_at), "dd MMM", {

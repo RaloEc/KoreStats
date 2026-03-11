@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import ProAccountCard from "@/components/riot/ProAccountCard";
 import { RiotAccountCard } from "@/components/riot/RiotAccountCard";
 import { LinkedAccountRiot } from "@/types/riot";
+import { AllstarClipsGallery } from "@/components/riot/AllstarClipsGallery";
 
 // Dynamic import para evitar problemas de inicialización/circularidad
 const MatchHistoryList = dynamic(
@@ -24,8 +25,23 @@ const MatchHistoryList = dynamic(
   },
 );
 
+const AllstarClipsVerticalFeed = dynamic(
+  () =>
+    import("@/components/riot/AllstarClipsVerticalFeed").then(
+      (mod) => mod.AllstarClipsVerticalFeed,
+    ),
+  {
+    loading: () => (
+      <div className="w-full h-64 flex items-center justify-center">
+        <div className="animate-pulse rounded-xl bg-muted w-full h-full"></div>
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
 interface ProfileLolTabContentProps {
-  riotAccount: LinkedAccountRiot;
+  riotAccount: LinkedAccountRiot | null;
   userId: string;
   isOwnProfile?: boolean;
   unifiedSyncPending?: boolean;
@@ -103,18 +119,56 @@ export default function ProfileLolTabContent({
         {/* builds guardadas */}
         {!isPublicProfile && <SavedBuildsPanel />}
 
-        {/* Historial de partidas */}
-        <MatchHistoryList
-          userId={userId}
-          puuid={riotAccount.puuid}
-          riotId={
-            riotAccount.game_name
-              ? `${riotAccount.game_name}#${riotAccount.tag_line}`
-              : undefined
-          }
-          externalSyncPending={unifiedSyncPending}
-          externalCooldownSeconds={unifiedSyncCooldown}
-        />
+        <div className={isPublicProfile ? "grid grid-cols-1 lg:grid-cols-3 gap-6 my-6 items-start" : "mt-6"}>
+          {/* Main Column */}
+          <div className={isPublicProfile ? "lg:col-span-2 space-y-6 min-w-0 w-full" : "space-y-6"}>
+            {/* Highlights de Allstar - Only for regular users */}
+            {!isPublicProfile && (
+              <AllstarClipsGallery
+                userId={userId}
+                puuid={riotAccount.puuid}
+                isOwnProfile={isOwnProfile}
+                className="mb-6"
+              />
+            )}
+
+            {/* If Pro, show Videos in the main area (previously in sidebar) */}
+            {isPublicProfile ? (
+              <AllstarClipsVerticalFeed puuid={riotAccount.puuid} />
+            ) : (
+              /* If Not Pro, show History here */
+              <MatchHistoryList
+                userId={userId}
+                puuid={riotAccount.puuid}
+                riotId={
+                  riotAccount.game_name
+                    ? `${riotAccount.game_name}#${riotAccount.tag_line}`
+                    : undefined
+                }
+                externalSyncPending={unifiedSyncPending}
+                externalCooldownSeconds={unifiedSyncCooldown}
+              />
+            )}
+          </div>
+
+          {/* Sidebar Column (Only for Pros) */}
+          {isPublicProfile && (
+            <div className="lg:col-span-1 space-y-6 min-w-0 w-full">
+              <MatchHistoryList
+                userId={userId}
+                puuid={riotAccount.puuid}
+                isPublicProfile={isPublicProfile}
+                riotId={
+                  riotAccount.game_name
+                    ? `${riotAccount.game_name}#${riotAccount.tag_line}`
+                    : undefined
+                }
+                externalSyncPending={unifiedSyncPending}
+                externalCooldownSeconds={unifiedSyncCooldown}
+              />
+            </div>
+          )}
+        </div>
       </>
     );
   }

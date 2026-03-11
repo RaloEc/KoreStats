@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,10 @@ import { useProfilePageData } from "@/hooks/use-profile-page-data";
 
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
 
+// Sistema modular de juegos
+import { getVisibleProfileModules } from "@/modules/registry";
+import type { GameProfileModule } from "@/modules/types";
+
 // Componentes de perfil
 import ProfileHeader from "@/components/perfil/profile-header";
 import MobileProfileLayout from "@/components/perfil/MobileProfileLayout";
@@ -16,7 +20,6 @@ import { ProfileTabs, type ProfileTab } from "@/components/perfil/ProfileTabs";
 import { ProfilePageSkeleton } from "@/components/perfil/ProfilePageSkeleton";
 import { UserAccountModal } from "@/components/settings/UserAccountModal";
 import { ProfilePostsTabContent } from "@/components/perfil/ProfilePostsTabContent";
-import { ProfileLolTabContent } from "@/components/perfil/ProfileLolTabContent";
 import { ConnectedAccountsModal } from "@/components/perfil/ConnectedAccountsModal";
 
 import { Card, CardBody, Button, useDisclosure } from "@nextui-org/react";
@@ -84,6 +87,24 @@ export default function PerfilPageClient({
 
   const isOwnProfile = user?.id === perfil?.id;
 
+  // ============================================================================
+  // SISTEMA MODULAR: Determinar tabs visibles de juegos (Optimizado)
+  // ============================================================================
+  const linkedGameSlugs = useMemo(() => {
+    const slugs: string[] = [];
+    if (riotAccount) slugs.push("league-of-legends");
+    return slugs;
+  }, [riotAccount]);
+
+  const visibleGameModules = useMemo(() => {
+    if (!perfil) return [];
+    return getVisibleProfileModules({
+      connectedAccounts: (profile as any)?.connected_accounts || {},
+      isOwnProfile,
+      linkedGameSlugs,
+    });
+  }, [perfil, profile, isOwnProfile, linkedGameSlugs]);
+
   // Lee el tab activo desde la URL inicialmente
   const initialTab = (searchParams.get("tab") as ProfileTab) || "posts";
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
@@ -98,14 +119,11 @@ export default function PerfilPageClient({
     }
   }, [activeTab]);
 
-  // Estado para controlar si ya se visitó la pestaña de LoL (Lazy Mounting)
-  const [lolTabVisited, setLolTabVisited] = useState(activeTab === "lol");
-
-  useEffect(() => {
-    if (activeTab === "lol" && !lolTabVisited) {
-      setLolTabVisited(true);
-    }
-  }, [activeTab, lolTabVisited]);
+  // Determinar si el tab actual es un módulo de juego
+  const activeGameModule = useMemo(() => {
+    const isBaseTab = ["posts", "friends", "stats"].includes(activeTab);
+    return !isBaseTab ? visibleGameModules.find((m) => m.slug === activeTab) : null;
+  }, [activeTab, visibleGameModules]);
 
   // ========================================================================
   // EFECTO: Redirección si no hay sesión
@@ -269,48 +287,41 @@ export default function PerfilPageClient({
           </div>
         )}
 
-        {/* Sistema de Pestañas */}
+        {/* Sistema de Pestañas con módulos dinámicos */}
         <ProfileTabs
-          hasRiotAccount={!!riotAccount}
-          isOwnProfile={isOwnProfile}
           currentTab={activeTab}
           onTabChange={setActiveTab}
+          gameModules={visibleGameModules}
         />
 
         {/* Contenido de Pestañas con Persistencia (KeepMounted) */}
 
-        {/* Pestaña Actividad */}
-        <div className={activeTab === "posts" ? "block mt-8" : "hidden mt-8"}>
-          <ProfilePostsTabContent
-            perfilId={perfil.id}
-            perfilUsername={perfil.username}
-            perfilColor={perfil.color}
-            userId={user?.id}
-            estadisticas={estadisticas}
-          />
-        </div>
-
-        {/* Pestaña League of Legends - Lazy Mounted + Keep Alive */}
-        {(activeTab === "lol" || lolTabVisited) && (
-          <div
-            className={
-              activeTab === "lol"
-                ? "block mt-8 space-y-6"
-                : "hidden mt-8 space-y-6"
-            }
-          >
-            <ProfileLolTabContent
-              riotAccount={riotAccount}
-              userId={perfil.id}
-              isOwnProfile={isOwnProfile}
-              unifiedSyncPending={unifiedSyncPending}
-              unifiedSyncCooldown={unifiedSyncCooldown}
-              onInvalidateCache={invalidateAndRefetchStatic}
-              profileColor={perfil.color}
-              showChampionStats={false}
+        {/* Pestañas de módulos de juegos / Actividad */}
+        <div className="mt-8">
+          {activeTab === "posts" ? (
+            <ProfilePostsTabContent
+              perfilId={perfil.id}
+              perfilUsername={perfil.username}
+              perfilColor={perfil.color}
+              userId={user?.id}
+              estadisticas={estadisticas}
             />
-          </div>
-        )}
+          ) : activeGameModule ? (
+            <div className="space-y-6">
+              {activeGameModule.renderProfileTab({
+                userId: perfil.id,
+                isOwnProfile,
+                gameAccountData: activeGameModule.slug === "league-of-legends" ? riotAccount : null,
+                onInvalidateCache: invalidateAndRefetchStatic,
+                onSync: undefined,
+                profileColor: perfil.color ?? undefined,
+                syncPending: activeGameModule.slug === "league-of-legends" ? unifiedSyncPending : false,
+                syncCooldown: activeGameModule.slug === "league-of-legends" ? unifiedSyncCooldown : 0,
+                isPublicProfile: false,
+              })}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* Modal de configuración unificado */}

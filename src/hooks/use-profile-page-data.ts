@@ -3,6 +3,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 
+import { LinkedAccountRiot } from "@/types/riot";
+
 // ============================================================================
 // TIPOS
 // ============================================================================
@@ -28,20 +30,7 @@ export interface StaticProfileData {
     following_count?: number;
     friends_count?: number;
   };
-  riotAccount: {
-    id: string;
-    user_id: string;
-    puuid: string;
-    game_name: string;
-    tag_line: string;
-    tier?: string | null;
-    rank?: string | null;
-    league_points?: number;
-    wins?: number;
-    losses?: number;
-    summoner_level?: number;
-    profile_icon_id?: number;
-  } | null;
+  riotAccount: LinkedAccountRiot | null;
 }
 
 export interface DynamicProfileData {

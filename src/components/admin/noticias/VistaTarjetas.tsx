@@ -57,7 +57,7 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
       {noticias.map((noticia) => (
         <Card
           key={noticia.id}
-          className="overflow-hidden border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors"
+          className="overflow-hidden border border-zinc-200 dark:border-white/5 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors"
         >
           <CardHeader className="p-0">
             <div className="relative">
@@ -130,13 +130,13 @@ export const VistaTarjetas = React.memo(function VistaTarjetas({
                 noticiaId={noticia.id}
                 campo="es_activa"
                 valorActual={noticia.es_activa !== false}
-                etiqueta="Activa"
+                etiqueta="Publicado"
               />
               <ToggleEstado
                 noticiaId={noticia.id}
                 campo="destacada"
                 valorActual={noticia.destacada}
-                etiqueta="Destacada"
+                etiqueta="Destacado"
               />
             </div>
           </CardContent>

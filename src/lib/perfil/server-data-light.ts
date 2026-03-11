@@ -36,10 +36,10 @@ export interface RiotAccountLight {
   game_name: string | null;
   tag_line: string | null;
   solo_tier: string | null;
-  solo_division: string | null;
-  solo_lp: number | null;
+  solo_rank: string | null;
+  solo_league_points: number | null;
   flex_tier: string | null;
-  flex_division: string | null;
+  flex_rank: string | null;
   profile_icon_id: number | null;
   region: string | null;
 }
@@ -116,10 +116,10 @@ export async function getProfileInitialDataLight(username: string): Promise<{
         game_name,
         tag_line,
         solo_tier,
-        solo_division,
-        solo_lp,
+        solo_rank,
+        solo_league_points,
         flex_tier,
-        flex_division,
+        flex_rank,
         profile_icon_id,
         region
       `
@@ -129,7 +129,7 @@ export async function getProfileInitialDataLight(username: string): Promise<{
 
     return {
       profile: profile as ProfileLight,
-      riotAccount: riotAccount as RiotAccountLight | null,
+      riotAccount: (riotAccount as unknown) as RiotAccountLight | null,
     };
   } catch (error) {
     console.error("[getProfileInitialDataLight] Error:", error);

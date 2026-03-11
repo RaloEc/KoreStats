@@ -3,17 +3,22 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { AdminDesktopMenu } from "./AdminDesktopMenu";
+import { GamesDesktopMenu } from "./GamesDesktopMenu";
 import { SearchDropdown } from "./SearchDropdown";
 
 interface HeaderDesktopNavProps {
   isAdmin: boolean;
   isAdminMenuOpen: boolean;
   setIsAdminMenuOpen: (value: boolean) => void;
+  isGamesMenuOpen: boolean;
+  setIsGamesMenuOpen: (value: boolean) => void;
+  games: any[];
   closeAllMenus: () => void;
   profile?: {
     color?: string;
   } | null;
   adminMenuRef: React.RefObject<HTMLLIElement>;
+  gamesMenuRef: React.RefObject<HTMLLIElement>;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   handleSearch: (e: React.FormEvent) => void;
@@ -23,9 +28,13 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
   isAdmin,
   isAdminMenuOpen,
   setIsAdminMenuOpen,
+  isGamesMenuOpen,
+  setIsGamesMenuOpen,
+  games,
   closeAllMenus,
   profile,
   adminMenuRef,
+  gamesMenuRef,
   searchQuery,
   setSearchQuery,
   handleSearch,
@@ -55,6 +64,13 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
               Foro
             </Link>
           </li>
+          <GamesDesktopMenu
+            isOpen={isGamesMenuOpen}
+            onToggle={() => setIsGamesMenuOpen(!isGamesMenuOpen)}
+            onClose={() => setIsGamesMenuOpen(false)}
+            menuRef={gamesMenuRef}
+            games={games}
+          />
           {isAdmin && (
             <AdminDesktopMenu
               isOpen={isAdminMenuOpen}
@@ -67,7 +83,7 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
       </nav>
 
       {/* Barra de búsqueda centrada - solo desktop */}
-      <div className="flex-1 max-w-md mx-4 hidden md:block">
+      <div className="flex-1 max-w-xs mx-4 hidden md:block">
         <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
           <Input

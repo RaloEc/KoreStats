@@ -12,6 +12,7 @@ import { MatchShareButton } from "@/components/riot/MatchShareButton";
 import { createClient } from "@/lib/supabase/client";
 import { Download, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MatchClips } from "@/components/riot/MatchClips";
 
 interface MatchDetailContentProps {
   matchId: string;
@@ -238,6 +239,8 @@ export function MatchDetailContent({ matchId }: MatchDetailContentProps) {
           )}
         </div>
       </div>
+
+      <MatchClips matchId={matchId} />
 
       {/* Tabs */}
       <Tabs defaultValue="scoreboard" className="w-full">

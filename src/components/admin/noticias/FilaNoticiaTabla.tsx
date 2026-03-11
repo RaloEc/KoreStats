@@ -50,7 +50,7 @@ export const FilaNoticiaTabla = React.memo(
     };
 
     return (
-      <TableRow className="hover:bg-zinc-100 dark:hover:bg-zinc-900/50">
+      <TableRow className="hover:bg-zinc-100 dark:hover:bg-zinc-900/50 dark:border-white/5">
         <TableCell>
           <Checkbox
             checked={seleccionada}
@@ -93,16 +93,18 @@ export const FilaNoticiaTabla = React.memo(
         </TableCell>
         <TableCell>{noticia.vistas || 0}</TableCell>
         <TableCell>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <ToggleEstado
               noticiaId={noticia.id}
               campo="es_activa"
               valorActual={noticia.es_activa !== false}
+              etiqueta="Publicado"
             />
             <ToggleEstado
               noticiaId={noticia.id}
               campo="destacada"
               valorActual={noticia.destacada}
+              etiqueta="Destacado"
             />
           </div>
         </TableCell>

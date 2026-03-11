@@ -27,6 +27,8 @@ const Header: React.FC = () => {
     isAdmin,
     isAdminMenuOpen,
     setIsAdminMenuOpen,
+    isGamesMenuOpen,
+    setIsGamesMenuOpen,
     isAuthModalOpen,
     setIsAuthModalOpen,
     authModalMode,
@@ -34,6 +36,7 @@ const Header: React.FC = () => {
     searchQuery,
     setSearchQuery,
     foroCategorias,
+    games,
     foroMobileOpen,
     setForoMobileOpen,
     noticiasMobileOpen,
@@ -46,6 +49,7 @@ const Header: React.FC = () => {
 
     // Referencias
     adminMenuRef,
+    gamesMenuRef,
     userMenuRef,
     userButtonRef,
 
@@ -103,9 +107,13 @@ const Header: React.FC = () => {
               isAdmin={isAdmin}
               isAdminMenuOpen={isAdminMenuOpen}
               setIsAdminMenuOpen={setIsAdminMenuOpen}
+              isGamesMenuOpen={isGamesMenuOpen}
+              setIsGamesMenuOpen={setIsGamesMenuOpen}
+              games={games}
               closeAllMenus={closeAllMenus}
               profile={profile}
               adminMenuRef={adminMenuRef}
+              gamesMenuRef={gamesMenuRef}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               handleSearch={handleSearch}
@@ -190,6 +198,7 @@ const Header: React.FC = () => {
           isAdmin={isAdmin}
           isLoggingOut={isLoggingOut}
           setIsSettingsModalOpen={setIsSettingsModalOpen}
+          games={games}
         />
 
         {/* Auth Modal */}

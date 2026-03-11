@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       destacada,
       fuentes,
       fuente,
+      juego_id,
     } = await request.json();
 
     // Validar campos mínimos (Solo título es requerido para guardar borrador)
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
           contenido,
           imagen_portada: imagen_portada || null, // Revertido a imagen_portada porque la DB parece usar eso
           estado: "borrador",
+          juego_id: juego_id || null,
           updated_at: new Date().toISOString(), // Revertido a updated_at por si acaso
         })
         .eq("id", id)
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
           imagen_portada: imagen_portada || null, // Revertido
           autor_id: user.id,
           estado: "borrador",
+          juego_id: juego_id || null,
           vistas: 0,
           slug: titulo
             .toLowerCase()

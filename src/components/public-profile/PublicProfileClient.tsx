@@ -17,6 +17,10 @@ import { useAuth } from "@/context/AuthContext";
 import { EditPublicProfileDialog } from "./EditPublicProfileDialog";
 import TwitchLivePlayer from "./TwitchLivePlayer";
 
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+
 interface PublicProfileClientProps {
   profile: PublicProfileFull;
 }
@@ -25,10 +29,113 @@ export default function PublicProfileClient({
   profile,
 }: PublicProfileClientProps) {
   const { user, profile: profileData } = useAuth();
+  const { toast } = useToast();
+  const [isSyncingPublic, setIsSyncingPublic] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setIsFollowLoading(false);
+      return;
+    }
+
+    const checkFollowStatus = async () => {
+      try {
+        const res = await fetch(`/api/pro-profiles/follow?userId=${user.id}&proProfileId=${profile.id}`);
+        const data = await res.json();
+        if (data.isFollowing) setIsFollowing(true);
+      } catch (err) {
+        console.error("Error checking follow status:", err);
+      } finally {
+        setIsFollowLoading(false);
+      }
+    };
+
+    checkFollowStatus();
+  }, [user, profile.id]);
+
+  const handleToggleFollow = async () => {
+    if (!user) {
+      toast({
+        title: "Inicia Sesión",
+        description: "Necesitas iniciar sesión para seguir a un jugador.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFollowLoading(true);
+    try {
+      const action = isFollowing ? "unfollow" : "follow";
+      const res = await fetch("/api/pro-profiles/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, proProfileId: profile.id, action }),
+      });
+
+      if (!res.ok) throw new Error("Error al modificar seguimiento");
+
+      setIsFollowing(!isFollowing);
+      toast({
+        title: isFollowing ? "Dejaste de seguir" : "Siguiendo",
+        description: isFollowing
+          ? `Ya no sigues a ${profile.display_name}.`
+          : `Ahora sigues a ${profile.display_name}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Hubo un problema al procesar tu solicitud.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
+  const handlePublicSync = async () => {
+    if (isSyncingPublic) return;
+    setIsSyncingPublic(true);
+    try {
+      const res = await fetch("/api/riot/account/public/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: profile.id }), // The public profile ID is the user_id in linked_accounts_riot
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Error al sincronizar");
+      }
+
+      toast({
+        title: "Actualizado",
+        description: "El perfil se ha actualizado correctamente.",
+      });
+
+      // Refrescar para obtener los nuevos datos
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+      return data;
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: "Error",
+        description: e.message || "No se pudo actualizar el perfil",
+        variant: "destructive",
+      });
+      throw e;
+    } finally {
+      setIsSyncingPublic(false);
+    }
+  };
+
   // Adaptamos los datos para que encajen en la interfaz que espera ProfileLolTabContent
   const riotAccountAdapter = {
     id: "public-profile",
-    user_id: "system",
+    user_id: profile.id,
     // IMPORTANTE: Mostramos el nombre de invocador real en la tarjeta de Riot
     game_name: profile.summoner?.summoner_name || profile.display_name,
     tag_line: "",
@@ -79,6 +186,7 @@ export default function PublicProfileClient({
                 src={profile.avatar_url}
                 alt={profile.display_name}
                 fill
+                sizes="(max-width: 768px) 80px, 112px"
                 className="object-cover"
               />
             ) : (
@@ -115,6 +223,31 @@ export default function PublicProfileClient({
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Botón de Seguir */}
+          <div className="hidden sm:flex mb-1 ml-auto mr-4">
+            <Button
+              onClick={handleToggleFollow}
+              disabled={isFollowLoading}
+              variant={isFollowing ? "outline" : "default"}
+              size="sm"
+              className={isFollowing ? "bg-white/10 hover:bg-white/20 dark:border-white/20 text-foreground" : "font-bold text-white shadow-lg"}
+            >
+              {isFollowLoading ? "..." : isFollowing ? "Siguiendo" : `Seguir a ${profile.display_name}`}
+            </Button>
+          </div>
+
+          <div className="w-full flex sm:hidden justify-end absolute right-4 bottom-[85px] z-30">
+            <Button
+              onClick={handleToggleFollow}
+              disabled={isFollowLoading}
+              variant={isFollowing ? "outline" : "default"}
+              size="sm"
+              className={`rounded-full px-4 h-8 text-[10px] ${isFollowing ? "bg-background/80 hover:bg-background/90" : "font-bold"}`}
+            >
+              {isFollowLoading ? "..." : isFollowing ? "Siguiendo" : "Seguir"}
+            </Button>
           </div>
 
           {/* Social Links - Compactos */}
@@ -177,13 +310,13 @@ export default function PublicProfileClient({
           <div className="col-span-1">
             <ProfileLolTabContent
               riotAccount={riotAccountAdapter as any}
-              userId="public"
+              userId={profile.id}
               isOwnProfile={false}
-              unifiedSyncPending={false}
+              unifiedSyncPending={isSyncingPublic}
               unifiedSyncCooldown={0}
               showChampionStats={false}
               isPublicProfile={true}
-              onInvalidateCache={async () => {}}
+              onInvalidateCache={handlePublicSync}
             />
           </div>
         </div>

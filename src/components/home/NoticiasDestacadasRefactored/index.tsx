@@ -64,18 +64,18 @@ function NoticiasDestacadasContent({
   const getAdjustedColor = (color: string, isDark: boolean) => {
     return isDark
       ? color.replace(/#(..)(..)(..)/, (_, r, g, b) => {
-          const factor = 1.4;
-          const r2 = Math.min(255, Math.round(parseInt(r, 16) * factor))
-            .toString(16)
-            .padStart(2, "0");
-          const g2 = Math.min(255, Math.round(parseInt(g, 16) * factor))
-            .toString(16)
-            .padStart(2, "0");
-          const b2 = Math.min(255, Math.round(parseInt(b, 16) * factor))
-            .toString(16)
-            .padStart(2, "0");
-          return `#${r2}${g2}${b2}`;
-        })
+        const factor = 1.4;
+        const r2 = Math.min(255, Math.round(parseInt(r, 16) * factor))
+          .toString(16)
+          .padStart(2, "0");
+        const g2 = Math.min(255, Math.round(parseInt(g, 16) * factor))
+          .toString(16)
+          .padStart(2, "0");
+        const b2 = Math.min(255, Math.round(parseInt(b, 16) * factor))
+          .toString(16)
+          .padStart(2, "0");
+        return `#${r2}${g2}${b2}`;
+      })
       : color;
   };
 
@@ -136,11 +136,6 @@ function NoticiasDestacadasContent({
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 dark:bg-black">
-          {/* Mobile specific Riot Status */}
-          <div className="lg:hidden mb-6">
-            <ServerStatusWidget />
-          </div>
-
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Columna principal */}
             <div className="lg:w-2/3">

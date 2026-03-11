@@ -5,6 +5,7 @@ import Link from "next/link";
 import { NoticiaMetaInfo } from "@/components/noticias/NoticiaMetaInfo";
 import { getExcerpt } from "@/lib/utils";
 import { Noticia } from "./types";
+import { LolPatchPreview } from "@/components/noticias/LolPatchPreview";
 
 interface NewsGridProps {
   noticias: Noticia[];
@@ -76,9 +77,15 @@ export function NewsGrid({
                     {noticia.titulo}
                   </span>
                 </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  {noticia.resumen || getExcerpt(noticia.contenido, 100)}
-                </p>
+
+                {/* Previsualización de Parche de LoL */}
+                {noticia.type === 'lol_patch' && noticia.data ? (
+                  <LolPatchPreview data={noticia.data} variant="full" className="mb-2" />
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                    {noticia.resumen || getExcerpt(noticia.contenido, 100)}
+                  </p>
+                )}
               </div>
               <div className="mt-auto pt-2">
                 <NoticiaMetaInfo

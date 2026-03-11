@@ -9,6 +9,7 @@ interface DatosAutoGuardar {
   categoria_ids: string[];
   destacada?: boolean;
   fuentes?: string[];
+  juego_id?: string;
 }
 
 interface UseAutoGuardarNoticiaReturn {
@@ -65,6 +66,7 @@ export function useAutoGuardarNoticia(): UseAutoGuardarNoticiaReturn {
             categoria_ids: datos.categoria_ids,
             destacada: datos.destacada || false,
             fuentes: datos.fuentes || [],
+            juego_id: datos.juego_id || null,
           }),
         });
 

@@ -84,16 +84,55 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
       });
 
       let parsedStats: WeaponStats | null = null;
+      let aiDescription: string | null = null;
+
       try {
-        let rawResult: ExtendedAnalysisResult | null = null;
+        let rawResult: any = null;
         if (typeof job.result === "string") {
-          rawResult = JSON.parse(job.result) as ExtendedAnalysisResult;
+          rawResult = JSON.parse(job.result);
         } else {
-          rawResult = job.result as ExtendedAnalysisResult | null;
+          rawResult = job.result;
         }
 
         if (rawResult) {
+          // CAPTURA CRÍTICA: La IA devuelve 'descripcionComica' según el prompt
+          aiDescription = rawResult.descripcionComica || rawResult.descripcion || rawResult.error_message || null;
           parsedStats = rawResult.stats ?? rawResult.datos ?? null;
+          
+          // Si el tipo es descripción O si no hay stats válidas, forzar error con el mensaje de la IA
+          const isDescriptionType = rawResult.type === 'descripcion' || rawResult.tipo === 'descripcion';
+          
+          if (isDescriptionType) {
+            console.log("[useWeaponAnalyzer] La IA devolvió una descripción (error):", aiDescription);
+            setStatus("error");
+            setClientError(aiDescription || "No se pudo identificar el arma.");
+            setFinalStats(null);
+            setJobId(null);
+            return;
+          }
+
+          // Validación de seguridad para el tipo 'stats' que vienen en cero
+          if (parsedStats) {
+            const s = parsedStats as any;
+            const coreStats = [
+              s.damage ?? s.dano,
+              s.range ?? s.alcance,
+              s.control,
+              s.accuracy ?? s.precision,
+              s.handling ?? s.manejo,
+              s.stability ?? s.estabilidad
+            ];
+            const hasRealData = coreStats.some(v => typeof v === 'number' && v > 0);
+            
+            if (!hasRealData) {
+              console.warn("[useWeaponAnalyzer] Detección fallida (stats en cero):", aiDescription);
+              setStatus("error");
+              setClientError(aiDescription || "Esa imagen no contiene estadísticas válidas.");
+              setFinalStats(null);
+              setJobId(null);
+              return;
+            }
+          }
         }
       } catch (parseError) {
         console.error("[useWeaponAnalyzer] Error parseando resultado final", {
@@ -109,10 +148,22 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
       console.error("[useWeaponAnalyzer] Job falló", {
         jobId: job.id,
         error: job.error_message,
+        result: job.result
       });
+
+      // Intentar extraer el mensaje de la IA desde varias fuentes posibles
+      let aiErrorMessage = job.error_message;
+      
+      if (!aiErrorMessage && job.result) {
+        try {
+          const res = typeof job.result === 'string' ? JSON.parse(job.result) : job.result;
+          aiErrorMessage = res.descripcionComica || res.descripcion || res.error_message;
+        } catch(e) {}
+      }
+
       setStatus("error");
       setClientError(
-        job.error_message || "El análisis falló sin un mensaje."
+        aiErrorMessage || "Esa imagen no contiene estadísticas válidas. Asegúrate de subir una captura clara del menú de accesorios."
       );
       setFinalStats(null);
       setJobId(null); // Detener query

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, X, Users } from "lucide-react";
 import { Button, Card, CardBody } from "@nextui-org/react";
@@ -13,13 +13,9 @@ import ProfileStats from "./profile-stats";
 import MembershipInfo from "./membership-info";
 import { LogOut } from "lucide-react";
 import { ProfileTabs, type ProfileTab } from "./ProfileTabs";
-import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
-import { RiotAccountCardVisual } from "@/components/riot/RiotAccountCardVisual";
-import { MatchHistoryList } from "@/components/riot/MatchHistoryList";
-import { RiotTierBadge } from "@/components/riot/RiotTierBadge";
-import { UnifiedRiotSyncButton } from "@/components/riot/UnifiedRiotSyncButton";
 import { useUnifiedRiotSync } from "@/hooks/use-unified-riot-sync";
-import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
+import { getVisibleProfileModules } from "@/modules/registry";
+import type { GameProfileModule } from "@/modules/types";
 
 interface MobileProfileLayoutProps {
   fetchActivities: (page: number, limit: number) => Promise<any[]>;
@@ -89,6 +85,27 @@ export default function MobileProfileLayout({
     cooldownSeconds: unifiedSyncCooldown,
   } = useUnifiedRiotSync();
 
+  // Sistema modular de juegos (Optimizado)
+  const linkedGameSlugs = useMemo(() => {
+    const slugs: string[] = [];
+    if (riotAccount) slugs.push("league-of-legends");
+    return slugs;
+  }, [riotAccount]);
+
+  const visibleGameModules: GameProfileModule[] = useMemo(() => {
+    return getVisibleProfileModules({
+      connectedAccounts: perfil.connected_accounts || {},
+      isOwnProfile,
+      linkedGameSlugs,
+    });
+  }, [perfil.connected_accounts, isOwnProfile, linkedGameSlugs]);
+
+  // Determinar módulo activo
+  const activeGameModule = useMemo(() => {
+    const isBaseTab = ["posts", "friends", "stats"].includes(currentTab);
+    return !isBaseTab ? visibleGameModules.find((m) => m.slug === currentTab) : null;
+  }, [currentTab, visibleGameModules]);
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-white dark:bg-black amoled:bg-black">
       {/* Contenido principal */}
@@ -115,14 +132,13 @@ export default function MobileProfileLayout({
           />
         </div>
 
-        {/* Sistema de Pestañas */}
+        {/* Sistema de Pestañas con módulos dinámicos */}
         <div className="px-4 mt-2 sticky top-0 z-20 bg-white dark:bg-black amoled:bg-black py-2 shadow-sm">
           <ProfileTabs
-            hasRiotAccount={!!riotAccount}
-            isOwnProfile={isOwnProfile}
             currentTab={currentTab}
             onTabChange={handleTabChange}
             isMobile={true}
+            gameModules={visibleGameModules}
           />
         </div>
 
@@ -145,59 +161,25 @@ export default function MobileProfileLayout({
           </div>
         </div>
 
-        {/* Pestaña League of Legends */}
-        <div className={currentTab === "lol" ? "block" : "hidden"}>
+        {/* Pestañas de módulos de juegos */}
+        {activeGameModule && (
           <div className="px-4 py-4 pb-24 space-y-6">
-            {!riotAccount && isOwnProfile ? (
-              <RiotEmptyState
-                isOwnProfile
-                onLinkClick={() => {
-                  window.location.href = "/api/riot/login";
-                }}
-                onManualLinkSuccess={async () => {
-                  await onInvalidateCache?.();
-                }}
-              />
-            ) : riotAccount ? (
-              <>
-                <RiotAccountCardVisual
-                  account={riotAccount}
-                  hideSync={false}
-                  onSync={unifiedSync}
-                  isSyncing={unifiedSyncPending}
-                  cooldownSeconds={unifiedSyncCooldown}
-                  profileColor={perfil.color}
-                />
-
-                <div className="grid grid-cols-1 gap-6">
-                  <SavedBuildsPanel />
-                  <div>
-                    <MatchHistoryList
-                      userId={perfil.id}
-                      puuid={riotAccount.puuid}
-                      riotId={
-                        riotAccount.game_name && riotAccount.tag_line
-                          ? `${riotAccount.game_name}#${riotAccount.tag_line}`
-                          : undefined
-                      }
-                      externalSyncPending={unifiedSyncPending}
-                      externalCooldownSeconds={unifiedSyncCooldown}
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-10">
-                <p className="text-gray-500">
-                  Este usuario no ha vinculado su cuenta de Riot Games.
-                </p>
-              </div>
-            )}
+            {activeGameModule.renderProfileTab({
+              userId: perfil.id,
+              isOwnProfile,
+              gameAccountData: activeGameModule.slug === "league-of-legends" ? riotAccount : null,
+              onInvalidateCache: async () => { await onInvalidateCache?.(); },
+              onSync: activeGameModule.slug === "league-of-legends" ? unifiedSync : undefined,
+              profileColor: perfil.color ?? undefined,
+              syncPending: activeGameModule.slug === "league-of-legends" ? unifiedSyncPending : false,
+              syncCooldown: activeGameModule.slug === "league-of-legends" ? unifiedSyncCooldown : 0,
+              isPublicProfile: false,
+            })}
           </div>
-        </div>
+        )}
 
         {/* Pestaña Amigos */}
-        <div className={currentTab === "friends" ? "block" : "hidden"}>
+        {currentTab === "friends" && (
           <div className="px-4 py-4 pb-24 space-y-6">
             {/* Solicitudes de amistad */}
             <FriendRequestsList userColor={perfil.color} hideHeader={true} />
@@ -210,14 +192,14 @@ export default function MobileProfileLayout({
               hideHeader={true}
             />
           </div>
-        </div>
+        )}
 
         {/* Pestaña Estadísticas */}
-        <div className={currentTab === "stats" ? "block" : "hidden"}>
+        {currentTab === "stats" && (
           <div className="px-4 py-4 pb-24">
             <ProfileStats estadisticas={estadisticas} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

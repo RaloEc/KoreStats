@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Image as ImageIcon, Upload } from "lucide-react";
+import { ArrowLeft, Save, Image as ImageIcon, Upload, Gamepad2 } from "lucide-react";
 import {
   CategorySelector,
   type NoticiaCategory,
@@ -64,6 +64,14 @@ type Categoria = {
   nivel?: number; // Nivel jerárquico (1, 2, 3)
 };
 
+// Tipo para juegos
+type JuegoOption = {
+  id: string;
+  nombre: string;
+  slug: string;
+  icono_url: string | null;
+};
+
 // Esquema de validación
 const formSchema = z.object({
   titulo: z
@@ -81,6 +89,7 @@ const formSchema = z.object({
   autor: z.string().optional(),
   destacada: z.boolean().default(false),
   fuentes: z.array(z.string()).optional(),
+  juego_id: z.string().optional(),
 });
 
 function CrearNoticiaContent() {
@@ -88,12 +97,34 @@ function CrearNoticiaContent() {
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cargandoCategorias, setCargandoCategorias] = useState(true);
+  const [juegos, setJuegos] = useState<JuegoOption[]>([]);
   const [nombreUsuario, setNombreUsuario] = useState("Admin"); // Valor predeterminado
   const router = useRouter();
   const { user, session, profile } = useAuth(); // Usar el contexto de autenticación
   const { autoGuardar, isAutoSaving, lastSavedAt, noticiaId } =
     useAutoGuardarNoticia();
   const autoGuardarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Función para encontrar la categoría raíz de una categoría dada
+  const findRootCategoria = (catId: string, currentCats: Categoria[]): Categoria | undefined => {
+    const isCatInTree = (targetId: string, tree: Categoria[]): boolean => {
+      for (const node of tree) {
+        if (node.id === targetId) return true;
+        const children = node.subcategories || node.hijos;
+        if (children && children.length > 0 && isCatInTree(targetId, children)) return true;
+      }
+      return false;
+    };
+
+    for (const root of currentCats) {
+      if (root.id === catId) return root;
+      const subcats = root.subcategories || root.hijos;
+      if (subcats && subcats.length > 0 && isCatInTree(catId, subcats)) {
+        return root;
+      }
+    }
+    return undefined;
+  };
 
   // Función para manejar la selección de categorías
   const handleSeleccionarCategoria = (field: any, categoriaId: string) => {
@@ -107,7 +138,25 @@ function CrearNoticiaContent() {
       field.onChange(updatedCategories);
     } else if (field.value.length < 4) {
       // Si no está seleccionada y no hemos llegado al límite, la añadimos
-      field.onChange([...field.value, categoriaId]);
+      const newCategories = [...field.value, categoriaId];
+      field.onChange(newCategories);
+
+      // Detección automática de juego si no hay uno seleccionado o es "none"
+      const currentJuegoId = form.getValues("juego_id");
+      if (!currentJuegoId || currentJuegoId === "none" || currentJuegoId === "") {
+        const rootCat = findRootCategoria(categoriaId, categorias);
+        if (rootCat) {
+          // Buscar un juego cuyo nombre o slug coincida con la categoría seleccionada (o su raíz)
+          const matchingJuego = juegos.find(j =>
+            j.nombre.toLowerCase().includes(rootCat.nombre.toLowerCase()) ||
+            rootCat.nombre.toLowerCase().includes(j.nombre.toLowerCase()) ||
+            j.slug.toLowerCase().includes(rootCat.slug?.toLowerCase() || rootCat.nombre.toLowerCase())
+          );
+          if (matchingJuego) {
+            form.setValue("juego_id", matchingJuego.id);
+          }
+        }
+      }
     }
   };
 
@@ -152,6 +201,25 @@ function CrearNoticiaContent() {
     }
 
     cargarCategorias();
+  }, []);
+
+  // Cargar juegos al iniciar
+  useEffect(() => {
+    async function cargarJuegos() {
+      try {
+        const supabaseBrowser = createClient();
+        const { data, error } = await supabaseBrowser
+          .from("juegos")
+          .select("id, nombre, slug, icono_url")
+          .order("nombre");
+        if (!error && data) {
+          setJuegos(data);
+        }
+      } catch (error) {
+        console.error("Error al cargar juegos:", error);
+      }
+    }
+    cargarJuegos();
   }, []);
 
   // Estado para almacenar el ID del usuario actual
@@ -235,6 +303,7 @@ function CrearNoticiaContent() {
       autor: nombreUsuario,
       destacada: false,
       fuentes: [],
+      juego_id: "",
     },
     mode: "onChange", // Cambiar a onChange para validación más suave
     reValidateMode: "onBlur", // Validar solo al salir del campo
@@ -436,8 +505,7 @@ function CrearNoticiaContent() {
         images.forEach((img, index) => {
           const src = img.getAttribute("src");
           console.log(
-            `Imagen ${index + 1}: ${src?.substring(0, 100)}${
-              src && src.length > 100 ? "..." : ""
+            `Imagen ${index + 1}: ${src?.substring(0, 100)}${src && src.length > 100 ? "..." : ""
             }`
           );
 
@@ -446,14 +514,12 @@ function CrearNoticiaContent() {
             console.log(`Imagen ${index + 1} parece ser una URL de Supabase`);
           } else if (src && src.startsWith("blob:")) {
             console.warn(
-              `Imagen ${
-                index + 1
+              `Imagen ${index + 1
               } es una URL de blob temporal que necesita ser procesada`
             );
           } else if (src && src.startsWith("data:")) {
             console.warn(
-              `Imagen ${
-                index + 1
+              `Imagen ${index + 1
               } es una URL de datos que necesita ser procesada`
             );
           }
@@ -478,8 +544,7 @@ function CrearNoticiaContent() {
             const src = img.getAttribute("src");
             if (src && (src.startsWith("blob:") || src.startsWith("data:"))) {
               console.error(
-                `Imagen ${
-                  index + 1
+                `Imagen ${index + 1
                 } sigue siendo temporal después del procesamiento: ${src}`
               );
               allProcessed = false;
@@ -575,6 +640,7 @@ function CrearNoticiaContent() {
           destacada: values.destacada || false,
           estado: "publicada", // Crear directamente como publicada
           fuentes: values.fuentes || [],
+          juego_id: values.juego_id || null,
         }),
       });
 
@@ -655,11 +721,11 @@ function CrearNoticiaContent() {
                     <span className="text-muted-foreground text-xs">
                       Guardado hace{" "}
                       {Math.floor((Date.now() - lastSavedAt.getTime()) / 1000) <
-                      60
+                        60
                         ? "unos segundos"
                         : Math.floor(
-                            (Date.now() - lastSavedAt.getTime()) / 60000
-                          ) + " min"}
+                          (Date.now() - lastSavedAt.getTime()) / 60000
+                        ) + " min"}
                     </span>
                   </>
                 ) : null}
@@ -669,9 +735,8 @@ function CrearNoticiaContent() {
                 <span className="text-sm font-medium">Destacada</span>
                 <label
                   htmlFor="toggleDestacadaHeader"
-                  className={`relative block h-7 w-12 rounded-full transition-colors [-webkit-tap-highlight-color:_transparent] ${
-                    form.watch("destacada") ? "bg-primary" : "bg-input"
-                  }`}
+                  className={`relative block h-7 w-12 rounded-full transition-colors [-webkit-tap-highlight-color:_transparent] ${form.watch("destacada") ? "bg-primary" : "bg-input"
+                    }`}
                 >
                   <input
                     type="checkbox"
@@ -684,11 +749,10 @@ function CrearNoticiaContent() {
                   />
 
                   <span
-                    className={`absolute inset-y-0 start-0 m-1 size-5 rounded-full bg-background ring-[5px] ring-transparent transition-all ring-inset shadow-sm ${
-                      form.watch("destacada")
-                        ? "start-6 w-2 bg-background"
-                        : "bg-muted-foreground/20"
-                    }`}
+                    className={`absolute inset-y-0 start-0 m-1 size-5 rounded-full bg-background ring-[5px] ring-transparent transition-all ring-inset shadow-sm ${form.watch("destacada")
+                      ? "start-6 w-2 bg-background"
+                      : "bg-muted-foreground/20"
+                      }`}
                   ></span>
                 </label>
               </div>
@@ -754,6 +818,43 @@ function CrearNoticiaContent() {
                       <FormDescription>
                         Indica de dónde proviene la información. Puedes añadir
                         múltiples fuentes.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Selector de Juego */}
+                <FormField
+                  control={form.control}
+                  name="juego_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Gamepad2 className="h-4 w-4" />
+                        Juego asociado (Opcional)
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-background border-input">
+                            <SelectValue placeholder="Sin juego (General)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Sin juego (General)</SelectItem>
+                          {juegos.map((juego) => (
+                            <SelectItem key={juego.id} value={juego.id}>
+                              {juego.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Si la noticia es sobre un juego específico, selecciónalo aquí.
+                        Aparecerá en la página del juego.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

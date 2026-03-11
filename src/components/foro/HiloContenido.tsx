@@ -8,7 +8,7 @@ import { useRealtimeVotosHilos } from "@/hooks/useRealtimeVotosHilos";
 import { useUserTheme } from "@/hooks/useUserTheme";
 import { toast } from "sonner";
 import { WeaponStatsCard } from "@/components/weapon/WeaponStatsCard";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, X } from "lucide-react";
 import type { WeaponStats } from "@/types/weapon";
 
 // Declarar el tipo para el objeto twttr de Twitter
@@ -140,6 +140,7 @@ interface HiloContenidoProps {
     weapon_name: string | null;
     stats: WeaponStats;
   } | null;
+  statsDeleted?: boolean;
 }
 
 // Skeleton de carga mejorado
@@ -188,6 +189,7 @@ export default function HiloContenido({
   html,
   className = "",
   weaponStatsRecord,
+  statsDeleted,
 }: HiloContenidoProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { userColor } = useUserTheme();
@@ -262,7 +264,7 @@ export default function HiloContenido({
             }
           }
         }
-      } catch (error) {}
+      } catch (error) { }
     };
 
     // Procesar imágenes después de que el contenido se renderice
@@ -360,7 +362,7 @@ export default function HiloContenido({
                 });
               }
             })
-            .catch((e) => {});
+            .catch((e) => { });
         } else {
           // Reintentar si window.twttr aún no está disponible
           setTimeout(loadTwitterWidgets, 100);
@@ -590,10 +592,10 @@ export default function HiloContenido({
             "--user-color": userColor,
             "--user-color-rgb": userColor
               ? userColor
-                  .replace("#", "")
-                  .match(/.{1,2}/g)
-                  ?.map((x) => parseInt(x, 16))
-                  .join(", ")
+                .replace("#", "")
+                .match(/.{1,2}/g)
+                ?.map((x) => parseInt(x, 16))
+                .join(", ")
               : "59, 130, 246",
           } as React.CSSProperties
         }
@@ -604,14 +606,23 @@ export default function HiloContenido({
         />
 
         {/* Tarjeta de estadísticas del arma */}
-        {weaponStatsRecord?.stats && (
+        {weaponStatsRecord?.stats ? (
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <WeaponStatsCard
               stats={weaponStatsRecord.stats}
               className="w-auto max-w-xs mx-auto "
             />
           </div>
-        )}
+        ) : statsDeleted ? (
+          <div className="mt-8 pt-6 border-t border-dashed border-gray-200 dark:border-gray-800 flex flex-col items-center gap-2 opacity-50">
+            <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-900 mt-4">
+              <X size={14} className="text-gray-400" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+              El usuario eliminó el análisis técnico
+            </span>
+          </div>
+        ) : null}
 
         {/* Botón volver arriba */}
         {showScrollTop && (

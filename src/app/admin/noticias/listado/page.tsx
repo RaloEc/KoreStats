@@ -288,7 +288,7 @@ export default function ListadoNoticiasPage() {
           />
         )}
 
-        <Card className="border border-zinc-200 dark:border-zinc-800">
+        <Card className="border-zinc-200 dark:border-white/5 overflow-hidden">
           <CardHeader>
             <CardTitle>Noticias</CardTitle>
             <CardDescription>
@@ -365,10 +365,10 @@ export default function ListadoNoticiasPage() {
             </div>
 
             {modoVista === "tabla" ? (
-              <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+              <div className="rounded-md border border-zinc-200 dark:border-white/5">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="dark:border-white/5">
                       <TableHead className="w-[50px]">
                         <Checkbox
                           checked={

@@ -13,9 +13,11 @@ import {
   ChevronDown,
   Loader2,
   Settings,
+  Gamepad2,
 } from "lucide-react";
 import { ForoCategoria } from "./useHeaderLogic";
 import { LegalModal } from "@/components/legal/LegalModal";
+import { getPublicUrl } from "@/lib/utils/image-utils";
 
 interface HeaderMobileMenuProps {
   isOpen: boolean;
@@ -41,6 +43,7 @@ interface HeaderMobileMenuProps {
   isAdmin: boolean;
   isLoggingOut?: boolean;
   setIsSettingsModalOpen: (value: boolean) => void;
+  games: any[];
 }
 
 export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
@@ -60,8 +63,10 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
   isAdmin,
   isLoggingOut = false,
   setIsSettingsModalOpen,
+  games,
 }) => {
   const [adminMenuOpen, setAdminMenuOpen] = React.useState(false);
+  const [gamesMobileOpen, setGamesMobileOpen] = React.useState(false);
   const [legalOpen, setLegalOpen] = React.useState(false);
 
   // Bloquear scroll del body cuando el menú esté abierto
@@ -163,8 +168,8 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
                     {getUserInitials(
                       profile?.username ||
-                        authUser?.user_metadata?.full_name ||
-                        "",
+                      authUser?.user_metadata?.full_name ||
+                      "",
                       1,
                       "U",
                     )}
@@ -259,18 +264,16 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                   >
                     <ChevronDown
                       size={18}
-                      className={`transition-transform ${
-                        adminMenuOpen ? "rotate-180" : ""
-                      }`}
+                      className={`transition-transform ${adminMenuOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
                 </div>
                 <div
-                  className={`ml-4 overflow-hidden transition-all duration-200 ease-out ${
-                    adminMenuOpen
-                      ? "max-h-40 opacity-100"
-                      : "max-h-0 opacity-0 pointer-events-none"
-                  }`}
+                  className={`ml-4 overflow-hidden transition-all duration-200 ease-out ${adminMenuOpen
+                    ? "max-h-40 opacity-100"
+                    : "max-h-0 opacity-0 pointer-events-none"
+                    }`}
                   aria-hidden={!adminMenuOpen}
                 >
                   <Link
@@ -319,18 +322,16 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                 >
                   <ChevronDown
                     size={18}
-                    className={`transition-transform ${
-                      noticiasMobileOpen ? "rotate-180" : ""
-                    }`}
+                    className={`transition-transform ${noticiasMobileOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
               </div>
               <div
-                className={`mt-1 ml-2 overflow-hidden transition-all duration-200 ease-out ${
-                  noticiasMobileOpen
-                    ? "max-h-40 opacity-100"
-                    : "max-h-0 opacity-0 pointer-events-none"
-                }`}
+                className={`mt-1 ml-2 overflow-hidden transition-all duration-200 ease-out ${noticiasMobileOpen
+                  ? "max-h-40 opacity-100"
+                  : "max-h-0 opacity-0 pointer-events-none"
+                  }`}
                 aria-hidden={!noticiasMobileOpen}
               >
                 <Link
@@ -378,18 +379,16 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                 >
                   <ChevronDown
                     size={18}
-                    className={`transition-transform ${
-                      foroMobileOpen ? "rotate-180" : ""
-                    }`}
+                    className={`transition-transform ${foroMobileOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
               </div>
               <div
-                className={`mt-1 ml-2 overflow-hidden transition-all duration-200 ease-out ${
-                  foroMobileOpen
-                    ? "max-h-96 opacity-100"
-                    : "max-h-0 opacity-0 pointer-events-none"
-                }`}
+                className={`mt-1 ml-2 overflow-hidden transition-all duration-200 ease-out ${foroMobileOpen
+                  ? "max-h-96 opacity-100"
+                  : "max-h-0 opacity-0 pointer-events-none"
+                  }`}
                 aria-hidden={!foroMobileOpen}
               >
                 {foroCategorias.map((cat) => {
@@ -420,9 +419,8 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                           >
                             <ChevronDown
                               size={14}
-                              className={`transition-transform ${
-                                isExpanded ? "rotate-180" : ""
-                              }`}
+                              className={`transition-transform ${isExpanded ? "rotate-180" : ""
+                                }`}
                             />
                           </button>
                         )}
@@ -444,6 +442,70 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            </li>
+
+            {/* Sección de Juegos */}
+            <li className="menu-item">
+              <div className="flex items-center justify-between w-full">
+                <button
+                  type="button"
+                  className="flex-grow flex items-center gap-2 p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
+                  onClick={() => setGamesMobileOpen(!gamesMobileOpen)}
+                >
+                  Juegos
+                </button>
+                <button
+                  type="button"
+                  className="p-2 rounded-full hover:bg-opacity-20 hover:bg-gray-500"
+                  aria-expanded={gamesMobileOpen}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setGamesMobileOpen(!gamesMobileOpen);
+                  }}
+                >
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${gamesMobileOpen ? "rotate-180" : ""
+                      }`}
+                  />
+                </button>
+              </div>
+              <div
+                className={`mt-0.5 ml-2 overflow-hidden transition-all duration-200 ease-out ${gamesMobileOpen
+                  ? "max-h-[500px] opacity-100"
+                  : "max-h-0 opacity-0 pointer-events-none"
+                  }`}
+                aria-hidden={!gamesMobileOpen}
+              >
+                <Link
+                  href="/games"
+                  className="block p-2 rounded-md text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  onClick={closeAllMenus}
+                >
+                  Explorar todos los juegos →
+                </Link>
+                {games.map((game) => (
+                  <Link
+                    key={game.id}
+                    href={`/games/${game.slug}`}
+                    className="flex items-center gap-2 p-2 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={closeAllMenus}
+                  >
+                    {getPublicUrl(game.icono_url) ? (
+                      <img
+                        src={getPublicUrl(game.icono_url)!}
+                        alt={game.nombre}
+                        className="w-5 h-5 rounded object-cover shadow-sm bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-[8px]">
+                        {game.nombre.charAt(0)}
+                      </div>
+                    )}
+                    {game.nombre}
+                  </Link>
+                ))}
               </div>
             </li>
           </ul>
@@ -474,16 +536,14 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                 </span>
                 <ChevronDown
                   size={16}
-                  className={`transition-transform duration-200 ${
-                    legalOpen ? "rotate-180" : ""
-                  }`}
+                  className={`transition-transform duration-200 ${legalOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
               <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  legalOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                }`}
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${legalOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  }`}
               >
                 <div className="px-4 pb-4 space-y-2">
                   <p>

@@ -149,6 +149,15 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
 
     if (!isAdmin) {
       query = query.eq("estado", "publicada");
+      
+      if (tipo !== "lol_patch") {
+        // Exclude lol_patch from general news lists, but keep nulls
+        query = query.or("type.neq.lol_patch,type.is.null");
+      }
+    } else {
+      // En admin, permitimos ver lol_patch si el tipo lo pide. Si no, quizá también excluirlo o agruparlo
+      // pero por ahora lo mostramos normal o añadimos un filtro si tienen un panel separado.
+      // Modificación simple: no ocultamos lol_patch para admins para que puedan editar
     }
 
     if (busqueda) {

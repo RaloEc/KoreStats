@@ -186,7 +186,9 @@ export async function POST(request: NextRequest) {
       message: `${result.newMatches} partidas nuevas sincronizadas`,
       newMatches: result.newMatches,
       totalMatches: result.totalMatches,
-      matches: matchHistory,
+      matches: matchHistory.matches,
+      hasMore: matchHistory.hasMore,
+      nextCursor: matchHistory.nextCursor,
       stats,
     });
   } catch (error: any) {

@@ -1,4 +1,5 @@
 export { MatchCard } from "./MatchCard";
+export { MatchCardPro } from "./MatchCardPro";
 export { MatchCardLite } from "./MatchCardLite";
 export { MobileMatchCard } from "./MobileMatchCard";
 export { CompactMobileMatchCard } from "./CompactMobileMatchCard";

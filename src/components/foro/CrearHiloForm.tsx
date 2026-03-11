@@ -214,8 +214,8 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
         body: JSON.stringify({
           titulo,
           contenido: contenidoProcesado,
-          categoria_id: categoriaId, // Enviar el UUID directamente
-          weapon_stats_id: weaponStatsRecordId,
+          categoria_id: categoriaId,
+          weapon_stats: weaponStatsPreview,
         }),
       });
 
@@ -347,7 +347,7 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
                 className={cn(
                   "border-[var(--user-color,#6366f1)] text-[var(--user-color,#6366f1)] hover:bg-[var(--user-color,#6366f1)]/10",
                   weaponStatsPreview &&
-                    "bg-[var(--user-color,#6366f1)] text-white hover:bg-[var(--user-color,#6366f1)]/90 border-transparent",
+                  "bg-[var(--user-color,#6366f1)] text-white hover:bg-[var(--user-color,#6366f1)]/90 border-transparent",
                 )}
                 style={{ "--user-color": userColor } as React.CSSProperties}
               >

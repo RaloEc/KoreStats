@@ -21,6 +21,7 @@ import {
   Plus,
   Calendar,
   Trophy,
+  Gamepad2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -368,6 +369,15 @@ export default function DashboardContent() {
                 <span className="text-sm">Pros & Streamers</span>
               </Button>
             </Link>
+            <Link href="/admin/juegos">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2 dark:bg-zinc-950 dark:border-zinc-800/70 dark:hover:bg-zinc-900"
+              >
+                <Gamepad2 className="h-4 w-4" />
+                <span className="text-sm">Juegos</span>
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
@@ -463,11 +473,11 @@ export default function DashboardContent() {
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 amoled:text-zinc-300 truncate">
                         {n.fecha_publicacion || n.created_at
                           ? new Date(
-                              n.fecha_publicacion || n.created_at || "",
-                            ).toLocaleString("es-ES", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
+                            n.fecha_publicacion || n.created_at || "",
+                          ).toLocaleString("es-ES", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
                           : "Fecha desconocida"}
                       </p>
                     </div>

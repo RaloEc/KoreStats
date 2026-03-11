@@ -69,8 +69,8 @@ export default function AdminProtection({
   }, [isLoading, isAdmin, user, profile, router, fallbackUrl, isTimeout]);
 
   // Mientras está cargando, mostrar spinner
-  // Consideramos loading si está cargando Y no ha ocurrido timeout
-  if (isLoading && !isTimeout) {
+  // ✅ OPTIMIZADO: No mostrar spinner si ya sabemos que es admin (evita flickering al re-validar sesión)
+  if (isLoading && !isTimeout && !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Noticia } from "@/types";
 import { motion } from "framer-motion";
+import { LolPatchPreview } from "./LolPatchPreview";
 
 interface NoticiaCardProps {
   noticia: Noticia;
@@ -46,8 +47,8 @@ const NoticiaCard = React.forwardRef<HTMLDivElement, NoticiaCardProps>(
           const primerSubcategoria = noticia.categorias[0];
           const categoriaPadre = primerSubcategoria.parent_id
             ? noticia.categorias.find(
-                (c) => c.id === primerSubcategoria.parent_id
-              )
+              (c) => c.id === primerSubcategoria.parent_id
+            )
             : null;
 
           if (categoriaPadre) {
@@ -128,11 +129,13 @@ const NoticiaCard = React.forwardRef<HTMLDivElement, NoticiaCardProps>(
       >
         <Card className="group overflow-hidden border border-border/50 hover:border-border transition-all duration-300 hover:shadow-lg bg-card dark:bg-card h-full flex flex-col">
           <Link
-            href={`/noticias/${noticia.id}`}
+            href={noticia.type === 'lol_patch' && noticia.slug
+              ? `/games/league-of-legends/patch/${noticia.slug.replace('parche-', '')}`
+              : `/noticias/${noticia.id}`}
             className="flex flex-1 flex-col"
           >
             {/* Imagen de portada */}
-            <div className="relative w-full aspect-video overflow-hidden bg-muted">
+            <div className="relative w-full aspect-[16/7] overflow-hidden bg-muted">
               {noticia.imagen_url || noticia.imagen_portada ? (
                 <SupabaseImage
                   src={
@@ -167,16 +170,24 @@ const NoticiaCard = React.forwardRef<HTMLDivElement, NoticiaCardProps>(
                 {noticia.titulo}
               </h3>
 
-              {/* Resumen */}
+              {/* Resumen o Previsualización de Parche de LoL */}
               {mostrarResumen && (
-                <p className="text-muted-foreground text-sm mb-4 line-clamp-3 flex-1">
-                  {noticia.resumen ||
-                    (noticia.contenido
-                      ? noticia.contenido
-                          .replace(/<[^>]*>/g, "")
-                          .substring(0, 150) + "..."
-                      : "")}
-                </p>
+                <>
+                  {!noticia.type?.includes("lol_patch") ? (
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-3 flex-1">
+                      {noticia.resumen ||
+                        (noticia.contenido
+                          ? noticia.contenido
+                            .replace(/<[^>]*>/g, "")
+                            .substring(0, 150) + "..."
+                          : "")}
+                    </p>
+                  ) : (
+                    <div className="py-2 flex-1">
+                      <LolPatchPreview data={noticia.data} />
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Footer con información del autor y estadísticas */}
@@ -259,14 +270,17 @@ const areEqual = (prevProps: NoticiaCardProps, nextProps: NoticiaCardProps) => {
     prevProps.noticia.imagen_url === nextProps.noticia.imagen_url &&
     prevProps.noticia.imagen_portada === nextProps.noticia.imagen_portada &&
     prevProps.noticia.fecha_publicacion ===
-      nextProps.noticia.fecha_publicacion &&
+    nextProps.noticia.fecha_publicacion &&
     prevProps.noticia.vistas === nextProps.noticia.vistas &&
     prevProps.noticia.comentarios_count ===
-      nextProps.noticia.comentarios_count &&
+    nextProps.noticia.comentarios_count &&
     prevProps.mostrarResumen === nextProps.mostrarResumen &&
     prevProps.prioridad === nextProps.prioridad &&
+    prevProps.noticia.type === nextProps.noticia.type &&
     JSON.stringify(prevProps.noticia.categorias) ===
-      JSON.stringify(nextProps.noticia.categorias)
+    JSON.stringify(nextProps.noticia.categorias) &&
+    JSON.stringify(prevProps.noticia.data) ===
+    JSON.stringify(nextProps.noticia.data)
   );
 };
 

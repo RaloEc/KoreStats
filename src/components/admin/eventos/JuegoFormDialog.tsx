@@ -69,6 +69,7 @@ export function JuegoFormDialog({
   const supabase = createClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [iconoPreview, setIconoPreview] = useState<string | null>(null);
+  const [imagenPortadaPreview, setImagenPortadaPreview] = useState<string | null>(null);
 
   // Formulario para crear/editar juegos
   const juegoForm = useForm<JuegoFormValues>({
@@ -79,6 +80,8 @@ export function JuegoFormDialog({
       descripcion: "",
       desarrollador: "",
       fecha_lanzamiento: null,
+      icono_url: "",
+      imagen_portada_url: "",
     },
   });
 
@@ -95,6 +98,7 @@ export function JuegoFormDialog({
           ? new Date(juego.fecha_lanzamiento)
           : null,
         icono_url: juego.icono_url || "",
+        imagen_portada_url: juego.imagen_portada_url || "",
       });
 
       // Si el juego tiene icono, mostrar vista previa
@@ -112,6 +116,22 @@ export function JuegoFormDialog({
       } else {
         setIconoPreview(null);
       }
+
+      // Si el juego tiene imagen de portada, mostrar vista previa
+      if (juego.imagen_portada_url) {
+        if (juego.imagen_portada_url.startsWith("http")) {
+          setImagenPortadaPreview(juego.imagen_portada_url);
+        } else {
+          const { data } = supabase.storage
+            .from("imagenes") // Asumiendo que las portadas van al bucket "imagenes"
+            .getPublicUrl(juego.imagen_portada_url);
+          if (data?.publicUrl) {
+            setImagenPortadaPreview(data.publicUrl);
+          }
+        }
+      } else {
+        setImagenPortadaPreview(null);
+      }
     } else {
       // Modo creación
       juegoForm.reset({
@@ -120,8 +140,10 @@ export function JuegoFormDialog({
         desarrollador: "",
         fecha_lanzamiento: null,
         icono_url: "",
+        imagen_portada_url: "",
       });
       setIconoPreview(null);
+      setImagenPortadaPreview(null);
     }
   };
 
@@ -172,6 +194,52 @@ export function JuegoFormDialog({
         toast({
           title: "Error",
           description: "No se pudo subir el icono del juego.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Manejar carga de imagen de portada para el juego
+  const handleImagenPortadaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const previewUrl = URL.createObjectURL(file);
+        setImagenPortadaPreview(previewUrl);
+
+        const fileExt = file.name.split(".").pop();
+        const fileName = `juego-portada-${Date.now()}.${fileExt}`;
+        const filePath = `juegos/portadas/${fileName}`;
+
+        if (
+          juegoEditando?.imagen_portada_url &&
+          !juegoEditando.imagen_portada_url.startsWith("http")
+        ) {
+          try {
+            await supabase.storage
+              .from("imagenes")
+              .remove([juegoEditando.imagen_portada_url]);
+          } catch (removeError) {
+            console.warn("No se pudo eliminar la imagen de portada anterior:", removeError);
+          }
+        }
+
+        const { error } = await supabase.storage
+          .from("imagenes")
+          .upload(filePath, file, { upsert: true });
+
+        if (error) throw error;
+
+        juegoForm.setValue("imagen_portada_url", filePath, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      } catch (error) {
+        console.error("Error al subir imagen de portada:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo subir la imagen de portada.",
           variant: "destructive",
         });
       }
@@ -416,6 +484,86 @@ export function JuegoFormDialog({
                         )}
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Imagen de Portada */}
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-2">
+                    <FormLabel className="text-base font-bold">Imagen de portada (Banner)</FormLabel>
+                    {juegoEditando?.imagen_portada_url && imagenPortadaPreview && (
+                      <Badge
+                        variant="outline"
+                        className="px-2 py-1 flex items-center gap-1 border-teal-500/50 text-teal-600"
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Banner activo</span>
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden bg-muted/20 hover:bg-muted/30 transition-colors">
+                    {imagenPortadaPreview ? (
+                      <div className="relative aspect-[21/9] w-full">
+                        <img
+                          src={imagenPortadaPreview}
+                          alt="Banner Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <label
+                            htmlFor="juego-portada-upload-replace"
+                            className="cursor-pointer bg-white dark:bg-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-xl"
+                          >
+                            <Upload size={16} />
+                            Cambiar imagen
+                            <input
+                              id="juego-portada-upload-replace"
+                              type="file"
+                              className="sr-only"
+                              accept="image/*"
+                              onChange={handleImagenPortadaUpload}
+                            />
+                          </label>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-3 right-3 h-8 w-8 rounded-full shadow-lg"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setImagenPortadaPreview(null);
+                            juegoForm.setValue("imagen_portada_url", "", {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
+                          }}
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                          <Upload className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <label
+                          htmlFor="juego-portada-upload"
+                          className="cursor-pointer text-lg font-bold text-primary hover:text-primary/80 transition-colors"
+                        >
+                          Subir banner del juego
+                          <input
+                            id="juego-portada-upload"
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleImagenPortadaUpload}
+                          />
+                        </label>
+                        <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                          Esta imagen se mostrará como fondo en la cabecera de la página del juego.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -56,11 +56,14 @@ export const useHeaderLogic = () => {
   const [foroCategorias, setForoCategorias] = useState<ForoCategoria[]>([]);
   const [foroMobileOpen, setForoMobileOpen] = useState(false);
   const [noticiasMobileOpen, setNoticiasMobileOpen] = useState(false);
+  const [isGamesMenuOpen, setIsGamesMenuOpen] = useState(false);
+  const [games, setGames] = useState<any[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Referencias
   const adminMenuRef = useRef<HTMLLIElement | null>(null);
+  const gamesMenuRef = useRef<HTMLLIElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
   const foroMenuRef = useRef<HTMLLIElement | null>(null);
@@ -74,6 +77,12 @@ export const useHeaderLogic = () => {
         !adminMenuRef.current.contains(e.target as Node)
       ) {
         setIsAdminMenuOpen(false);
+      }
+      if (
+        gamesMenuRef.current &&
+        !gamesMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsGamesMenuOpen(false);
       }
       if (
         userMenuRef.current &&
@@ -141,6 +150,30 @@ export const useHeaderLogic = () => {
     fetchCategorias();
   }, []);
 
+  // Cargar juegos activos
+  useEffect(() => {
+    const fetchJuegos = async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("juegos")
+          .select("id, nombre, slug, icono_url")
+          .order("nombre");
+
+        if (error) {
+          console.error("Error fetching juegos:", error);
+          return;
+        }
+
+        setGames(data || []);
+      } catch (error) {
+        console.error("Error fetching juegos:", error);
+      }
+    };
+
+    fetchJuegos();
+  }, []);
+
   // Función para cerrar sesión
   const handleLogout = async () => {
     console.log("[Header] handleLogout: inicio");
@@ -186,6 +219,7 @@ export const useHeaderLogic = () => {
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
     setIsAdminMenuOpen(false);
+    setIsGamesMenuOpen(false);
     setIsForoMenuOpen(false);
     setIsNoticiasMenuOpen(false);
     setForoMobileOpen(false);
@@ -230,6 +264,8 @@ export const useHeaderLogic = () => {
     isAdmin,
     isAdminMenuOpen,
     setIsAdminMenuOpen,
+    isGamesMenuOpen,
+    setIsGamesMenuOpen,
     isForoMenuOpen,
     setIsForoMenuOpen,
     isNoticiasMenuOpen,
@@ -243,6 +279,7 @@ export const useHeaderLogic = () => {
     searchQuery,
     setSearchQuery,
     foroCategorias,
+    games,
     foroMobileOpen,
     setForoMobileOpen,
     noticiasMobileOpen,
@@ -253,6 +290,7 @@ export const useHeaderLogic = () => {
 
     // Referencias
     adminMenuRef,
+    gamesMenuRef,
     userMenuRef,
     userButtonRef,
     foroMenuRef,

@@ -22,7 +22,22 @@ export async function POST(request: NextRequest) {
 
     console.log('[analyze-weapon] Usuario autenticado', { userId: user.id });
 
-    // Parse FormData
+    // Rate limiting: Máximo 3 análisis por minuto
+    const { count, error: countError } = await supabase
+      .from('weapon_analysis_jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gt('created_at', new Date(Date.now() - 60000).toISOString());
+
+    if (countError) {
+      console.error('[analyze-weapon] Error al verificar rate limit:', countError);
+    } else if (count !== null && count >= 3) {
+      console.warn('[analyze-weapon] Rate limit excedido', { userId: user.id, count });
+      return NextResponse.json(
+        { error: 'Has alcanzado el límite de análisis (3 por minuto). Espera un momento antes de intentar de nuevo.' },
+        { status: 429 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get('image') as File;
 

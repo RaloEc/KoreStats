@@ -31,6 +31,7 @@ module.exports = {
         'bounce': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       },
       borderColor: {
+        DEFAULT: 'hsl(var(--border))',
         'border-color': 'hsl(var(--border))',
       },
       colors: {
@@ -257,7 +258,7 @@ module.exports = {
     require('@tailwindcss/typography'),
     require("tailwindcss-animate"),
     nextui(),
-    function({ addVariant }) {
+    function ({ addVariant }) {
       addVariant('amoled', '.amoled &')
     }
   ],

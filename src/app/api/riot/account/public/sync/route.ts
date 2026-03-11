@@ -57,17 +57,44 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceClient();
 
-    // 1. Obtener cuenta de Riot vinculada
-    const { data: riotAccount, error: queryError } = await supabase
+    // 1. Obtener cuenta de Riot vinculada o Perfil Público
+    let puuid = "";
+    let region = "";
+    let sourceTable = "";
+    let riotAccountRecord = null;
+
+    // A. Intentar en linked_accounts_riot (usuarios normales)
+    const { data: linkedAccount, error: linkedError } = await supabase
       .from("linked_accounts_riot")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (queryError || !riotAccount) {
+    if (linkedAccount) {
+      puuid = linkedAccount.puuid;
+      region = linkedAccount.region;
+      sourceTable = "linked_accounts_riot";
+      riotAccountRecord = linkedAccount;
+    } else {
+      // B. Intentar en public_profiles (pros, streamers, etc)
+      const { data: publicProfile, error: publicError } = await supabase
+        .from("public_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (publicProfile) {
+        puuid = publicProfile.puuid;
+        region = publicProfile.region;
+        sourceTable = "public_profiles";
+        riotAccountRecord = publicProfile;
+      }
+    }
+
+    if (!riotAccountRecord) {
       console.error(
-        "[POST /api/riot/account/public/sync] No hay cuenta de Riot vinculada:",
-        queryError
+        "[POST /api/riot/account/public/sync] No se encontró cuenta vinculada ni perfil público para:",
+        userId
       );
       return NextResponse.json(
         { error: "No hay cuenta de Riot vinculada para este usuario" },
@@ -75,10 +102,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { puuid, region } = riotAccount;
     console.log("[POST /api/riot/account/public/sync] Cuenta encontrada", {
       puuid,
       region,
+      source: sourceTable,
     });
 
     // 2. Sincronizar estadísticas de la cuenta (LP, wins, losses, rangos, etc.)
@@ -109,9 +136,9 @@ export async function POST(request: NextRequest) {
 
     const statsData = syncResult.data || {
       activeShard: platformId,
-      summonerId: riotAccount.summoner_id,
-      summonerLevel: riotAccount.summoner_level ?? 0,
-      profileIconId: riotAccount.profile_icon_id ?? 0,
+      summonerId: puuid, // Fallback
+      summonerLevel: 0,
+      profileIconId: 0,
       soloRank: { ...UNRANKED_RANK },
       flexRank: { ...UNRANKED_RANK },
     };
@@ -130,61 +157,80 @@ export async function POST(request: NextRequest) {
 
     // 3. Actualizar cuenta en BD
     console.log(
-      "[POST /api/riot/account/public/sync] Actualizando cuenta en BD...",
+      `[POST /api/riot/account/public/sync] Actualizando datos en BD (${sourceTable})...`,
       { userId, soloTier: soloRank.tier, flexTier: flexRank.tier }
     );
 
-    const updateData = {
-      active_shard: statsData.activeShard,
+    // A. Actualizar summoners (Cache global usado por perfiles públicos)
+    const summonerUpdate = {
       summoner_id: statsData.summonerId,
       profile_icon_id: statsData.profileIconId,
       summoner_level: statsData.summonerLevel,
-      solo_tier: soloRank.tier,
-      solo_rank: soloRank.rank,
-      solo_league_points: soloRank.leaguePoints,
-      solo_wins: soloRank.wins,
-      solo_losses: soloRank.losses,
-      flex_tier: flexRank.tier,
-      flex_rank: flexRank.rank,
-      flex_league_points: flexRank.leaguePoints,
-      flex_wins: flexRank.wins,
-      flex_losses: flexRank.losses,
-      last_updated: new Date().toISOString(),
+      tier: soloRank.tier,
+      rank: soloRank.rank,
+      league_points: soloRank.leaguePoints,
+      wins: soloRank.wins,
+      losses: soloRank.losses,
+      rank_updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    console.log(
-      "[POST /api/riot/account/public/sync] Datos a actualizar:",
-      updateData
-    );
+    const { error: summonerError } = await supabase
+      .from("summoners")
+      .update(summonerUpdate)
+      .eq("puuid", puuid);
 
-    const {
-      data: updateResult,
-      error: updateError,
-      count,
-    } = await supabase
-      .from("linked_accounts_riot")
-      .update(updateData)
-      .eq("user_id", userId)
-      .select();
-
-    if (updateError) {
-      console.error(
-        "[POST /api/riot/account/public/sync] Error al actualizar cuenta:",
-        updateError
-      );
-      return NextResponse.json(
-        {
-          error: "Error al guardar estadísticas",
-          details: updateError.message,
-        },
-        { status: 500 }
-      );
+    if (summonerError) {
+      console.warn("[Sync] Error actualizando tabla summoners:", summonerError);
     }
 
-    console.log("[POST /api/riot/account/public/sync] ✅ Cuenta actualizada", {
-      rowsAffected: updateResult?.length || 0,
-      updatedRecord: updateResult?.[0],
-    });
+    // B. Actualizar linked_accounts_riot (Solo si aplica)
+    if (sourceTable === "linked_accounts_riot") {
+      const updateData = {
+        active_shard: statsData.activeShard,
+        summoner_id: statsData.summonerId,
+        profile_icon_id: statsData.profileIconId,
+        summoner_level: statsData.summonerLevel,
+        solo_tier: soloRank.tier,
+        solo_rank: soloRank.rank,
+        solo_league_points: soloRank.leaguePoints,
+        solo_wins: soloRank.wins,
+        solo_losses: soloRank.losses,
+        flex_tier: flexRank.tier,
+        flex_rank: flexRank.rank,
+        flex_league_points: flexRank.leaguePoints,
+        flex_wins: flexRank.wins,
+        flex_losses: flexRank.losses,
+        last_updated: new Date().toISOString(),
+      };
+
+      const { error: updateError } = await supabase
+        .from("linked_accounts_riot")
+        .update(updateData)
+        .eq("user_id", userId);
+
+      if (updateError) {
+        console.error(
+          "[POST /api/riot/account/public/sync] Error al actualizar linked_accounts_riot:",
+          updateError
+        );
+        return NextResponse.json(
+          {
+            error: "Error al guardar estadísticas",
+            details: updateError.message,
+          },
+          { status: 500 }
+        );
+      }
+    } else if (sourceTable === "public_profiles") {
+      // Actualizar timestamp del perfil público
+      await supabase
+        .from("public_profiles")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", userId);
+    }
+
+    console.log("[POST /api/riot/account/public/sync] ✅ Cuenta actualizada");
 
     // 4. Sincronización Avanzada: Buscar "Partidas Perdidas"
     // Intentamos recuperar ID de partida desde la DB o cola para forzar descarga directa
@@ -192,10 +238,10 @@ export async function POST(request: NextRequest) {
     let instantMatchId: string | null = null;
 
     // A) Revisar si la cuenta decía estar en juego pero ya no lo está
-    if (riotAccount.is_in_game && riotAccount.last_known_game_id) {
+    if (riotAccountRecord.is_in_game && riotAccountRecord.last_known_game_id) {
       // Verificar si realmente terminó
-      const region = (riotAccount.active_shard || "la1").toLowerCase();
-      const spectatorUrl = `https://${region}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`;
+      const platformRegion = (region || "la1").toLowerCase();
+      const spectatorUrl = `https://${platformRegion}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`;
       try {
         const specRes = await fetch(spectatorUrl, {
           headers: { "X-Riot-Token": process.env.RIOT_API_KEY || "" },
@@ -204,9 +250,9 @@ export async function POST(request: NextRequest) {
         if (specRes.status === 404) {
           // Ya no está en juego, ¡podemos usar este ID!
           console.log(
-            `[Sync] Detectada partida terminada reciente: ${riotAccount.last_known_game_id}`
+            `[Sync] Detectada partida terminada reciente: ${riotAccountRecord.last_known_game_id}`
           );
-          instantMatchId = String(riotAccount.last_known_game_id);
+          instantMatchId = String(riotAccountRecord.last_known_game_id);
         }
       } catch (e) {
         console.warn("[Sync] Error chequeando spectator:", e);
@@ -238,7 +284,7 @@ export async function POST(request: NextRequest) {
       console.log(`[Sync] 🚀 Intentando descarga directa de ${instantMatchId}`);
       const directSync = await syncMatchById(
         instantMatchId,
-        riotAccount.active_shard || "la1",
+        region || "la1",
         process.env.RIOT_API_KEY || ""
       );
       if (directSync.success && directSync.saved) {
@@ -255,7 +301,7 @@ export async function POST(request: NextRequest) {
 
     const matchSyncResult = await syncMatchHistory(
       puuid,
-      riotAccount.active_shard || "la1",
+      region || "la1",
       process.env.RIOT_API_KEY || "",
       100 // Últimas 100 partidas
     );

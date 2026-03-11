@@ -34,8 +34,15 @@ export function SupabaseImage({
   let finalSrc = propSrc;
 
   // Si se dan bucket y path, construir la URL de Supabase
-  if (bucket && path && projectId) {
-    finalSrc = `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/${path}`;
+  if (bucket && path) {
+    if (path.startsWith('http')) {
+      finalSrc = path;
+    } else if (projectId) {
+      finalSrc = `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/${path}`;
+    } else if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+       // Fallback usando la URL completa si ya la tenemos
+       finalSrc = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+    }
   }
 
   // Si usamos fill, necesitamos un wrapper relativo

@@ -43,7 +43,7 @@ export function useJuegos(): UseJuegosReturn {
       const { data, error } = await supabase
         .from("juegos")
         .select(
-          "id, nombre, slug, icono_url, descripcion, desarrollador, fecha_lanzamiento",
+          "id, nombre, slug, icono_url, imagen_portada_url, descripcion, desarrollador, fecha_lanzamiento",
         )
         .order("nombre");
 
@@ -70,9 +70,24 @@ export function useJuegos(): UseJuegosReturn {
               } catch (e) {}
             }
 
+            let imagenPortadaPublicUrl: string | null = null;
+            if (juego.imagen_portada_url) {
+              try {
+                if (juego.imagen_portada_url.startsWith("http")) {
+                  imagenPortadaPublicUrl = juego.imagen_portada_url;
+                } else {
+                  const { data: publicUrlData } = supabase.storage
+                    .from("imagenes")
+                    .getPublicUrl(juego.imagen_portada_url);
+                  imagenPortadaPublicUrl = publicUrlData?.publicUrl || null;
+                }
+              } catch (e) {}
+            }
+
             return {
               ...juego,
               iconoPublicUrl,
+              imagen_portada_url: imagenPortadaPublicUrl || juego.imagen_portada_url,
             };
           },
         );
@@ -160,6 +175,7 @@ export function useJuegos(): UseJuegosReturn {
             ? data.fecha_lanzamiento.toISOString()
             : null,
           icono_url: data.icono_url || null,
+          imagen_portada_url: data.imagen_portada_url || null,
         };
 
         let result;
