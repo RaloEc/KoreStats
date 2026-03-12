@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
       // Intentar obtener desde la sesión
       const authClient = await createClient();
       const {
-        data: { session },
-      } = await authClient.auth.getSession();
-      userId = session?.user?.id ?? null;
+        data: { user: authUser },
+      } = await authClient.auth.getUser();
+      userId = authUser?.id ?? null;
     }
 
     if (!userId) {
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("[POST /api/riot/matches/sync] userId:", userId);
     if (!userId) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -58,12 +57,6 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId)
       .single();
 
-    console.log(
-      "[POST /api/riot/matches/sync] riotAccount:",
-      riotAccount,
-      "error:",
-      accountError
-    );
     if (accountError || !riotAccount) {
       return NextResponse.json(
         {
@@ -111,7 +104,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Sincronizar partidas
-    console.log("[POST /api/riot/matches/sync] Iniciando sincronización...");
     const result = await syncMatchHistory(
       riotAccount.puuid,
       riotAccount.active_shard || "la1",
@@ -119,10 +111,6 @@ export async function POST(request: NextRequest) {
       100 // Sincronizar últimas 100 partidas
     );
 
-    console.log(
-      "[POST /api/riot/matches/sync] Resultado sincronización:",
-      result
-    );
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || "Error al sincronizar" },
@@ -137,10 +125,6 @@ export async function POST(request: NextRequest) {
         .delete()
         .eq("user_id", userId)
         .eq("puuid", riotAccount.puuid);
-      console.log(
-        "[POST /api/riot/matches/sync] player_stats_cache limpiado para usuario",
-        userId
-      );
     } catch (cacheError) {
       console.warn(
         "[POST /api/riot/matches/sync] No se pudo limpiar player_stats_cache:",
@@ -155,10 +139,6 @@ export async function POST(request: NextRequest) {
         .delete()
         .eq("user_id", userId)
         .eq("puuid", riotAccount.puuid);
-      console.log(
-        "[POST /api/riot/matches/sync] match_history_cache limpiado para usuario",
-        userId
-      );
     } catch (cacheError) {
       console.warn(
         "[POST /api/riot/matches/sync] No se pudo limpiar match_history_cache:",
@@ -167,19 +147,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener historial actualizado
-    console.log(
-      "[POST /api/riot/matches/sync] Obteniendo historial actualizado..."
-    );
     const matchHistory = await getMatchHistory(riotAccount.puuid, {
       limit: 40,
     });
     const stats = await getPlayerStats(riotAccount.puuid, 40);
-    console.log(
-      "[POST /api/riot/matches/sync] Historial obtenido, matches:",
-      matchHistory?.matches?.length,
-      "stats:",
-      stats
-    );
 
     return NextResponse.json({
       success: true,

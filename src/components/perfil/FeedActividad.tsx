@@ -623,6 +623,8 @@ export const FeedActividad = ({
             );
           } else if (item.type === "weapon") {
             const record = item.data;
+            const hasHilo = !!record.hilo;
+            const recordHref = record.hilo ? `/foro/hilos/${record.hilo.slug || record.hilo.id}` : null;
 
             return (
               <Card
@@ -635,16 +637,20 @@ export const FeedActividad = ({
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-grow min-w-0">
-                      <Link
-                        href={`/foro/hilos/${
-                          record.hilo.slug || record.hilo.id
-                        }`}
-                        className="group"
-                      >
-                        <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-2 text-foreground">
-                          {record.hilo.titulo}
+                      {recordHref ? (
+                        <Link
+                          href={recordHref}
+                          className="group"
+                        >
+                          <h3 className="text-base sm:text-lg font-semibold group-hover:underline line-clamp-2 text-foreground">
+                            {record.hilo?.titulo || record.weapon_name || "Arma analizada"}
+                          </h3>
+                        </Link>
+                      ) : (
+                        <h3 className="text-base sm:text-lg font-semibold line-clamp-2 text-foreground">
+                          {record.weapon_name || "Arma analizada"}
                         </h3>
-                      </Link>
+                      )}
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         <span
                           className="text-xs text-muted-foreground flex items-center gap-1"
@@ -694,23 +700,27 @@ export const FeedActividad = ({
                     </div>
                   )}
 
-                  {/* Stats */}
+                  {/* Stats & Link */}
                   <div className="flex items-center gap-4 pt-2 border-t dark:border-gray-700">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Eye className="w-3 h-3" />
-                      <span>{record.hilo.vistas}</span>
-                    </div>
-                    <Link
-                      href={`/foro/hilos/${record.hilo.slug || record.hilo.id}`}
-                      className="ml-auto flex items-center gap-1 text-xs hover:underline"
-                      style={{
-                        color: `var(--user-color)`,
-                        ...colorStyle,
-                      }}
-                    >
-                      Ver más
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
+                    {record.hilo && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Eye className="w-3 h-3" />
+                        <span>{record.hilo.vistas}</span>
+                      </div>
+                    )}
+                    {recordHref && (
+                      <Link
+                        href={recordHref}
+                        className="ml-auto flex items-center gap-1 text-xs hover:underline"
+                        style={{
+                          color: `var(--user-color)`,
+                          ...colorStyle,
+                        }}
+                      >
+                        Ver más
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    )}
                   </div>
                 </CardContent>
               </Card>

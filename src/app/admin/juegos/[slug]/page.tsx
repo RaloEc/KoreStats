@@ -66,6 +66,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import WeaponReportsAdmin from "@/components/admin/WeaponReportsAdmin";
 
 // Módulos disponibles (mismos que en la lista general)
 const MODULE_TYPES = [
@@ -423,7 +424,7 @@ export default function GameConfigPage() {
     const [juego, setJuego] = useState<Juego | null>(null);
     const [modules, setModules] = useState<GameModule[]>([]);
     const [weapons, setWeapons] = useState<DeltaWeapon[]>([]);
-    const [activeTab, setActiveTab] = useState<"modules" | "weapons">("modules");
+    const [activeTab, setActiveTab] = useState<"modules" | "weapons" | "reports">("modules");
     const [loading, setLoading] = useState(true);
     const [togglingModule, setTogglingModule] = useState<string | null>(null);
     const [weaponDialogOpen, setWeaponDialogOpen] = useState(false);
@@ -610,10 +611,13 @@ export default function GameConfigPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+            <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit overflow-x-auto hide-scrollbar max-w-full">
                 {[
                     { key: "modules", label: "Módulos", icon: Settings },
-                    ...(isDeltaForce ? [{ key: "weapons", label: "Armas / Meta", icon: Sword }] : []),
+                    ...(isDeltaForce ? [
+                        { key: "weapons", label: "Armas / Meta", icon: Sword },
+                        { key: "reports", label: "Reportes", icon: Shield }
+                    ] : []),
                 ].map(({ key, label, icon: Icon }) => (
                     <button
                         key={key}
@@ -662,6 +666,11 @@ export default function GameConfigPage() {
                         );
                     })}
                 </div>
+            )}
+
+            {/* ─── Tab: Reportes (Delta Force) ───────────────────────────── */}
+            {activeTab === "reports" && isDeltaForce && (
+                <WeaponReportsAdmin gameId={juego.id} />
             )}
 
             {/* ─── Tab: Armas (Delta Force) ─────────────────────────────── */}

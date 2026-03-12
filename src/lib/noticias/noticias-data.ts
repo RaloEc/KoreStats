@@ -34,6 +34,7 @@ export async function getNoticiaById(id: string) {
       .from("noticias")
       .select("*")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (error || !noticia) {
@@ -148,7 +149,7 @@ export async function getNoticias(options: GetNoticiasOptions = {}) {
     let query = serviceClient.from("noticias").select("*", { count: "exact" });
 
     if (!isAdmin) {
-      query = query.eq("estado", "publicada");
+      query = query.eq("estado", "publicada").is("deleted_at", null);
       
       if (tipo !== "lol_patch") {
         // Exclude lol_patch from general news lists, but keep nulls

@@ -197,10 +197,9 @@ export async function getFullProfileData(
     supabase
       .from("weapon_stats_records")
       .select(
-        "id, weapon_name, created_at, stats, foro_hilos!inner(id, slug, titulo, created_at, vistas, deleted_at, foro_categorias!inner(nombre))"
+        "id, weapon_name, created_at, stats, foro_hilos(id, slug, titulo, created_at, vistas, deleted_at, foro_categorias(nombre))"
       )
       .eq("user_id", perfil.id)
-      .is("foro_hilos.deleted_at", null)
       .order("created_at", { ascending: false }),
 
     supabase
@@ -278,10 +277,13 @@ export async function getFullProfileData(
     const hiloRelacion = Array.isArray(record.foro_hilos)
       ? record.foro_hilos[0]
       : record.foro_hilos;
-    if (!hiloRelacion) continue;
-    const categoriaRelacion = Array.isArray(hiloRelacion.foro_categorias)
-      ? hiloRelacion.foro_categorias[0]
-      : hiloRelacion.foro_categorias;
+
+    // Si el hilo está borrado, no lo vinculamos (pero mantenemos el record)
+    const hiloNoBorrado = hiloRelacion && !hiloRelacion.deleted_at ? hiloRelacion : null;
+
+    const categoriaRelacion: any = hiloNoBorrado && Array.isArray(hiloNoBorrado.foro_categorias)
+      ? hiloNoBorrado.foro_categorias[0]
+      : hiloNoBorrado?.foro_categorias;
 
     let statsNormalizadas = record.stats;
     if (typeof statsNormalizadas === "string") {
@@ -290,21 +292,23 @@ export async function getFullProfileData(
       } catch (e) {}
     }
 
-    const clave = `${hiloRelacion.id}`;
+    // Usar record.id como clave si no hay hilo para permitir múltiples registros
+    const clave = hiloNoBorrado ? `${hiloNoBorrado.id}` : `weapon-${record.id}`;
+
     if (!weaponStatsTransformadasMap.has(clave)) {
       weaponStatsTransformadasMap.set(clave, {
         id: record.id,
         weapon_name: record.weapon_name,
         created_at: record.created_at,
         stats: statsNormalizadas,
-        hilo: {
-          id: hiloRelacion.id,
-          slug: hiloRelacion.slug,
-          titulo: hiloRelacion.titulo,
-          created_at: hiloRelacion.created_at,
-          vistas: hiloRelacion.vistas ?? 0,
+        hilo: hiloNoBorrado ? {
+          id: hiloNoBorrado.id,
+          slug: hiloNoBorrado.slug,
+          titulo: hiloNoBorrado.titulo,
+          created_at: hiloNoBorrado.created_at,
+          vistas: hiloNoBorrado.vistas ?? 0,
           categoria_titulo: categoriaRelacion?.nombre ?? "Sin categoría",
-        },
+        } : null,
       });
     }
   }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import {
     Search,
@@ -36,11 +37,15 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import AddWeaponForm from "./AddWeaponForm";
+import ReportWeaponButton from "./ReportWeaponButton";
 
 /* ─── Types ─── */
 
 interface WeaponMeta {
+    id: string;
+    record_id: string;
     weapon_name: string;
+    description: string | null;
     analyses_count: number;
     avg_damage: number;
     avg_range: number;
@@ -255,6 +260,24 @@ export default function DeltaForceWeaponsMeta() {
     const [gameMode, setGameMode] = useState<GameMode>("operations");
     const [sortByTtk, setSortByTtk] = useState(false);
     const voteSystem = useWeaponVote(gameMode);
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        const supabase = createClient();
+        const channel = supabase.channel("weapon_stats_changes_meta")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "weapon_stats_records" },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["delta-force-weapons-meta"] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient]);
 
     const { data, isLoading } = useQuery<WeaponsResponse>({
         queryKey: ["delta-force-weapons-meta", gameMode],
@@ -274,7 +297,8 @@ export default function DeltaForceWeaponsMeta() {
         return weapons.filter((w) => {
             const matchesSearch = w.weapon_name
                 .toLowerCase()
-                .includes(searchQuery.toLowerCase());
+                .includes(searchQuery.toLowerCase()) || 
+                (w.description && w.description.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesCategory =
                 activeCategory === "all" || w.category === activeCategory;
             return matchesSearch && matchesCategory;
@@ -449,7 +473,7 @@ export default function DeltaForceWeaponsMeta() {
                                     const MedalIcon = medalIcons[idx];
                                     const config = TIER_CONFIG[weapon.tier];
                                     return (
-                                        <div key={weapon.weapon_name} className="relative">
+                                        <div key={weapon.id} className="relative">
                                             <div className="absolute -top-3 -left-3 z-30">
                                                 <div className={cn("w-8 h-8 rounded-xl bg-white dark:bg-gray-900 border-2 flex items-center justify-center shadow-xl", config.borderColor)}>
                                                     <MedalIcon size={16} className={medalColors[idx]} />
@@ -486,7 +510,7 @@ export default function DeltaForceWeaponsMeta() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {tierWeapons.map((weapon) => (
-                                            <WeaponMetaCard key={weapon.weapon_name} weapon={weapon} config={config} voteSystem={voteSystem} gameMode={gameMode} />
+                                            <WeaponMetaCard key={weapon.id} weapon={weapon} config={config} voteSystem={voteSystem} gameMode={gameMode} />
                                         ))}
                                     </div>
                                 </div>
@@ -574,13 +598,23 @@ function WeaponMetaCard({
                             loading="lazy"
                         />
                     )}
+
+                    {/* Report Button (Hidden unless hovered) */}
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm rounded-lg p-0.5 shadow-xl border border-white/10">
+                        <ReportWeaponButton weaponStatsRecordId={weapon.record_id} />
+                    </div>
                 </div>
 
                 {/* Name & Title */}
-                <div className="text-center px-1 mt-3">
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white leading-none truncate">
-                        {weapon.weapon_name}
+                <div className="text-center px-1 mt-3 flex flex-col gap-0.5">
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white leading-none truncate uppercase tracking-tight">
+                        {weapon.description || weapon.weapon_name}
                     </h3>
+                    {weapon.description && (
+                        <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                            {weapon.weapon_name}
+                        </span>
+                    )}
                 </div>
 
                 {/* Main Stats - 2 Column Grid */}

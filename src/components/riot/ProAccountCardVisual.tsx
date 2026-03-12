@@ -33,6 +33,13 @@ import { ChampionCenteredSplash } from "./ChampionCenteredSplash";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LiveGameBanner } from "./LiveGameBanner";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Diccionario de regiones
 const REGION_NAMES: Record<string, string> = {
@@ -157,6 +164,7 @@ export default function ProAccountCardVisual({
   staticData,
 }: ProAccountCardVisualProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -746,24 +754,39 @@ export default function ProAccountCardVisual({
             {/* Actions (Pinned to Bottom) */}
             <div className="mt-auto flex gap-3 flex-shrink-0">
               {onSync && !hideSync && (
-                <Button
-                  onClick={onSync}
-                  disabled={isSyncing || cooldownSeconds > 0}
-                  className="flex-1 h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-600/20 font-bold uppercase tracking-widest text-[10px] rounded-xl shadow-none"
-                >
-                  {isSyncing ? (
-                    <Loader2 className="animate-spin w-3.5 h-3.5" />
-                  ) : (
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  )}
-                  <span className="ml-2">
-                    {isSyncing
-                      ? "..."
-                      : cooldownSeconds > 0
-                        ? `${cooldownSeconds}s`
-                        : "Actualizar"}
-                  </span>
-                </Button>
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex-1">
+                        <Button
+                          onClick={onSync}
+                          disabled={isSyncing || cooldownSeconds > 0 || !user}
+                          className={`w-full h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-600/20 font-bold uppercase tracking-widest text-[10px] rounded-xl shadow-none ${
+                            !user ? "cursor-not-allowed" : ""
+                          }`}
+                        >
+                          {isSyncing ? (
+                            <Loader2 className="animate-spin w-3.5 h-3.5" />
+                          ) : (
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          )}
+                          <span className="ml-2">
+                            {isSyncing
+                              ? "..."
+                              : cooldownSeconds > 0
+                                ? `${cooldownSeconds}s`
+                                : "Actualizar"}
+                          </span>
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!user && (
+                      <TooltipContent className="bg-slate-900 text-white border-slate-700">
+                        <p>Inicia sesión para poder actualizar el perfil</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )}
               {account.puuid && (
                 <a

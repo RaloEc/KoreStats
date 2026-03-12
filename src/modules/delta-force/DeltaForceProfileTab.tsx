@@ -39,8 +39,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
 import AddWeaponForm from "@/components/weapon/AddWeaponForm";
+import ReportWeaponButton from "@/components/weapon/ReportWeaponButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
 
 /* ─── Interfaces ─── */
 
@@ -202,6 +204,25 @@ export default function DeltaForceProfileTab({
     const [activeTag, setActiveTag] = useState<string | null>(null);
     const [sortByTtk, setSortByTtk] = useState(false);
     const queryClient = useQueryClient();
+
+    useEffect(() => {
+        const supabase = createClient();
+        const channel = supabase.channel(`weapon_stats_changes_user_${userId}`)
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "weapon_stats_records", filter: `user_id=eq.${userId}` },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["delta-force-weapons", userId] });
+                    // Optionally invalidate the global meta as well since the user just updated their own records
+                    queryClient.invalidateQueries({ queryKey: ["delta-force-weapons-meta"] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient, userId]);
 
     const { data: weaponRecords = [], isLoading } = useQuery({
         queryKey: ["delta-force-weapons", userId],
@@ -610,6 +631,13 @@ function WeaponGroupCard({
                                     </div>
                                 </PopoverContent>
                             </Popover>
+                        </div>
+                    )}
+                    
+                    {/* Report Button for Non-Owners */}
+                    {!isOwnProfile && (
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm rounded-lg p-0.5 shadow-xl border border-white/10">
+                            <ReportWeaponButton weaponStatsRecordId={weapon.records[0].id} />
                         </div>
                     )}
 

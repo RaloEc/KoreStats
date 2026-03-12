@@ -198,7 +198,7 @@ export async function GET(
         });
     }
 
-    // 5. Obtener hilos con estadísticas de armas asociadas (únicamente los que tienen vínculo y no están borrados)
+    // 5. Obtener hilos con estadísticas de armas asociadas (incluso si no tienen hilo vinculado)
     const { data: weaponStatsRecords, error: weaponStatsError } = await supabase
       .from("weapon_stats_records")
       .select(
@@ -207,93 +207,63 @@ export async function GET(
         weapon_name,
         created_at,
         stats,
-        foro_hilos!inner(
+        foro_hilos(
           id,
           slug,
           titulo,
           created_at,
           vistas,
           deleted_at,
-          foro_categorias!inner(nombre)
+          foro_categorias(nombre)
         )
       `
       )
       .eq("user_id", perfil.id)
-      .is("foro_hilos.deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (weaponStatsError) {
       console.error("Error fetching weapon stats records:", weaponStatsError);
     }
 
-    console.log("[Perfil API] Weapon stats raw data:", {
-      user_id: perfil.id,
-      records_count: weaponStatsRecords?.length ?? 0,
-      records: weaponStatsRecords,
-      error: weaponStatsError,
-    });
-
     const weaponStatsTransformadasMap = new Map<string, any>();
     for (const record of weaponStatsRecords || []) {
-      console.log("[Perfil API] Processing weapon stats record:", {
-        id: record.id,
-        weapon_name: record.weapon_name,
-        foro_hilos: record.foro_hilos,
-        stats_type: typeof record.stats,
-        stats_value: record.stats,
-      });
-
       const hiloRelacion = Array.isArray(record.foro_hilos)
         ? record.foro_hilos[0]
         : record.foro_hilos;
 
-      if (!hiloRelacion) {
-        console.warn(
-          "[Perfil API] No hilo relation found for weapon stats record:",
-          record.id
-        );
-        continue;
-      }
+      // Si el hilo está borrado, no lo vinculamos (pero mantenemos el record)
+      const hiloNoBorrado = hiloRelacion && !hiloRelacion.deleted_at ? hiloRelacion : null;
 
-      const categoriaRelacion = Array.isArray(hiloRelacion.foro_categorias)
-        ? hiloRelacion.foro_categorias[0]
-        : hiloRelacion.foro_categorias;
+      const categoriaRelacion: any = hiloNoBorrado && Array.isArray(hiloNoBorrado.foro_categorias)
+        ? hiloNoBorrado.foro_categorias[0]
+        : hiloNoBorrado?.foro_categorias;
 
       let statsNormalizadas = record.stats;
       if (typeof statsNormalizadas === "string") {
         try {
           statsNormalizadas = JSON.parse(statsNormalizadas);
         } catch (error) {
-          console.warn(
-            "[Perfil API] No se pudieron parsear las stats de arma",
-            error
-          );
           statsNormalizadas = null;
         }
       }
 
-      const clave = `${hiloRelacion.id}`;
+      // Usar record.id como clave si no hay hilo para permitir múltiples registros
+      const clave = hiloNoBorrado ? `${hiloNoBorrado.id}` : `weapon-${record.id}`;
+      
       if (!weaponStatsTransformadasMap.has(clave)) {
-        console.log("[Perfil API] Adding weapon stats to map:", {
-          key: clave,
-          weapon_name: record.weapon_name,
-          hilo_titulo: hiloRelacion.titulo,
-          stats_keys: statsNormalizadas ? Object.keys(statsNormalizadas) : [],
-        });
-
         weaponStatsTransformadasMap.set(clave, {
           id: record.id,
           weapon_name: record.weapon_name,
           created_at: record.created_at,
           stats: statsNormalizadas,
-          hilo: {
-            id: hiloRelacion.id,
-            slug: hiloRelacion.slug,
-            titulo: hiloRelacion.titulo,
-            created_at: hiloRelacion.created_at,
-            vistas: hiloRelacion.vistas ?? 0,
+          hilo: hiloNoBorrado ? {
+            id: hiloNoBorrado.id,
+            slug: hiloNoBorrado.slug,
+            titulo: hiloNoBorrado.titulo,
+            created_at: hiloNoBorrado.created_at,
+            vistas: hiloNoBorrado.vistas ?? 0,
             categoria_titulo: categoriaRelacion?.nombre ?? "Sin categoría",
-          },
+          } : null,
         });
       }
     }
@@ -306,7 +276,7 @@ export async function GET(
       records: weaponStatsTransformadas.map((r) => ({
         id: r.id,
         weapon_name: r.weapon_name,
-        hilo_titulo: r.hilo.titulo,
+        hilo_titulo: r.hilo?.titulo || "No vinculado",
       })),
     });
 

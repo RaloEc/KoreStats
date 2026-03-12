@@ -36,6 +36,13 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChampionCenteredSplash } from "./ChampionCenteredSplash";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Diccionario de regiones
 const REGION_NAMES: Record<string, string> = {
@@ -87,9 +94,9 @@ function hexToRgb(hex: string): string | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
-        result[3],
-        16,
-      )}`
+      result[3],
+      16,
+    )}`
     : null;
 }
 
@@ -202,6 +209,7 @@ export function RiotAccountCardVisual({
   staticData,
 }: RiotAccountCardVisualProps) {
   const router = useRouter();
+  const { user } = useAuth();
 
   // Realtime Status Hook - Solo en cliente para evitar error de hidratación
   const [isMounted, setIsMounted] = useState(false);
@@ -885,11 +893,10 @@ export function RiotAccountCardVisual({
 
                     {/* Winrate Mini Bar - Ultra Sharp */}
                     <div
-                      className={`max-w-[140px] mt-1 transition-all duration-300 ${
-                        !isExpanded
+                      className={`max-w-[140px] mt-1 transition-all duration-300 ${!isExpanded
                           ? "opacity-0 h-0 lg:opacity-100 lg:h-auto"
                           : "opacity-100 h-auto"
-                      }`}
+                        }`}
                     >
                       <div className="flex justify-between text-[8px] font-black mb-0.5 uppercase tracking-tighter">
                         <span
@@ -933,9 +940,8 @@ export function RiotAccountCardVisual({
 
             {/* Contenido desplegable en móvil */}
             <div
-              className={`${
-                isExpanded ? "block" : "hidden"
-              } lg:block space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 lg:animate-none`}
+              className={`${isExpanded ? "block" : "hidden"
+                } lg:block space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 lg:animate-none`}
             >
               {/* 2. Rank Emblems (Left Bottom) */}
               <div className="space-y-4">
@@ -988,33 +994,45 @@ export function RiotAccountCardVisual({
               {/* Actions Footer */}
               <div className="mt-6 flex items-center gap-3">
                 {onSync && !hideSync && (
-                  <button
-                    onClick={onSync}
-                    disabled={isSyncing || cooldownSeconds > 0}
-                    className="flex-1 py-2 px-3 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/10 hover:bg-indigo-500/30 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-2 border-indigo-500/40 dark:border-indigo-500/20 transition-all disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn"
-                  >
-                    <RefreshCw
-                      size={12}
-                      className={
-                        isSyncing
-                          ? "animate-spin"
-                          : "group-hover/btn:rotate-180 transition-transform duration-500"
-                      }
-                    />
-                    {isSyncing
-                      ? "..."
-                      : cooldownSeconds > 0
-                        ? `${cooldownSeconds}s`
-                        : "Actualizar"}
-                  </button>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex-1">
+                          <button
+                            onClick={onSync}
+                            disabled={isSyncing || cooldownSeconds > 0 || !user}
+                            className={`w-full py-2 px-3 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/10 hover:bg-indigo-500/30 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-2 border-indigo-500/40 dark:border-indigo-500/20 transition-all disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn ${!user ? "cursor-not-allowed" : ""
+                              }`}
+                          >
+                            <RefreshCw
+                              size={12}
+                              className={
+                                isSyncing
+                                  ? "animate-spin"
+                                  : "group-hover/btn:rotate-180 transition-transform duration-500"
+                              }
+                            />
+                            {isSyncing
+                              ? "..."
+                              : cooldownSeconds > 0
+                                ? `${cooldownSeconds}s`
+                                : "Actualizar"}
+                          </button>
+                        </span>
+                      </TooltipTrigger>
+                      {!user && (
+                        <TooltipContent className="bg-slate-900 text-white border-slate-700">
+                          <p>Inicia sesión para poder actualizar el perfil</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
                 {account.puuid && (
                   <a
-                    href={`https://www.leagueofgraphs.com/summoner/${
-                      LOG_REGIONS[account.region] || account.region
-                    }/${account.game_name?.replace(/\s+/g, "+")}-${
-                      account.tag_line
-                    }`}
+                    href={`https://www.leagueofgraphs.com/summoner/${LOG_REGIONS[account.region] || account.region
+                      }/${account.game_name?.replace(/\s+/g, "+")}-${account.tag_line
+                      }`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-slate-400/70 dark:hover:bg-white/10 text-slate-700 dark:text-white/60 hover:text-slate-900 dark:hover:text-white border-2 border-slate-400 dark:border-white/10 transition-all text-[10px] font-bold"
@@ -1038,9 +1056,8 @@ export function RiotAccountCardVisual({
 
           {/* --- RIGHT COLUMN: Stats Grid (2x2 Compact) --- */}
           <div
-            className={`lg:col-span-7 p-4 md:p-8 flex-col justify-center ${
-              isExpanded ? "flex" : "hidden lg:flex"
-            }`}
+            className={`lg:col-span-7 p-4 md:p-8 flex-col justify-center ${isExpanded ? "flex" : "hidden lg:flex"
+              }`}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
               {/* 1. Recent Activity (Top Left) */}
@@ -1068,11 +1085,10 @@ export function RiotAccountCardVisual({
                             />
                           </div>
                           <div
-                            className={`text-[9px] font-black px-1.5 rounded-sm ${
-                              wr >= 50
+                            className={`text-[9px] font-black px-1.5 rounded-sm ${wr >= 50
                                 ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                 : "bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400"
-                            }`}
+                              }`}
                           >
                             {wr}%
                           </div>
@@ -1193,10 +1209,10 @@ export function RiotAccountCardVisual({
                     const customStyle =
                       linkedProfileId && profileColor
                         ? ({
-                            "--duo-color": profileColor,
-                            backgroundColor: `color-mix(in srgb, var(--duo-color) 3%, transparent)`,
-                            borderColor: `color-mix(in srgb, var(--duo-color) 20%, transparent)`,
-                          } as React.CSSProperties)
+                          "--duo-color": profileColor,
+                          backgroundColor: `color-mix(in srgb, var(--duo-color) 3%, transparent)`,
+                          borderColor: `color-mix(in srgb, var(--duo-color) 20%, transparent)`,
+                        } as React.CSSProperties)
                         : {};
 
                     return (
@@ -1206,41 +1222,38 @@ export function RiotAccountCardVisual({
                           router.push(`/perfil/${linkedProfileId}?tab=lol`)
                         }
                         style={customStyle}
-                        className={`flex items-center gap-3 p-2 rounded-xl border-2 h-full transition-all ${
-                          linkedProfileId
+                        className={`flex items-center gap-3 p-2 rounded-xl border-2 h-full transition-all ${linkedProfileId
                             ? profileColor
                               ? "hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer group/duo"
                               : "bg-emerald-500/10 border-emerald-500/50 hover:bg-emerald-500/20 cursor-pointer group/duo"
                             : "bg-slate-200/60 dark:bg-white/5 border-slate-300 dark:border-white/5"
-                        }`}
+                          }`}
                       >
                         <div
-                          className={`relative w-10 h-10 rounded-full border-2 overflow-hidden bg-slate-200 dark:bg-slate-800 flex-shrink-0 ${
-                            linkedProfileId
+                          className={`relative w-10 h-10 rounded-full border-2 overflow-hidden bg-slate-200 dark:bg-slate-800 flex-shrink-0 ${linkedProfileId
                               ? "" // Border styling handled by inline style or fallback class
                               : "border-slate-300 dark:border-white/10"
-                          }`}
+                            }`}
                           style={
                             linkedProfileId && profileColor
                               ? {
-                                  borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
-                                }
+                                borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
+                              }
                               : linkedProfileId
                                 ? {}
                                 : {}
                           }
                         >
                           <div
-                            className={`absolute inset-0 border-2 rounded-full ${
-                              !profileColor && linkedProfileId
+                            className={`absolute inset-0 border-2 rounded-full ${!profileColor && linkedProfileId
                                 ? "border-emerald-500"
                                 : ""
-                            }`}
+                              }`}
                             style={
                               profileColor
                                 ? {
-                                    borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
-                                  }
+                                  borderColor: `color-mix(in srgb, var(--duo-color) 40%, transparent)`,
+                                }
                                 : {}
                             }
                           />
@@ -1254,11 +1267,10 @@ export function RiotAccountCardVisual({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div
-                            className={`text-xs font-black truncate flex items-center gap-1 ${
-                              linkedProfileId
+                            className={`text-xs font-black truncate flex items-center gap-1 ${linkedProfileId
                                 ? "group-hover/duo:underline"
                                 : "text-slate-900 dark:text-white"
-                            }`}
+                              }`}
                             style={
                               linkedProfileId && profileColor
                                 ? { color: profileColor }
@@ -1287,11 +1299,10 @@ export function RiotAccountCardVisual({
                             )}
                           </div>
                           <div
-                            className={`text-[9px] font-medium ${
-                              linkedProfileId
+                            className={`text-[9px] font-medium ${linkedProfileId
                                 ? ""
                                 : "text-slate-600 dark:text-white/30"
-                            }`}
+                              }`}
                             style={{}}
                           >
                             <span

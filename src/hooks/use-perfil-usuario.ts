@@ -47,14 +47,14 @@ export interface ProfileData {
     weapon_name: string | null;
     created_at: string;
     stats: Record<string, number> | null;
-    hilo: {
+    hilo?: {
       id: string;
       slug: string | null;
       titulo: string;
       created_at: string;
       vistas: number;
       categoria_titulo: string;
-    };
+    } | null;
   }>;
   ultimasPartidas?: Array<{
     id: string;

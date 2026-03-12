@@ -20,6 +20,9 @@ const MemoizedNoticiaCard = memo(NoticiaCard);
 const MemoizedSharedMatchCard = memo(SharedMatchCard);
 const MemoizedStatusCard = memo(StatusCard);
 const MemoizedBannerPublicitario = memo(BannerPublicitario);
+const MemoizedGameSelectRadar = memo(GameSelectRadar);
+
+import { GameSelectRadar } from "@/components/home/GameSelectRadar";
 
 type FeedFilter = "all" | "threads" | "news" | "lol" | "social";
 
@@ -344,6 +347,9 @@ export default function FeedContainer() {
 
   return (
     <div className="max-w-3xl mx-auto">
+      {/* Game Radar Section */}
+      <MemoizedGameSelectRadar />
+
       {/* Sticky tabs container - Optimized for performance */}
       <div
         className="sticky top-0 z-40 bg-white dark:bg-black py-3 -mx-4 px-4 mb-3 border-b border-gray-200 dark:border-white/5"

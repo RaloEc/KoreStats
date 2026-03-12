@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
-import { Nunito, Inter, Unbounded } from "next/font/google";
+import { Nunito, Inter, Unbounded, Black_Ops_One, Saira_Stencil_One, Stardos_Stencil } from "next/font/google";
 import dynamic from "next/dynamic";
 import "@/styles/critical.css"; // CSS crítico inyectado inline
 import "./globals.css";
@@ -61,6 +61,30 @@ const unbounded = Unbounded({
   subsets: ["latin"],
   variable: "--font-unbounded",
   weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  preload: true,
+});
+
+const blackOpsOne = Black_Ops_One({
+  subsets: ["latin"],
+  variable: "--font-black-ops",
+  weight: ["400"],
+  display: "swap",
+  preload: true,
+});
+
+const sairaStencil = Saira_Stencil_One({
+  subsets: ["latin"],
+  variable: "--font-saira-stencil",
+  weight: ["400"],
+  display: "swap",
+  preload: true,
+});
+
+const stardosStencil = Stardos_Stencil({
+  subsets: ["latin"],
+  variable: "--font-stardos-stencil",
+  weight: ["400", "700"],
   display: "swap",
   preload: true,
 });
@@ -285,7 +309,7 @@ export default async function RootLayout({
         )}
       </head>
       <body
-        className={`${nunito.variable} ${inter.variable} ${unbounded.variable} font-sans bg-background text-foreground h-screen w-screen overflow-hidden flex flex-col`}
+        className={`${nunito.variable} ${inter.variable} ${unbounded.variable} ${blackOpsOne.variable} ${sairaStencil.variable} ${stardosStencil.variable} font-sans bg-background text-foreground h-screen w-screen overflow-hidden flex flex-col`}
       >
         <Providers session={session}>
           <ScrollToTop />

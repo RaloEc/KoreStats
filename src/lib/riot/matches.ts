@@ -60,13 +60,6 @@ export async function refreshMatchHistoryCache(
     const supabase = getServiceClient();
     const { matches } = await getMatchHistory(puuid, { limit: 5 });
 
-    if (!matches || matches.length === 0) {
-      console.log(
-        "[refreshMatchHistoryCache] No hay partidas para cachear",
-        puuid,
-      );
-      return;
-    }
 
     await supabase
       .from("match_history_cache")
@@ -96,11 +89,6 @@ export async function refreshMatchHistoryCache(
       console.error(
         "[refreshMatchHistoryCache] Error al insertar:",
         error.message,
-      );
-    } else {
-      console.log(
-        "[refreshMatchHistoryCache] Caché actualizado",
-        `${matches.length} partidas`,
       );
     }
   } catch (error: any) {
@@ -138,9 +126,6 @@ export function getRoutingRegion(platformRegion: string): string {
   }
 
   // Default
-  console.warn(
-    `[getRoutingRegion] Región desconocida: ${platformRegion}, usando 'americas'`,
-  );
   return "americas";
 }
 
@@ -254,9 +239,6 @@ async function getMatchIds({
   endTime,
 }: GetMatchIdsParams): Promise<string[]> {
   try {
-    console.log(
-      `[getMatchIds] Obteniendo ${count} IDs de partidas para ${puuid} (start=${start}, startTime=${startTime})`,
-    );
 
     const params = new URLSearchParams();
     params.set("start", Math.max(0, start).toString());
@@ -271,7 +253,6 @@ async function getMatchIds({
     }
 
     const url = `https://${routingRegion}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?${params.toString()}`;
-    console.log(`[getMatchIds] URL: ${url}`);
 
     const response = await fetch(url, {
       headers: {
@@ -287,12 +268,6 @@ async function getMatchIds({
     }
 
     const matchIds = await response.json();
-    console.log(
-      `[getMatchIds] ✅ Obtenidos ${matchIds.length} IDs de partidas`,
-    );
-    if (matchIds.length > 0) {
-      console.log(`[getMatchIds] 🎮 IDs retornados:`, matchIds);
-    }
     return matchIds;
   } catch (error: any) {
     console.error("[getMatchIds] Error:", error.message);
@@ -351,12 +326,6 @@ async function filterExistingMatchIds(
           (matchId) => !matchesWithParticipant.has(matchId),
         );
 
-        if (matchesMissingParticipant.length > 0) {
-          console.warn(
-            "[filterExistingMatchIds] ♻️ Partidas sin participantes, se volverán a descargar:",
-            matchesMissingParticipant,
-          );
-        }
       }
     }
 
@@ -365,18 +334,6 @@ async function filterExistingMatchIds(
       (id) => !existing.has(id) || matchesMissingParticipant.includes(id),
     );
 
-    console.log(
-      `[filterExistingMatchIds] 📊 Total IDs: ${matchIds.length}, Existentes: ${existing.size}, Nuevos: ${newMatches.length}`,
-    );
-    if (newMatches.length > 0) {
-      console.log(`[filterExistingMatchIds] 🆕 Nuevos IDs:`, newMatches);
-    }
-    if (existing.size > 0) {
-      console.log(
-        `[filterExistingMatchIds] 📦 IDs existentes:`,
-        Array.from(existing),
-      );
-    }
 
     return newMatches;
   } catch (error: any) {
@@ -414,7 +371,6 @@ async function getMatchCreationBoundary(
 
 async function getLatestMatchCreation(puuid: string) {
   const latest = await getMatchCreationBoundary(puuid, false);
-  console.log(`[getLatestMatchCreation] 📅 Latest match creation: ${latest}`);
   return latest;
 }
 
@@ -493,12 +449,10 @@ export async function syncMatchById(
 ): Promise<{ success: boolean; saved: boolean; error?: string }> {
   try {
     const routingRegion = getRoutingRegion(platformRegion);
-    console.log(`[syncMatchById] Intentando sync directa de ${matchId}`);
 
     // Verificar si ya existe primero para ahorrar requests
     const exists = await matchExists(matchId);
     if (exists) {
-      console.log(`[syncMatchById] La partida ${matchId} ya existe en BD.`);
       return { success: true, saved: false };
     }
 
@@ -614,7 +568,6 @@ async function saveMatch(matchData: MatchData): Promise<boolean> {
       );
       return false;
     }
-    console.log(`[saveMatch] ✅ Match insertado: ${matchId}`);
 
     // Guardar participantes
     const participants = matchData.info.participants.map((p, index) => ({
@@ -709,43 +662,8 @@ async function saveMatch(matchData: MatchData): Promise<boolean> {
 
       return false;
     }
-    console.log(
-      `[saveMatch] ✅ ${participants.length} participantes guardados para ${matchId}`,
-    );
 
-    // FASE RÁPIDA: Marcar como 'processing' para que sea visible en el historial
-    console.log(`[saveMatch] ⚡ Marcando partida como 'processing'...`);
-    const { error: statusError } = await supabase
-      .from("matches")
-      .update({ ingest_status: "processing" })
-      .eq("match_id", matchId);
 
-    if (statusError) {
-      console.warn(
-        `[saveMatch] ⚠️ Error al marcar como processing:`,
-        statusError.message,
-      );
-    } else {
-      console.log(
-        `[saveMatch] ✅ Partida ${matchId} marcada como 'processing'`,
-      );
-    }
-
-    // FASE PESADA: Disparar job asíncrono para calcular ranking/performance
-    // (no esperamos respuesta, solo lo registramos para procesar después)
-    console.log(
-      `[saveMatch] 🔄 Encolando procesamiento de ranking/performance para ${matchId}...`,
-    );
-
-    // Fire-and-forget: procesar en background
-    processMatchRankingAsync(matchId, matchData).catch((err) => {
-      console.error(
-        `[saveMatch] Error en procesamiento async de ${matchId}:`,
-        err.message,
-      );
-    });
-
-    console.log(`[saveMatch] ✅ Partida ${matchId} guardada exitosamente`);
 
     return true;
   } catch (error: any) {
@@ -765,7 +683,6 @@ async function processMatchRankingAsync(
 ): Promise<void> {
   try {
     const supabase = getServiceClient();
-    console.log(`[processMatchRankingAsync] 🔄 Iniciando para ${matchId}...`);
 
     // Calcular totales de equipo
     const team100 = (matchData.info.participants as any[]).filter(
@@ -854,14 +771,6 @@ async function processMatchRankingAsync(
       }
     }
 
-    console.log(
-      `[processMatchRankingAsync] ✅ Ranking y performance scores calculados`,
-    );
-
-    // Guardar snapshots de ranking para cada participante
-    console.log(
-      `[processMatchRankingAsync] Obteniendo rankings desde caché para ${matchId}...`,
-    );
 
     const platformRegion = "la1";
     const apiKey = process.env.RIOT_API_KEY;
@@ -921,9 +830,6 @@ async function processMatchRankingAsync(
           rankError.message,
         );
       } else {
-        console.log(
-          `[processMatchRankingAsync] ✅ ${rankSnapshots.length} snapshots de ranking guardados`,
-        );
       }
     }
 
@@ -939,14 +845,8 @@ async function processMatchRankingAsync(
         readyError.message,
       );
     } else {
-      console.log(
-        `[processMatchRankingAsync] ✅ Partida ${matchId} marcada como 'ready'`,
-      );
     }
 
-    console.log(
-      `[processMatchRankingAsync] ✅ Procesamiento completado para ${matchId}`,
-    );
   } catch (error: any) {
     console.error(
       `[processMatchRankingAsync] ❌ Error procesando ${matchId}:`,
@@ -992,12 +892,7 @@ export async function syncMatchHistory(
   error?: string;
 }> {
   try {
-    console.log(`[syncMatchHistory] Iniciando sincronización para ${puuid}`);
-
-    // Obtener región de ruteo
     const routingRegion = getRoutingRegion(platformRegion);
-    console.log(`[syncMatchHistory] Región de ruteo: ${routingRegion}`);
-
     const { ensureWeeks = 3 } = options;
 
     const latestMatchCreation = await getLatestMatchCreation(puuid);
@@ -1006,9 +901,6 @@ export async function syncMatchHistory(
         ? Math.floor(latestMatchCreation / 1000) + 1
         : undefined;
 
-    console.log(
-      `[syncMatchHistory] 🔍 latestMatchCreation: ${latestMatchCreation}, startTime: ${startTime}`,
-    );
 
     // Obtener IDs de partidas recientes posteriores a la última guardada
     const matchIds = await getMatchIds({
@@ -1028,25 +920,16 @@ export async function syncMatchHistory(
       };
     }
 
-    console.log(
-      `[syncMatchHistory] Verificando ${matchIds.length} partidas...`,
-    );
 
     // Filtrar partidas que ya existen
     let newMatchCount = 0;
     const matchesToDownload = await filterExistingMatchIds(matchIds);
 
-    console.log(
-      `[syncMatchHistory] ${matchesToDownload.length} partidas nuevas para descargar`,
-    );
 
     // Descargar y guardar partidas nuevas en lotes para mejorar rendimiento
     const BATCH_SIZE = 5; // Procesar de 5 en 5 para balancear velocidad y límites de la API
     for (let i = 0; i < matchesToDownload.length; i += BATCH_SIZE) {
       const batch = matchesToDownload.slice(i, i + BATCH_SIZE);
-      console.log(
-        `[syncMatchHistory] 📥 Procesando lote de ${batch.length} partidas...`,
-      );
 
       await Promise.all(
         batch.map(async (matchId) => {
@@ -1057,9 +940,6 @@ export async function syncMatchHistory(
               apiKey,
             );
             if (matchData) {
-              console.log(
-                `[syncMatchHistory] 💾 Guardando partida: ${matchId}`,
-              );
               const saved = await saveMatch(matchData);
               if (saved) {
                 newMatchCount++;
@@ -1089,9 +969,6 @@ export async function syncMatchHistory(
 
     const totalSynced = newMatchCount + backfilledMatches;
 
-    console.log(
-      `[syncMatchHistory] ✅ Sincronización completada: ${totalSynced} partidas nuevas (recientes: ${newMatchCount}, backfill: ${backfilledMatches})`,
-    );
 
     return {
       success: true,

@@ -409,9 +409,14 @@ export const TabsActividad = ({
             {weaponStatsRecords?.length ? (
               <ul className="space-y-3 sm:space-y-4">
                 {weaponStatsRecords.map((record) => {
+                  const hasHilo = !!record.hilo;
+                  const recordTitle = record.weapon_name || record.hilo?.titulo || "Arma analizada";
+                  const categoryTitle = record.hilo?.categoria_titulo || "Delta Force";
+                  const recordHref = record.hilo ? `/foro/hilos/${record.hilo.slug || record.hilo.id}` : null;
+
                   return (
                     <li
-                      key={record.hilo.id}
+                      key={record.id}
                       className="group p-3 sm:p-4 rounded-lg border bg-card dark:border-gray-800 transition-all hover:shadow-md"
                       style={{
                         borderColor: `color-mix(in srgb, var(--user-color) 30%, transparent)`,
@@ -439,38 +444,46 @@ export const TabsActividad = ({
                                 {record.weapon_name ?? "Arma sin nombre"}
                               </span>
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full border text-muted-foreground">
-                                {record.hilo.categoria_titulo}
+                                {categoryTitle}
                               </span>
                             </div>
-                            <Link
-                              href={`/foro/hilos/${
-                                record.hilo.slug || record.hilo.id
-                              }`}
-                              className="text-sm sm:text-base font-semibold text-foreground hover:text-foreground/80 line-clamp-2"
-                            >
-                              {record.hilo.titulo}
-                            </Link>
+                            
+                            {recordHref ? (
+                              <Link
+                                href={recordHref}
+                                className="text-sm sm:text-base font-semibold text-foreground hover:text-foreground/80 line-clamp-2"
+                              >
+                                {record.hilo?.titulo || record.weapon_name}
+                              </Link>
+                            ) : (
+                              <span className="text-sm sm:text-base font-semibold text-foreground line-clamp-2">
+                                {record.weapon_name || "Análisis de arma"}
+                              </span>
+                            )}
+
                             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                               <span className="inline-flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {formatearFecha(record.hilo.created_at)}
+                                {formatearFecha(record.created_at)}
                               </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Eye className="h-3 w-3" />
-                                {record.hilo.vistas}
-                              </span>
+                              {record.hilo && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {record.hilo.vistas}
+                                </span>
+                              )}
                             </div>
                           </div>
 
-                          <Link
-                            href={`/foro/hilos/${
-                              record.hilo.slug || record.hilo.id
-                            }`}
-                            className="flex-shrink-0 p-2 rounded-md transition-colors hover:bg-muted"
-                            aria-label="Ver hilo con estadísticas"
-                          >
-                            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                          </Link>
+                          {recordHref && (
+                            <Link
+                              href={recordHref}
+                              className="flex-shrink-0 p-2 rounded-md transition-colors hover:bg-muted"
+                              aria-label="Ver hilo con estadísticas"
+                            >
+                              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                            </Link>
+                          )}
                         </div>
 
                         {record.stats ? (

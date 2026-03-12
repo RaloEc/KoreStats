@@ -29,6 +29,7 @@ import {
   TrendingUp,
   Star,
   Filter,
+  Gamepad2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserInitials } from "@/lib/utils/avatar-utils";
@@ -87,13 +88,16 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             (data.usuarios || []).map((u: any) => ({ ...u, tipo: "usuario" }))
           );
         } else {
-          // Buscar hilos y noticias
-          const [noticiasRes, hilosRes] = await Promise.all([
+          // Buscar hilos, noticias y juegos
+          const [noticiasRes, hilosRes, juegosRes] = await Promise.all([
             fetch(
               `/api/noticias?busqueda=${encodeURIComponent(query)}&limit=3`
             ),
             fetch(
               `/api/foro/hilos?buscar=${encodeURIComponent(query)}&limit=3`
+            ),
+            fetch(
+              `/api/games/list` // Using the new endpoint, will filter locally for simplicity or I could update the endpoint
             ),
           ]);
 
@@ -101,6 +105,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             ? await noticiasRes.json()
             : { data: [] };
           const hilosData = hilosRes.ok ? await hilosRes.json() : { hilos: [] };
+          const juegosData = juegosRes.ok ? await juegosRes.json() : [];
 
           const noticias = (noticiasData.data || []).map((n: any) => ({
             id: n.id,
@@ -116,7 +121,20 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             tipo: "hilo",
           }));
 
-          setSearchResults([...noticias, ...hilos]);
+          const juegos = (juegosData || [])
+            .filter((j: any) => 
+               j.nombre.toLowerCase().includes(query.toLowerCase()) || 
+               j.slug.toLowerCase().includes(query.toLowerCase())
+            )
+            .map((j: any) => ({
+              id: j.id,
+              titulo: j.nombre,
+              slug: j.slug,
+              imagen_url: j.icono_url,
+              tipo: "juego",
+            }));
+
+          setSearchResults([...juegos, ...noticias, ...hilos]);
         }
       } catch (error) {
         console.error("Error en búsqueda:", error);
@@ -245,11 +263,11 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
       isActive: pathname === "/inicio" || pathname === "/",
     },
     {
-      id: "trending",
-      icon: Flame,
-      label: "Trending",
-      href: "/foro?sort=popular",
-      isActive: pathname === "/foro" && pathname.includes("popular"),
+      id: "games",
+      icon: Gamepad2,
+      label: "Juegos",
+      href: "/games",
+      isActive: pathname.startsWith("/games"),
     },
     {
       id: "create",
@@ -472,6 +490,38 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                                 </h4>
                                 <p className="text-xs text-orange-600 dark:text-orange-400">
                                   Noticia
+                                </p>
+                              </div>
+                            </Link>
+                          );
+                        } else if (resultado.tipo === "juego") {
+                          return (
+                            <Link
+                              key={`juego-${resultado.id}`}
+                              href={`/games/${resultado.slug}`}
+                              onClick={() => {
+                                setIsSearchOpen(false);
+                                setSearchQuery("");
+                              }}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
+                            >
+                              <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50 dark:from-gray-800 dark:to-gray-900">
+                                {resultado.imagen_url ? (
+                                  <img
+                                    src={resultado.imagen_url}
+                                    alt={resultado.titulo}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Gamepad2 className="w-5 h-5 text-blue-500" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold truncate text-sm text-gray-900 dark:text-white">
+                                  {resultado.titulo}
+                                </h4>
+                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                  Juego
                                 </p>
                               </div>
                             </Link>
@@ -1197,58 +1247,30 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                   );
                 }
 
-                // Botón especial para Trending
-                if (item.id === "trending") {
-                  const isInForo = pathname.startsWith("/foro");
-
-                  if (isInForo) {
-                    // Si ya está en /foro, abrir modal de filtros
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          // Cerrar otros modales antes de abrir filtros
-                          setIsProfileMenuOpen(false);
-                          setIsCreateModalOpen(false);
-                          setIsNotificationsOpen(false);
-                          setIsFiltersOpen(true);
-                        }}
-                        className={cn(
-                          "flex items-center justify-center p-2 rounded-xl transition-all duration-200",
-                          !isFiltersOpen &&
-                            "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                        )}
-                        style={{
-                          color: isFiltersOpen ? userColor : undefined,
-                        }}
-                      >
-                        <Icon className="w-6 h-6" strokeWidth={2} />
-                      </button>
-                    );
-                  } else {
-                    // Si no está en /foro, navegar normalmente
-                    return (
-                      <Link
-                        key={item.id}
-                        href={item.href || "/"}
-                        onClick={() => {
-                          setIsProfileMenuOpen(false);
-                          setIsCreateModalOpen(false);
-                          setIsNotificationsOpen(false);
-                        }}
-                        className={cn(
-                          "flex items-center justify-center p-2 rounded-xl transition-all duration-200",
-                          !item.isActive &&
-                            "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                        )}
-                        style={{
-                          color: item.isActive ? userColor : undefined,
-                        }}
-                      >
-                        <Icon className="w-6 h-6" strokeWidth={2} />
-                      </Link>
-                    );
-                  }
+                // Botón para Juegos
+                if (item.id === "games") {
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href || "/"}
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        setIsCreateModalOpen(false);
+                        setIsNotificationsOpen(false);
+                        setIsFiltersOpen(false);
+                      }}
+                      className={cn(
+                        "flex items-center justify-center p-2 rounded-xl transition-all duration-200",
+                        !item.isActive &&
+                          "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                      )}
+                      style={{
+                        color: item.isActive ? userColor : undefined,
+                      }}
+                    >
+                      <Icon className="w-6 h-6" strokeWidth={2} />
+                    </Link>
+                  );
                 }
 
                 return (

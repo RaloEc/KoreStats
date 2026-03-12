@@ -3,31 +3,65 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
+    const authHeader = 
+      request.headers.get("authorization") || 
+      request.headers.get("x-allstar-auth") ||
+      request.headers.get("x-webhook-secret");
+      
     const secret = process.env.ALLSTAR_WEBHOOK_SECRET;
 
-    if (secret && authHeader && authHeader !== secret && authHeader !== `Bearer ${secret}`) {
-      console.warn("[Allstar Webhook] Intento de acceso no autorizado");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    console.log("[Allstar Webhook] Headers:", Object.fromEntries(request.headers));
+
+    // Si hay un secret configurado, validamos. 
+    // Allstar envía el token a veces como "Bearer TOKEN" y otras directo.
+    if (secret) {
+      const cleanHeader = authHeader?.replace("Bearer ", "").trim();
+      const cleanSecret = secret.replace("Bearer ", "").trim();
+      
+      if (cleanHeader !== cleanSecret) {
+        console.warn("[Allstar Webhook] Acceso denegado. Token no coincide.");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     console.log("[Allstar Webhook] Recibiendo datos...");
-    const payload = await request.json();
+    let payload;
+    try {
+      payload = await request.json();
+    } catch {
+      const text = await request.text();
+      payload = JSON.parse(text);
+    }
     console.log("[Allstar Webhook] Payload recibido:", JSON.stringify(payload, null, 2));
+
+    const eventType = payload.event || payload.type;
+    if (eventType && eventType !== "clip.ready") {
+      console.log("[Allstar Webhook] Evento ignorado:", eventType);
+      return NextResponse.json({ ignored: true });
+    }
 
     /**
      * El payload de Allstar suele contener el PUUID de Riot en el campo 'game_account_id'
      * o similar. Intentaremos encontrar al usuario en nuestra DB usando ese ID.
      */
     
-    // NOTA: Ajustar estos campos según la estructura real recibida en los logs
-    const puuid = payload.game_account_id || payload.account_id || payload.puuid;
+    let puuid = payload.game_account_id || payload.account_id || payload.puuid;
+    if (typeof puuid === 'string' && puuid.startsWith("riot:")) {
+      puuid = puuid.replace("riot:", "");
+    }
+
     const clipId = payload.clip_id || payload.id;
     const videoUrl = payload.video_url || payload.media_url || payload.url;
     const thumbUrl = payload.thumbnail_url || payload.preview_url;
     const title = payload.clip_title || payload.title || "Nuevo Clip de LoL";
     const championId = payload.champion_id || payload.hero_id;
     const matchId = payload.match_id || payload.game_id;
+    
+    // Novedades para estadísticas que Allstar suele proveer:
+    const createdAt = payload.created_at || new Date().toISOString();
+    const clipDuration = payload.clip_duration || payload.duration;
+    const game = payload.game;
+    const killType = payload.kill_type;
 
     if (!puuid || !clipId) {
       console.warn("[Allstar Webhook] Datos incompletos (falta PUUID o clipId)");
@@ -50,6 +84,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Insertar el clip en nuestra tabla
+    const metadata = {
+        ...payload,
+        clip_duration: clipDuration,
+        clip_created_at: createdAt,
+        event_type: eventType,
+        game: game,
+        kill_type: killType,
+        timestamp: new Date().getTime()
+    };
+
     const { error: insertError } = await supabase
       .from("lol_allstar_clips")
       .upsert({
@@ -61,7 +105,8 @@ export async function POST(request: NextRequest) {
         thumbnail_url: thumbUrl,
         champion_id: championId ? parseInt(championId.toString()) : null,
         match_id: matchId,
-        metadata: payload // Guardamos todo por si acaso
+        created_at: createdAt,
+        metadata: metadata // Guardamos todo estructurado
       }, { onConflict: 'allstar_clip_id' });
 
     if (insertError) {
@@ -71,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Allstar Webhook] ✅ Clip ${clipId} guardado para el usuario ${riotAccount.user_id}`);
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({ success: true, clip_id: clipId }, { status: 200 });
 
   } catch (error: any) {
     console.error("[Allstar Webhook] Error crítico:", error);

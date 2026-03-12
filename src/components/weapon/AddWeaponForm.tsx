@@ -234,7 +234,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
             );
             setSubmitStatus("error");
         }
-    }, [shareCode, weaponStatsRecordId, queryClient, onSuccess, clearAnalyzer]);
+    }, [shareCode, weaponStatsRecordId, buildName, queryClient, onSuccess, clearAnalyzer]);
 
     const handleClose = useCallback(() => {
         setIsOpen(false);

@@ -170,6 +170,7 @@ export async function getGameNews(
       autor:perfiles!noticias_autor_id_fkey(id, username, avatar_url)
     `)
     .eq("estado", "publicada")
+    .is("deleted_at", null)
     .or(orString)
     .order("fecha_publicacion", { ascending: false })
     .limit(limit);
@@ -196,6 +197,7 @@ export async function getGameThreads(
   const { data: categorias } = await supabase
     .from("foro_categorias")
     .select("id")
+    .eq("es_activa", true)
     .or(`slug.ilike.%${gameSlug}%,nombre.ilike.%${gameName}%`);
 
   if (!categorias || categorias.length === 0) return [];
@@ -205,6 +207,7 @@ export async function getGameThreads(
   const { data: subcats } = await supabase
     .from("foro_categorias")
     .select("id")
+    .eq("es_activa", true)
     .in("parent_id", rootCatIds);
 
   const allCatIds = [...rootCatIds, ...(subcats?.map((c) => c.id) || [])];
@@ -216,6 +219,7 @@ export async function getGameThreads(
       autor:perfiles!foro_hilos_autor_id_fkey(id, username, avatar_url, color)
     `)
     .eq("es_cerrado", false)
+    .is("deleted_at", null)
     .in("categoria_id", allCatIds)
     .order("es_fijado", { ascending: false })
     .order("created_at", { ascending: false })
@@ -241,12 +245,16 @@ export async function getGameEvents(
   const supabase = await createClient();
 
   // Intentar primero por game_id (columna nueva), fallback a juego_nombre
+  // Solo obtener eventos futuros (fecha >= hoy)
+  const now = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("eventos")
     .select("*")
     .or(`game_id.eq.${gameId},juego_nombre.ilike.${gameName}`)
     .eq("estado", "publicado")
-    .order("fecha", { ascending: false })
+    .gte("fecha", now)
+    .order("fecha", { ascending: true })
     .limit(limit);
 
   if (error) {

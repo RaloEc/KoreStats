@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, getServiceClient } from "@/lib/supabase/server";
-import { syncRiotStats, getRoutingRegionFromShard } from "@/lib/riot/sync";
+import { syncRiotStats } from "@/lib/riot/sync";
 
 const RIOT_API_KEY = process.env.RIOT_API_KEY!;
-const DEFAULT_PLATFORM_REGION = "la1"; // Región por defecto para Latinoamérica
+const DEFAULT_PLATFORM_REGION = "la1";
 
 const UNRANKED_RANK = {
   tier: "UNRANKED",
@@ -17,59 +17,27 @@ const UNRANKED_RANK = {
  * POST /api/riot/account/link-manual
  *
  * Vincula manualmente una cuenta de Riot sin OAuth
- * Este es un endpoint TEMPORAL para uso mientras no se tienen credenciales RSO
- *
- * Body:
- * - puuid: PUUID de la cuenta a vincular (requerido)
- * - gameName: Nombre del jugador (requerido)
- * - tagLine: Tag del jugador (requerido)
- * - region: Región de la cuenta (opcional, default: la1)
- *
- * Respuesta:
- * - 200: Cuenta vinculada exitosamente
- * - 400: Parámetros faltantes
- * - 401: Usuario no autenticado
- * - 409: Cuenta ya vinculada a otro usuario
- * - 500: Error del servidor
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log(
-      "[POST /api/riot/account/link-manual] Iniciando vinculación manual..."
-    );
-
-    // Obtener sesión del usuario autenticado
     const supabase = await createClient();
     const {
-      data: { session },
+      data: { user },
       error: sessionError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user?.id) {
-      console.error(
-        "[POST /api/riot/account/link-manual] Usuario no autenticado"
-      );
+    if (sessionError || !user?.id) {
       return NextResponse.json(
         { error: "Debes iniciar sesión para vincular tu cuenta" },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
-    // Parsear body
     const body = await request.json();
     const { puuid, gameName, tagLine, region = DEFAULT_PLATFORM_REGION } = body;
 
-    console.log("[POST /api/riot/account/link-manual] Datos recibidos:", {
-      userId,
-      puuid,
-      gameName,
-      tagLine,
-      region,
-    });
-
-    // Validar parámetros requeridos
     if (!puuid || !gameName || !tagLine) {
       return NextResponse.json(
         { error: "puuid, gameName y tagLine son requeridos" },
@@ -77,7 +45,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que el PUUID no esté vinculado a otro usuario
     const serviceClient = getServiceClient();
     const { data: existingAccount, error: checkError } = await serviceClient
       .from("linked_accounts_riot")
@@ -86,11 +53,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (checkError && checkError.code !== "PGRST116") {
-      // PGRST116 = no rows found (OK)
-      console.error(
-        "[POST /api/riot/account/link-manual] Error al verificar cuenta:",
-        checkError
-      );
       return NextResponse.json(
         { error: "Error al verificar la cuenta" },
         { status: 500 }
@@ -98,9 +60,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingAccount && existingAccount.user_id !== userId) {
-      console.log(
-        "[POST /api/riot/account/link-manual] Cuenta ya vinculada a otro usuario"
-      );
       return NextResponse.json(
         {
           error: `Esta cuenta de Riot (${existingAccount.game_name}#${existingAccount.tag_line}) ya está vinculada a otro usuario`,
@@ -109,12 +68,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sincronizar estadísticas del jugador
-    console.log(
-      "[POST /api/riot/account/link-manual] Sincronizando estadísticas..."
-    );
-
-    const routingRegion = getRoutingRegionFromShard(region);
     const syncResult = await syncRiotStats(puuid, RIOT_API_KEY, region);
 
     let statsData = {
@@ -128,25 +81,11 @@ export async function POST(request: NextRequest) {
 
     if (syncResult.success && syncResult.data) {
       statsData = syncResult.data;
-      console.log(
-        "[POST /api/riot/account/link-manual] ✅ Estadísticas obtenidas:",
-        {
-          level: statsData.summonerLevel,
-          icon: statsData.profileIconId,
-          soloRank: statsData.soloRank,
-        }
-      );
-    } else {
-      console.warn(
-        "[POST /api/riot/account/link-manual] No se pudieron obtener estadísticas:",
-        syncResult.error
-      );
     }
 
     const soloRank = statsData.soloRank || { ...UNRANKED_RANK };
     const flexRank = statsData.flexRank || { ...UNRANKED_RANK };
 
-    // Insertar o actualizar en linked_accounts_riot
     const { error: upsertError } = await serviceClient
       .from("linked_accounts_riot")
       .upsert(
@@ -170,7 +109,6 @@ export async function POST(request: NextRequest) {
           flex_league_points: flexRank.leaguePoints,
           flex_wins: flexRank.wins,
           flex_losses: flexRank.losses,
-          // Sin tokens OAuth ya que es vinculación manual
           access_token: null,
           refresh_token: null,
           updated_at: new Date().toISOString(),
@@ -183,23 +121,51 @@ export async function POST(request: NextRequest) {
       );
 
     if (upsertError) {
-      console.error(
-        "[POST /api/riot/account/link-manual] Error al guardar:",
-        upsertError
-      );
       return NextResponse.json(
         { error: "Error al guardar la cuenta vinculada" },
         { status: 500 }
       );
     }
 
-    console.log(
-      "[POST /api/riot/account/link-manual] ✅ Cuenta vinculada exitosamente"
-    );
+    // --- Registro en Allstar (Partner API) ---
+    // Registramos al jugador para que Allstar empiece a trackearlo y enviarnos webhooks
+    const allstarApiKey = process.env.ALLSTAR_SERVER_API_KEY;
+    const allstarProjectId = process.env.ALLSTAR_PROJECT_ID;
+    let allstarRegistered = false;
+
+    if (allstarApiKey && allstarProjectId) {
+      try {
+        console.log(`[Allstar Registration] Registrando jugador riot:${puuid} en Allstar...`);
+        const allstarResponse = await fetch(`https://api.allstar.gg/v1/players`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${allstarApiKey}`,
+            "Content-Type": "application/json",
+            "X-Allstar-Project-ID": allstarProjectId,
+          },
+          body: JSON.stringify({
+            external_id: `riot:${puuid}`,
+            game: "league_of_legends",
+            game_account_id: `riot:${puuid}`,
+            project_id: allstarProjectId
+          })
+        });
+
+        if (allstarResponse.ok) {
+          allstarRegistered = true;
+          console.log(`[Allstar Registration] ✅ Jugador registrado exitosamente.`);
+        } else {
+          const errText = await allstarResponse.text();
+          console.warn(`[Allstar Registration] ⚠️ No se pudo registrar en Allstar: ${errText.substring(0, 100)}`);
+        }
+      } catch (err: any) {
+        console.error(`[Allstar Registration] 💥 Error de conexión con Allstar:`, err.message);
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Cuenta vinculada exitosamente",
+      message: "Cuenta vinculada exitosamente" + (allstarRegistered ? " y registrada en Allstar" : ""),
       account: {
         puuid,
         gameName,
@@ -212,7 +178,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("[POST /api/riot/account/link-manual] Error:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

@@ -214,9 +214,10 @@ export async function POST(request: NextRequest) {
           weapon_name: weaponName,
           share_code: trimmedCode,
           game_mode: detectedMode,
+          description: description || null,
           stats: {},
         })
-        .select("id, weapon_name, share_code, game_mode")
+        .select("id, weapon_name, share_code, game_mode, description")
         .single();
 
       if (error) {

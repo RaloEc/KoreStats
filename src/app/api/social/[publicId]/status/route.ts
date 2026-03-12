@@ -15,7 +15,15 @@ export async function GET(
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      return NextResponse.json(
+        {
+          is_following: false,
+          friendship_status: "none",
+          is_blocked: false,
+          friend_request_id: null,
+        },
+        { status: 200 }
+      );
     }
 
     const { publicId } = params;

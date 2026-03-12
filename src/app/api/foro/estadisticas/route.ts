@@ -180,6 +180,7 @@ export async function GET() {
       const { data, error } = await supabase
         .from('foro_categorias')
         .select('id, nombre, slug, orden')
+        .eq('es_activa', true)
         .order('orden', { ascending: true })
         .limit(5)
 

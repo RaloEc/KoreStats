@@ -19,12 +19,6 @@ export async function GET(request: NextRequest) {
       .select("*")
       .order("created_at", { ascending: false });
 
-    // Filter by pinned if it's a guest viewing a regular user profile
-    const guest = searchParams.get("guest") === "true";
-    if (guest && !matchId) {
-      query = query.eq("is_pinned", true);
-    }
-
     if (matchId) {
       query = query.eq("match_id", matchId);
     } else if (puuid) {

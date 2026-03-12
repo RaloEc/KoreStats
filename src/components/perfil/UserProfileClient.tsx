@@ -167,11 +167,13 @@ export default function UserProfileClient({
 
       const targetUserId = riotUserId ?? profile?.id;
       if (targetUserId) {
-        queryClient.invalidateQueries({ queryKey: ["match-history", targetUserId] });
-        queryClient.invalidateQueries({ queryKey: ["match-history-cache", targetUserId] });
+        await queryClient.resetQueries({ queryKey: ["match-history"], exact: false });
+        await queryClient.resetQueries({ queryKey: ["match-history-cache"], exact: false });
+        await queryClient.invalidateQueries({ queryKey: ["match-history"], exact: false });
+        await queryClient.invalidateQueries({ queryKey: ["match-history-cache"], exact: false });
       }
       if (riotAccount?.puuid) {
-        queryClient.invalidateQueries({ queryKey: ["champion-mastery", riotAccount.puuid] });
+        await queryClient.invalidateQueries({ queryKey: ["champion-mastery"], exact: false });
       }
 
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -211,15 +213,16 @@ export default function UserProfileClient({
     });
   }, [profile, isOwnProfile, linkedGameSlugs]);
 
-  // Función genérica para invalidar caché (pasada a módulos) - Estabilizada
   const handleInvalidateCache = useCallback(async () => {
     const targetUserId = riotUserId ?? profile?.id;
     if (targetUserId) {
-      queryClient.invalidateQueries({ queryKey: ["match-history", targetUserId] });
-      queryClient.invalidateQueries({ queryKey: ["match-history-cache", targetUserId] });
+      await queryClient.resetQueries({ queryKey: ["match-history"], exact: false });
+      await queryClient.resetQueries({ queryKey: ["match-history-cache"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["match-history"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["match-history-cache"], exact: false });
     }
     if (riotAccount?.puuid) {
-      queryClient.invalidateQueries({ queryKey: ["champion-mastery", riotAccount.puuid] });
+      await queryClient.invalidateQueries({ queryKey: ["champion-mastery"], exact: false });
     }
   }, [queryClient, riotUserId, profile?.id, riotAccount?.puuid]);
 
@@ -259,7 +262,7 @@ export default function UserProfileClient({
       profileColor: profile.color,
       syncPending: syncMutation.isPending,
       syncCooldown: 0,
-      isPublicProfile: !isOwnProfile,
+      isPublicProfile: false,
       activeMatchSnapshot,
     };
   }, [

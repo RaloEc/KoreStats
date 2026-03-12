@@ -19,12 +19,11 @@ export async function POST(
   try {
     const supabase = await createClient();
 
-    // Verificar sesión
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "No autorizado" },
         { status: 401 }
@@ -41,18 +40,13 @@ export async function POST(
       );
     }
 
-    // 1. Obtener el puuid del usuario desde linked_accounts_riot
     const { data: linkedAccount, error: linkedError } = await supabase
       .from("linked_accounts_riot")
       .select("puuid")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .single();
 
     if (linkedError || !linkedAccount) {
-      console.error(
-        "[Share Match] Error fetching linked account:",
-        linkedError
-      );
       return NextResponse.json(
         { success: false, message: "No tienes una cuenta de Riot vinculada" },
         { status: 400 }
@@ -61,7 +55,6 @@ export async function POST(
 
     const userPuuid = linkedAccount.puuid;
 
-    // 2. Obtener datos de la partida desde match_participants
     const { data: matchParticipantData, error: participantError } =
       await supabase
         .from("match_participants")
@@ -77,10 +70,6 @@ export async function POST(
         .single();
 
     if (participantError || !matchParticipantData) {
-      console.error(
-        "[Share Match] Error fetching match participant:",
-        participantError
-      );
       return NextResponse.json(
         { success: false, message: "Partida no encontrada o no tienes acceso" },
         { status: 404 }
@@ -92,7 +81,6 @@ export async function POST(
       ? matchParticipant.matches[0]
       : matchParticipant.matches;
 
-    // 3. Obtener nombre del campeón
     const { data: championData } = await supabase
       .from("riot_champions")
       .select("name")
@@ -109,27 +97,18 @@ export async function POST(
           championName = fallbackName;
         }
       } catch (error) {
-        console.warn("[Share Match] Fallback champion lookup failed", error);
+        // Silently fail fallback
       }
     }
 
     championName = championName || "Campeón desconocido";
 
-    // 4. Obtener todos los participantes para calcular estadísticas del equipo
-    const { data: allParticipants, error: allParticipantsError } =
+    const { data: allParticipants } =
       await supabase
         .from("match_participants")
         .select("kills, deaths, assists, total_damage_dealt, gold_earned")
         .eq("match_id", matchId);
 
-    if (allParticipantsError) {
-      console.error(
-        "[Share Match] Error fetching all participants:",
-        allParticipantsError
-      );
-    }
-
-    // 5. Calcular estadísticas del equipo
     const teamStats = {
       totalKills:
         allParticipants?.reduce((sum, p) => sum + (p.kills || 0), 0) || 0,
@@ -142,7 +121,6 @@ export async function POST(
         allParticipants?.reduce((sum, p) => sum + (p.gold_earned || 0), 0) || 0,
     };
 
-    // 6. Calcular KDA y métricas básicas
     const kda =
       matchParticipant.deaths > 0
         ? (
@@ -159,9 +137,8 @@ export async function POST(
           ).toFixed(1)
         : "0";
 
-    // 7. Crear snapshot de la partida para el feed
     const metadata = {
-      puuid: userPuuid, // Guardar puuid para poder recuperar datos completos después
+      puuid: userPuuid,
       matchId: matchParticipant.match_id,
       championId: matchParticipant.champion_id,
       championName,
@@ -182,11 +159,10 @@ export async function POST(
       comment: comment || null,
     };
 
-    // Insertar en user_activity_entries
     const { data: entry, error: insertError } = await supabase
       .from("user_activity_entries")
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         type: "lol_match",
         match_id: matchId,
         metadata,
@@ -196,29 +172,17 @@ export async function POST(
       .single();
 
     if (insertError) {
-      // Si es error de duplicado (match ya compartido), no es un error fatal
       if (insertError.code === "23505") {
-        console.log("[Share Match] Partida ya compartida:", matchId);
         return NextResponse.json(
           { success: false, message: "Esta partida ya fue compartida" },
           { status: 409 }
         );
       }
-      console.error(
-        "[Share Match] Error inserting activity entry:",
-        insertError
-      );
       return NextResponse.json(
         { success: false, message: "Error al compartir la partida" },
         { status: 500 }
       );
     }
-
-    console.log("[Share Match] ✅ Partida compartida:", {
-      matchId,
-      userId: session.user.id,
-      entryId: entry?.id,
-    });
 
     return NextResponse.json({
       success: true,
@@ -226,7 +190,6 @@ export async function POST(
       entryId: entry?.id,
     });
   } catch (error) {
-    console.error("[Share Match] Unexpected error:", error);
     return NextResponse.json(
       { success: false, message: "Error interno del servidor" },
       { status: 500 }

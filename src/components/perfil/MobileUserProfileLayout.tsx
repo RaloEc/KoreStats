@@ -73,7 +73,7 @@ export default function MobileUserProfileLayout({
       profileColor: profile.color,
       syncPending: isSyncing,
       syncCooldown: 0,
-      isPublicProfile: !isOwnProfile,
+      isPublicProfile: false,
       activeMatchSnapshot: staticActiveMatch,
     };
   }, [

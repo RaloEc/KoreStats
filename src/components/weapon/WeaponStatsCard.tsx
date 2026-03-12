@@ -185,7 +185,7 @@ export function WeaponStatsCard({
       {/* Header */}
       <div className="mb-3 pb-2 border-b border-slate-700/50 flex-shrink-0">
         <p className="text-slate-400 text-xs mb-0">
-          {normalizedStats.nombreArma || "Estadísticas del Arma"}
+          {normalizedStats.description || normalizedStats.nombreArma || "Estadísticas del Arma"}
         </p>
       </div>
 

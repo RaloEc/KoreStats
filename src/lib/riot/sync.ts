@@ -56,8 +56,6 @@ export async function syncRiotStats(
   platformId: string = "na1"
 ): Promise<RiotSyncResult> {
   try {
-    console.log("[syncRiotStats] Iniciando sincronización de estadísticas...");
-    console.log("[syncRiotStats] PUUID:", puuid, "PlatformId:", platformId);
 
     if (!platformId) {
       throw new Error("PlatformId (región) no proporcionado");
@@ -65,34 +63,18 @@ export async function syncRiotStats(
 
     const authHeaders = buildRiotAuthHeaders(accessToken);
 
-    // PASO 1: Usar la región almacenada como fuente de verdad
-    console.log(
-      "[syncRiotStats] PASO 1: Usando platformId almacenado como fuente de verdad..."
-    );
-    console.log("[syncRiotStats] ✅ PlatformId confirmado:", platformId);
 
     // PASO 2: Obtener datos del invocador
-    console.log("[syncRiotStats] PASO 2: Obteniendo datos del invocador...");
     const summonerData = await getSummonerData(puuid, platformId, authHeaders);
 
     if (!summonerData) {
       throw new Error("No se pudo obtener datos del invocador");
     }
 
-    console.log("[syncRiotStats] ✅ Datos del invocador obtenidos:", {
-      summonerId: summonerData.id,
-      level: summonerData.summonerLevel,
-      icon: summonerData.profileIconId,
-    });
 
     // PASO 3: Obtener información de rango
-    console.log("[syncRiotStats] PASO 3: Obteniendo información de rango...");
     const rankData = await getRankData(puuid, platformId, authHeaders);
 
-    console.log("[syncRiotStats] ✅ Información de rango obtenida:", {
-      solo: rankData.solo,
-      flex: rankData.flex,
-    });
 
     // PASO 4: Compilar resultado
     const result: RiotSyncResult = {
@@ -107,7 +89,6 @@ export async function syncRiotStats(
       },
     };
 
-    console.log("[syncRiotStats] ✅ Sincronización completada exitosamente");
     return result;
   } catch (error: any) {
     console.error("[syncRiotStats] Error durante sincronización:", error);
@@ -139,7 +120,6 @@ async function getSummonerData(
   try {
     const url = `https://${activeShard}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
 
-    console.log("[getSummonerData] Consultando:", url);
 
     const response = await fetch(url, {
       method: "GET",
@@ -153,15 +133,6 @@ async function getSummonerData(
     }
 
     const data = await response.json();
-    console.log(
-      "[getSummonerData] Respuesta completa:",
-      JSON.stringify(data, null, 2)
-    );
-    console.log("[getSummonerData] Respuesta parseada:", {
-      id: data.id,
-      level: data.summonerLevel,
-      icon: data.profileIconId,
-    });
 
     return {
       id: data.id,
@@ -208,7 +179,6 @@ async function getRankData(
   try {
     const url = `https://${platformId}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
 
-    console.log("[getRankData] Consultando:", url);
 
     const response = await fetch(url, {
       method: "GET",
@@ -233,7 +203,6 @@ async function getRankData(
     }
 
     const data = await response.json();
-    console.log("[getRankData] Respuesta completa:", data);
 
     // Filtrar por RANKED_SOLO_5x5
     const soloRankData = data.find(
@@ -243,31 +212,6 @@ async function getRankData(
       (entry: any) => entry.queueType === "RANKED_FLEX_SR"
     );
 
-    if (!soloRankData && !flexRankData) {
-      console.log(
-        "[getRankData] No hay datos de rango competitivo - Retornando UNRANKED"
-      );
-    }
-
-    if (soloRankData) {
-      console.log("[getRankData] Datos de RANKED_SOLO_5x5:", {
-        tier: soloRankData.tier,
-        rank: soloRankData.rank,
-        lp: soloRankData.leaguePoints,
-        wins: soloRankData.wins,
-        losses: soloRankData.losses,
-      });
-    }
-
-    if (flexRankData) {
-      console.log("[getRankData] Datos de RANKED_FLEX_SR:", {
-        tier: flexRankData.tier,
-        rank: flexRankData.rank,
-        lp: flexRankData.leaguePoints,
-        wins: flexRankData.wins,
-        losses: flexRankData.losses,
-      });
-    }
 
     return {
       solo: mapEntry(soloRankData),

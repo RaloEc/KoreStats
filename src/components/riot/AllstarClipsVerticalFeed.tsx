@@ -209,7 +209,13 @@ export function AllstarClipsVerticalFeed({ puuid, className, followedOnly }: All
                     </DialogHeader>
 
                     <div className="aspect-video w-full relative group/video">
-                        {selectedClip?.video_url && (
+                        {selectedClip?.allstar_clip_id ? (
+                            <iframe
+                                src={`https://player.allstar.gg/clip/${selectedClip.allstar_clip_id}`}
+                                className="w-full h-full border-0"
+                                allowFullScreen
+                            />
+                        ) : selectedClip?.video_url && (
                             <video
                                 src={selectedClip.video_url}
                                 controls

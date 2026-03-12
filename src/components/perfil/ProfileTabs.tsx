@@ -44,7 +44,7 @@ export function ProfileTabs({
     const isDelta = tabId === "delta-force";
 
     if (isDelta && isActive) {
-      return `flex items-center gap-2 pb-3 px-2 text-sm md:text-base font-black uppercase tracking-wider transition-all relative border-b-2 whitespace-nowrap text-lime-600 dark:text-lime-400 border-lime-600 dark:border-lime-400`;
+      return `flex items-center gap-2 pb-3 px-2 text-sm md:text-base font-medium transition-all relative border-b-2 whitespace-nowrap text-lime-600 dark:text-lime-400 border-lime-600 dark:border-lime-400`;
     }
 
     return `flex items-center gap-2 pb-3 px-2 text-sm md:text-base font-medium transition-all relative border-b-2 whitespace-nowrap ${isActive

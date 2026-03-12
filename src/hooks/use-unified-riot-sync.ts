@@ -11,6 +11,10 @@ interface UnifiedSyncResult {
     success: boolean;
     error?: string;
   };
+  clipsSync: {
+    success: boolean;
+    error?: string;
+  };
 }
 
 /**
@@ -28,6 +32,7 @@ export function useUnifiedRiotSync() {
       const results: UnifiedSyncResult = {
         accountSync: { success: false },
         matchesSync: { success: false },
+        clipsSync: { success: false },
       };
 
       // 1. Sincronizar cuenta de Riot
@@ -68,6 +73,23 @@ export function useUnifiedRiotSync() {
         results.matchesSync.error = error.message || "Error desconocido";
       }
 
+      // 3. Sincronizar Clips de Allstar
+      try {
+        const clipsResponse = await fetch("/api/riot/clips/sync", {
+          method: "POST",
+        });
+
+        if (!clipsResponse.ok) {
+          const errorData = await clipsResponse.json();
+          results.clipsSync.error =
+            errorData.error || "Error al sincronizar clips";
+        } else {
+          results.clipsSync.success = true;
+        }
+      } catch (error: any) {
+        results.clipsSync.error = error.message || "Error desconocido";
+      }
+
       return results;
     },
     onSuccess: async (results) => {
@@ -84,14 +106,22 @@ export function useUnifiedRiotSync() {
       // Cachés de partidas
       await queryClient.cancelQueries({ queryKey: ["match-history"] });
       await queryClient.cancelQueries({ queryKey: ["match-history-cache"] });
-      queryClient.removeQueries({ queryKey: ["match-history"] });
-      queryClient.removeQueries({ queryKey: ["match-history-cache"] });
-      queryClient.invalidateQueries({ queryKey: ["match-history"] });
-      queryClient.invalidateQueries({ queryKey: ["match-history-cache"] });
+      
+      // En lugar de removeQueries, usamos resetQueries seguido de invalidateQueries
+      // para forzar fetch limpio sin romper los hooks montados
+      await queryClient.resetQueries({ queryKey: ["match-history"], exact: false });
+      await queryClient.resetQueries({ queryKey: ["match-history-cache"], exact: false });
+      
+      await queryClient.invalidateQueries({ queryKey: ["match-history"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["match-history-cache"], exact: false });
 
       // Cachés de maestría
       await queryClient.cancelQueries({ queryKey: ["champion-mastery"] });
       queryClient.invalidateQueries({ queryKey: ["champion-mastery"] });
+
+      // Cachés de clips Allstar
+      await queryClient.cancelQueries({ queryKey: ["allstar-clips"] });
+      queryClient.invalidateQueries({ queryKey: ["allstar-clips"] });
 
       // Mostrar toast con resultados
       const accountOk = results.accountSync.success;

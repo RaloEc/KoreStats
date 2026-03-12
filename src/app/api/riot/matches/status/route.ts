@@ -5,10 +5,10 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,19 +26,14 @@ export async function POST(request: NextRequest) {
         last_known_game_id: gameId || null,
         last_active_check: new Date().toISOString(),
       })
-      .eq("user_id", session.user.id);
+      .eq("user_id", user.id);
 
     if (error) {
-      console.error(
-        "[POST /api/riot/matches/status] Error updating status:",
-        error
-      );
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[POST /api/riot/matches/status] Unexpected error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

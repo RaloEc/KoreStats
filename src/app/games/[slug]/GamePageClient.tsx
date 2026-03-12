@@ -281,7 +281,7 @@ export default function GamePageClient({
         <div className="container mx-auto px-4 py-8 max-w-6xl">
 
             {/* Premium Game Hero Section */}
-            <div className="relative group mb-16">
+            <div className="relative mb-10">
                 {/* Main Hero Card */}
                 <div className="relative h-64 md:h-[350px] w-full rounded-[3rem] overflow-hidden border border-gray-200 dark:border-white/5 shadow-2xl bg-gray-900">
 
@@ -292,7 +292,7 @@ export default function GamePageClient({
                                 src={game.imagen_portada_url}
                                 alt={game.nombre}
                                 fill
-                                className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                                className="object-cover"
                                 priority
                             />
                         ) : (
@@ -302,7 +302,7 @@ export default function GamePageClient({
                                 path={game.imagen_portada_url}
                                 alt={game.nombre}
                                 fill
-                                className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                                className="object-cover"
                                 priority
                             />
                         )
@@ -315,17 +315,20 @@ export default function GamePageClient({
                     )}
 
                     {/* Content Overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent hidden md:block" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent hidden md:block" />
+
+                    {/* Tactical Noise/Texture Overlay */}
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grain-y.com/assets/grain.png')] mix-blend-overlay" />
 
                     {/* Bottom Info Bar (Inside Card) */}
-                    <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 md:p-4 flex flex-col md:flex-row md:items-end justify-between gap-0">
 
                         {/* Game Identity Group */}
                         <div className="flex items-center gap-8">
                             {/* Modern Icon Frame */}
                             <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0 group/icon">
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-[2rem] blur-xl opacity-20 group-hover/icon:opacity-40 transition-all duration-500" />
+                                <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-blue-600 rounded-[2rem] blur-xl opacity-20 group-hover/icon:opacity-40 transition-all duration-500" />
                                 <div className="relative w-full h-full rounded-[2rem] overflow-hidden bg-white/5 backdrop-blur-md border border-white/20 p-2 shadow-2xl shadow-black/50">
                                     {game.icono_url ? (
                                         game.icono_url.startsWith('http') ? (
@@ -358,16 +361,11 @@ export default function GamePageClient({
                             </div>
 
                             {/* Text Info */}
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="px-3 py-1 rounded-full text-[10px] font-black bg-teal-500 text-black shadow-lg shadow-teal-500/20 uppercase tracking-widest">
-                                        Oficial
-                                    </span>
-                                </div>
-                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none">
+                            <div className="flex flex-col gap-0">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl text-white tracking-[0.1em] leading-none font-black-ops uppercase drop-shadow-[0_6px_6px_rgba(0,0,0,0.6)] py-1">
                                     {game.nombre}
                                 </h1>
-                                <p className="hidden md:block text-gray-300 text-sm font-medium max-w-lg mt-2 line-clamp-2 leading-relaxed opacity-80">
+                                <p className="hidden md:block text-gray-300 text-sm font-medium max-w-lg mt-3 line-clamp-2 leading-relaxed opacity-70 border-l-2 border-teal-500/50 pl-4">
                                     {game.descripcion}
                                 </p>
                             </div>
@@ -398,9 +396,9 @@ export default function GamePageClient({
 
             {/* Weapon Showcase Section (Only for Delta Force) */}
             {game.slug === "delta-force" && weaponsMeta && (
-                <div className="mb-24 px-2">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
-                        <div className="space-y-3">
+                <div className="mb-16 px-2">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10">
+                        <div className="space-y-1">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-[2px] bg-teal-500" />
                                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-teal-500 shrink-0">Inteligencia del Meta</span>
@@ -409,9 +407,12 @@ export default function GamePageClient({
                                 Armamento Destacado
                             </h2>
                         </div>
-                        <Link href={`/games/${game.slug}/weapons`} className="group inline-flex items-center gap-4 px-8 py-4 rounded-full bg-teal-500 text-black font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-teal-400 active:scale-95 shadow-xl shadow-teal-500/20">
-                            Explorar Meta
-                            <ChevronRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
+                        <Link 
+                            href={`/games/${game.slug}/weapons`} 
+                            className="group relative inline-flex items-center gap-3 px-7 py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-white/10 dark:border-black/10 hover:border-teal-500/50 hover:shadow-[0_0_20px_rgba(20,184,166,0.2)] active:scale-95"
+                        >
+                            <span>Ver Meta</span>
+                            <Swords size={16} className="text-teal-500 group-hover:rotate-12 transition-transform" />
                         </Link>
                     </div>
 
@@ -451,51 +452,76 @@ export default function GamePageClient({
 
                             {initialNews.length > 0 ? (
                                 <div className="space-y-6">
-                                    {initialNews.map((noticia: any) => (
-                                        <Link
-                                            key={noticia.id}
-                                            href={noticia.type === 'lol_patch' && noticia.slug
-                                                ? `/games/league-of-legends/patch/${noticia.slug.replace('parche-', '')}`
-                                                : `/noticias/${noticia.id}`}
-                                            className="block p-6 rounded-[2.5rem] bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.05] hover:border-teal-500/30 dark:hover:border-teal-500/30 hover:bg-white dark:hover:bg-white/[0.05] transition-all group shadow-sm hover:shadow-xl"
-                                        >
-                                            <div className="flex gap-8">
-                                                {noticia.imagen_portada && (
-                                                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-[1.5rem] overflow-hidden flex-shrink-0 relative shadow-2xl">
-                                                        <Image
-                                                            src={noticia.imagen_portada}
-                                                            alt={noticia.titulo}
-                                                            fill
-                                                            sizes="(max-width: 768px) 96px, 128px"
-                                                            className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1 min-w-0 flex flex-col justify-center gap-3">
-                                                    <h3 className="font-black text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors line-clamp-2 text-lg md:text-xl tracking-tighter leading-tight">
-                                                        {noticia.titulo}
-                                                    </h3>
+                                    {initialNews.map((noticia: any) => {
+                                        const cleanPreview = noticia.contenido
+                                            ? noticia.contenido.replace(/<[^>]*>/g, '').substring(0, 160)
+                                            : "";
 
-                                                    <div className="flex items-center gap-6 text-[9px] text-gray-500 font-black uppercase tracking-[0.15em]">
-                                                        <span className="flex items-center gap-2 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-lg">
-                                                            <Calendar size={12} className="text-teal-500" />
-                                                            {noticia.fecha_publicacion
-                                                                ? new Date(noticia.fecha_publicacion).toLocaleDateString("es-ES", {
-                                                                    day: "numeric",
-                                                                    month: "short",
-                                                                    year: "numeric",
-                                                                })
-                                                                : ""}
-                                                        </span>
-                                                        <span className="flex items-center gap-2 border-l border-gray-200 dark:border-white/10 pl-4">
-                                                            <Eye size={12} className="text-gray-400" />
-                                                            {noticia.vistas ?? 0} VISTAS
-                                                        </span>
+                                        return (
+                                            <Link
+                                                key={noticia.id}
+                                                href={noticia.type === 'lol_patch' && noticia.slug
+                                                    ? `/games/league-of-legends/patch/${noticia.slug.replace('parche-', '')}`
+                                                    : `/noticias/${noticia.id}`}
+                                                className="block group relative p-4 md:p-5 rounded-[2rem] bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.05] hover:border-teal-500/40 dark:hover:border-teal-500/40 hover:bg-white dark:hover:bg-white/[0.04] transition-all duration-500 shadow-sm hover:shadow-2xl hover:-translate-y-1"
+                                            >
+                                                <div className="flex flex-col md:flex-row gap-6 md:items-center">
+                                                    {noticia.imagen_portada && (
+                                                        <div className="w-full md:w-44 h-48 md:h-32 rounded-[1.5rem] overflow-hidden flex-shrink-0 relative shadow-lg group-hover:shadow-teal-500/10 transition-shadow duration-500">
+                                                            <Image
+                                                                src={noticia.imagen_portada}
+                                                                alt={noticia.titulo}
+                                                                fill
+                                                                sizes="(max-width: 768px) 100vw, 176px"
+                                                                className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                                                            />
+                                                            {/* Overlay gradient inside image for depth */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex-1 min-w-0 flex flex-col gap-2">
+                                                        {/* Category or Type Badge if available (Small & Subtle) */}
+                                                        {noticia.type && (
+                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400 mb-1">
+                                                                {noticia.type === 'lol_patch' ? 'Nota del Parche' : 'Actualización'}
+                                                            </span>
+                                                        )}
+
+                                                        <h3 className="font-black text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors line-clamp-2 text-lg md:text-xl tracking-tighter leading-[1.1]">
+                                                            {noticia.titulo}
+                                                        </h3>
+
+                                                        <p className="text-gray-500 dark:text-gray-400 text-xs line-clamp-2 font-medium leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
+                                                            {cleanPreview}...
+                                                        </p>
+
+                                                        <div className="flex items-center gap-5 mt-2">
+                                                            <span className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                                                <Calendar size={12} className="text-teal-500/70" />
+                                                                {noticia.fecha_publicacion
+                                                                    ? new Date(noticia.fecha_publicacion).toLocaleDateString("es-ES", {
+                                                                        day: "numeric",
+                                                                        month: "short",
+                                                                    })
+                                                                    : ""}
+                                                            </span>
+                                                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-800" />
+                                                            <span className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                                                <Eye size={12} className="text-gray-400" />
+                                                                {noticia.vistas ?? 0}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Desktop Arrow Indicator */}
+                                                    <div className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 text-gray-400 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300">
+                                                        <ChevronRight size={20} />
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </Link>
-                                    ))}
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="p-20 text-center rounded-[3rem] border-2 border-dashed border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
@@ -518,39 +544,73 @@ export default function GamePageClient({
                             <div className="p-1">
                                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-10 flex items-center gap-4">
                                     <div className="w-2 h-8 bg-purple-600 rounded-full shadow-lg shadow-purple-600/20" />
-                                    Eventos proximos
+                                    Calendario táctico
                                 </h2>
                                 {initialEvents.length > 0 ? (
-                                    <div className="space-y-5">
-                                        {initialEvents.map((evento: any) => (
-                                            <div
-                                                key={evento.id}
-                                                className="p-5 rounded-[1.5rem] bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.05] hover:bg-white dark:hover:bg-white/[0.04] transition-all shadow-sm"
-                                            >
-                                                <div className="flex items-center justify-between gap-3 mb-3">
-                                                    <span className={`text-[9px] px-3 py-1.5 rounded-xl font-black uppercase tracking-widest ${evento.tipo === "parche"
-                                                        ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
-                                                        : evento.tipo === "evento"
-                                                            ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
-                                                            : "bg-gray-500/10 text-gray-500 border border-gray-500/20"
-                                                        }`}>
-                                                        {evento.tipo}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-                                                        {new Date(evento.fecha).toLocaleDateString("es-ES", {
-                                                            day: "numeric", month: "short"
-                                                        })}
-                                                    </span>
+                                    <div className="space-y-4">
+                                        {initialEvents.map((evento: any) => {
+                                            const eventDate = new Date(evento.fecha);
+                                            const today = new Date();
+                                            const diffTime = eventDate.getTime() - today.getTime();
+                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                            return (
+                                                <div
+                                                    key={evento.id}
+                                                    className="group relative p-5 rounded-[2rem] bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.05] hover:border-purple-500/30 dark:hover:border-purple-500/30 hover:bg-white dark:hover:bg-white/[0.05] transition-all shadow-sm hover:shadow-xl hover:-translate-y-1"
+                                                >
+                                                    <div className="flex items-center justify-between gap-3 mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-[8px] px-2.5 py-1 rounded-lg font-black uppercase tracking-widest ${evento.tipo === "parche"
+                                                                ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                                                                : evento.tipo === "evento"
+                                                                    ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
+                                                                    : "bg-gray-500/10 text-gray-500 border border-gray-500/20"
+                                                                }`}>
+                                                                {evento.tipo}
+                                                            </span>
+                                                            {diffDays <= 7 && diffDays >= 0 && (
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-orange-500 animate-pulse">
+                                                                    Inminente
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="block text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none">
+                                                                {eventDate.toLocaleDateString("es-ES", {
+                                                                    day: "numeric", month: "short"
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <p className="font-black text-gray-900 dark:text-white text-base tracking-tight leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                                            {evento.titulo}
+                                                        </p>
+
+                                                        <div className="flex flex-col items-end shrink-0">
+                                                            <span className="text-[14px] font-black text-gray-900 dark:text-white leading-none">
+                                                                {diffDays === 0 ? "HOY" : diffDays === 1 ? "MAÑANA" : diffDays}
+                                                            </span>
+                                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">
+                                                                {diffDays > 1 ? "DÍAS" : ""}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Decorative background pulse for imminent events */}
+                                                    {diffDays <= 3 && (
+                                                        <div className="absolute top-2 right-2 w-1 h-1 rounded-full bg-purple-500 shadow-[0_0_10px_purple] animate-ping" />
+                                                    )}
                                                 </div>
-                                                <p className="font-black text-gray-900 dark:text-white text-base tracking-tight leading-tight">
-                                                    {evento.titulo}
-                                                </p>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
-                                    <div className="p-12 text-center rounded-[2.5rem] border border-gray-100 dark:border-white/5 bg-gray-50/20 dark:bg-white/[0.01]">
-                                        <p className="text-xs text-gray-400 font-black uppercase tracking-widest">Sin eventos programados</p>
+                                    <div className="p-16 text-center rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01]">
+                                        <Calendar size={32} className="mx-auto text-gray-300 dark:text-gray-800 mb-4 opacity-50" />
+                                        <p className="text-xs text-gray-400 font-black uppercase tracking-widest">Sin operaciones planeadas</p>
                                     </div>
                                 )}
                             </div>

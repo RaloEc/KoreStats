@@ -373,7 +373,7 @@ export function MatchHistoryList({
       const data = (await response.json()) as MatchHistoryPage;
       // Debug match history
       if (data.matches) {
-        console.log(`[MatchHistoryList] Received ${data.matches.length} matches. hasMore: ${data.hasMore}, nextCursor: ${data.nextCursor}`);
+
       } else {
         console.warn(`[MatchHistoryList] No matches returned in data object:`, data);
       }
@@ -440,28 +440,25 @@ export function MatchHistoryList({
       await queryClient.cancelQueries({ queryKey: ["match-history"] });
       await queryClient.cancelQueries({ queryKey: ["match-history-cache"] });
 
-      // 2. Remover completamente los datos del cache (no solo setQueryData undefined)
-
-      queryClient.removeQueries({
-        queryKey: ["match-history", userId, queueFilter],
-      });
-      queryClient.removeQueries({ queryKey: ["match-history-cache", userId] });
+      // 2. En lugar de remover Queries (lo cual desmonta los datos y no siempre refetchea bien),
+      // solo invalidamos para que React Query actualice el fetch actual si está activo
+      await queryClient.resetQueries({ queryKey: ["match-history", userId, queueFilter] });
+      await queryClient.resetQueries({ queryKey: ["match-history-cache", userId] });
 
       // 3. Marcar las queries como stale para forzar refetch
-
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ["match-history", userId, queueFilter],
       });
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ["match-history-cache", userId],
       });
       // Invalidar también las estadísticas de sesión para actualizar el mensaje de "hoy"
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ["match-session-stats"],
       });
 
-      // 4. Refetch limpio - esto creará una nueva query desde cero
-      const result = await refetch();
+      // 4. Refetch limpio - esto creará una nueva query desde cero o actualizará la existente
+      await refetch();
     },
   });
 
@@ -606,18 +603,7 @@ export function MatchHistoryList({
         ? cachedMatches
         : lastStableMatches;
 
-  console.log('[MatchHistoryList] Render State:', {
-    userId,
-    puuid,
-    queueFilter,
-    isLoading,
-    isFetching,
-    matchesCount: matches.length,
-    cachedMatchesCount: cachedMatches.length,
-    lastStableCount: lastStableMatches.length,
-    hasCachedMatches,
-    matchesToRenderCount: matchesToRender.length
-  });
+
 
   const [listOffset, setListOffset] = useState(0);
 

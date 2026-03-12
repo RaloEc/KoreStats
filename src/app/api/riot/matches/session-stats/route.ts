@@ -89,10 +89,10 @@ export async function GET(request: NextRequest) {
   try {
     const authClient = await createClient();
     const {
-      data: { session },
-    } = await authClient.auth.getSession();
+      data: { user },
+    } = await authClient.auth.getUser();
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
     const { data: riotAccount, error: accountError } = await supabase
       .from("linked_accounts_riot")
       .select("puuid")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .single();
 
     if (accountError || !riotAccount?.puuid) {
@@ -215,66 +215,9 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const todayStartMs = getStartOfDayUtcMsForOffset(now, tzOffsetMinutes);
 
-    console.log("[session-stats] 🔍 DEBUG:");
-    console.log("  now:", now.toISOString());
-    console.log("  now.getTime():", now.getTime());
-    console.log("  tzOffsetMinutes:", tzOffsetMinutes);
-    console.log("  todayStartMs:", todayStartMs);
-    console.log("  todayStart (ISO):", new Date(todayStartMs).toISOString());
-    console.log("  Total normalized matches:", normalized.length);
-
-    if (normalized.length > 0) {
-      console.log("  Primera partida:");
-      console.log("    matchId:", normalized[0].matchId);
-      console.log("    gameCreation:", normalized[0].gameCreation);
-      console.log(
-        "    gameCreation (ISO):",
-        new Date(normalized[0].gameCreation).toISOString()
-      );
-      console.log(
-        "    ¿Es de hoy?",
-        normalized[0].gameCreation >= todayStartMs
-      );
-    }
-
     const todayMatches = normalized.filter(
       (m) => m.gameCreation >= todayStartMs
     );
-
-    console.log("  Partidas de hoy encontradas:", todayMatches.length);
-
-    // Logging detallado de todas las partidas para debugging
-    console.log("\n📊 [session-stats] ANÁLISIS DETALLADO DE PARTIDAS:");
-    console.log("=".repeat(70));
-    normalized.forEach((match, index) => {
-      const isToday = match.gameCreation >= todayStartMs;
-      const matchDate = new Date(match.gameCreation);
-      const hoursSinceToday =
-        (match.gameCreation - todayStartMs) / (1000 * 60 * 60);
-
-      console.log(`\n  Partida #${index + 1}:`);
-      console.log(`    Match ID: ${match.matchId}`);
-      console.log(`    Resultado: ${match.win ? "✅ VICTORIA" : "❌ DERROTA"}`);
-      console.log(`    Timestamp: ${match.gameCreation}`);
-      console.log(`    Fecha/Hora: ${matchDate.toISOString()}`);
-      console.log(
-        `    Fecha Local: ${matchDate.toLocaleString("es-ES", {
-          timeZone: "America/Bogota",
-        })}`
-      );
-      console.log(
-        `    Horas desde inicio del día: ${hoursSinceToday.toFixed(2)}h`
-      );
-      console.log(`    ¿Cuenta como HOY?: ${isToday ? "✅ SÍ" : "❌ NO"}`);
-      console.log(`    Queue ID: ${match.queueId}`);
-    });
-
-    console.log("\n" + "=".repeat(70));
-    console.log("📈 RESUMEN DE PARTIDAS DE HOY:");
-    console.log(`  Total: ${todayMatches.length}`);
-    console.log(`  Victorias: ${todayMatches.filter((m) => m.win).length}`);
-    console.log(`  Derrotas: ${todayMatches.filter((m) => !m.win).length}`);
-    console.log("=".repeat(70) + "\n");
 
     const sessionMatches: typeof normalized = [];
     if (normalized.length > 0) {

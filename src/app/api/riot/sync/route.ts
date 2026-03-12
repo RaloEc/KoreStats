@@ -28,20 +28,15 @@ export async function POST(request: NextRequest) {
     // Obtener sesión del usuario autenticado
     const supabase = await createClient();
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user?.id) {
-      console.error(
-        "[POST /api/riot/sync] Usuario no autenticado:",
-        sessionError
-      );
+    if (authError || !user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    console.log("[POST /api/riot/sync] Usuario:", userId);
+    const userId = user.id;
 
     // Obtener cuenta de Riot vinculada
     const { data: riotAccount, error: queryError } = await supabase
@@ -62,23 +57,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { puuid, region } = riotAccount;
-    console.log("[POST /api/riot/sync] Cuenta Riot encontrada", {
-      puuid,
-      region,
-      lastUpdated: riotAccount.last_updated,
-    });
 
     // Sincronizar estadísticas
-    console.log(
-      "[POST /api/riot/sync] Sincronizando estadísticas para PUUID:",
-      puuid
-    );
-
     const platformId = (region || "na1").toLowerCase();
-    console.log(
-      "[POST /api/riot/sync] Usando platformId (región almacenada)",
-      platformId
-    );
     const syncResult = await syncRiotStats(
       puuid,
       process.env.RIOT_API_KEY || "",
@@ -111,14 +92,8 @@ export async function POST(request: NextRequest) {
     const soloRank = statsData.soloRank || { ...UNRANKED_RANK };
     const flexRank = statsData.flexRank || { ...UNRANKED_RANK };
 
-    console.log("[POST /api/riot/sync] Datos recibidos de Riot", {
-      solo: soloRank,
-      flex: flexRank,
-      level: statsData.summonerLevel,
-    });
 
     // Obtener gameName y tagLine actualizados desde Riot Account API
-    console.log("[POST /api/riot/sync] Obteniendo gameName y tagLine...");
     let gameName = riotAccount.game_name;
     let tagLine = riotAccount.tag_line;
 
@@ -126,7 +101,6 @@ export async function POST(request: NextRequest) {
       const routingRegion = getRoutingRegionFromShard(platformId);
       const accountUrl = `https://${routingRegion}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${puuid}`;
 
-      console.log("[POST /api/riot/sync] Consultando Account API:", accountUrl);
 
       const accountResponse = await fetch(accountUrl, {
         method: "GET",
@@ -139,10 +113,6 @@ export async function POST(request: NextRequest) {
         const accountData = await accountResponse.json();
         gameName = accountData.gameName;
         tagLine = accountData.tagLine;
-        console.log("[POST /api/riot/sync] ✅ Nombre actualizado:", {
-          gameName,
-          tagLine,
-        });
       } else {
         console.warn(
           "[POST /api/riot/sync] No se pudo obtener gameName/tagLine, usando valores existentes"
@@ -157,13 +127,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Actualizar base de datos
-    console.log("[POST /api/riot/sync] Actualizando base de datos...");
-    console.log("[POST /api/riot/sync] Datos a guardar:", {
-      game_name: gameName,
-      tag_line: tagLine,
-      summoner_id: statsData.summonerId,
-      summoner_level: statsData.summonerLevel,
-    });
 
     const { error: updateError } = await supabase
       .from("linked_accounts_riot")

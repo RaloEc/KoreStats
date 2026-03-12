@@ -5,40 +5,21 @@ import { createClient } from "@/lib/supabase/server";
  * POST /api/riot/account/refresh
  *
  * Refresca la información de la cuenta de Riot vinculada
- * Obtiene un nuevo PUUID y actualiza los datos de la cuenta
- *
- * Requiere:
- * - Header: Authorization con Bearer token (access_token de Riot)
- *
- * Respuesta:
- * - 200: Cuenta actualizada exitosamente
- * - 400: Access token no proporcionado
- * - 401: Usuario no autenticado
- * - 500: Error interno del servidor
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log("[POST /api/riot/account/refresh] Iniciando...");
-
-    // Obtener sesión del usuario autenticado
     const supabase = await createClient();
     const {
-      data: { session },
+      data: { user },
       error: sessionError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user?.id) {
-      console.error(
-        "[POST /api/riot/account/refresh] Usuario no autenticado:",
-        sessionError
-      );
+    if (sessionError || !user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    console.log("[POST /api/riot/account/refresh] Usuario:", userId);
+    const userId = user.id;
 
-    // Obtener access token del body
     const body = await request.json();
     const accessToken = body.accessToken;
 
@@ -48,11 +29,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Obtener información actualizada del jugador
-    console.log(
-      "[POST /api/riot/account/refresh] Obteniendo información del jugador..."
-    );
 
     const playerResponse = await fetch(
       "https://americas.api.riotgames.com/riot/account/v1/accounts/me",
@@ -67,10 +43,6 @@ export async function POST(request: NextRequest) {
     const playerData = await playerResponse.json();
 
     if (!playerResponse.ok) {
-      console.error(
-        "[POST /api/riot/account/refresh] Error al obtener info del jugador:",
-        playerData
-      );
       return NextResponse.json(
         { error: "Error al obtener información del jugador" },
         { status: 500 }
@@ -81,13 +53,6 @@ export async function POST(request: NextRequest) {
     const gameName = playerData.game_name;
     const tagLine = playerData.tag_line;
 
-    console.log("[POST /api/riot/account/refresh] ✅ Información obtenida:", {
-      gameName,
-      tagLine,
-      puuid,
-    });
-
-    // Actualizar la cuenta en Supabase
     const { error: updateError } = await supabase
       .from("linked_accounts_riot")
       .update({
@@ -99,23 +64,43 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId);
 
     if (updateError) {
-      console.error(
-        "[POST /api/riot/account/refresh] Error al actualizar:",
-        updateError
-      );
       return NextResponse.json(
         { error: "Error al actualizar cuenta de Riot" },
         { status: 500 }
       );
     }
 
-    console.log(
-      "[POST /api/riot/account/refresh] ✅ Cuenta actualizada exitosamente"
-    );
+    // --- Registro en Allstar (Partner API) ---
+    // Aseguramos que el jugador esté registrado en Allstar al refrescar
+    const allstarApiKey = process.env.ALLSTAR_SERVER_API_KEY;
+    const allstarProjectId = process.env.ALLSTAR_PROJECT_ID;
+    let allstarRegistered = false;
+
+    if (allstarApiKey && allstarProjectId) {
+      try {
+        await fetch(`https://api.allstar.gg/v1/players`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${allstarApiKey}`,
+            "Content-Type": "application/json",
+            "X-Allstar-Project-ID": allstarProjectId,
+          },
+          body: JSON.stringify({
+            external_id: `riot:${puuid}`,
+            game: "league_of_legends",
+            game_account_id: `riot:${puuid}`,
+            project_id: allstarProjectId
+          })
+        });
+        allstarRegistered = true;
+      } catch (err) {
+        // Fallo silencioso en el refresh para no bloquear la experiencia del usuario
+      }
+    }
 
     return NextResponse.json(
       {
-        message: "Cuenta actualizada exitosamente",
+        message: "Cuenta actualizada exitosamente" + (allstarRegistered ? " y sincronizada con Allstar" : ""),
         account: {
           puuid,
           gameName,
@@ -125,8 +110,6 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("[POST /api/riot/account/refresh] Error inesperado:", error);
-
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

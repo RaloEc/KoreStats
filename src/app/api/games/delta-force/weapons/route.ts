@@ -9,7 +9,10 @@ import { createClient, getServiceClient } from "@/lib/supabase/server";
  */
 
 interface WeaponAggregate {
+  id: string; // Used as unique key (might be share_code)
+  record_id: string; // The UUID of the actual DB record for reporting
   weapon_name: string;
+  description: string | null;
   analyses_count: number;
   avg_damage: number;
   avg_range: number;
@@ -109,7 +112,7 @@ export async function GET(request: NextRequest) {
     // Fetch weapon records filtered by game_mode
     const { data: records, error } = await supabase
       .from("weapon_stats_records")
-      .select("weapon_name, stats, share_code")
+      .select("id, weapon_name, stats, share_code, description")
       .not("weapon_name", "is", null)
       .not("weapon_name", "eq", "")
       .eq("game_mode", validMode)
@@ -136,31 +139,36 @@ export async function GET(request: NextRequest) {
       officialMap.set(w.slug.toUpperCase(), { category: w.category, image_url: w.image_url, name: w.name });
     }
 
-    // Group by normalized weapon name
-    const groups = new Map<string, { stats: Record<string, number>[]; rawName: string; shareCodes: string[] }>();
+    // Group by share_code, fallback to id
+    const groups = new Map<string, { record_id: string; stats: Record<string, number>[]; rawName: string; shareCodes: string[]; description: string | null }>();
 
     for (const record of records) {
       if (!record.weapon_name) continue;
 
       const normalizedName = normalizeWeaponName(record.weapon_name);
-      const key = normalizedName.toUpperCase();
+      const key = record.share_code || record.id.toString();
 
       if (!groups.has(key)) {
-        groups.set(key, { stats: [], rawName: normalizedName, shareCodes: [] });
+        groups.set(key, { record_id: record.id.toString(), stats: [], rawName: normalizedName, shareCodes: [], description: record.description || null });
       }
 
-      if (record.share_code) {
+      if (record.share_code && !groups.get(key)!.shareCodes.includes(record.share_code)) {
         groups.get(key)!.shareCodes.push(record.share_code);
+      }
+      
+      // Try to keep the description if it's available and we don't have one yet
+      if (record.description && !groups.get(key)!.description) {
+        groups.get(key)!.description = record.description;
       }
 
       const normalized = normalizeStats(record.stats);
       groups.get(key)!.stats.push(normalized);
     }
 
-    // Aggregate stats per weapon
+    // Aggregate stats per weapon build
     const weapons: WeaponAggregate[] = [];
 
-    for (const [, group] of Array.from(groups)) {
+    for (const [key, group] of Array.from(groups)) {
       const count = group.stats.length;
       if (count === 0) continue;
 
@@ -223,7 +231,10 @@ export async function GET(request: NextRequest) {
       const official = officialMap.get(weaponSlug);
 
       weapons.push({
+        id: key,
+        record_id: group.record_id,
         weapon_name: official?.name || group.rawName,
+        description: group.description,
         analyses_count: count,
         avg_damage: avgDamage,
         avg_range: avgRange,
@@ -268,7 +279,8 @@ export async function GET(request: NextRequest) {
 
     // Merge vote data into weapons
     for (const w of weapons) {
-      const key = normalizeWeaponName(w.weapon_name).toUpperCase();
+      const key = normalizeWeaponName(w.weapon_name).toUpperCase(); 
+      // Voting is still aggregated per base weapon (like M4A1) or you could change it if needed.
       const vd = voteMap.get(key);
       if (vd) {
         w.upvotes = vd.upvotes;

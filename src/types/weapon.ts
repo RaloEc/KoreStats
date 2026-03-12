@@ -11,4 +11,5 @@ export interface WeaponStats {
   muzzleVelocity?: number;
   soundRange?: number;
   nombreArma?: string | null;
+  description?: string | null;
 }

@@ -51,11 +51,6 @@ export function AllstarClipsGallery({ userId, puuid, className, isOwnProfile = f
             const params = new URLSearchParams();
             if (userId) params.set("userId", userId);
             if (puuid) params.set("puuid", puuid);
-            // If it's not the owner's profile, append guest flag so the API filters pinned clips
-            if (!isOwnProfile) {
-                params.set("guest", "true");
-            }
-
             const response = await fetch(`/api/riot/clips?${params.toString()}`);
             if (!response.ok) throw new Error("Error loading clips");
             const result = await response.json();
@@ -223,7 +218,13 @@ export function AllstarClipsGallery({ userId, puuid, className, isOwnProfile = f
                     </DialogHeader>
 
                     <div className="aspect-video w-full relative group/video">
-                        {selectedClip?.video_url && (
+                        {selectedClip?.allstar_clip_id ? (
+                            <iframe
+                                src={`https://player.allstar.gg/clip/${selectedClip.allstar_clip_id}`}
+                                className="w-full h-full border-0"
+                                allowFullScreen
+                            />
+                        ) : selectedClip?.video_url && (
                             <video
                                 src={selectedClip.video_url}
                                 controls

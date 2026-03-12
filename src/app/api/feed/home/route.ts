@@ -572,6 +572,7 @@ export async function GET(request: NextRequest) {
               "id, titulo, contenido, fecha_publicacion, imagen_portada, vistas, autor, autor_id, created_at"
             )
             .eq("estado", "publicada")
+            .is("deleted_at", null)
             .order("fecha_publicacion", { ascending: false });
 
           if (cursor?.newsCreatedAt) {

@@ -167,7 +167,7 @@ export async function getHilosForo(options: HiloOptions = {}) {
     respuestas_conteo:foro_posts(count),
     autor:perfiles!autor_id(id, username, public_id, role, avatar_url, color),
     categoria:foro_categorias!categoria_id(nombre, slug, color),
-    weapon_stats_record:weapon_stats_records!weapon_stats_id(id, weapon_name, stats)
+    weapon_stats_record:weapon_stats_records!weapon_stats_id(id, weapon_name, stats, description)
   `;
 
   let query = supabase
@@ -308,9 +308,10 @@ export async function getHilosForo(options: HiloOptions = {}) {
       }
       if (parsedStats) {
         weaponStatsRecord = {
+          ...(parsedStats as any),
           id: hilo.weapon_stats_record.id,
-          weapon_name: hilo.weapon_stats_record.weapon_name ?? null,
-          stats: parsedStats,
+          nombreArma: hilo.weapon_stats_record.weapon_name ?? null,
+          description: hilo.weapon_stats_record.description ?? null,
         };
       }
     }
