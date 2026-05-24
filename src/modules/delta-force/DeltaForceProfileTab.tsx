@@ -665,11 +665,11 @@ function WeaponGroupCard({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={handleSave}
                             onKeyDown={handleKeyDown}
-                            className="h-7 text-sm font-black text-center bg-gray-100 dark:bg-gray-900 border-lime-500/50 focus-visible:ring-lime-500 uppercase"
+                            className="h-7 text-sm font-black text-center bg-gray-100 dark:bg-gray-900 border-df-green-500/50 focus-visible:ring-df-green-500 uppercase"
                         />
                     ) : (
                         <h3
-                            className="text-lg font-black text-gray-900 dark:text-white leading-none truncate uppercase tracking-tight cursor-text group-hover:text-lime-500 transition-colors"
+                            className="text-lg font-black text-gray-900 dark:text-white leading-none truncate uppercase tracking-tight cursor-text group-hover:text-df-green-500 transition-colors"
                             onClick={() => isOwnProfile && setIsEditing(true)}
                         >
                             {weapon.description || weapon.name}
@@ -791,7 +791,7 @@ function ShareCodeChip({ code, isCompact }: { code: string; isCompact?: boolean 
         <button
             onClick={handleCopy}
             className={cn(
-                "group/btn w-full flex items-center gap-2 border hover:border-lime-500/40 transition-all text-left relative overflow-hidden",
+                "group/btn w-full flex items-center gap-2 border hover:border-df-green-500/40 transition-all text-left relative overflow-hidden",
                 isCompact
                     ? "px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/40 border-border/40"
                     : "px-2.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-900/60 border-border hover:bg-gray-100 dark:hover:bg-gray-900"
@@ -805,7 +805,7 @@ function ShareCodeChip({ code, isCompact }: { code: string; isCompact?: boolean 
                 {code}
             </code>
             <div className="flex-shrink-0">
-                {copied ? <Check size={10} className="text-lime-500" /> : <Copy size={10} className="text-gray-400 group-hover/btn:text-gray-600" />}
+                {copied ? <Check size={10} className="text-df-green-500" /> : <Copy size={10} className="text-gray-400 group-hover/btn:text-gray-600" />}
             </div>
         </button>
     );

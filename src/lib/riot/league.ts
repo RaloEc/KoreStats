@@ -26,6 +26,7 @@ interface LeagueEntry {
  * @param puuid - PUUID encriptado del jugador
  * @param platformRegion - Región de plataforma (ej: 'la1')
  * @param apiKey - API Key de Riot
+ * @param summonerId - ID de invocador (opcional)
  * @param retries - Número de reintentos (default: 3)
  * @returns Array de entradas de ranking (puede haber múltiples colas)
  */
@@ -33,16 +34,18 @@ export async function getPlayerRanking(
   puuid: string,
   platformRegion: string,
   apiKey: string,
+  summonerId?: string,
   retries: number = 3
 ): Promise<LeagueEntry[]> {
   try {
-    const url = `https://${platformRegion}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
+    const url = `https://${platformRegion}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       const response = await fetch(url, {
         headers: {
           "X-Riot-Token": apiKey,
         },
+        cache: "no-store",
       });
 
       if (response.ok) {
@@ -119,11 +122,12 @@ export async function updateMatchRankings(
         `[updateMatchRankings] Consultando ranking para puuid: ${participant.puuid}`
       );
 
-      // Obtener ranking actual usando PUUID
+      // Obtener ranking actual usando summonerId (con fallback a PUUID)
       const rankings = await getPlayerRanking(
         participant.puuid,
         platformRegion,
-        apiKey
+        apiKey,
+        participant.summonerId
       );
 
       console.log(
@@ -213,10 +217,6 @@ export async function updateMatchRankings(
 
 /**
  * Mapea tier + rank a un badge legible
- *
- * @param tier - Tier (IRON, BRONZE, SILVER, GOLD, PLATINUM, DIAMOND, MASTER, GRANDMASTER, CHALLENGER)
- * @param rank - Rank (I, II, III, IV)
- * @returns String formateado (ej: "Gold IV", "Diamond II")
  */
 const tierTranslations: Record<string, string> = {
   IRON: "Hierro",
@@ -251,13 +251,6 @@ export function formatRankBadge(
 
 /**
  * Obtiene o actualiza el rango de un jugador desde caché o Riot API
- * Primero intenta obtener del caché (summoners), si no existe o está desactualizado,
- * consulta Riot API y actualiza el caché
- *
- * @param puuid - PUUID del jugador
- * @param platformRegion - Región de plataforma (ej: 'la1')
- * @param apiKey - API Key de Riot
- * @returns Objeto con datos de ranking (tier, rank, league_points, wins, losses) o null si no hay datos
  */
 export async function getOrUpdateSummonerRank(
   puuid: string,
@@ -276,7 +269,7 @@ export async function getOrUpdateSummonerRank(
     // 1. Intentar obtener del caché (tabla summoners)
     const { data: cachedSummoner, error: cacheError } = await supabase
       .from("summoners")
-      .select("tier, rank, league_points, wins, losses, rank_updated_at")
+      .select("summoner_id, tier, rank, league_points, wins, losses, rank_updated_at")
       .eq("puuid", puuid)
       .single();
 
@@ -302,7 +295,12 @@ export async function getOrUpdateSummonerRank(
 
     // 2. Si no está en caché o está desactualizado, consultar Riot API
     console.log(`[getOrUpdateSummonerRank] Consultando Riot API para ${puuid}`);
-    const rankings = await getPlayerRanking(puuid, platformRegion, apiKey);
+    const rankings = await getPlayerRanking(
+      puuid,
+      platformRegion,
+      apiKey,
+      cachedSummoner?.summoner_id
+    );
 
     if (!rankings || rankings.length === 0) {
       console.warn(
@@ -367,9 +365,6 @@ export async function getOrUpdateSummonerRank(
 
 /**
  * Obtiene el color del tier para UI
- *
- * @param tier - Tier del jugador
- * @returns Clase Tailwind para color
  */
 export function getTierColor(tier: string | null): string {
   if (!tier) {

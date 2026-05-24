@@ -294,7 +294,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                     {/* Header Display */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10">
                         <div className="flex items-center gap-2">
-                            <Crosshair size={18} className="text-lime-500" />
+                            <Crosshair size={18} className="text-df-green-500" />
                             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                                 Registrar Nueva Arma
                             </h3>
@@ -321,7 +321,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                             </label>
 
                             {!selectedFile ? (
-                                <label className="flex flex-col items-center justify-center gap-2 w-full px-4 py-8 rounded-lg border-2 border-dashed border-gray-300 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 cursor-pointer hover:border-lime-500/40 hover:bg-lime-500/5 transition-all outline-none">
+                                <label className="flex flex-col items-center justify-center gap-2 w-full px-4 py-8 rounded-lg border-2 border-dashed border-gray-300 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 cursor-pointer hover:border-df-green-500/40 hover:bg-df-green-500/5 transition-all outline-none">
                                     <Upload size={24} className="text-gray-400 dark:text-gray-500" />
                                     <div className="text-center">
                                         <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">Haz clic o pega la imagen aquí</p>
@@ -361,10 +361,10 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                             {isAnalyzing && (
                                                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                                                     {/* Scanning Line Animation - Puesta antes para estar detrás */}
-                                                    <div className="absolute inset-x-0 h-[2px] bg-lime-500/50 shadow-[0_0_15px_rgba(132,204,22,0.8)] animate-scan z-0" />
+                                                    <div className="absolute inset-x-0 h-[2px] bg-df-green-500/50 shadow-[0_0_15px_rgba(132,204,22,0.8)] animate-scan z-0" />
 
                                                     <div className="relative z-10 flex flex-col items-center gap-2 bg-gray-900/90 px-5 py-3 rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
-                                                        <Loader2 size={28} className="animate-spin text-lime-400" />
+                                                        <Loader2 size={28} className="animate-spin text-df-green-400" />
                                                         <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] animate-pulse">
                                                             Escaneando
                                                         </span>
@@ -513,7 +513,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                 color = "text-amber-500";
                                                             } else {
                                                                 profile = "Versátil / Equilibrada";
-                                                                color = "text-lime-400";
+                                                                color = "text-df-green-400";
                                                             }
 
                                                             // Función local para BTK con lógica Proporcional
@@ -668,7 +668,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                 value={shareCode}
                                 onChange={(e) => setShareCode(e.target.value)}
                                 placeholder="Ej: CI-19 Assault Rifle-Warfare-6HLOANO09MFFCME3G7LT2"
-                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-lime-500/50 focus:ring-1 focus:ring-lime-500/20 text-sm font-mono transition-all"
+                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-df-green-500/50 focus:ring-1 focus:ring-df-green-500/20 text-sm font-mono transition-all"
                             />
                             <div className="mt-1.5 flex items-center justify-between">
                                 <p className="text-[10px] text-gray-400 dark:text-gray-500">
@@ -687,7 +687,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                         </span>
                                     );
                                     if (isOps) return (
-                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-lime-600 dark:text-lime-400 bg-lime-500/10 border-lime-500/30">
+                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-df-green-600 dark:text-df-green-400 bg-df-green-500/10 border-df-green-500/30">
                                             🎯 Operaciones
                                         </span>
                                     );
@@ -747,7 +747,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                     className={cn(
                                         "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest transition-all",
                                         shareCode.trim() && hasStats && submitStatus !== "submitting" && !isAnalyzing
-                                            ? "bg-lime-600 hover:bg-lime-700 text-white shadow-sm shadow-lime-600/20"
+                                            ? "bg-df-green-600 hover:bg-df-green-700 text-white shadow-sm shadow-df-green-600/20"
                                             : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed"
                                     )}
                                 >

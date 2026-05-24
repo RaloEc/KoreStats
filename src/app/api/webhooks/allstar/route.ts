@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getServiceClient } from "@/lib/supabase/service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Incomplete data" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = getServiceClient();
 
     // 1. Buscar al usuario que tiene este PUUID vinculado
     const { data: riotAccount, error: accountError } = await supabase

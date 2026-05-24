@@ -35,6 +35,19 @@ module.exports = {
         'border-color': 'hsl(var(--border))',
       },
       colors: {
+        'df-green': {
+          50: '#ebfdf5',
+          100: '#cefae6',
+          200: '#a1f4ce',
+          300: '#64e9b1',
+          400: '#2cd894',
+          500: '#0eea8e',
+          600: '#03ba6d',
+          650: '#029c5b',
+          700: '#039359',
+          800: '#077348',
+          900: '#075f3e',
+        },
         // Colores base con soporte para temas claro/oscuro
         accent: {
           light: 'hsl(var(--accent-light))',

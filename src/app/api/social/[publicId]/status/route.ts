@@ -89,10 +89,7 @@ export async function GET(
       .from("friend_requests")
       .select("id, status, requester_id")
       .or(
-        `and(user_a_id.eq.${Math.min(
-          currentProfile.id,
-          targetProfile.id
-        )},user_b_id.eq.${Math.max(currentProfile.id, targetProfile.id)})`
+        `and(user_a_id.eq.${currentProfile.id < targetProfile.id ? currentProfile.id : targetProfile.id},user_b_id.eq.${currentProfile.id < targetProfile.id ? targetProfile.id : currentProfile.id})`
       )
       .maybeSingle();
 

@@ -43,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LiveGameBanner } from "./LiveGameBanner";
 
 // Diccionario de regiones
 const REGION_NAMES: Record<string, string> = {
@@ -217,7 +218,7 @@ export function RiotAccountCardVisual({
     setIsMounted(true);
   }, []);
 
-  const { gameData: realtimeData } = useLiveGameRealtime(
+  const { gameData: realtimeData, isStale: isRealtimeStale } = useLiveGameRealtime(
     isMounted ? account.puuid : undefined,
   );
 
@@ -281,6 +282,71 @@ export function RiotAccountCardVisual({
 
     return null;
   }, [realtimeData, account, staticData]);
+
+  // Calcular datos adicionales de la partida en vivo
+  const liveGameData = useMemo(() => {
+    if (!currentPlayerInGame) return null;
+
+    // Si los datos de realtime están estancados, priorizar staticData para duracion
+    const useStaticFallback = isRealtimeStale && staticData?.hasActiveMatch;
+
+    // Obtener duración del juego (usar staticData si realtime está estancado)
+    const gameDuration = useStaticFallback
+      ? (staticData?.elapsedSeconds ?? 0)
+      : (realtimeData?.gameData?.gameTime ?? staticData?.elapsedSeconds ?? 0);
+
+    // Obtener nombre de la cola
+    const getQueueName = () => {
+      // Intentar obtener de realtimeData primero (si no está estancado)
+      if (!useStaticFallback) {
+        const queueDesc = (realtimeData?.gameData as any)?.queue?.description;
+        if (queueDesc && typeof queueDesc === "string") {
+          if (queueDesc.includes("Solo/Dúo")) return "Solo/Dúo";
+          if (queueDesc.includes("Flex")) return "Flex 5:5";
+          if (queueDesc.includes("ARAM")) return "ARAM";
+          if (queueDesc.includes("Normal")) return "Normal";
+          return queueDesc;
+        }
+      }
+
+      // Fallback a gameMode (de staticData si está estancado)
+      const gameMode = useStaticFallback
+        ? staticData?.gameMode
+        : (realtimeData?.gameData?.gameMode ?? staticData?.gameMode);
+      if (gameMode === "ARAM") return "ARAM";
+      if (gameMode === "CLASSIC") return "Normal";
+
+      return null;
+    };
+
+    // Calcular score del equipo (solo si realtime no está estancado)
+    const teamScore =
+      !useStaticFallback && realtimeData?.livePlayers
+        ? {
+            blue: realtimeData.livePlayers
+              .filter((p) => p.teamId === 100)
+              .reduce((sum, p) => sum + (p.kills || 0), 0),
+            red: realtimeData.livePlayers
+              .filter((p) => p.teamId === 200)
+              .reduce((sum, p) => sum + (p.kills || 0), 0),
+          }
+        : undefined;
+
+    return {
+      championName: currentPlayerInGame.championName,
+      championId: currentPlayerInGame.championId,
+      kills: currentPlayerInGame.kills || 0,
+      deaths: currentPlayerInGame.deaths || 0,
+      assists: currentPlayerInGame.assists || 0,
+      queueName: getQueueName(),
+      gameDuration,
+      teamScore,
+      teamId: currentPlayerInGame.teamId,
+      phase,
+      isStale: isRealtimeStale, // Indicar si los datos están estancados
+      isApiFallback: !realtimeData && !!staticData?.hasActiveMatch,
+    };
+  }, [currentPlayerInGame, realtimeData, staticData, phase, isRealtimeStale]);
 
   const [userId, setUserId] = useState<string | null>(
     propUserId ?? account.user_id ?? null,
@@ -837,6 +903,13 @@ export function RiotAccountCardVisual({
             )}
           </AnimatePresence>
         </div>
+
+        {/* Live Game Banner - Visible en todas las pantallas cuando hay partida */}
+        {liveGameData && phase && phase !== "None" && phase !== "EndOfGame" && (
+          <div className="relative z-20 px-8 pt-6 pb-2">
+            <LiveGameBanner {...liveGameData} />
+          </div>
+        )}
 
         {/* Content Grid */}
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-8">

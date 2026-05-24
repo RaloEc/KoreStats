@@ -67,9 +67,11 @@ export async function processLpQueue(
         job.action === "snapshot_lp_end"
       ) {
         const region = job.platform_region || "la1";
+        // Ya no es necesario obtener el summonerId para league-v4, se usa by-puuid
         const leagueUrl = `https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${job.puuid}`;
 
         const response = await fetch(leagueUrl, {
+
           headers: { "X-Riot-Token": riotApiKey },
         });
 

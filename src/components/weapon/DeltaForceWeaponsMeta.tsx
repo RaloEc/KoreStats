@@ -27,6 +27,8 @@ import {
     Trophy,
     Medal,
     Flame,
+    Scale,
+    X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +40,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import AddWeaponForm from "./AddWeaponForm";
 import ReportWeaponButton from "./ReportWeaponButton";
+import WeaponCompareView from "./WeaponCompareView";
+import DeltaForceDatabaseView from "./DeltaForceDatabaseView";
 
 /* ─── Types ─── */
 
@@ -85,9 +89,9 @@ const GAME_MODES: { id: GameMode; label: string; sublabel: string; color: string
         label: "Operaciones",
         sublabel: "Táctico / Extracción",
         color: "lime",
-        activeBg: "bg-lime-500/15",
-        activeText: "text-lime-600 dark:text-lime-400",
-        activeBorder: "border-lime-500/60 dark:border-lime-400/40",
+        activeBg: "bg-df-green-500/15",
+        activeText: "text-df-green-600 dark:text-df-green-400",
+        activeBorder: "border-df-green-500/60 dark:border-df-green-400/40",
     },
     {
         id: "warfare",
@@ -254,13 +258,30 @@ function useWeaponVote(gameMode: GameMode) {
 
 /* ─── Main Component ─── */
 
+const WEAPON_COLORS = ["amber-500", "emerald-500", "cyan-500"];
+
 export default function DeltaForceWeaponsMeta() {
+    const [activeTab, setActiveTab] = useState<"meta" | "database">("meta");
+    const [selectedCompare, setSelectedCompare] = useState<WeaponMeta[]>([]);
+    const [isComparing, setIsComparing] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategory, setActiveCategory] = useState("all");
     const [gameMode, setGameMode] = useState<GameMode>("operations");
     const [sortByTtk, setSortByTtk] = useState(false);
+    const [selectedWeapon, setSelectedWeapon] = useState<string>("all");
     const voteSystem = useWeaponVote(gameMode);
     const queryClient = useQueryClient();
+
+    const handleCompareToggle = useCallback((weapon: WeaponMeta) => {
+        setSelectedCompare((prev) => {
+            const exists = prev.some((w) => w.id === weapon.id);
+            if (exists) {
+                return prev.filter((w) => w.id !== weapon.id);
+            }
+            if (prev.length >= 3) return prev; // max 3
+            return [...prev, weapon];
+        });
+    }, []);
 
     useEffect(() => {
         const supabase = createClient();
@@ -279,6 +300,12 @@ export default function DeltaForceWeaponsMeta() {
         };
     }, [queryClient]);
 
+    // Clear compare list when game mode changes to prevent cross-mode comparison
+    useEffect(() => {
+        setSelectedCompare([]);
+        setIsComparing(false);
+    }, [gameMode]);
+
     const { data, isLoading } = useQuery<WeaponsResponse>({
         queryKey: ["delta-force-weapons-meta", gameMode],
         queryFn: async () => {
@@ -293,6 +320,12 @@ export default function DeltaForceWeaponsMeta() {
 
     const weapons = data?.weapons || [];
 
+    // Get unique weapon models for the filter dropdown
+    const uniqueWeaponNames = useMemo(() => {
+        const names = Array.from(new Set(weapons.map(w => w.weapon_name)));
+        return names.sort((a, b) => a.localeCompare(b));
+    }, [weapons]);
+
     const filtered = useMemo(() => {
         return weapons.filter((w) => {
             const matchesSearch = w.weapon_name
@@ -301,9 +334,11 @@ export default function DeltaForceWeaponsMeta() {
                 (w.description && w.description.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesCategory =
                 activeCategory === "all" || w.category === activeCategory;
-            return matchesSearch && matchesCategory;
+            const matchesWeapon =
+                selectedWeapon === "all" || w.weapon_name === selectedWeapon;
+            return matchesSearch && matchesCategory && matchesWeapon;
         });
-    }, [weapons, searchQuery, activeCategory]);
+    }, [weapons, searchQuery, activeCategory, selectedWeapon]);
 
     // Group by tier
     const grouped = useMemo(() => {
@@ -326,7 +361,46 @@ export default function DeltaForceWeaponsMeta() {
     }, [filtered, sortByTtk]);
 
     return (
-        <div className="space-y-8">
+        <>
+            {/* Compare Modal */}
+            {isComparing && (
+                <WeaponCompareView
+                    weapons={selectedCompare}
+                    onBack={() => setIsComparing(false)}
+                />
+            )}
+
+            <div className="space-y-8">
+                {/* Main Navigation Tabs */}
+                <div className="flex gap-2 p-1 bg-zinc-100 dark:bg-zinc-900/60 border border-gray-200 dark:border-white/5 rounded-2xl w-full sm:w-fit mb-6">
+                    <button
+                        onClick={() => setActiveTab("meta")}
+                        className={cn(
+                            "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                            activeTab === "meta"
+                                ? "bg-white dark:bg-zinc-800 text-foreground shadow-md border border-gray-200/50 dark:border-gray-700/50"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        Meta Builds de la Comunidad
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("database")}
+                        className={cn(
+                            "flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                            activeTab === "database"
+                                ? "bg-white dark:bg-zinc-800 text-foreground shadow-md border border-gray-200/50 dark:border-gray-700/50"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        Enciclopedia y Simulador Base
+                    </button>
+                </div>
+
+                {activeTab === "database" ? (
+                    <DeltaForceDatabaseView />
+                ) : (
+                    <div className="space-y-8">
             {/* Header Mini & Game Mode Toggle */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-800/80">
                 <div className="flex items-center gap-3">
@@ -345,13 +419,20 @@ export default function DeltaForceWeaponsMeta() {
                         return (
                             <button
                                 key={mode.id}
-                                onClick={() => { setGameMode(mode.id); setSearchQuery(""); setActiveCategory("all"); }}
+                                onClick={() => { 
+                                    setGameMode(mode.id); 
+                                    setSearchQuery(""); 
+                                    setActiveCategory("all"); 
+                                    setSelectedWeapon("all"); 
+                                    setSelectedCompare([]);
+                                    setIsComparing(false);
+                                }}
                                 className={cn(
                                     "px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all w-36",
                                     isActive
                                         ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-xl border border-gray-200/50 dark:border-gray-700/50 translate-y-[-1px]"
                                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                )}
+                                    )}
                             >
                                 {mode.label}
                             </button>
@@ -363,21 +444,39 @@ export default function DeltaForceWeaponsMeta() {
             {/* Filters & Search - Tactical Redesign */}
             <div className="flex flex-col gap-6">
                 {/* Search & Main Action Row */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="relative w-full sm:max-w-md group">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-gray-400 group-focus-within:text-rose-500 transition-colors" />
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                        <div className="relative flex-1 group">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-gray-400 group-focus-within:text-rose-500 transition-colors" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre de arma..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="block w-full pl-10 pr-4 py-3 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all dark:text-gray-100 shadow-sm"
+                            />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre de arma..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="block w-full pl-10 pr-4 py-3 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all dark:text-gray-100 shadow-sm"
-                        />
+
+                        {/* Weapon Model Filter Dropdown */}
+                        <div className="w-full sm:w-60">
+                            <select
+                                value={selectedWeapon}
+                                onChange={(e) => setSelectedWeapon(e.target.value)}
+                                className="block w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all dark:text-gray-100 shadow-sm cursor-pointer"
+                            >
+                                <option value="all">Todas las armas</option>
+                                {uniqueWeaponNames.map((name) => (
+                                    <option key={name} value={name}>
+                                        {name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                         <AddWeaponForm />
                     </div>
                 </div>
@@ -482,7 +581,15 @@ export default function DeltaForceWeaponsMeta() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <WeaponMetaCard weapon={weapon} config={config} voteSystem={voteSystem} gameMode={gameMode} />
+                                            <WeaponMetaCard
+                                                weapon={weapon}
+                                                config={config}
+                                                voteSystem={voteSystem}
+                                                gameMode={gameMode}
+                                                isCompareSelected={selectedCompare.some((w) => w.id === weapon.id)}
+                                                onCompareToggle={() => handleCompareToggle(weapon)}
+                                                isCompareDisabled={selectedCompare.length >= 3 && !selectedCompare.some((w) => w.id === weapon.id)}
+                                            />
                                         </div>
                                     );
                                 })}
@@ -510,7 +617,16 @@ export default function DeltaForceWeaponsMeta() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {tierWeapons.map((weapon) => (
-                                            <WeaponMetaCard key={weapon.id} weapon={weapon} config={config} voteSystem={voteSystem} gameMode={gameMode} />
+                                            <WeaponMetaCard
+                                                key={weapon.id}
+                                                weapon={weapon}
+                                                config={config}
+                                                voteSystem={voteSystem}
+                                                gameMode={gameMode}
+                                                isCompareSelected={selectedCompare.some((w) => w.id === weapon.id)}
+                                                onCompareToggle={() => handleCompareToggle(weapon)}
+                                                isCompareDisabled={selectedCompare.length >= 3 && !selectedCompare.some((w) => w.id === weapon.id)}
+                                            />
                                         ))}
                                     </div>
                                 </div>
@@ -537,7 +653,64 @@ export default function DeltaForceWeaponsMeta() {
                     <p className="text-[10px] text-gray-400 dark:text-gray-700 uppercase tracking-widest font-bold">KoreStats • Delta Force Global Meta</p>
                 </div>
             )}
-        </div>
+                    </div>
+                )}
+
+                {/* Compare Tray Floating Bar */}
+                {selectedCompare.length > 0 && !isComparing && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-300 w-[calc(100%-2rem)] max-w-xl">
+                        <div className="backdrop-blur-md bg-white/80 dark:bg-zinc-950/75 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.45)]">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                                    Comparar ({selectedCompare.length}/3)
+                                </span>
+                                <div className="flex items-center gap-1">
+                                    {selectedCompare.map((w, idx) => (
+                                        <div key={w.id} className="relative group/thumb">
+                                            <div className={cn(
+                                                "w-8 h-8 rounded-lg bg-gray-100 dark:bg-zinc-900 border overflow-hidden flex items-center justify-center border-l-2",
+                                                WEAPON_COLORS[idx] ? `border-l-2 border-${WEAPON_COLORS[idx]}` : "border-border"
+                                            )}>
+                                                {w.image_url ? (
+                                                    <img src={w.image_url} alt={w.weapon_name} className="w-full h-full object-contain p-0.5" />
+                                                ) : (
+                                                    <Swords size={12} className="text-gray-400" />
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => setSelectedCompare(prev => prev.filter(item => item.id !== w.id))}
+                                                className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
+                                                title="Eliminar"
+                                            >
+                                                <X size={8} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                {selectedCompare.length >= 2 && (
+                                    <button
+                                        onClick={() => setIsComparing(true)}
+                                        className="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-df-green-500 hover:bg-df-green-600 text-white transition-all shadow-md shadow-df-green-500/20 active:scale-95 flex items-center gap-1"
+                                    >
+                                        <Scale size={12} />
+                                        <span>Comparar</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setSelectedCompare([])}
+                                    className="text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 px-2 py-1"
+                                >
+                                    Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
 
@@ -548,18 +721,25 @@ function WeaponMetaCard({
     config,
     voteSystem,
     gameMode,
+    isCompareSelected,
+    onCompareToggle,
+    isCompareDisabled,
 }: {
     weapon: WeaponMeta;
     config: any;
     voteSystem?: ReturnType<typeof useWeaponVote>;
     gameMode?: GameMode;
+    isCompareSelected: boolean;
+    onCompareToggle: () => void;
+    isCompareDisabled: boolean;
 }) {
     const armorLevel = gameMode === "warfare" ? 0 : 4;
     return (
         <div
             className={cn(
-                "group relative overflow-hidden rounded-2xl border bg-gray-50 dark:bg-gray-950/40 shadow-sm dark:shadow-none flex flex-col h-full",
-                config.borderColor
+                "group relative overflow-hidden rounded-2xl border bg-gray-50 dark:bg-gray-950/40 shadow-sm dark:shadow-none flex flex-col h-full transition-all duration-300",
+                config.borderColor,
+                isCompareSelected && "ring-2 ring-df-green-500/50 border-df-green-500/60 dark:border-df-green-500/40 shadow-md shadow-df-green-500/10"
             )}
             style={{ color: config.barColor }}
         >
@@ -568,10 +748,27 @@ function WeaponMetaCard({
                 {/* Image Section with Overlays */}
                 <div className="relative w-full h-32 flex items-center justify-center group/img rounded-xl bg-transparent overflow-hidden border border-border/40">
                     {/* Category Tag (Absolute Top-Left) */}
-                    <div className="absolute top-2 left-2 z-20">
+                    <div className="absolute top-2 left-2 z-20 flex gap-1.5 items-center">
                         <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-background/80 backdrop-blur-md text-foreground border border-border shadow-sm">
                             {weapon.category}
                         </span>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onCompareToggle();
+                            }}
+                            disabled={isCompareDisabled}
+                            className={cn(
+                                "p-1 rounded-md border transition-all shadow-sm",
+                                isCompareSelected
+                                    ? "bg-df-green-500 border-df-green-600 text-white hover:bg-df-green-600 shadow-df-green-500/25"
+                                    : "bg-background/80 backdrop-blur-md border-border text-muted-foreground hover:text-foreground hover:bg-background/90"
+                            )}
+                            title={isCompareSelected ? "Quitar de comparar" : "Comparar arma"}
+                        >
+                            <Scale size={10} />
+                        </button>
                     </div>
 
                     {/* TTK Badge Overlay */}
@@ -792,7 +989,7 @@ function ShareCodeChip({ code, isCompact }: { code: string; isCompact?: boolean 
         <button
             onClick={handleCopy}
             className={cn(
-                "group/btn w-full flex items-center gap-2 border hover:border-lime-500/40 transition-all text-left relative overflow-hidden",
+                "group/btn w-full flex items-center gap-2 border hover:border-df-green-500/40 transition-all text-left relative overflow-hidden",
                 isCompact
                     ? "px-2 py-1 rounded-lg bg-gray-100/50 dark:bg-gray-950/40 border-border/40"
                     : "px-2.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-900/60 border-gray-200 dark:border-white/5 hover:bg-gray-200 dark:hover:bg-gray-900"
@@ -803,18 +1000,18 @@ function ShareCodeChip({ code, isCompact }: { code: string; isCompact?: boolean 
                 "font-mono truncate flex-1 leading-none",
                 isCompact
                     ? "text-[9px] text-gray-500 dark:text-gray-500"
-                    : "text-[10px] text-gray-600 dark:text-gray-400 group-hover/btn:text-lime-700 dark:group-hover/btn:text-lime-300"
+                    : "text-[10px] text-gray-600 dark:text-gray-400 group-hover/btn:text-df-green-700 dark:group-hover/btn:text-df-green-300"
             )}>
                 {code}
             </code>
             <div className="flex-shrink-0">
                 {copied ? (
-                    <Check size={isCompact ? 10 : 12} className="text-lime-600 dark:text-lime-400 animate-in zoom-in duration-300" />
+                    <Check size={isCompact ? 10 : 12} className="text-df-green-600 dark:text-df-green-400 animate-in zoom-in duration-300" />
                 ) : (
                     <Copy size={isCompact ? 10 : 12} className="text-gray-400 dark:text-gray-600 group-hover/btn:text-gray-600 dark:group-hover/btn:text-gray-400" />
                 )}
             </div>
-            {copied && <div className="absolute inset-x-0 bottom-0 h-[1px] bg-lime-500 animate-out fade-out duration-1000" />}
+            {copied && <div className="absolute inset-x-0 bottom-0 h-[1px] bg-df-green-500 animate-out fade-out duration-1000" />}
         </button>
     );
 }

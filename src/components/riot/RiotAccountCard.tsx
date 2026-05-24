@@ -99,6 +99,22 @@ export function RiotAccountCard({
     gcTime: 60 * 60 * 1000,
   });
 
+  // Fallback para detectar partida en vivo vía API de Riot si no viene por props
+  const { data: apiActiveMatch } = useQuery({
+    queryKey: ["active-match-api", riotAccount?.puuid],
+    queryFn: async () => {
+      if (!riotAccount?.puuid) return null;
+      const region = riotAccount.active_shard || riotAccount.region || "la1";
+      const res = await fetch(
+        `/api/riot/matches/active?puuid=${riotAccount.puuid}&region=${region}`,
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!riotAccount?.puuid && !staticData,
+    refetchInterval: 60000, // Reintentar cada minuto
+  });
+
   // NOTA: Se ha reemplazado la mutación local por useUnifiedRiotSync
   // para asegurar que siempre se actualice tanto la cuenta como el historial.
 
@@ -169,7 +185,7 @@ export function RiotAccountCard({
         cooldownSeconds={currentCooldown}
         hideSync={false}
         profileColor={profileColor}
-        staticData={staticData}
+        staticData={staticData || apiActiveMatch}
       />
     );
   }

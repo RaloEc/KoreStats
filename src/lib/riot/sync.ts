@@ -72,16 +72,16 @@ export async function syncRiotStats(
     }
 
 
-    // PASO 3: Obtener información de rango
+    // PASO 3: Obtener información de rango (usando PUUID, ya que summonerId está deprecado)
     const rankData = await getRankData(puuid, platformId, authHeaders);
-
 
     // PASO 4: Compilar resultado
     const result: RiotSyncResult = {
       success: true,
       data: {
         activeShard: platformId,
-        summonerId: summonerData.id,
+        // Usamos el id de summoner solo si lo devuelve, caso contrario un string vacío o el puuid como fallback seguro
+        summonerId: summonerData.id || "",
         summonerLevel: summonerData.summonerLevel,
         profileIconId: summonerData.profileIconId,
         soloRank: rankData.solo,
@@ -118,26 +118,42 @@ async function getSummonerData(
   profileIconId: number;
 } | null> {
   try {
-    const url = `https://${activeShard}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
+    const url = `https://${activeShard}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(puuid)}`;
+    const maskedKey = headers["X-Riot-Token"] ? `${headers["X-Riot-Token"].substring(0, 6)}...${headers["X-Riot-Token"].slice(-4)}` : "MISSING";
+    console.log(`[getSummonerData] Fetching: ${url} with key ${maskedKey}`);
 
 
     const response = await fetch(url, {
       method: "GET",
       headers,
+      cache: "no-store",
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("[getSummonerData] Error de Riot:", error);
-      throw new Error(error.status?.message || "Failed to get summoner data");
+      const errorText = await response.text();
+      console.error(`[getSummonerData] Error de Riot (Status ${response.status}):`, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.status?.message || "Failed to get summoner data");
+      } catch (e) {
+        throw new Error(`Riot API Error ${response.status}: ${errorText}`);
+      }
     }
 
     const data = await response.json();
+    console.log(`[getSummonerData] Data received keys: ${Object.keys(data).join(", ")}`);
+    
+    // Riot API v4 deprecated the id field (summonerId) for by-puuid endpoint on Feb 26, 2025.
+    const summonerId = data.id || data.summonerId || data.summoner_id || "";
+    
+    if (!summonerId) {
+      console.warn("[getSummonerData] Riot response is missing a valid summoner ID field. Continuing without it.");
+    }
 
     return {
-      id: data.id,
-      summonerLevel: data.summonerLevel,
-      profileIconId: data.profileIconId,
+      id: summonerId,
+      summonerLevel: data.summonerLevel || 0,
+      profileIconId: data.profileIconId || 0,
     };
   } catch (error: any) {
     console.error("[getSummonerData] Error:", error);
@@ -177,12 +193,15 @@ async function getRankData(
       : { ...UNRANKED_SNAPSHOT };
 
   try {
-    const url = `https://${platformId}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
+    const url = `https://${platformId}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`;
+    const maskedKey = headers["X-Riot-Token"] ? `${headers["X-Riot-Token"].substring(0, 6)}...${headers["X-Riot-Token"].slice(-4)}` : "MISSING";
+    console.log(`[getRankData] Fetching: ${url} with key ${maskedKey}`);
 
 
     const response = await fetch(url, {
       method: "GET",
       headers,
+      cache: "no-store",
     });
 
     // Si el usuario no tiene datos de rango (404), retorna UNRANKED
@@ -197,9 +216,14 @@ async function getRankData(
     }
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("[getRankData] Error de Riot:", error);
-      throw new Error(error.status?.message || "Failed to get rank data");
+      const errorText = await response.text();
+      console.error(`[getRankData] Error de Riot (Status ${response.status}):`, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.status?.message || "Failed to get rank data");
+      } catch (e) {
+        throw new Error(`Riot API Error ${response.status}: ${errorText}`);
+      }
     }
 
     const data = await response.json();
@@ -267,8 +291,8 @@ function buildRiotAuthHeaders(token: string): Record<string, string> {
     "X-Riot-Token": token,
   };
 
-  // Tokens RSO suelen ser JWT (tres segmentos). Si detectamos ese formato, añadimos Authorization
-  if (token.split(".").length === 3) {
+  // Solo añadir Bearer si parece un JWT válido (eyJ...)
+  if (token.startsWith("eyJ") && token.split(".").length === 3) {
     headers.Authorization = `Bearer ${token}`;
   }
 

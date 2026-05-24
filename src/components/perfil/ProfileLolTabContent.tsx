@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { RiotEmptyState } from "@/components/riot/RiotEmptyState";
 import { SavedBuildsPanel } from "@/components/riot/SavedBuildsPanel";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import ProAccountCard from "@/components/riot/ProAccountCard";
 import { RiotAccountCard } from "@/components/riot/RiotAccountCard";
 import { LinkedAccountRiot } from "@/types/riot";
@@ -65,6 +66,22 @@ export default function ProfileLolTabContent({
 }: ProfileLolTabContentProps) {
   const { toast } = useToast();
 
+  // Fetch active match status from Riot API as fallback for public/private view
+  const { data: apiActiveMatch } = useQuery({
+    queryKey: ["active-match-fallback", riotAccount?.puuid],
+    queryFn: async () => {
+      if (!riotAccount?.puuid) return null;
+      const region = riotAccount.active_shard || riotAccount.region || "la1";
+      const res = await fetch(
+        `/api/riot/matches/active?puuid=${riotAccount.puuid}&region=${region}`,
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!riotAccount?.puuid,
+    refetchInterval: 60000, // Reintentar cada minuto
+  });
+
   const handleUnlink = async () => {
     try {
       const response = await fetch("/api/riot/unlink", {
@@ -103,6 +120,7 @@ export default function ProfileLolTabContent({
             externalSyncPending={unifiedSyncPending}
             externalCooldownSeconds={unifiedSyncCooldown}
             profileColor={profileColor}
+            staticData={apiActiveMatch}
           />
         ) : (
           <RiotAccountCard
@@ -113,6 +131,7 @@ export default function ProfileLolTabContent({
             initialAccount={riotAccount}
             profileColor={profileColor}
             isPublicProfile={isPublicProfile}
+            staticData={apiActiveMatch}
           />
         )}
 
@@ -147,6 +166,7 @@ export default function ProfileLolTabContent({
                 }
                 externalSyncPending={unifiedSyncPending}
                 externalCooldownSeconds={unifiedSyncCooldown}
+                staticActiveMatch={apiActiveMatch}
               />
             )}
           </div>

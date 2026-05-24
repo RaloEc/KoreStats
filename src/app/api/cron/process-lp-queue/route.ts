@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
           job.action === "snapshot_lp_start" ||
           job.action === "snapshot_lp_end"
         ) {
-          // Consultar League-V4 para obtener LP
+          // Ya no es necesario obtener el summonerId para league-v4, se usa by-puuid
           const leagueUrl = `https://${job.platform_region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${job.puuid}`;
 
           const response = await fetch(leagueUrl, {

@@ -122,13 +122,15 @@ export async function GET(request: NextRequest) {
 
     // PASO 3: Obtener ranking (tier, rank, LP)
     let rankingData = null;
-    try {
-      const rankingUrl = `https://${platformRegion}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
-      const rankingResponse = await fetch(rankingUrl, {
-        headers: {
-          "X-Riot-Token": RIOT_API_KEY,
-        },
-      });
+    if (puuid) {
+      try {
+        const rankingUrl = `https://${platformRegion}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
+        const rankingResponse = await fetch(rankingUrl, {
+          headers: {
+            "X-Riot-Token": RIOT_API_KEY,
+          },
+          cache: "no-store",
+        });
 
       if (rankingResponse.ok) {
         const rankings = await rankingResponse.json();
@@ -155,6 +157,7 @@ export async function GET(request: NextRequest) {
         "[GET /api/riot/account/search] No se pudo obtener ranking:",
         err
       );
+      }
     }
 
     // Construir respuesta con toda la información

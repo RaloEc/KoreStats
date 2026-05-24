@@ -381,29 +381,25 @@ export async function GET(request: NextRequest) {
       // Si no hay PUUID directo, buscar por userId (comportamiento original)
       let targetUserId: string;
 
-      if (queryUserId) {
-        targetUserId = queryUserId;
-      } else {
-        const authHeader = request.headers.get("authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-          return NextResponse.json(
-            { error: "Missing or invalid authorization header" },
-            { status: 401 },
-          );
-        }
-
-        const token = authHeader.slice(7);
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser(token);
-
-        if (authError || !user) {
-          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        targetUserId = user.id;
+      const authHeader = request.headers.get("authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return NextResponse.json(
+          { error: "Missing or invalid authorization header" },
+          { status: 401 },
+        );
       }
+
+      const token = authHeader.slice(7);
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      targetUserId = user.id;
 
       // Obtener la cuenta Riot vinculada
       const { data: riotAccount, error: riotError } = await supabase
