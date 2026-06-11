@@ -236,15 +236,15 @@ export function MatchCardPro({
       {/* Top Header: Queue, Time, Share */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-black uppercase tracking-wider ${resultColorClass}`}>
+          <span className={`text-[0.625rem] font-black uppercase tracking-wider ${resultColorClass}`}>
             {resultLabel}
           </span>
-          <span className="text-[10px] text-slate-700 dark:text-slate-400 font-bold">
+          <span className="text-[0.625rem] text-slate-700 dark:text-slate-400 font-bold">
             {getQueueName(match.matches.queue_id)} • {getRelativeTime(match.created_at)}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-500">
+          <span className="text-[0.625rem] font-bold text-slate-600 dark:text-slate-500">
             {formatDuration(match.matches.game_duration)}
           </span>
           {!hideShareButton && (
@@ -265,7 +265,7 @@ export function MatchCardPro({
         {/* PLAYER SIDE */}
         <div className="flex items-center gap-2">
           <div className="flex flex-col gap-1 items-center">
-            <span className="text-[9px] font-black text-slate-800 dark:text-slate-100 truncate max-w-[50px] leading-tight mb-0.5" title={match.summoner_name}>
+            <span className="text-[0.5625rem] font-black text-slate-800 dark:text-slate-100 truncate max-w-[50px] leading-tight mb-0.5" title={match.summoner_name}>
               {match.summoner_name}
             </span>
             <div className="relative w-12 h-12 rounded-lg overflow-hidden border-2 border-slate-300 dark:border-slate-700 shadow-sm">
@@ -289,7 +289,7 @@ export function MatchCardPro({
               {renderRuneIcon(player?.perks?.styles[1]?.style)}
             </div>
             {playerRanking && (
-              <div className={`text-[9px] font-black px-1 rounded-full text-center shadow-sm ${getRankingBadgeClass(playerRanking)}`}>
+              <div className={`text-[0.5625rem] font-black px-1 rounded-full text-center shadow-sm ${getRankingBadgeClass(playerRanking)}`}>
                 #{playerRanking}
               </div>
             )}
@@ -299,16 +299,16 @@ export function MatchCardPro({
             <span className="text-xs font-black text-slate-900 dark:text-white leading-none mt-1">
               {match.kills} / {match.deaths} / {match.assists}
             </span>
-            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 mt-0.5">{playerKdaRatio.toFixed(2)}</span>
+            <span className="text-[0.625rem] font-black text-slate-600 dark:text-slate-400 mt-0.5">{playerKdaRatio.toFixed(2)}</span>
             <div className="mt-1 flex flex-col items-center leading-none">
-              <span className="text-[11px] font-black text-slate-900 dark:text-white">{playerCsTotal} CS</span>
-              <span className="text-[9px] font-black text-slate-600 dark:text-slate-500">{playerCsPerMin.toFixed(1)}/m</span>
+              <span className="text-[0.6875rem] font-black text-slate-900 dark:text-white">{playerCsTotal} CS</span>
+              <span className="text-[0.5625rem] font-black text-slate-600 dark:text-slate-500">{playerCsPerMin.toFixed(1)}/m</span>
             </div>
           </div>
         </div>
 
         {/* VS SEPARATOR */}
-        <div className="text-[10px] font-black text-slate-400 dark:text-slate-600/50">VS</div>
+        <div className="text-[0.625rem] font-black text-slate-400 dark:text-slate-600/50">VS</div>
 
         {/* OPPONENT SIDE */}
         <div className="flex items-center gap-2">
@@ -317,10 +317,10 @@ export function MatchCardPro({
             <span className="text-xs font-black text-slate-900 dark:text-white leading-none mt-1">
               {opponent?.kills || 0} / {opponent?.deaths || 0} / {opponent?.assists || 0}
             </span>
-            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 mt-0.5">{opponentKdaRatio.toFixed(2)}</span>
+            <span className="text-[0.625rem] font-black text-slate-600 dark:text-slate-400 mt-0.5">{opponentKdaRatio.toFixed(2)}</span>
             <div className="mt-1 flex flex-col items-center leading-none">
-              <span className="text-[11px] font-black text-white">{opponentCsTotal} CS</span>
-              <span className="text-[9px] font-black text-slate-600 dark:text-slate-500">{opponentCsPerMin.toFixed(1)}/m</span>
+              <span className="text-[0.6875rem] font-black text-white">{opponentCsTotal} CS</span>
+              <span className="text-[0.5625rem] font-black text-slate-600 dark:text-slate-500">{opponentCsPerMin.toFixed(1)}/m</span>
             </div>
           </div>
 
@@ -330,14 +330,14 @@ export function MatchCardPro({
               {renderRuneIcon(opponent?.perks?.styles[1]?.style)}
             </div>
             {opponentRanking && (
-              <div className={`text-[9px] font-black px-1 rounded-full text-center shadow-sm ${getRankingBadgeClass(opponentRanking)}`}>
+              <div className={`text-[0.5625rem] font-black px-1 rounded-full text-center shadow-sm ${getRankingBadgeClass(opponentRanking)}`}>
                 #{opponentRanking}
               </div>
             )}
           </div>
 
           <div className="flex flex-col gap-1 items-center">
-            <span className="text-[9px] font-black text-slate-800 dark:text-slate-100 truncate max-w-[50px] leading-tight mb-0.5" title={opponent?.summonerName || opponent?.riotIdGameName || "Rival"}>
+            <span className="text-[0.5625rem] font-black text-slate-800 dark:text-slate-100 truncate max-w-[50px] leading-tight mb-0.5" title={opponent?.summonerName || opponent?.riotIdGameName || "Rival"}>
               {opponent?.summonerName || opponent?.riotIdGameName || "Rival"}
             </span>
             <div className="relative w-12 h-12 rounded-lg overflow-hidden border-2 border-slate-300 dark:border-slate-700 shadow-sm">
@@ -380,7 +380,7 @@ export function MatchCardPro({
         <div className="flex items-center justify-between w-full pt-2 border-t border-slate-300 dark:border-slate-800/50">
           <LPBadge lp={match.lp_change} className="scale-90 origin-left" />
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 text-[0.6875rem] font-black text-slate-700 dark:text-slate-400">
               <Eye className="w-3.5 h-3.5" />
               <span>{match.vision_score}</span>
             </div>
@@ -388,7 +388,7 @@ export function MatchCardPro({
               matches={recentMatches}
               currentMatch={match}
               currentPuuid={match.puuid}
-              className="text-[10px] font-bold text-slate-700 dark:text-slate-400"
+              className="text-[0.625rem] font-bold text-slate-700 dark:text-slate-400"
               linkedAccountsMap={linkedAccountsMap}
               showInline
             />

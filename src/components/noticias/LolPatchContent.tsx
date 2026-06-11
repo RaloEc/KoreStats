@@ -824,7 +824,7 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
             </span>
             <Badge
               variant="secondary"
-              className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+              className="hidden md:flex ml-2 h-5 px-1.5 text-[0.625rem] bg-primary/20 text-primary border-none font-bold"
             >
               {champions.length}
             </Badge>
@@ -840,7 +840,7 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
               <span className="font-bold text-sm hidden md:inline">Nuevos</span>
               <Badge
                 variant="secondary"
-                className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 border-none font-bold"
+                className="hidden md:flex ml-2 h-5 px-1.5 text-[0.625rem] bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 border-none font-bold"
               >
                 {newItems.length}
               </Badge>
@@ -856,7 +856,7 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
             <span className="font-bold text-sm hidden md:inline">Objetos</span>
             <Badge
               variant="secondary"
-              className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+              className="hidden md:flex ml-2 h-5 px-1.5 text-[0.625rem] bg-primary/20 text-primary border-none font-bold"
             >
               {regularItems.length}
             </Badge>
@@ -871,7 +871,7 @@ export default function LolPatchContent({ data }: LolPatchContentProps) {
             <span className="font-bold text-sm hidden md:inline">Runas</span>
             <Badge
               variant="secondary"
-              className="hidden md:flex ml-2 h-5 px-1.5 text-[10px] bg-primary/20 text-primary border-none font-bold"
+              className="hidden md:flex ml-2 h-5 px-1.5 text-[0.625rem] bg-primary/20 text-primary border-none font-bold"
             >
               {runes.length}
             </Badge>

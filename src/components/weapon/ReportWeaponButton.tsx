@@ -71,10 +71,10 @@ export default function ReportWeaponButton({ weaponStatsRecordId }: { weaponStat
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <button
-          className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-md"
+          className="p-1.5 rounded-lg border border-red-500/20 dark:border-red-900/20 bg-red-500/5 dark:bg-red-950/10 text-red-600/60 dark:text-red-400/60 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all shadow-sm flex items-center justify-center active:scale-95"
           title="Reportar esta estadística de arma"
         >
-          <Flag size={14} />
+          <Flag size={11} />
         </button>
       </DialogTrigger>
 

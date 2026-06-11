@@ -126,13 +126,13 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
 
           {/* Izquierda: Queue Name */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em] text-white/90 font-unbounded whitespace-nowrap">
+            <span className="text-[0.625rem] sm:text-[0.6875rem] font-black uppercase tracking-[0.15em] text-white/90 font-unbounded whitespace-nowrap">
               {queueName}
             </span>
             {tier && (
               <div className="hidden sm:flex items-center gap-1.5 opacity-60 flex-shrink-0">
                 <span className="w-1 h-1 rounded-full bg-white/40" />
-                <span className="text-[9px] font-bold text-white/70 uppercase whitespace-nowrap">
+                <span className="text-[0.5625rem] font-bold text-white/70 uppercase whitespace-nowrap">
                   {tier}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
           {/* Centro: Resultado (Focal Point) */}
           <div className="flex-[1.5] flex justify-center px-2">
             <span
-              className={`text-[12px] sm:text-[14px] font-black tracking-[0.25em] drop-shadow-sm whitespace-nowrap ${outcomeTextClass}`}
+              className={`text-[0.75rem] sm:text-[0.875rem] font-black tracking-[0.25em] drop-shadow-sm whitespace-nowrap ${outcomeTextClass}`}
             >
               {isVictory ? "VICTORIA" : "DERROTA"}
             </span>
@@ -150,12 +150,12 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
 
           {/* Derecha: Tiempo + Duración */}
           <div className="flex items-center justify-end gap-3 flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold text-white/70 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 text-[0.5625rem] sm:text-[0.625rem] font-bold text-white/70 whitespace-nowrap">
               <Clock className="w-3 h-3 opacity-60 flex-shrink-0" />
               <span>{relativeTime}</span>
             </div>
             <div className="w-px h-3 bg-white/10 flex-shrink-0" />
-            <div className="text-[11px] sm:text-[12px] font-black text-white px-2 py-0.5 rounded bg-white/10 whitespace-nowrap">
+            <div className="text-[0.6875rem] sm:text-[0.75rem] font-black text-white px-2 py-0.5 rounded bg-white/10 whitespace-nowrap">
               {durationLabel}
             </div>
           </div>
@@ -182,7 +182,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
 
           {/* Nombre del Riot ID + Nombre del Campeón */}
           <div className="flex flex-col gap-1 min-w-0 flex-1">
-            <div className="text-[9px] sm:text-[10px] font-bold tracking-wider text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate w-fit font-unbounded">
+            <div className="text-[0.5625rem] sm:text-[0.625rem] font-bold tracking-wider text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate w-fit font-unbounded">
               {riotIdLabel}
             </div>
             <div className="flex items-center gap-3">
@@ -190,7 +190,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
                 {championName}
               </h3>
               {isHidden && (
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-950 dark:text-amber-100 bg-amber-400/90 rounded-full px-2.5 py-1 shadow-lg backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 text-[0.625rem] font-bold text-amber-950 dark:text-amber-100 bg-amber-400/90 rounded-full px-2.5 py-1 shadow-lg backdrop-blur-sm">
                   <EyeOff className="w-3 h-3" />
                 </span>
               )}
@@ -204,7 +204,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({
             className={`relative overflow-hidden flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl font-black shrink-0 ${rankingBadgeClass}`}
           >
             <div className="relative flex flex-col items-center leading-none text-white">
-              <span className="text-[8px] uppercase font-bold tracking-widest opacity-60">
+              <span className="text-[0.5rem] uppercase font-bold tracking-widest opacity-60">
                 Rank
               </span>
               <span className="text-lg sm:text-xl font-black mt-1">

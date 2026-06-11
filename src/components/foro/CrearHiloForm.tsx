@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserTheme } from "@/hooks/useUserTheme";
 import type { Database } from "@/lib/database.types";
-import TiptapEditor from "@/components/tiptap-editor";
+import dynamic from "next/dynamic";
+const TiptapEditor = dynamic(() => import("@/components/tiptap-editor"), {
+  ssr: false,
+  loading: () => <div className="min-h-[400px] animate-pulse bg-muted rounded-md" />
+});
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -361,7 +365,12 @@ export function CrearHiloForm({ categorias }: CrearHiloFormProps) {
                   : "Analizar Estadísticas de Arma"}
               </Button>
             </DialogTrigger>
-            <DialogContent className="!max-w-none !w-[85vw] h-auto md:h-[90vh] p-0 overflow-hidden flex flex-col">
+            <DialogContent 
+              className="!max-w-none !w-[85vw] h-auto md:h-[90vh] p-0 overflow-hidden flex flex-col"
+              onPointerDownOutside={(e) => e.preventDefault()}
+              onInteractOutside={(e) => e.preventDefault()}
+              onEscapeKeyDown={(e) => e.preventDefault()}
+            >
               <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <DialogHeader>
                   <DialogTitle>Análisis de Estadísticas de Arma</DialogTitle>

@@ -43,7 +43,7 @@ function RankingBadge({ position }: { position: number | null | undefined }) {
 
   return (
     <span
-      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${badgeClass}`}
+      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[0.625rem] font-bold ${badgeClass}`}
     >
       #{position}
     </span>

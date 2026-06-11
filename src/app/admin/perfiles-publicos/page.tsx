@@ -103,12 +103,12 @@ export default async function AdminPublicProfilesPage() {
                         {profile.display_name}
                       </h3>
                       {profile.category === "pro_player" && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20 uppercase">
+                        <span className="px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[0.625rem] font-bold border border-blue-500/20 uppercase">
                           PRO
                         </span>
                       )}
                       {profile.category === "streamer" && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold border border-purple-500/20 uppercase">
+                        <span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[0.625rem] font-bold border border-purple-500/20 uppercase">
                           Streamer
                         </span>
                       )}

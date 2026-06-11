@@ -184,7 +184,7 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                         authUser?.email?.split("@")[0] ||
                         "Usuario"}
                     </span>
-                    <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60">
+                    <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[0.625rem] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60">
                       {profile?.role || "user"}
                     </span>
                   </div>
@@ -499,7 +499,7 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
                         className="w-5 h-5 rounded object-cover shadow-sm bg-white dark:bg-gray-800"
                       />
                     ) : (
-                      <div className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-[8px]">
+                      <div className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-[0.5rem]">
                         {game.nombre.charAt(0)}
                       </div>
                     )}
@@ -525,7 +525,7 @@ export const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
             </div>
 
             {/* Aviso legal */}
-            <div className="border-t border-gray-200 dark:border-gray-800 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+            <div className="border-t border-gray-200 dark:border-gray-800 text-[0.6875rem] leading-relaxed text-gray-500 dark:text-gray-400">
               <button
                 type="button"
                 onClick={() => setLegalOpen(!legalOpen)}

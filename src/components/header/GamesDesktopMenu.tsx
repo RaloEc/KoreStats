@@ -49,6 +49,7 @@ export const GamesDesktopMenu: React.FC<GamesDesktopMenuProps> = ({
                             <li key={game.id}>
                                 <Link
                                     href={`/games/${game.slug}`}
+                                    prefetch={true}
                                     className="flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-all duration-200 text-gray-700 dark:text-gray-200 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 group active:scale-[0.98]"
                                     onClick={onClose}
                                 >
@@ -72,10 +73,10 @@ export const GamesDesktopMenu: React.FC<GamesDesktopMenuProps> = ({
                                     </div>
 
                                     <div className="flex flex-col min-w-0">
-                                        <span className="font-bold text-[13px] leading-tight text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        <span className="font-bold text-[0.8125rem] leading-tight text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                             {game.nombre}
                                         </span>
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5 truncate">
+                                        <span className="text-[0.625rem] text-gray-500 dark:text-gray-400 leading-tight mt-0.5 truncate">
                                             Estadísticas y noticias
                                         </span>
                                     </div>
@@ -93,11 +94,11 @@ export const GamesDesktopMenu: React.FC<GamesDesktopMenuProps> = ({
                 <div className="px-1.5 pb-1.5">
                     <Link
                         href="/games"
-                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/20 hover:bg-blue-50/60 dark:hover:bg-blue-900/40 transition-all duration-300"
+                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-[0.6875rem] font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/20 hover:bg-blue-50/60 dark:hover:bg-blue-900/40 transition-all duration-300"
                         onClick={onClose}
                     >
                         Explorar todos los juegos
-                        <span className="text-[9px] opacity-70">→</span>
+                        <span className="text-[0.5625rem] opacity-70">→</span>
                     </Link>
                 </div>
             </div>

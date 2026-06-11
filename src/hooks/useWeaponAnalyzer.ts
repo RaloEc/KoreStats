@@ -39,7 +39,6 @@ const fetchJobStatus = async (
   jobId: string
 ): Promise<WeaponAnalysisJob | null> => {
   if (!jobId) return null;
-  console.log("[useWeaponAnalyzer] Consultando estado del job", { jobId });
   const response = await fetch(`/api/analyze-weapon/status?jobId=${jobId}`);
   if (!response.ok) {
     throw new Error("No se pudo obtener el estado del análisis");
@@ -77,12 +76,6 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
     if (!job) return;
 
     if (job.status === "completed") {
-      console.log("[useWeaponAnalyzer] Job completado", {
-        jobId: job.id,
-        result: job.result,
-        weaponStatsRecordId: (job as any).weapon_stats_record_id,
-      });
-
       let parsedStats: WeaponStats | null = null;
       let aiDescription: string | null = null;
 
@@ -183,11 +176,6 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
 
   // Función que el componente llamará para iniciar el análisis
   const startAnalysis = useCallback(async (file: File) => {
-    console.log("[useWeaponAnalyzer] Iniciando análisis", {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-    });
     setStatus("uploading"); // Estado inicial: subiendo
     setClientError(null);
     setJobId(null);
@@ -221,7 +209,6 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
       const formData = new FormData();
       formData.append("image", file);
 
-      console.log("[useWeaponAnalyzer] Subiendo imagen a la API");
       const response = await fetch("/api/analyze-weapon", {
         method: "POST",
         body: formData,
@@ -247,9 +234,6 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
       }
 
       // 3. ¡Éxito! Iniciar el polling
-      console.log("[useWeaponAnalyzer] Job creado correctamente", {
-        jobId: result.jobId,
-      });
       setJobId(result.jobId);
       setStatus("analyzing"); // Cambiar a estado de "analizando" (activará el useQuery)
     } catch (err) {
@@ -267,7 +251,6 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
 
   // Función para resetear el estado
   const clear = useCallback(() => {
-    console.log("[useWeaponAnalyzer] Restableciendo estado del hook");
     setJobId(null);
     setClientError(null);
     setStatus("idle");
@@ -307,11 +290,6 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
       return null;
     }
 
-    console.log("[useWeaponAnalyzer] Resultado parseado correctamente", {
-      type,
-      hasStats: Boolean(stats),
-    });
-
     return {
       type,
       stats: stats || undefined,
@@ -329,13 +307,7 @@ export function useWeaponAnalyzer(): UseWeaponAnalyzerReturn {
     }
   }, [parsedResult]);
 
-  useEffect(() => {
-    console.log("[useWeaponAnalyzer] Estado actualizado", {
-      status,
-      jobId,
-      error: clientError,
-    });
-  }, [status, jobId, clientError]);
+
 
   return {
     status,

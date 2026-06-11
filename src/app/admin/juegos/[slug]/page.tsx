@@ -79,6 +79,8 @@ const MODULE_TYPES = [
     { key: "events", label: "Eventos", description: "Eventos y parches" },
     { key: "rotations", label: "Rotaciones", description: "Rotaciones gratuitas" },
     { key: "pro_players", label: "Pro Players", description: "Jugadores profesionales" },
+    { key: "command_center", label: "Centro de Comando", description: "Header premium superior con estadísticas y datos de season" },
+    { key: "clans", label: "Clanes", description: "Sistema de clanes del juego" },
 ];
 
 const WEAPON_CATEGORIES = ["Assault", "Marksman", "Sniper", "SMG", "LMG", "Secondary", "Shotgun", "Special"];
@@ -106,6 +108,7 @@ interface GameModule {
     game_id: string;
     module_type: string;
     enabled: boolean;
+    config?: Record<string, any> | null;
 }
 
 interface DeltaWeapon {
@@ -434,6 +437,89 @@ export default function GameConfigPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
+    const [bannerImage, setBannerImage] = useState("");
+    const [seasonVersion, setSeasonVersion] = useState("");
+    const [seasonName, setSeasonName] = useState("");
+    const [savingBanner, setSavingBanner] = useState(false);
+    const [uploadingBanner, setUploadingBanner] = useState(false);
+
+    const commandCenterModule = useMemo(() => 
+        modules.find(m => m.module_type === "command_center"),
+        [modules]
+    );
+
+    useEffect(() => {
+        if (commandCenterModule?.config) {
+            setBannerImage(commandCenterModule.config.banner_image_url || "");
+            setSeasonVersion(commandCenterModule.config.season_version || "");
+            setSeasonName(commandCenterModule.config.season_name || "");
+        } else {
+            setBannerImage("");
+            setSeasonVersion("");
+            setSeasonName("");
+        }
+    }, [commandCenterModule]);
+
+    const handleSaveCommandCenterConfig = async () => {
+        if (!juego || !commandCenterModule) return;
+        setSavingBanner(true);
+        try {
+            const updatedConfig = {
+                ...commandCenterModule.config,
+                banner_image_url: bannerImage,
+                season_version: seasonVersion,
+                season_name: seasonName,
+            };
+
+            const { error } = await supabase
+                .from("game_modules")
+                .update({
+                    config: updatedConfig,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", commandCenterModule.id);
+
+            if (error) throw error;
+
+            toast({ title: "Configuración guardada", description: "El Centro de Comando ha sido actualizado correctamente." });
+            fetchAll(false);
+        } catch (err) {
+            toast({ title: "Error", description: "No se pudo guardar la configuración.", variant: "destructive" });
+        } finally {
+            setSavingBanner(false);
+        }
+    };
+
+    const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !juego) return;
+        
+        setUploadingBanner(true);
+        try {
+            const formData = new FormData();
+            formData.append("image", file);
+            formData.append("slug", juego.slug);
+
+            const res = await fetch("/api/admin/games/upload-banner", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Error al subir banner");
+            }
+
+            const data = await res.json();
+            setBannerImage(data.url);
+            toast({ title: "Imagen subida", description: "El banner se subió correctamente." });
+        } catch (err: any) {
+            toast({ title: "Error al subir", description: err.message || "Error desconocido", variant: "destructive" });
+        } finally {
+            setUploadingBanner(false);
+        }
+    };
+
     // Inicializar categorías expandidas
     useEffect(() => {
         if (weapons.length > 0 && Object.keys(expandedCategories).length === 0) {
@@ -497,7 +583,7 @@ export default function GameConfigPage() {
             if (currentJuegoId) {
                 const { data: modulesData } = await supabase
                     .from("game_modules")
-                    .select("id, game_id, module_type, enabled")
+                    .select("id, game_id, module_type, enabled, config")
                     .eq("game_id", currentJuegoId);
                 setModules(modulesData || []);
 
@@ -635,36 +721,127 @@ export default function GameConfigPage() {
 
             {/* ─── Tab: Módulos ─────────────────────────────────────────── */}
             {activeTab === "modules" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {MODULE_TYPES.map((modType) => {
-                        const enabled = isModuleEnabled(modType.key);
-                        const isToggling = togglingModule === modType.key;
-                        return (
-                            <div
-                                key={modType.key}
-                                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${enabled ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-muted"}`}
-                            >
-                                <div className="flex-1 min-w-0">
-                                    <p className={`text-sm font-semibold ${enabled ? "text-foreground" : "text-muted-foreground"}`}>
-                                        {modType.label}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">{modType.description}</p>
-                                </div>
-                                <button
-                                    onClick={() => handleToggleModule(modType.key)}
-                                    disabled={isToggling}
-                                    className="ml-3 flex-shrink-0 focus:outline-none"
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {MODULE_TYPES.map((modType) => {
+                            const enabled = isModuleEnabled(modType.key);
+                            const isToggling = togglingModule === modType.key;
+                            return (
+                                <div
+                                    key={modType.key}
+                                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${enabled ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-muted"}`}
                                 >
-                                    {isToggling
-                                        ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                        : enabled
-                                            ? <ToggleRight className="h-8 w-8 text-primary" />
-                                            : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
-                                    }
-                                </button>
-                            </div>
-                        );
-                    })}
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-semibold ${enabled ? "text-foreground" : "text-muted-foreground"}`}>
+                                            {modType.label}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">{modType.description}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleToggleModule(modType.key)}
+                                        disabled={isToggling}
+                                        className="ml-3 flex-shrink-0 focus:outline-none"
+                                    >
+                                        {isToggling
+                                            ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                            : enabled
+                                                ? <ToggleRight className="h-8 w-8 text-primary" />
+                                                : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
+                                        }
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {isModuleEnabled("command_center") && (
+                        <Card className="max-w-2xl border-zinc-200/50 dark:border-white/10 mt-6">
+                            <CardHeader>
+                                <CardTitle className="text-lg">Configuración de Centro de Comando</CardTitle>
+                                <CardDescription>Personaliza los datos y la apariencia de la cabecera principal de Delta Force.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {/* Banner Image */}
+                                <div className="space-y-2">
+                                    <Label className="text-foreground font-medium">Imagen del Banner (Fondo)</Label>
+                                    <div className="flex gap-4 items-center">
+                                        <div className="relative border rounded-xl w-40 h-24 flex items-center justify-center overflow-hidden bg-muted flex-shrink-0">
+                                            {bannerImage ? (
+                                                <Image src={bannerImage} alt="Preview Banner" fill className="object-cover" unoptimized />
+                                            ) : (
+                                                <ImageIcon className="h-8 w-8 text-muted-foreground opacity-40" />
+                                            )}
+                                        </div>
+                                        <div className="flex-grow space-y-2">
+                                            <Input 
+                                                placeholder="https://example.com/banner.webp o sube una imagen" 
+                                                value={bannerImage}
+                                                onChange={(e) => setBannerImage(e.target.value)}
+                                                className="text-sm font-mono"
+                                            />
+                                            <div className="flex gap-2">
+                                                <Button 
+                                                    type="button" 
+                                                    variant="secondary" 
+                                                    size="sm"
+                                                    disabled={uploadingBanner}
+                                                    onClick={() => document.getElementById("banner-upload-input")?.click()}
+                                                >
+                                                    {uploadingBanner ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                                                    Subir Imagen
+                                                </Button>
+                                                <input 
+                                                    id="banner-upload-input" 
+                                                    type="file" 
+                                                    accept="image/*" 
+                                                    className="hidden" 
+                                                    onChange={handleBannerUpload} 
+                                                />
+                                                {bannerImage && (
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="text-destructive hover:bg-destructive/10"
+                                                        onClick={() => setBannerImage("")}
+                                                    >
+                                                        Eliminar
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <Label>Nombre de la Season</Label>
+                                        <Input 
+                                            placeholder="ECO Season" 
+                                            value={seasonName}
+                                            onChange={(e) => setSeasonName(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <Label>Versión / Número de Season</Label>
+                                        <Input 
+                                            placeholder="v1.0.4" 
+                                            value={seasonVersion}
+                                            onChange={(e) => setSeasonVersion(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button 
+                                    onClick={handleSaveCommandCenterConfig} 
+                                    disabled={savingBanner} 
+                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {savingBanner ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                                    Guardar Configuración de Banner
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
 

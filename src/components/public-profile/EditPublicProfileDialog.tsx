@@ -99,7 +99,7 @@ export function EditPublicProfileDialog({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className="h-8 bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white gap-2 font-bold uppercase tracking-wider text-[10px]"
+        className="h-8 bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white gap-2 font-bold uppercase tracking-wider text-[0.625rem]"
       >
         <Settings size={14} />
         Editar Perfil
@@ -148,7 +148,7 @@ export function EditPublicProfileDialog({
                       )}
                       <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all backdrop-blur-[2px]">
                         <Settings size={20} className="text-white mb-1" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                        <span className="text-[0.625rem] font-bold text-white uppercase tracking-wider">
                           Actualizar
                         </span>
                         <input
@@ -190,7 +190,7 @@ export function EditPublicProfileDialog({
                       className="h-11 border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-zinc-900/50 rounded-xl focus:ring-blue-500/20"
                       required
                     />
-                    <p className="text-[10px] text-gray-500">
+                    <p className="text-[0.625rem] text-gray-500">
                       Este nombre aparecerá en tu perfil público.
                     </p>
                   </div>
@@ -214,7 +214,7 @@ export function EditPublicProfileDialog({
                         required
                       />
                     </div>
-                    <p className="text-[10px] text-gray-500">
+                    <p className="text-[0.625rem] text-gray-500">
                       Identificador único para tu URL personalizada.
                     </p>
                   </div>

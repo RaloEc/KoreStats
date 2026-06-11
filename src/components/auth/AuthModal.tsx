@@ -346,7 +346,7 @@ export function AuthModal({
                       {mode === "login" && (
                         <Button
                           variant="link"
-                          className="p-0 h-auto text-[11px] font-semibold text-blue-500"
+                          className="p-0 h-auto text-[0.6875rem] font-semibold text-blue-500"
                           type="button"
                         >
                           ¿Olvidaste tu contraseña?
@@ -472,7 +472,7 @@ export function AuthModal({
                   <div className="absolute inset-0 flex items-center">
                     <Separator className="w-full dark:bg-zinc-800" />
                   </div>
-                  <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em] font-bold">
+                  <div className="relative flex justify-center text-[0.625rem] uppercase tracking-[0.2em] font-bold">
                     <span className="bg-white dark:bg-zinc-950 px-4 text-zinc-400">
                       O continúa con
                     </span>
@@ -497,7 +497,7 @@ export function AuthModal({
 
         {/* Footer (Opcional) */}
         <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 border-t border-zinc-100 dark:border-zinc-800 text-center">
-          <p className="text-[10px] text-zinc-400 font-medium">
+          <p className="text-[0.625rem] text-zinc-400 font-medium">
             Al continuar, aceptas nuestros Términos de Servicio y Política de
             Privacidad.
           </p>

@@ -152,7 +152,7 @@ export default function UsuariosStats() {
                   {card.value.toLocaleString()}
                 </div>
                 {card.description && (
-                  <p className="text-[11px] md:text-sm text-muted-foreground text-center mt-1">
+                  <p className="text-[0.6875rem] md:text-sm text-muted-foreground text-center mt-1">
                     {card.description}
                   </p>
                 )}

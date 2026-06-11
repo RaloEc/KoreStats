@@ -54,11 +54,12 @@ export async function GET(
       return NextResponse.json([], { status: 200 });
     }
 
-    // Obtener weapon_stats_records del usuario
+    // Obtener weapon_stats_records del usuario que tengan share_code (completados)
     const { data: records, error: recordsError } = await supabase
       .from("weapon_stats_records")
-      .select("id, weapon_name, stats, created_at, share_code, description")
+      .select("id, weapon_name, stats, created_at, share_code, description, game_mode, patch_version")
       .eq("user_id", userId)
+      .not("share_code", "is", null)
       .order("created_at", { ascending: false })
       .limit(20);
 

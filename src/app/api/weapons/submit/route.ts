@@ -117,6 +117,7 @@ function extractWeaponName(shareCode: string): string | null {
     "escopeta",
     "rifle de asalto",
     "fusil francotirador",
+    "fusil de francotirador",
     "lanzacohetes",
     "rifle de batalla",
     "rifle de precisión",
@@ -148,6 +149,39 @@ function extractWeaponName(shareCode: string): string | null {
   return clean || null;
 }
 
+// ─── Helper: obtener el patch_version activo desde el command_center ──────────
+
+const FALLBACK_PATCH = "Temporada 9 - ECHO";
+
+async function getCurrentPatchVersion(): Promise<string> {
+  try {
+    const serviceSupabase = getServiceClient();
+    const { data } = await serviceSupabase
+      .from("game_modules")
+      .select("config")
+      .eq("module_type", "command_center")
+      .eq("game_slug", "delta-force")
+      .eq("enabled", true)
+      .single();
+
+    if (data?.config) {
+      const name = data.config.season_name;
+      const version = data.config.season_version;
+      if (name && version) {
+        const versionStr = /temporada|season/i.test(String(version))
+          ? version
+          : `Temporada ${version}`;
+        return `${versionStr} - ${name}`;
+      } else if (name) {
+        return name as string;
+      }
+    }
+  } catch (e) {
+    console.warn("[weapons/submit] No se pudo leer el patch del command_center, usando fallback:", e);
+  }
+  return FALLBACK_PATCH;
+}
+
 // ─── Route Handler ────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -177,10 +211,13 @@ export async function POST(request: NextRequest) {
     const detectedMode = detectGameMode(trimmedCode);
     const serviceSupabase = getServiceClient();
 
+    // Obtener el parche activo para asociarlo a la build
+    const currentPatch = await getCurrentPatchVersion();
+
     if (weaponStatsRecordId) {
       const weaponName = extractWeaponName(trimmedCode);
       
-      // Update existing record — also refresh game_mode and weapon_name 
+      // Update existing record — also refresh game_mode, weapon_name and patch_version
       // in case the AI OCR result was inaccurate but the share code is perfect.
       const { data, error } = await serviceSupabase
         .from("weapon_stats_records")
@@ -188,11 +225,12 @@ export async function POST(request: NextRequest) {
           share_code: trimmedCode,
           game_mode: detectedMode,
           description: description || null,
+          patch_version: currentPatch,
           ...(weaponName ? { weapon_name: weaponName } : {}),
         })
         .eq("id", weaponStatsRecordId)
         .eq("user_id", user.id)
-        .select("id, share_code, game_mode, description")
+        .select("id, share_code, game_mode, description, patch_version")
         .single();
 
       if (error) {
@@ -203,7 +241,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({ success: true, record: data, detected_mode: detectedMode });
+      return NextResponse.json({ success: true, record: data, detected_mode: detectedMode, patch_version: currentPatch });
     } else {
       const weaponName = extractWeaponName(trimmedCode);
 
@@ -215,9 +253,10 @@ export async function POST(request: NextRequest) {
           share_code: trimmedCode,
           game_mode: detectedMode,
           description: description || null,
+          patch_version: currentPatch,
           stats: {},
         })
-        .select("id, weapon_name, share_code, game_mode, description")
+        .select("id, weapon_name, share_code, game_mode, description, patch_version")
         .single();
 
       if (error) {
@@ -228,7 +267,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({ success: true, record: data, detected_mode: detectedMode });
+      return NextResponse.json({ success: true, record: data, detected_mode: detectedMode, patch_version: currentPatch });
     }
   } catch (error) {
     console.error("[weapons/submit] Unexpected error:", error);

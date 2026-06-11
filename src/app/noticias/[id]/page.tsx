@@ -109,6 +109,48 @@ export default async function NoticiaDetalle({
       }
     }
 
+    // Determinar si la noticia pertenece a Delta Force (directamente o por su categoría padre)
+    let esDeltaForce = false;
+    if (noticia.categorias && noticia.categorias.length > 0) {
+      esDeltaForce = noticia.categorias.some(
+        (cat: any) =>
+          cat.slug === "delta-force" ||
+          cat.nombre?.toLowerCase().includes("delta force")
+      );
+
+      if (!esDeltaForce) {
+        const parentIds = noticia.categorias
+          .map((cat: any) => cat.parent_id)
+          .filter(Boolean);
+
+        if (parentIds.length > 0) {
+          try {
+            const supabase = await createClient();
+            const { data: parentCats } = await supabase
+              .from("categorias")
+              .select("slug, nombre")
+              .in("id", parentIds);
+
+            if (parentCats && parentCats.length > 0) {
+              esDeltaForce = parentCats.some(
+                (pCat: any) =>
+                  pCat.slug === "delta-force" ||
+                  pCat.nombre?.toLowerCase().includes("delta force")
+              );
+            }
+          } catch (e) {
+            console.error("[NoticiaDetalle] Error fetching parent categories:", e);
+          }
+        }
+      }
+    }
+
+    if (!esDeltaForce && noticia.categoria) {
+      esDeltaForce =
+        noticia.categoria.slug === "delta-force" ||
+        noticia.categoria.nombre?.toLowerCase().includes("delta force");
+    }
+
     // Procesar contenido
     const contenidoProcesado = procesarContenido(noticia.contenido);
 
@@ -235,7 +277,10 @@ export default async function NoticiaDetalle({
               <div className="h-64 animate-pulse bg-muted rounded-lg max-w-4xl mx-auto" />
             }
           >
-            <NoticiaComentariosOptimizado noticiaId={params.id} />
+            <NoticiaComentariosOptimizado
+              noticiaId={params.id}
+              juegoAsociado={esDeltaForce ? "delta-force" : "lol"}
+            />
           </Suspense>
         </main>
       </div>

@@ -121,17 +121,17 @@ export function LiveGameBanner({
       {isStale ? (
         <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-500/20 dark:bg-amber-500/30 border border-amber-500/40 group cursor-help">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+          <span className="text-[0.5625rem] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
             ⚠️ DESCONECTADO
           </span>
           {/* Tooltip */}
-          <div className="absolute top-full right-0 mt-2 w-56 p-2 bg-slate-900 dark:bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 border border-amber-500/30">
+          <div className="absolute top-full right-0 mt-2 w-56 p-2 bg-slate-900 dark:bg-slate-800 text-white text-[0.625rem] rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 border border-amber-500/30">
             <div className="font-bold text-amber-400 mb-1">
               Conexión perdida
             </div>
             <div className="text-slate-300">
               Los datos no se han actualizado en más de 30s. Posibles causas:
-              <ul className="list-disc list-inside mt-1 text-[9px]">
+              <ul className="list-disc list-inside mt-1 text-[0.5625rem]">
                 <li>Programa de escritorio cerrado</li>
                 <li>Pérdida de conexión</li>
               </ul>
@@ -144,7 +144,7 @@ export function LiveGameBanner({
       ) : (
         <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 border border-emerald-500/30">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+          <span className="text-[0.5625rem] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
             {isApiFallback ? "LIVE (API)" : "LIVE"}
           </span>
         </div>
@@ -183,7 +183,7 @@ export function LiveGameBanner({
                 {assists}
               </span>
             </div>
-            <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
+            <span className="text-[0.5625rem] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
               {kda} KDA
             </span>
           </div>
@@ -192,14 +192,14 @@ export function LiveGameBanner({
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
               <Trophy className="w-3 h-3 text-slate-500 dark:text-white/40" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-white/70">
+              <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-700 dark:text-white/70">
                 {displayQueue}
               </span>
             </div>
             {gameDuration !== undefined && (
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3 text-slate-400 dark:text-white/30" />
-                <span className="text-[10px] font-bold text-slate-600 dark:text-white/50">
+                <span className="text-[0.625rem] font-bold text-slate-600 dark:text-white/50">
                   {formatDuration(gameDuration)}
                 </span>
               </div>
@@ -224,7 +224,7 @@ export function LiveGameBanner({
                   </span>
                 </div>
               </div>
-              <span className="text-[8px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-widest">
+              <span className="text-[0.5rem] font-bold text-slate-400 dark:text-white/30 uppercase tracking-widest">
                 Score
               </span>
             </div>

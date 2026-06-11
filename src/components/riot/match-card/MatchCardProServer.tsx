@@ -309,7 +309,7 @@ export function MatchCardServer({
   return (
     <>
       {/* 1. Metadata */}
-      <div className="flex flex-col gap-1 text-[11px]">
+      <div className="flex flex-col gap-1 text-[0.6875rem]">
         <span
           className={`uppercase tracking-wide font-semibold ${outcomeTextClass}`}
         >
@@ -424,7 +424,7 @@ export function MatchCardServer({
           matches={recentMatches}
           currentMatch={match}
           currentPuuid={match.puuid}
-          className="text-[11px]"
+          className="text-[0.6875rem]"
           linkedAccountsMap={linkedAccountsMap}
         />
       </div>

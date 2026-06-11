@@ -239,7 +239,7 @@ export default function DashboardContent() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Dashboard
           </h1>
-          <p className="text-[13px] sm:text-sm text-muted-foreground amoled:text-gray-300 mt-1">
+          <p className="text-[0.8125rem] sm:text-sm text-muted-foreground amoled:text-gray-300 mt-1">
             Panel de control general de la comunidad
           </p>
           {lastUpdated && (
@@ -288,7 +288,7 @@ export default function DashboardContent() {
                   )}
                 </div>
                 {card.description && (
-                  <div className="text-[11px] md:text-sm text-muted-foreground text-center mt-1">
+                  <div className="text-[0.6875rem] md:text-sm text-muted-foreground text-center mt-1">
                     {card.description}
                   </div>
                 )}
@@ -481,7 +481,7 @@ export default function DashboardContent() {
                           : "Fecha desconocida"}
                       </p>
                     </div>
-                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-300 amoled:bg-zinc-900/70 amoled:text-zinc-300">
+                    <span className="absolute bottom-2 right-2 text-[0.625rem] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-300 amoled:bg-zinc-900/70 amoled:text-zinc-300">
                       {authorUsernames[n.autor_id || n.autor || ""] ||
                         "Autor desconocido"}
                     </span>

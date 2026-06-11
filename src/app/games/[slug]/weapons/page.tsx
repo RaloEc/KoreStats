@@ -29,17 +29,6 @@ export default async function WeaponsPage({ params }: WeaponsPageProps) {
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             <div className="container mx-auto px-4 py-6 max-w-6xl">
-                {/* Back link */}
-                <div className="mb-6">
-                    <Link
-                        href={`/games/${slug}`}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                    >
-                        <ChevronLeft size={16} />
-                        Volver a {game.nombre}
-                    </Link>
-                </div>
-
                 {/* Weapons specific view */}
                 {slug === "delta-force" ? (
                     <DeltaForceWeaponsMeta />

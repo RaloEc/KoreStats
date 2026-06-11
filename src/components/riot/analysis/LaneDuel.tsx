@@ -525,7 +525,7 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1.5 items-center mb-3">
-          <span className="text-amber-600 dark:text-amber-400 font-semibold uppercase text-[10px]">
+          <span className="text-amber-600 dark:text-amber-400 font-semibold uppercase text-[0.625rem]">
             Oro
           </span>
           <span
@@ -541,7 +541,7 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
             {formatSigned(data.goldDiff)}
           </span>
 
-          <span className="text-blue-600 dark:text-blue-400 font-semibold uppercase text-[10px]">
+          <span className="text-blue-600 dark:text-blue-400 font-semibold uppercase text-[0.625rem]">
             XP
           </span>
           <span
@@ -557,21 +557,21 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
             {formatSigned(data.xpDiff)}
           </span>
 
-          <span className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-[10px]">
+          <span className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-[0.625rem]">
             CS
           </span>
           <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-200">
             {formatSigned(data.csDiff)}
           </span>
 
-          <span className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-[10px]">
+          <span className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-[0.625rem]">
             KDA
           </span>
           <div className="flex gap-2 items-center">
             <span className="font-mono font-bold text-xs text-blue-500 dark:text-blue-400">
               {data.focus?.kills}/{data.focus?.deaths}/{data.focus?.assists}
             </span>
-            <span className="text-[10px] text-slate-400">vs</span>
+            <span className="text-[0.625rem] text-slate-400">vs</span>
             <span className="font-mono font-bold text-xs text-rose-500 dark:text-rose-400">
               {data.opponent?.kills}/{data.opponent?.deaths}/
               {data.opponent?.assists}
@@ -678,7 +678,7 @@ const CustomTooltip = ({ active, payload, label, gameVersion }: any) => {
                   </div>
 
                   {/* Text Description */}
-                  <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight line-clamp-2">
+                  <p className="text-[0.625rem] font-medium text-slate-600 dark:text-slate-300 leading-tight line-clamp-2">
                     {e.comment}
                   </p>
                 </div>
@@ -1316,10 +1316,10 @@ export function LaneDuel({
                   <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate max-w-[100px]">
                     {focusPlayer.riotIdGameName || focusPlayer.summonerName}
                   </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                  <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
                     {focusPlayer.championName}
                   </p>
-                  <p className="text-[10px] font-mono font-bold text-indigo-500 dark:text-indigo-400 mt-0.5">
+                  <p className="text-[0.625rem] font-mono font-bold text-indigo-500 dark:text-indigo-400 mt-0.5">
                     {focusPlayer.kills} / {focusPlayer.deaths} /{" "}
                     {focusPlayer.assists}
                   </p>
@@ -1335,7 +1335,7 @@ export function LaneDuel({
                     VS
                   </span>
                 )}
-                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest text-center">
+                <span className="text-[0.625rem] font-medium text-slate-400 uppercase tracking-widest text-center">
                   {isAlly ? "Contribución" : "Gold Diff"}
                 </span>
               </div>
@@ -1360,10 +1360,10 @@ export function LaneDuel({
                   <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate max-w-[100px]">
                     {opponent.riotIdGameName || opponent.summonerName}
                   </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                  <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
                     {opponent.championName}
                   </p>
-                  <p className="text-[10px] font-mono font-bold text-rose-500 dark:text-rose-400 mt-0.5">
+                  <p className="text-[0.625rem] font-mono font-bold text-rose-500 dark:text-rose-400 mt-0.5">
                     {opponent.kills} / {opponent.deaths} / {opponent.assists}
                   </p>
                 </div>
@@ -1430,7 +1430,7 @@ export function LaneDuel({
                 </AreaChart>
               </ResponsiveContainer>
               {/* Overlay Label */}
-              <div className="absolute top-2 left-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded shadow-sm backdrop-blur-sm">
+              <div className="absolute top-2 left-2 text-[0.625rem] font-bold text-slate-400 uppercase tracking-wider bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded shadow-sm backdrop-blur-sm">
                 Ventaja de Oro (Duelo)
               </div>
             </div>
@@ -1473,7 +1473,7 @@ export function LaneDuel({
                           <div className="flex items-center gap-2 mb-0.5">
                             <span
                               className={cn(
-                                "text-[10px] font-bold uppercase tracking-wider bg-white/50 dark:bg-slate-900/50 px-1.5 rounded",
+                                "text-[0.625rem] font-bold uppercase tracking-wider bg-white/50 dark:bg-slate-900/50 px-1.5 rounded",
                                 moment.colorClass,
                               )}
                             >
@@ -1483,7 +1483,7 @@ export function LaneDuel({
                               {moment.title}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
+                          <p className="text-[0.6875rem] text-slate-600 dark:text-slate-400 leading-tight">
                             {moment.description}
                           </p>
                         </div>
@@ -1535,7 +1535,7 @@ export function LaneDuel({
                     </p>
                     <div className="grid grid-cols-3 gap-2 text-xs mt-1">
                       <div className="flex flex-col">
-                        <span className="text-slate-400 text-[10px]">Oro</span>
+                        <span className="text-slate-400 text-[0.625rem]">Oro</span>
                         <span
                           className={cn(
                             "font-mono font-medium",
@@ -1548,7 +1548,7 @@ export function LaneDuel({
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-slate-400 text-[10px]">CS</span>
+                        <span className="text-slate-400 text-[0.625rem]">CS</span>
                         <span
                           className={cn(
                             "font-mono font-medium",
@@ -1561,7 +1561,7 @@ export function LaneDuel({
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-slate-400 text-[10px]">XP</span>
+                        <span className="text-slate-400 text-[0.625rem]">XP</span>
                         <span
                           className={cn(
                             "font-mono font-medium",
@@ -1579,7 +1579,7 @@ export function LaneDuel({
               )}
 
               {/* Quick Legend */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-2 text-[10px] text-slate-500">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-2 text-[0.625rem] text-slate-500">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>Tu Ventaja</span>

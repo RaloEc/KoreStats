@@ -350,7 +350,7 @@ export function RunesTooltip({
     <div className="space-y-3 text-xs">
       {primaryStyle && (
         <div>
-          <p className="text-[11px] uppercase font-semibold text-muted-foreground">
+          <p className="text-[0.6875rem] uppercase font-semibold text-muted-foreground">
             Primaria •{" "}
             {getRuneStyleLabel(toSafeNumber(primaryStyle.style) ?? undefined)}
           </p>
@@ -359,7 +359,7 @@ export function RunesTooltip({
       )}
       {secondaryStyle && (
         <div>
-          <p className="text-[11px] uppercase font-semibold text-muted-foreground">
+          <p className="text-[0.6875rem] uppercase font-semibold text-muted-foreground">
             Secundaria •{" "}
             {getRuneStyleLabel(toSafeNumber(secondaryStyle.style) ?? undefined)}
           </p>
@@ -368,7 +368,7 @@ export function RunesTooltip({
       )}
       {renderShardIcons() && (
         <div>
-          <p className="text-[11px] uppercase font-semibold text-muted-foreground">
+          <p className="text-[0.6875rem] uppercase font-semibold text-muted-foreground">
             Fragmentos
           </p>
           {renderShardIcons()}

@@ -221,7 +221,7 @@ export function PlayerNoteModal({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Etiquetas */}
             <div className="space-y-3">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+              <label className="text-[0.6875rem] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
                 <div className="w-1 h-3 bg-blue-500 rounded-full" />
                 Etiquetas
               </label>
@@ -236,7 +236,7 @@ export function PlayerNoteModal({
                       whileTap={{ scale: 0.95 }}
                       onClick={() => toggleTag(tag.id)}
                       className={cn(
-                        "text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200",
+                        "text-[0.6875rem] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200",
                         isSelected
                           ? tag.className +
                               " shadow-md border-transparent ring-2 ring-offset-1 dark:ring-offset-black ring-blue-500/30"
@@ -254,7 +254,7 @@ export function PlayerNoteModal({
             <AnimatePresence mode="popLayout">
               {noteList.length > 0 && (
                 <div className="space-y-3">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                  <label className="text-[0.6875rem] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
                     <div className="w-1 h-3 bg-amber-500 rounded-full" />
                     Notas Guardadas ({noteList.length}/5)
                   </label>
@@ -288,11 +288,11 @@ export function PlayerNoteModal({
             {/* Input de nueva nota */}
             <div className="space-y-3 relative">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                <label className="text-[0.6875rem] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
                   <div className="w-1 h-3 bg-purple-500 rounded-full" />
                   Nueva Anotaci&oacute;n
                 </label>
-                <div className="text-[9px] text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1">
+                <div className="text-[0.5625rem] text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1">
                   <MessageSquare className="w-3 h-3" />
                   Presiona Enter para añadir
                 </div>

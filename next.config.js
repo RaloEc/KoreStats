@@ -61,6 +61,11 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 const nextConfig = {
   output: isMobile ? 'export' : undefined,
   reactStrictMode: false, // Desactivar modo estricto para evitar problemas de hidratación
+  compiler: {
+    removeConsole: {
+      exclude: ["error", "warn"],
+    },
+  },
   // Aumentar el timeout para la carga de chunks
   experimental: {
     // Mejoras para evitar errores de carga de chunks

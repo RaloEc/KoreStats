@@ -78,12 +78,12 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
 
       return (
         <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 p-3 rounded-lg shadow-2xl backdrop-blur-md min-w-[180px]">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 border-b border-slate-100 dark:border-white/10 pb-1 text-center font-bold">
+          <p className="text-[0.625rem] uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 border-b border-slate-100 dark:border-white/10 pb-1 text-center font-bold">
             Minuto {label}
           </p>
           <div className="space-y-2">
             <div className="flex justify-between items-center bg-blue-500/5 dark:bg-blue-500/10 p-1.5 rounded border border-blue-500/10 dark:border-blue-500/20">
-              <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
+              <span className="text-[0.625rem] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
                 Equipo Azul
               </span>
               <span className="font-mono text-slate-900 dark:text-white text-sm font-bold">
@@ -91,7 +91,7 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
               </span>
             </div>
             <div className="flex justify-between items-center bg-rose-500/5 dark:bg-rose-500/10 p-1.5 rounded border border-rose-500/10 dark:border-rose-500/20">
-              <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-tighter">
+              <span className="text-[0.625rem] font-black text-rose-600 dark:text-rose-400 uppercase tracking-tighter">
                 Equipo Rojo
               </span>
               <span className="font-mono text-slate-900 dark:text-white text-sm font-bold">
@@ -99,7 +99,7 @@ export function MatchGraphs({ timeline, focusTeamId = 100 }: MatchGraphsProps) {
               </span>
             </div>
             <div className="pt-1 flex flex-col items-center border-t border-slate-100 dark:border-white/5">
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 font-bold">
+              <span className="text-[0.5625rem] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 font-bold">
                 Ventaja
               </span>
               <div className="flex items-center gap-1.5">

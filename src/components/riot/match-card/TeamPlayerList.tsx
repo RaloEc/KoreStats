@@ -61,7 +61,7 @@ export function TeamPlayerList({
               />
             </div>
             <span
-              className={`text-[10px] truncate max-w-[70px] ${
+              className={`text-[0.625rem] truncate max-w-[70px] ${
                 isCurrentPlayer
                   ? "text-blue-600 dark:text-blue-200"
                   : "text-slate-600 dark:text-slate-300"

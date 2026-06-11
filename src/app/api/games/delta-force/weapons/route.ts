@@ -11,6 +11,7 @@ import { createClient, getServiceClient } from "@/lib/supabase/server";
 interface WeaponAggregate {
   id: string; // Used as unique key (might be share_code)
   record_id: string; // The UUID of the actual DB record for reporting
+  user_id?: string | null;
   weapon_name: string;
   description: string | null;
   analyses_count: number;
@@ -35,6 +36,7 @@ interface WeaponAggregate {
   upvotes: number;
   downvotes: number;
   community_score: number;
+  patch_version: string | null;
 }
 
 // Spanish-to-English stat key mapping
@@ -107,16 +109,54 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const mode = request.nextUrl.searchParams.get("mode") || "operations";
+    const patchFilter = request.nextUrl.searchParams.get("patch") || "current";
     const validMode = mode === "warfare" ? "warfare" : "operations";
 
-    // Fetch weapon records filtered by game_mode
-    const { data: records, error } = await supabase
+    // ─── Obtener el parche activo del command_center ───────────────────────────
+    const FALLBACK_PATCH = "Temporada 9 - ECHO";
+    let currentPatch = FALLBACK_PATCH;
+    try {
+      const serviceSupabaseForPatch = getServiceClient();
+      const { data: moduleData } = await serviceSupabaseForPatch
+        .from("game_modules")
+        .select("config")
+        .eq("module_type", "command_center")
+        .eq("game_slug", "delta-force")
+        .eq("enabled", true)
+        .single();
+      if (moduleData?.config) {
+        const name = moduleData.config.season_name;
+        const version = moduleData.config.season_version;
+        if (name && version) {
+          const versionStr = /temporada|season/i.test(String(version))
+            ? version
+            : `Temporada ${version}`;
+          currentPatch = `${versionStr} - ${name}`;
+        } else if (name) {
+          currentPatch = name as string;
+        }
+      }
+    } catch (e) {
+      // fallback already set
+    }
+
+    // ─── Fetch weapon records ──────────────────────────────────────────────────
+    let query = supabase
       .from("weapon_stats_records")
-      .select("id, weapon_name, stats, share_code, description")
+      .select("id, user_id, weapon_name, stats, share_code, description, patch_version")
       .not("weapon_name", "is", null)
       .not("weapon_name", "eq", "")
       .eq("game_mode", validMode)
       .order("created_at", { ascending: false });
+
+    // Filtrar por parche: por defecto solo el parche actual
+    if (patchFilter === "current") {
+      // Incluir también los que tienen patch_version NULL (builds muy antiguas antes de la migración)
+      query = query.or(`patch_version.eq.${currentPatch},patch_version.is.null`);
+    }
+    // Si patchFilter === "all", no aplicar filtro adicional
+
+    const { data: records, error } = await query;
 
     if (error) {
       console.error("[delta-force-weapons] Error:", error);
@@ -140,7 +180,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Group by share_code, fallback to id
-    const groups = new Map<string, { record_id: string; stats: Record<string, number>[]; rawName: string; shareCodes: string[]; description: string | null }>();
+    const groups = new Map<string, { record_id: string; user_id: string | null; stats: Record<string, number>[]; rawName: string; shareCodes: string[]; description: string | null; patch_version: string | null }>();
 
     for (const record of records) {
       if (!record.weapon_name) continue;
@@ -149,7 +189,7 @@ export async function GET(request: NextRequest) {
       const key = record.share_code || record.id.toString();
 
       if (!groups.has(key)) {
-        groups.set(key, { record_id: record.id.toString(), stats: [], rawName: normalizedName, shareCodes: [], description: record.description || null });
+        groups.set(key, { record_id: record.id.toString(), user_id: record.user_id || null, stats: [], rawName: normalizedName, shareCodes: [], description: record.description || null, patch_version: record.patch_version || null });
       }
 
       if (record.share_code && !groups.get(key)!.shareCodes.includes(record.share_code)) {
@@ -233,6 +273,7 @@ export async function GET(request: NextRequest) {
       weapons.push({
         id: key,
         record_id: group.record_id,
+        user_id: group.user_id,
         weapon_name: official?.name || group.rawName,
         description: group.description,
         analyses_count: count,
@@ -257,6 +298,7 @@ export async function GET(request: NextRequest) {
         upvotes: 0,
         downvotes: 0,
         community_score: 0,
+        patch_version: group.patch_version,
       });
     }
 
@@ -267,10 +309,10 @@ export async function GET(request: NextRequest) {
       .select("weapon_name, vote")
       .eq("game_mode", validMode);
 
-    // Build a map: normalized weapon name -> { upvotes, downvotes }
+    // Build a map: weapon build key (id) -> { upvotes, downvotes }
     const voteMap = new Map<string, { upvotes: number; downvotes: number }>();
     for (const v of (votesData || [])) {
-      const key = normalizeWeaponName(v.weapon_name).toUpperCase();
+      const key = v.weapon_name; // Now weapon_name column stores w.id (build unique key / share code / record id)
       if (!voteMap.has(key)) voteMap.set(key, { upvotes: 0, downvotes: 0 });
       const entry = voteMap.get(key)!;
       if (v.vote === 1) entry.upvotes++;
@@ -279,8 +321,7 @@ export async function GET(request: NextRequest) {
 
     // Merge vote data into weapons
     for (const w of weapons) {
-      const key = normalizeWeaponName(w.weapon_name).toUpperCase(); 
-      // Voting is still aggregated per base weapon (like M4A1) or you could change it if needed.
+      const key = w.id; // Unique build identifier
       const vd = voteMap.get(key);
       if (vd) {
         w.upvotes = vd.upvotes;
@@ -313,6 +354,7 @@ export async function GET(request: NextRequest) {
       game_mode: validMode,
       total_analyses: records.length,
       last_updated: new Date().toISOString(),
+      current_patch: currentPatch,
     });
   } catch (error) {
     console.error("[delta-force-weapons] Unexpected error:", error);

@@ -995,7 +995,7 @@ export default function TablaReportes() {
                                 ? "Tu resolución"
                                 : "Resolución"}
                             </p>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                            <p className="text-[0.6875rem] text-gray-400 dark:text-gray-500">
                               {reporteActual.estado === "pendiente"
                                 ? "Describe la acción tomada o la decisión final"
                                 : `Procesado por ${
@@ -1004,12 +1004,12 @@ export default function TablaReportes() {
                             </p>
                           </div>
                           {reporteActual.estado === "pendiente" && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-300 uppercase tracking-wide">
+                            <span className="text-[0.625rem] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-300 uppercase tracking-wide">
                               Requerido
                             </span>
                           )}
                           {reporteActual.estado !== "pendiente" && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 uppercase tracking-wide">
+                            <span className="text-[0.625rem] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 uppercase tracking-wide">
                               {reporteActual.estado === "resuelto"
                                 ? "Resuelto"
                                 : "Desestimado"}
@@ -1025,7 +1025,7 @@ export default function TablaReportes() {
                               rows={5}
                               className="mt-3 text-sm resize-none bg-transparent border-gray-300 dark:border-gray-700 focus-visible:ring-1 focus-visible:ring-primary"
                             />
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                            <p className="text-[0.6875rem] text-gray-400 dark:text-gray-500 mt-2">
                               Esta información se enviará al usuario para
                               informarle del resultado.
                             </p>
@@ -1222,7 +1222,7 @@ export default function TablaReportes() {
                               ? "Tu resolución"
                               : "Resolución"}
                           </p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          <p className="text-[0.6875rem] text-gray-400 dark:text-gray-500">
                             {reporteActual.estado === "pendiente"
                               ? "Describe la acción tomada o la decisión final"
                               : `Procesado por ${
@@ -1231,12 +1231,12 @@ export default function TablaReportes() {
                           </p>
                         </div>
                         {reporteActual.estado === "pendiente" && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-300 uppercase tracking-wide">
+                          <span className="text-[0.625rem] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-300 uppercase tracking-wide">
                             Requerido
                           </span>
                         )}
                         {reporteActual.estado !== "pendiente" && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 uppercase tracking-wide">
+                          <span className="text-[0.625rem] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 uppercase tracking-wide">
                             {reporteActual.estado === "resuelto"
                               ? "Resuelto"
                               : "Desestimado"}
@@ -1252,7 +1252,7 @@ export default function TablaReportes() {
                             rows={5}
                             className="mt-3 text-sm resize-none bg-transparent border-gray-300 dark:border-gray-700 focus-visible:ring-1 focus-visible:ring-primary"
                           />
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                          <p className="text-[0.6875rem] text-gray-400 dark:text-gray-500 mt-2">
                             Esta información se enviará al usuario para
                             informarle del resultado.
                           </p>

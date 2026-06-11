@@ -510,7 +510,7 @@ export function MatchMapAnalysis({
                         <div className="bg-slate-50 dark:bg-black/20 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                           <span
                             className={cn(
-                              "text-[10px] font-bold uppercase tracking-widest",
+                              "text-[0.625rem] font-bold uppercase tracking-widest",
                               isFocusKiller
                                 ? "text-rose-500"
                                 : isFocusVictim
@@ -530,7 +530,7 @@ export function MatchMapAnalysis({
                               return "Suceso Táctico";
                             })()}
                           </span>
-                          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">
+                          <span className="text-[0.625rem] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">
                             Min {Math.floor(event.timestamp / 60000)}
                           </span>
                         </div>
@@ -551,7 +551,7 @@ export function MatchMapAnalysis({
                                     className="object-cover"
                                   />
                                 </div>
-                                <span className="text-[9px] font-bold text-blue-500 uppercase truncate max-w-[50px]">
+                                <span className="text-[0.5625rem] font-bold text-blue-500 uppercase truncate max-w-[50px]">
                                   {pKiller?.championName}
                                 </span>
                               </div>
@@ -573,7 +573,7 @@ export function MatchMapAnalysis({
                                     className="object-cover"
                                   />
                                 </div>
-                                <span className="text-[9px] font-bold text-rose-500 uppercase truncate max-w-[50px]">
+                                <span className="text-[0.5625rem] font-bold text-rose-500 uppercase truncate max-w-[50px]">
                                   {pVictim?.championName}
                                 </span>
                               </div>
@@ -597,7 +597,7 @@ export function MatchMapAnalysis({
                                 <span className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
                                   {getObjectiveName(event)}
                                 </span>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">
+                                <span className="text-[0.625rem] text-slate-500 font-bold uppercase">
                                   Objetivo Asegurado
                                 </span>
                               </div>
@@ -622,14 +622,14 @@ export function MatchMapAnalysis({
             <MapIcon className="w-4 h-4 text-emerald-500" />
             Control Táctico
           </h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+          <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
             Ajusta los filtros para visualizar el control del mapa.
           </p>
         </div>
 
         {/* 1. Time Selection */}
         <div className="space-y-2.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <label className="text-[0.6875rem] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <Clock className="w-3 h-3" /> Fase de Juego
           </label>
           <div className="grid grid-cols-4 gap-1 p-1 bg-slate-200/50 dark:bg-black/20 rounded-lg">
@@ -638,7 +638,7 @@ export function MatchMapAnalysis({
                 key={t}
                 onClick={() => setTimeRange(t)}
                 className={cn(
-                  "py-1 text-[10px] font-bold uppercase rounded-md transition-all",
+                  "py-1 text-[0.625rem] font-bold uppercase rounded-md transition-all",
                   timeRange === t
                     ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300",
@@ -652,7 +652,7 @@ export function MatchMapAnalysis({
 
         {/* 2. Visual Layers */}
         <div className="space-y-2.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <label className="text-[0.6875rem] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <Eye className="w-3 h-3" /> Capas Activas
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -680,7 +680,7 @@ export function MatchMapAnalysis({
                 key={layer.id}
                 onClick={() => toggleLayer(layer.id as MapLayer)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-bold transition-all",
+                  "flex items-center gap-2 px-3 py-2 rounded-lg border text-[0.6875rem] font-bold transition-all",
                   activeLayers.includes(layer.id as MapLayer)
                     ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-sm"
                     : "bg-transparent border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30",
@@ -699,7 +699,7 @@ export function MatchMapAnalysis({
         <div className="space-y-4">
           {/* Team Blue */}
           <div>
-            <span className="text-[10px] font-bold uppercase text-blue-500 mb-2 block tracking-wider">
+            <span className="text-[0.625rem] font-bold uppercase text-blue-500 mb-2 block tracking-wider">
               Equipo Azul
             </span>
             <div className="flex gap-1.5 flex-wrap">
@@ -733,7 +733,7 @@ export function MatchMapAnalysis({
 
           {/* Team Red */}
           <div>
-            <span className="text-[10px] font-bold uppercase text-rose-500 mb-2 block tracking-wider">
+            <span className="text-[0.625rem] font-bold uppercase text-rose-500 mb-2 block tracking-wider">
               Equipo Rojo
             </span>
             <div className="flex gap-1.5 flex-wrap">

@@ -706,11 +706,11 @@ export function RiotAccountCardVisual({
 
     // Tipografía elegante
     const labelClass =
-      "text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center";
+      "text-[0.4375rem] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center";
     const valueClass =
-      "text-[9px] font-black text-slate-700 dark:text-slate-200 tracking-tight leading-none";
+      "text-[0.5625rem] font-black text-slate-700 dark:text-slate-200 tracking-tight leading-none";
     const subClass =
-      "text-[6px] font-medium text-slate-400 dark:text-slate-500";
+      "text-[0.375rem] font-medium text-slate-400 dark:text-slate-500";
 
     // 1. Racha de Victorias
     if (currentStreak >= 3) {
@@ -896,7 +896,7 @@ export function RiotAccountCardVisual({
                   size={14}
                   className="text-blue-600 dark:text-blue-400 animate-spin"
                 />
-                <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                <span className="text-[0.625rem] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
                   Sincronizando
                 </span>
               </motion.div>
@@ -939,7 +939,7 @@ export function RiotAccountCardVisual({
                       )}
                     </div>
                     {account.summoner_level && (
-                      <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 bg-slate-700 dark:bg-[#0d0f17] text-white text-[8px] font-black px-1.5 py-0 rounded-full border-2 border-slate-400 dark:border-white/10 shadow-md whitespace-nowrap z-20">
+                      <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 bg-slate-700 dark:bg-[#0d0f17] text-white text-[0.5rem] font-black px-1.5 py-0 rounded-full border-2 border-slate-400 dark:border-white/10 shadow-md whitespace-nowrap z-20">
                         {account.summoner_level}
                       </div>
                     )}
@@ -950,7 +950,7 @@ export function RiotAccountCardVisual({
                     <div className="flex items-center gap-1.5 mb-0">
                       <Badge
                         variant="outline"
-                        className="bg-slate-300/70 dark:bg-white/5 border-slate-500/50 dark:border-white/10 text-slate-600 dark:text-white/40 text-[8px] uppercase font-bold tracking-tighter px-1 py-0 h-3.5"
+                        className="bg-slate-300/70 dark:bg-white/5 border-slate-500/50 dark:border-white/10 text-slate-600 dark:text-white/40 text-[0.5rem] uppercase font-bold tracking-tighter px-1 py-0 h-3.5"
                       >
                         {regionName}
                       </Badge>
@@ -971,7 +971,7 @@ export function RiotAccountCardVisual({
                           : "opacity-100 h-auto"
                         }`}
                     >
-                      <div className="flex justify-between text-[8px] font-black mb-0.5 uppercase tracking-tighter">
+                      <div className="flex justify-between text-[0.5rem] font-black mb-0.5 uppercase tracking-tighter">
                         <span
                           className={
                             winrate >= 50
@@ -1018,7 +1018,7 @@ export function RiotAccountCardVisual({
             >
               {/* 2. Rank Emblems (Left Bottom) */}
               <div className="space-y-4">
-                <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-600 dark:text-white/30 flex items-center gap-2">
+                <h4 className="text-[0.625rem] uppercase tracking-[0.2em] font-black text-slate-600 dark:text-white/30 flex items-center gap-2">
                   <Trophy className="w-3 h-3" /> Clasificatorias
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -1027,7 +1027,7 @@ export function RiotAccountCardVisual({
                       key={queue.id}
                       className="relative bg-slate-200/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/10 rounded-lg p-2 flex flex-col items-center text-center gap-1 hover:bg-slate-300/60 dark:hover:bg-white/10 transition-all group/card"
                     >
-                      <div className="absolute top-1.5 right-1.5 text-[7px] font-black text-slate-400 dark:text-white/10 uppercase tracking-widest">
+                      <div className="absolute top-1.5 right-1.5 text-[0.4375rem] font-black text-slate-400 dark:text-white/10 uppercase tracking-widest">
                         {queue.label === "Solo / Duo" ? "SOLO" : "FLEX"}
                       </div>
 
@@ -1047,7 +1047,7 @@ export function RiotAccountCardVisual({
                       </div>
 
                       <div className="z-10 bg-slate-100/90 dark:bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-300 dark:border-white/5 w-full">
-                        <div className="text-[11px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight truncate">
+                        <div className="text-[0.6875rem] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight truncate">
                           {queue.hasData ? queue.tierName : "Unranked"}
                           {queue.hasData && (
                             <span className="text-slate-500 dark:text-white/40 ml-1">
@@ -1055,7 +1055,7 @@ export function RiotAccountCardVisual({
                             </span>
                           )}
                         </div>
-                        <div className="text-[9px] font-black mt-0 text-slate-600 dark:text-white/60">
+                        <div className="text-[0.5625rem] font-black mt-0 text-slate-600 dark:text-white/60">
                           {queue.hasData ? `${queue.lp} LP` : "0 LP"}
                         </div>
                       </div>
@@ -1074,7 +1074,7 @@ export function RiotAccountCardVisual({
                           <button
                             onClick={onSync}
                             disabled={isSyncing || cooldownSeconds > 0 || !user}
-                            className={`w-full py-2 px-3 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/10 hover:bg-indigo-500/30 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-2 border-indigo-500/40 dark:border-indigo-500/20 transition-all disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn ${!user ? "cursor-not-allowed" : ""
+                            className={`w-full py-2 px-3 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/10 hover:bg-indigo-500/30 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-2 border-indigo-500/40 dark:border-indigo-500/20 transition-all disabled:opacity-50 text-[0.625rem] font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn ${!user ? "cursor-not-allowed" : ""
                               }`}
                           >
                             <RefreshCw
@@ -1108,7 +1108,7 @@ export function RiotAccountCardVisual({
                       }`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-slate-400/70 dark:hover:bg-white/10 text-slate-700 dark:text-white/60 hover:text-slate-900 dark:hover:text-white border-2 border-slate-400 dark:border-white/10 transition-all text-[10px] font-bold"
+                    className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-slate-400/70 dark:hover:bg-white/10 text-slate-700 dark:text-white/60 hover:text-slate-900 dark:hover:text-white border-2 border-slate-400 dark:border-white/10 transition-all text-[0.625rem] font-bold"
                     title="Ver en League of Graphs"
                   >
                     <ExternalLink size={14} />
@@ -1117,7 +1117,7 @@ export function RiotAccountCardVisual({
                 {onUnlink && (
                   <button
                     onClick={onUnlink}
-                    className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 text-slate-700 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 border-2 border-slate-400 dark:border-white/10 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all text-[10px] font-bold"
+                    className="py-2 px-3 rounded-lg bg-slate-300/60 dark:bg-white/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 text-slate-700 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 border-2 border-slate-400 dark:border-white/10 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all text-[0.625rem] font-bold"
                     title="Desvincular cuenta"
                   >
                     <Unlink size={14} />
@@ -1135,7 +1135,7 @@ export function RiotAccountCardVisual({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
               {/* 1. Recent Activity (Top Left) */}
               <div className="bg-white/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/5 rounded-2xl p-4 backdrop-blur-md flex flex-col h-40">
-                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
                   <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   Últimas 20
                 </h4>
@@ -1158,14 +1158,14 @@ export function RiotAccountCardVisual({
                             />
                           </div>
                           <div
-                            className={`text-[9px] font-black px-1.5 rounded-sm ${wr >= 50
+                            className={`text-[0.5625rem] font-black px-1.5 rounded-sm ${wr >= 50
                                 ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                 : "bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400"
                               }`}
                           >
                             {wr}%
                           </div>
-                          <div className="text-[8px] font-bold text-slate-500 dark:text-white/30 uppercase tracking-tighter">
+                          <div className="text-[0.5rem] font-bold text-slate-500 dark:text-white/30 uppercase tracking-tighter">
                             {stat.count}{" "}
                             {stat.count === 1 ? "Partida" : "Partidas"}
                           </div>
@@ -1176,14 +1176,14 @@ export function RiotAccountCardVisual({
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30">
                     <Zap className="w-6 h-6 mb-1" />
-                    <span className="text-[9px]">Sin datos</span>
+                    <span className="text-[0.5625rem]">Sin datos</span>
                   </div>
                 )}
               </div>
 
               {/* 2. Top Mastery (Top Right) */}
               <div className="bg-white/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/5 rounded-2xl p-4 backdrop-blur-md flex flex-col h-40">
-                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
                   <Flame className="w-3 h-3 text-orange-600 dark:text-orange-400" />
                   Maestría
                 </h4>
@@ -1207,7 +1207,7 @@ export function RiotAccountCardVisual({
                             className="object-cover group-hover/mastery:scale-110 transition-transform duration-300"
                           />
                         </div>
-                        <div className="text-[9px] font-bold text-slate-600 dark:text-white/40">
+                        <div className="text-[0.5625rem] font-bold text-slate-600 dark:text-white/40">
                           {(mastery.championPoints / 1000).toFixed(0)}k
                         </div>
                       </div>
@@ -1216,14 +1216,14 @@ export function RiotAccountCardVisual({
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30">
                     <Award className="w-6 h-6 mb-1" />
-                    <span className="text-[9px]">Sin maestría</span>
+                    <span className="text-[0.5625rem]">Sin maestría</span>
                   </div>
                 )}
               </div>
 
               {/* 3. Recent Achievements (Bottom Left) */}
               <div className="bg-white/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/5 rounded-2xl p-4 backdrop-blur-md flex flex-col h-32 overflow-hidden relative">
-                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
                   <Award className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
                   Logros Recientes
                 </h4>
@@ -1256,7 +1256,7 @@ export function RiotAccountCardVisual({
                       ))}
                     </motion.div>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-white/20 text-[9px] opacity-30">
+                    <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-white/20 text-[0.5625rem] opacity-30">
                       - Sin logros nuevos -
                     </div>
                   )}
@@ -1269,7 +1269,7 @@ export function RiotAccountCardVisual({
 
               {/* 4. Frequent Duo (Bottom Right) */}
               <div className="bg-white/70 dark:bg-white/5 border-2 border-slate-300 dark:border-white/5 rounded-2xl p-4 backdrop-blur-md flex flex-col h-32">
-                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black uppercase tracking-widest text-slate-700 dark:text-white/40 mb-3">
                   <Target className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                   Dúo Frecuente
                 </h4>
@@ -1372,7 +1372,7 @@ export function RiotAccountCardVisual({
                             )}
                           </div>
                           <div
-                            className={`text-[9px] font-medium ${linkedProfileId
+                            className={`text-[0.5625rem] font-medium ${linkedProfileId
                                 ? ""
                                 : "text-slate-600 dark:text-white/30"
                               }`}
@@ -1399,7 +1399,7 @@ export function RiotAccountCardVisual({
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center opacity-30 text-slate-500 dark:text-white/20 text-center p-2">
                     <Users className="w-6 h-6 mb-1 opacity-50" />
-                    <span className="text-[9px]">
+                    <span className="text-[0.5625rem]">
                       Juega más partidas para descubrir tu dúo frecuente
                     </span>
                   </div>
@@ -1410,7 +1410,7 @@ export function RiotAccountCardVisual({
         </div>
 
         {/* Footer info (Last Updated) - Bottom absolute center or right */}
-        <div className="absolute bottom-3 right-6 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-white/10 pointer-events-none">
+        <div className="absolute bottom-3 right-6 text-[0.5625rem] font-bold uppercase tracking-widest text-slate-400 dark:text-white/10 pointer-events-none">
           Actualizado:{" "}
           {account.last_updated
             ? new Date(account.last_updated).toLocaleDateString()

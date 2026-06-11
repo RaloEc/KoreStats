@@ -48,6 +48,7 @@ interface CommentCardProps {
   onMarkSolution?: (commentId: string) => void;
   // Contexto para determinar qué endpoint de reportes usar
   tipoContexto?: "noticia" | "foro";
+  juegoAsociado?: "lol" | "delta-force";
 }
 
 const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -155,6 +156,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
   canMarkSolution = false,
   onMarkSolution,
   tipoContexto = "noticia",
+  juegoAsociado = "lol",
 }) => {
   const { user: authUser, profile: authProfile } = useAuth();
   const [isReplying, setIsReplying] = useState(false);
@@ -417,6 +419,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                     tipoContexto === "noticia" ? false : false
                   } // Asumimos false para ambos por ahora
                   currentUserId={authUser?.id}
+                  juegoAsociado={juegoAsociado}
                 />
                 <div className="mt-2 flex gap-2">
                   <button
@@ -513,7 +516,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                         if (replyForm) {
                           replyForm.scrollIntoView({
                             behavior: "smooth",
-                            block: "center",
+                            block: "nearest",
                             inline: "nearest",
                           });
                         }
@@ -629,6 +632,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
               <motion.div
                 id={`reply-form-${comment.id}`}
                 className="mt-3"
+                style={{ overflow: "hidden" }}
                 initial={{ opacity: 0, height: 0, y: -10 }}
                 animate={{
                   opacity: 1,
@@ -655,6 +659,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                   onSubmit={handleReplySubmit}
                   placeholder={`Respondiendo a ${comment.author}...`}
                   ctaText="Publicar"
+                  juegoAsociado={juegoAsociado}
                 />
               </motion.div>
             )}

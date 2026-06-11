@@ -48,7 +48,7 @@ function TeamDamageSection({
         >
           {title}
         </h4>
-        <span className="text-[10px] text-slate-400 font-mono">
+        <span className="text-[0.625rem] text-slate-400 font-mono">
           {totalDamage.toLocaleString()} DMG
         </span>
       </div>
@@ -83,7 +83,7 @@ function TeamDamageSection({
                       <p className="font-bold text-blue-400 mb-0.5 text-sm">
                         {pData.name}
                       </p>
-                      <p className="text-slate-400 mb-1.5 text-[10px] uppercase tracking-wider">
+                      <p className="text-slate-400 mb-1.5 text-[0.625rem] uppercase tracking-wider">
                         {pData.championName}
                       </p>
                       <p className="font-mono text-xs pt-1 border-t border-white/10">
@@ -127,13 +127,13 @@ function TeamDamageSection({
                     <div className="flex flex-col min-w-0">
                       <span
                         className={cn(
-                          "font-bold truncate text-[11px]",
+                          "font-bold truncate text-[0.6875rem]",
                           isTop ? "text-amber-500" : "text-slate-200",
                         )}
                       >
                         {player.name}
                       </span>
-                      <span className="text-[9px] text-slate-500 truncate dark:text-slate-400 uppercase tracking-tighter">
+                      <span className="text-[0.5625rem] text-slate-500 truncate dark:text-slate-400 uppercase tracking-tighter">
                         {player.championName}
                       </span>
                     </div>

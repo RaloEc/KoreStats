@@ -965,7 +965,7 @@ export default function TablaReportesNoticias() {
                           />
                         )}
                         <div className="flex items-center gap-2 text-xs text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-700">
-                          <span className="text-[11px] uppercase tracking-wide text-gray-400">
+                          <span className="text-[0.6875rem] uppercase tracking-wide text-gray-400">
                             Votos
                           </span>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-200/60 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium">
@@ -1110,7 +1110,7 @@ export default function TablaReportesNoticias() {
                         ? "Tu resolución"
                         : "Resolución"}
                     </p>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                    <p className="text-[0.6875rem] text-gray-400 dark:text-gray-500">
                       {reporteActual?.estado === "pendiente" ||
                       reporteActual?.estado === "en_revision"
                         ? "Describe la acción tomada o la decisión final"
@@ -1121,13 +1121,13 @@ export default function TablaReportesNoticias() {
                   </div>
                   {(reporteActual?.estado === "pendiente" ||
                     reporteActual?.estado === "en_revision") && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-300 uppercase tracking-wide">
+                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-300 uppercase tracking-wide">
                       Requerido
                     </span>
                   )}
                   {reporteActual?.estado !== "pendiente" &&
                     reporteActual?.estado !== "en_revision" && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 uppercase tracking-wide">
+                      <span className="text-[0.625rem] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 uppercase tracking-wide">
                         {reporteActual?.estado === "resuelto"
                           ? "Resuelto"
                           : "Desestimado"}
@@ -1144,7 +1144,7 @@ export default function TablaReportesNoticias() {
                       rows={5}
                       className="mt-3 text-sm resize-none bg-transparent border-gray-300 dark:border-gray-700 focus-visible:ring-1 focus-visible:ring-primary"
                     />
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                    <p className="text-[0.6875rem] text-gray-400 dark:text-gray-500 mt-2">
                       Esta información se enviará al usuario para informarle del
                       resultado.
                     </p>
@@ -1337,7 +1337,7 @@ export default function TablaReportesNoticias() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                        <span className="text-[11px] uppercase tracking-wide text-gray-400">
+                        <span className="text-[0.6875rem] uppercase tracking-wide text-gray-400">
                           Votos
                         </span>
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-200/60 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium">

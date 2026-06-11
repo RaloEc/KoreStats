@@ -506,7 +506,7 @@ function HiloCard(props: HiloCardProps) {
                         {categoriaNombre && (
                           <Badge
                             variant="secondary"
-                            className="text-[10px] px-2 py-0.5 whitespace-nowrap"
+                            className="text-[0.625rem] px-2 py-0.5 whitespace-nowrap"
                             style={{ backgroundColor: badgeBg, color: badgeFg }}
                           >
                             {categoriaNombre}

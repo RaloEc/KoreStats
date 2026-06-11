@@ -236,10 +236,10 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
 
           {/* Player Info & KDA/CS */}
           <div className="flex-1 min-w-0 overflow-hidden pr-2">
-            <div className="text-[11px] font-black text-slate-900 dark:text-slate-100 truncate mb-0.5">
+            <div className="text-[0.6875rem] font-black text-slate-900 dark:text-slate-100 truncate mb-0.5">
               {displayName}
             </div>
-            <div className="flex items-center gap-2 text-[9px] font-bold tracking-tight">
+            <div className="flex items-center gap-2 text-[0.5625rem] font-bold tracking-tight">
               <div className="flex items-center text-slate-600 dark:text-slate-400">
                 <span className="opacity-90">{player.kills}</span>
                 <span className="mx-px opacity-30">/</span>
@@ -249,7 +249,7 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
               </div>
               <div className="flex items-center gap-0.5 border-l border-slate-200 dark:border-white/10 pl-2 ml-0.5 text-amber-500 font-black">
                 <span>{player.totalCS ?? 0}</span>
-                <span className="opacity-70 text-[7px] tracking-tighter uppercase">
+                <span className="opacity-70 text-[0.4375rem] tracking-tighter uppercase">
                   CS
                 </span>
               </div>
@@ -338,7 +338,7 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
     return (
       <div className="group/teams p-3 rounded-xl border border-slate-200/50 dark:border-white/[0.05] bg-white/80 dark:bg-black/80 backdrop-blur-md shadow-xl overflow-hidden relative">
         <div className="flex items-center justify-between mb-3 px-1">
-          <h4 className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-[0.2em] flex items-center gap-2">
+          <h4 className="text-[0.5625rem] uppercase font-black text-slate-500 dark:text-slate-400 tracking-[0.2em] flex items-center gap-2">
             <Users className="w-3 h-3" />
             Integrantes de la Partida
           </h4>
@@ -348,7 +348,7 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
           {/* Blue Side */}
           <div className="space-y-1">
             <div className="flex items-center justify-between px-1 mb-1.5 border-l-2 border-blue-500 pl-2">
-              <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">
+              <span className="text-[0.5rem] font-black text-blue-500 uppercase tracking-widest">
                 Bando Azul
               </span>
             </div>
@@ -358,7 +358,7 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
           {/* Red Side */}
           <div className="space-y-1">
             <div className="flex items-center justify-between px-1 mb-1.5 border-l-2 border-rose-500 pl-2">
-              <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest">
+              <span className="text-[0.5rem] font-black text-rose-500 uppercase tracking-widest">
                 Bando Rojo
               </span>
             </div>
@@ -367,7 +367,7 @@ export const TeamPlayers: React.FC<TeamPlayersProps> = memo(
 
           {/* Center VS Indicator (Desktop Only) */}
           <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center z-10 shadow-lg">
-            <span className="text-[8px] font-black text-slate-400">VS</span>
+            <span className="text-[0.5rem] font-black text-slate-400">VS</span>
           </div>
         </div>
       </div>

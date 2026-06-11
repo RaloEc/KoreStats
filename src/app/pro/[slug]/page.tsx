@@ -2,8 +2,16 @@ import { notFound } from "next/navigation";
 import { getPublicProfileBySlug } from "@/lib/public-profiles/server-data";
 import PublicProfileClient from "@/components/public-profile/PublicProfileClient";
 import { Metadata } from "next";
+import { Unbounded } from "next/font/google";
 
 export const revalidate = 60; // Revalidar cada minuto para stats semi-live
+
+const unbounded = Unbounded({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-unbounded",
+  display: "swap",
+});
 
 export async function generateMetadata({
   params,
@@ -47,5 +55,9 @@ export default async function PublicProfilePage({
     return notFound();
   }
 
-  return <PublicProfileClient profile={profile} />;
+  return (
+    <div className={unbounded.variable}>
+      <PublicProfileClient profile={profile} />
+    </div>
+  );
 }

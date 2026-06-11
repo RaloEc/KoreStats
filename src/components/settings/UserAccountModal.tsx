@@ -170,7 +170,7 @@ export function UserAccountModal({
               </div>
 
               <div className="space-y-1 px-2 mb-4">
-                <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.15em]">
+                <p className="text-[0.625rem] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.15em]">
                   Mi Cuenta
                 </p>
               </div>
@@ -250,7 +250,7 @@ export function UserAccountModal({
                 {/* Media Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-3xl bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-100 dark:border-zinc-800/50">
                   <div className="space-y-4">
-                    <Label className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-2 px-1">
+                    <Label className="text-[0.625rem] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-2 px-1">
                       <Camera className="w-3 h-3" /> Foto de Perfil
                     </Label>
                     <div className="relative group flex justify-center sm:justify-start">
@@ -275,7 +275,7 @@ export function UserAccountModal({
                   </div>
 
                   <div className="space-y-4">
-                    <Label className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-2 px-1">
+                    <Label className="text-[0.625rem] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-2 px-1">
                       <ImageIcon className="w-3 h-3" /> Banner de Perfil
                     </Label>
                     <Suspense
@@ -299,7 +299,7 @@ export function UserAccountModal({
                 <div className="space-y-3">
                   <div className="flex justify-between items-end px-1">
                     <Label className="text-sm font-semibold">Biografía</Label>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[0.625rem] text-zinc-400">
                       {editData.bio.length}/200
                     </span>
                   </div>
@@ -441,12 +441,12 @@ export function UserAccountModal({
                     <div className="flex flex-col gap-1.5 px-1">
                       {usernameCheck.message && (
                         <p
-                          className={`text-[10px] font-bold ${usernameCheck.available ? "text-green-600" : "text-red-500"}`}
+                          className={`text-[0.625rem] font-bold ${usernameCheck.available ? "text-green-600" : "text-red-500"}`}
                         >
                           {usernameCheck.message}
                         </p>
                       )}
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      <p className="text-[0.625rem] text-zinc-500 leading-relaxed">
                         Este es el nombre que verán los demás en la plataforma.
                         Solo puedes cambiarlo ocasionalmente.
                       </p>
@@ -454,7 +454,7 @@ export function UserAccountModal({
                   </div>
 
                   <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800">
-                    <Label className="text-sm font-semibold block mb-3 px-1 text-zinc-400 uppercase tracking-widest text-[10px]">
+                    <Label className="text-sm font-semibold block mb-3 px-1 text-zinc-400 uppercase tracking-widest text-[0.625rem]">
                       Información Legal
                     </Label>
                     <div className="bg-zinc-50/50 dark:bg-zinc-900/30 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
@@ -501,7 +501,7 @@ export function UserAccountModal({
               {profileError && (
                 <div className="flex items-center justify-center gap-2 mt-4 text-red-500 bg-red-500/5 p-2 rounded-xl border border-red-500/10">
                   <AlertCircle className="w-3 h-3" />
-                  <p className="text-[10px] font-bold">{profileError}</p>
+                  <p className="text-[0.625rem] font-bold">{profileError}</p>
                 </div>
               )}
             </div>

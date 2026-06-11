@@ -114,7 +114,7 @@ export function HiloCarouselCard({ hilo }: HiloCarouselCardProps) {
             <div className="flex items-center gap-2 max-w-[65%]">
               <Avatar className="h-6 w-6 shrink-0 ring-1 ring-gray-100 dark:ring-gray-800">
                 <AvatarImage src={hilo.autor?.avatar_url || ""} />
-                <AvatarFallback className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500">
+                <AvatarFallback className="text-[0.625rem] bg-gray-100 dark:bg-gray-800 text-gray-500">
                   {hilo.autor?.username?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -122,7 +122,7 @@ export function HiloCarouselCard({ hilo }: HiloCarouselCardProps) {
                 <span className="text-xs font-medium text-gray-900 dark:text-gray-200 truncate">
                   {hilo.autor?.username}
                 </span>
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[0.625rem] text-gray-400">
                   {format(new Date(hilo.created_at), "d MMM", { locale: es })}
                 </span>
               </div>

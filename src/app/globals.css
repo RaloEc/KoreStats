@@ -3,6 +3,41 @@
 @tailwind utilities;
 
 /* ============================================
+   ESCALADO RESPONSIVO DE FUENTE RAÍZ
+   Garantiza legibilidad en pantallas de alta
+   resolución sin romper el diseño de componentes.
+   Todas las clases REM de Tailwind escalan
+   proporcionalmente con este valor base.
+   ============================================ */
+html {
+  font-size: 16px; /* Base estándar (≤ 1600px) */
+}
+
+@media (min-width: 1600px) {
+  html {
+    font-size: 17px; /* Sutil aumento para 1600x900 / 1680x1050 */
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px; /* Full HD (1920x1080) */
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 20px; /* 2K / QHD (2560x1440) */
+  }
+}
+
+@media (min-width: 3840px) {
+  html {
+    font-size: 24px; /* 4K / UHD (3840x2160) */
+  }
+}
+
+/* ============================================
    CAPA BASE: Variables y Tokens de Diseño
    ============================================ */
 @layer base {
@@ -35,6 +70,9 @@
     --selection-bg: rgba(59, 130, 246, 0.2);
     --selection-text: #ffffff;
     --caret-color: #3b82f6;
+
+    /* Tactical HUD bars */
+    --seg-empty: rgb(229 231 235); /* light mode empty segment */
   }
 
   .dark {
@@ -63,6 +101,9 @@
     --menu-bg-color: #000000;
     --user-color: #60a5fa;
     --user-color-rgb: 96, 165, 250;
+
+    /* Tactical HUD bars */
+    --seg-empty: rgb(30 30 35); /* dark mode empty segment */
   }
 }
 

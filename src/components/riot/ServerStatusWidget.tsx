@@ -70,11 +70,11 @@ function StatusItem({ item }: { item: ServerStatusItem }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <span
-              className={`text-[10px] font-bold uppercase tracking-wider ${config.textColor}`}
+              className={`text-[0.625rem] font-bold uppercase tracking-wider ${config.textColor}`}
             >
               {config.label}
             </span>
-            <span className="text-[10px] text-gray-500">
+            <span className="text-[0.625rem] text-gray-500">
               {new Date(item.updatedAt).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -170,7 +170,7 @@ export default function ServerStatusWidget() {
           rel="noopener noreferrer"
           className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between group"
         >
-          <span className="text-[10px] font-medium text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+          <span className="text-[0.625rem] font-medium text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
             Página oficial de Riot Status
           </span>
           <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />

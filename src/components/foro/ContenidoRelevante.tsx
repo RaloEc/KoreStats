@@ -113,7 +113,7 @@ export default function ContenidoRelevante({
                     className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group relative overflow-hidden"
                   >
                     <span
-                      className="flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-white transition-colors"
+                      className="flex items-center justify-center w-5 h-5 text-[0.625rem] font-bold rounded bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-white transition-colors"
                       style={{
                         // @ts-ignore custom property
                         "--hover-bg": userColor,
@@ -135,14 +135,14 @@ export default function ContenidoRelevante({
 
                       <div className="flex items-center gap-3 mt-1.5">
                         <span
-                          className="flex items-center gap-1 text-[11px] text-gray-400"
+                          className="flex items-center gap-1 text-[0.6875rem] text-gray-400"
                           style={{ color: userColor }}
                         >
                           <MessageSquare className="w-3 h-3" />
                           <span className="font-bold">{it.respuestas}</span>
                         </span>
 
-                        <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                        <span className="flex items-center gap-1 text-[0.6875rem] text-gray-400">
                           <ThumbsUp className="w-3 h-3" />
                           <span>{it.votos}</span>
                         </span>
@@ -158,7 +158,7 @@ export default function ContenidoRelevante({
 
       {/* Footer link style */}
       <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800/50 text-center">
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
+        <span className="text-[0.625rem] uppercase tracking-wider text-gray-400 font-medium">
           Más populares
         </span>
       </div>

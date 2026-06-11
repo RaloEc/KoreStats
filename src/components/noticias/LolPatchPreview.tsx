@@ -22,7 +22,7 @@ function StatChangeRow({ change }: { change: any }) {
     const isNerf = change.type === "nerf";
 
     return (
-        <div className="flex items-center justify-between gap-4 text-[10px] py-0.5">
+        <div className="flex items-center justify-between gap-4 text-[0.625rem] py-0.5">
             <span className="text-muted-foreground font-medium uppercase tracking-tight">
                 {change.stat || change.attribute || "Ajuste"}
             </span>
@@ -68,7 +68,7 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                     />
                 ))}
                 {(data.champions.length > 4 || (data.items?.length || 0) > 2) && (
-                    <span className="text-[10px] text-muted-foreground self-center ml-0.5">
+                    <span className="text-[0.625rem] text-muted-foreground self-center ml-0.5">
                         +{(data.champions.length - 4) + (Math.max(0, (data.items?.length || 0) - 2))}
                     </span>
                 )}
@@ -88,11 +88,11 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                     {data.champions && data.champions.length > 0 && (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b border-border/10 pb-2">
-                                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
+                                <span className="text-[0.6875rem] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                                     Campeones Ajustados
                                 </span>
-                                <Badge variant="secondary" className="px-1.5 py-0 h-4 text-[10px] tabular-nums font-bold">
+                                <Badge variant="secondary" className="px-1.5 py-0 h-4 text-[0.625rem] tabular-nums font-bold">
                                     {data.champions.length}
                                 </Badge>
                             </div>
@@ -139,7 +139,7 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                                                             <div className="space-y-1 pt-1 border-t border-border/10">
                                                                 {champ.spells.map((spell: any, i: number) => (
                                                                     <div key={i} className="space-y-0.5">
-                                                                        <div className="text-[9px] font-bold text-muted-foreground/80 uppercase mb-0.5 flex items-center gap-1">
+                                                                        <div className="text-[0.5625rem] font-bold text-muted-foreground/80 uppercase mb-0.5 flex items-center gap-1">
                                                                             <span className="w-1 h-1 rounded-full bg-primary/40" />
                                                                             {spell.name}
                                                                         </div>
@@ -155,7 +155,7 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                                     );
                                 })}
                                 {data.champions.length > maxChamps && (
-                                    <div className={`${isFeatured ? 'w-12 h-12 text-sm' : 'w-9 h-9 text-[10px]'} rounded-xl border border-dashed border-border/50 flex items-center justify-center text-muted-foreground bg-muted/10 font-bold`}>
+                                    <div className={`${isFeatured ? 'w-12 h-12 text-sm' : 'w-9 h-9 text-[0.625rem]'} rounded-xl border border-dashed border-border/50 flex items-center justify-center text-muted-foreground bg-muted/10 font-bold`}>
                                         +{data.champions.length - maxChamps}
                                     </div>
                                 )}
@@ -167,11 +167,11 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                     {data.items && data.items.length > 0 && (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b border-border/10 pb-2">
-                                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
+                                <span className="text-[0.6875rem] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                                     Ajustes de Objetos
                                 </span>
-                                <Badge variant="secondary" className="px-1.5 py-0 h-4 text-[10px] tabular-nums font-bold">
+                                <Badge variant="secondary" className="px-1.5 py-0 h-4 text-[0.625rem] tabular-nums font-bold">
                                     {data.items.length}
                                 </Badge>
                             </div>
@@ -217,7 +217,7 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                                                         }} />
                                                     )}
                                                     {item.descriptionChange && (
-                                                        <p className="text-[9px] text-muted-foreground leading-relaxed italic border-t border-border/10 pt-1">
+                                                        <p className="text-[0.5625rem] text-muted-foreground leading-relaxed italic border-t border-border/10 pt-1">
                                                             Ajustes en la pasiva/activa del objeto.
                                                         </p>
                                                     )}
@@ -227,7 +227,7 @@ export function LolPatchPreview({ data, variant = "full", className = "" }: LolP
                                     </Tooltip>
                                 ))}
                                 {data.items.length > maxItems && (
-                                    <div className={`${isFeatured ? 'w-12 h-12 text-sm' : 'w-9 h-9 text-[10px]'} rounded-xl border border-dashed border-border/50 flex items-center justify-center text-muted-foreground bg-muted/10 font-bold`}>
+                                    <div className={`${isFeatured ? 'w-12 h-12 text-sm' : 'w-9 h-9 text-[0.625rem]'} rounded-xl border border-dashed border-border/50 flex items-center justify-center text-muted-foreground bg-muted/10 font-bold`}>
                                         +{data.items.length - maxItems}
                                     </div>
                                 )}

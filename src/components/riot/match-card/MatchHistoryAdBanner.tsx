@@ -116,7 +116,7 @@ export function MatchHistoryAdBanner({
       {/* Contenedor del anuncio con estilo de tarjeta */}
       <div className="flex items-center gap-3">
         {/* Indicador sutil de que es contenido patrocinado */}
-        <div className="flex flex-col gap-1 text-[11px] w-[60px] flex-shrink-0">
+        <div className="flex flex-col gap-1 text-[0.6875rem] w-[60px] flex-shrink-0">
           <span className="uppercase tracking-wide font-semibold text-blue-500/70">
             Anuncio
           </span>
@@ -236,7 +236,7 @@ export function MobileMatchHistoryAdBanner({
     >
       {/* Indicador sutil */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] uppercase tracking-wide font-semibold text-blue-500/60">
+        <span className="text-[0.625rem] uppercase tracking-wide font-semibold text-blue-500/60">
           Anuncio
         </span>
       </div>

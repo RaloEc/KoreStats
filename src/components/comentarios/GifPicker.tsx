@@ -308,7 +308,7 @@ export const GifPicker: React.FC<GifPickerProps> = ({
                 <TabsTrigger
                   key={category.id}
                   value={category.id}
-                  className="text-[11px] py-1"
+                  className="text-[0.6875rem] py-1"
                 >
                   {category.label}
                 </TabsTrigger>
@@ -324,7 +324,7 @@ export const GifPicker: React.FC<GifPickerProps> = ({
 
         {/* Etiqueta de resultados */}
         {!error && (
-          <div className="px-3 py-2 text-[11px] text-gray-500 border-b">
+          <div className="px-3 py-2 text-[0.6875rem] text-gray-500 border-b">
             Mostrando:{" "}
             <span className="font-semibold text-gray-700">{resultLabel}</span>
           </div>

@@ -99,7 +99,7 @@ export const GameSelectRadar: React.FC = () => {
                 {/* <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
               </div>
               
-              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate max-w-[70px] text-center">
+              <span className="text-[0.625rem] font-bold text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate max-w-[70px] text-center">
                 {game.nombre}
               </span>
             </Link>
@@ -120,7 +120,7 @@ export const GameSelectRadar: React.FC = () => {
             <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-950 border-2 border-dashed border-gray-200 dark:border-gray-800 flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-blue-400 dark:group-hover:border-blue-500">
                <span className="text-xl text-gray-400 dark:text-gray-600 group-hover:text-blue-500">+</span>
             </div>
-            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-600">Explorar</span>
+            <span className="text-[0.625rem] font-bold text-gray-400 dark:text-gray-600">Explorar</span>
           </Link>
         </motion.div>
       </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import { LolMention } from "./extensions/lol-mention";
 import { UserMention } from "./extensions/user-mention";
+import { WeaponMention } from "./extensions/weapon-mention";
 import { Bold, Italic, Link as LinkIcon } from "lucide-react";
 import "./editor-styles.css";
 
@@ -16,6 +17,7 @@ interface MinimalEditorProps {
   className?: string;
   restrictMentionsToFriends?: boolean;
   currentUserId?: string;
+  juegoAsociado?: "lol" | "delta-force";
 }
 
 const MinimalEditor = ({
@@ -25,12 +27,13 @@ const MinimalEditor = ({
   className = "",
   restrictMentionsToFriends = false,
   currentUserId,
+  juegoAsociado = "lol",
 }: MinimalEditorProps) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
 
-  const editor = useEditor({
-    extensions: [
+  const editorExtensions = useMemo(() => {
+    const base = [
       StarterKit.configure({
         heading: false,
         codeBlock: false,
@@ -47,19 +50,39 @@ const MinimalEditor = ({
             "text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300",
         },
       }),
-      LolMention.configure({
-        HTMLAttributes: {
-          class:
-            "lol-mention inline-flex items-center px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 font-medium mx-0.5 border border-amber-200 dark:border-amber-800",
-        },
-      }),
       UserMention.configure({
         HTMLAttributes: {
           class:
             "user-mention inline-flex items-center px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-medium mx-0.5 border border-blue-200 dark:border-blue-800",
         },
       }),
-    ],
+    ];
+
+    if (juegoAsociado === "delta-force") {
+      base.push(
+        WeaponMention.configure({
+          HTMLAttributes: {
+            class:
+              "weapon-mention inline-flex items-center px-1 py-0.5 rounded bg-[#0eea8e]/10 dark:bg-[#0eea8e]/5 border border-[#0eea8e]/20 text-[#03ba6d] dark:text-[#0eea8e] font-semibold mx-0.5",
+          },
+        })
+      );
+    } else {
+      base.push(
+        LolMention.configure({
+          HTMLAttributes: {
+            class:
+              "lol-mention inline-flex items-center px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 font-medium mx-0.5 border border-amber-200 dark:border-amber-800",
+          },
+        })
+      );
+    }
+
+    return base;
+  }, [juegoAsociado]);
+
+  const editor = useEditor({
+    extensions: editorExtensions,
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -146,9 +169,18 @@ const MinimalEditor = ({
 
         <div className="flex-1" />
 
-        <div className="text-xs text-gray-500 dark:text-gray-400 px-2">
-          <span className="font-medium">#</span> LoL •{" "}
-          <span className="font-medium">@</span> Usuario
+        <div className="text-xs text-gray-500 dark:text-gray-400 px-2 font-mono">
+          {juegoAsociado === "delta-force" ? (
+            <>
+              <span className="font-bold text-[#03ba6d] dark:text-[#0eea8e]">#</span> Arma •{" "}
+              <span className="font-bold text-blue-500">@</span> Usuario
+            </>
+          ) : (
+            <>
+              <span className="font-bold text-amber-500">#</span> LoL •{" "}
+              <span className="font-bold text-blue-500">@</span> Usuario
+            </>
+          )}
         </div>
       </div>
 
@@ -214,13 +246,15 @@ const MinimalEditor = ({
 
         /* Menciones */
         .minimal-editor-content .lol-mention,
-        .minimal-editor-content .user-mention {
+        .minimal-editor-content .user-mention,
+        .minimal-editor-content .weapon-mention {
           font-size: 0.875rem;
           line-height: 1.1;
           vertical-align: middle;
         }
 
-        .minimal-editor-content .lol-mention img {
+        .minimal-editor-content .lol-mention img,
+        .minimal-editor-content .weapon-mention img {
           flex-shrink: 0;
           margin: 0 !important; /* Override prose img styles */
           display: inline-block !important; /* Ensure content flow */

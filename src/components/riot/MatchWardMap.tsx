@@ -276,7 +276,7 @@ export function MatchWardMap({ timeline, participants }: MatchWardMapProps) {
                     ? "Control Ward"
                     : "Ward Normal"}
                 </div>
-                <div className="text-slate-500 text-[10px]">
+                <div className="text-slate-500 text-[0.625rem]">
                   {Math.floor(ward.timestamp / 60000)}:
                   {((ward.timestamp % 60000) / 1000)
                     .toFixed(0)
@@ -289,7 +289,7 @@ export function MatchWardMap({ timeline, participants }: MatchWardMapProps) {
 
         {/* Legend */}
         <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md p-3 rounded-lg border border-white/10 text-xs text-white space-y-2 shadow-lg z-30">
-          <div className="font-semibold mb-1 text-slate-300 uppercase tracking-wider text-[10px]">
+          <div className="font-semibold mb-1 text-slate-300 uppercase tracking-wider text-[0.625rem]">
             Leyenda
           </div>
           <div className="flex items-center gap-2">

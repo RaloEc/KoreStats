@@ -354,7 +354,7 @@ export const SharedMatchCardRefactored: React.FC<SharedMatchCardProps> = memo(
                           <Tooltip key={tag}>
                             <TooltipTrigger asChild>
                               <span
-                                className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-bold text-[9px] ${tagInfo.color} cursor-help border border-white/20 shadow-sm transition-transform hover:scale-105`}
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-bold text-[0.5625rem] ${tagInfo.color} cursor-help border border-white/20 shadow-sm transition-transform hover:scale-105`}
                               >
                                 {tagInfo.label}
                               </span>

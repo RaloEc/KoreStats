@@ -807,7 +807,7 @@ export default function DeltaForceDatabaseView() {
 
             {subTab === "weapons" && (
                 <div className="space-y-3">
-                    <div className="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-border/50 rounded-xl text-[10px] text-muted-foreground flex items-center gap-2">
+                    <div className="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-border/50 rounded-xl text-[0.625rem] text-muted-foreground flex items-center gap-2">
                         <span className="text-df-green-500 font-bold">💡 Nota:</span>
                         <span>Las armas se agregan desde el panel de administración. Aquí configuras sus estadísticas de combate base para la enciclopedia y simulador.</span>
                     </div>
@@ -882,7 +882,7 @@ export default function DeltaForceDatabaseView() {
                                                 <span className="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border bg-zinc-100/60 dark:bg-zinc-900/60 border-border text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all duration-300 shrink-0 shadow-sm">
                                                     {categoryLabel}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-muted-foreground/60">
+                                                <span className="text-[0.625rem] font-bold text-muted-foreground/60">
                                                     ({items.length} {items.length === 1 ? "arma" : "armas"})
                                                 </span>
                                                 <div className="h-px flex-1 bg-gradient-to-r from-zinc-200/60 dark:from-zinc-800/80 to-transparent" />
@@ -898,14 +898,32 @@ export default function DeltaForceDatabaseView() {
                                                         {items.map((w: any) => (
                                                             <div
                                                                 key={w.id}
-                                                                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-gray-50 dark:bg-gray-950/40 shadow-sm dark:shadow-none flex flex-col h-full hover:border-df-green-500/30 transition-all duration-300"
+                                                                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-white dark:bg-gray-950/60 shadow-sm dark:shadow-none flex flex-col h-full hover:border-df-green-500/30 transition-all duration-300"
                                                             >
                                                                 <div className="relative p-3.5 flex flex-col flex-1 h-full">
                                                                     {/* Image Section with Overlays */}
-                                                                    <div className="relative w-full h-32 flex items-center justify-center rounded-xl bg-zinc-100/50 dark:bg-zinc-900/30 overflow-hidden border border-border/40">
+                                                                    <div
+                                                                        className="relative w-full h-32 flex items-center justify-center rounded-xl overflow-hidden border border-border/40 bg-zinc-100/50 dark:bg-zinc-900/30"
+                                                                        style={{
+                                                                            backgroundImage: [
+                                                                                `repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(128,128,128,0.07) 19px, rgba(128,128,128,0.07) 20px)`,
+                                                                                `repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(128,128,128,0.07) 19px, rgba(128,128,128,0.07) 20px)`,
+                                                                            ].join(","),
+                                                                        }}
+                                                                    >
+                                                                        {/* Glow */}
+                                                                        <div
+                                                                            className="absolute inset-0 pointer-events-none hidden dark:block"
+                                                                            style={{ background: `radial-gradient(ellipse 85% 65% at 50% 75%, rgba(16,185,129,0.08), transparent)` }}
+                                                                        />
+                                                                        <div
+                                                                            className="absolute inset-0 pointer-events-none dark:hidden"
+                                                                            style={{ background: `radial-gradient(ellipse 85% 65% at 50% 75%, rgba(16,185,129,0.04), transparent)` }}
+                                                                        />
+
                                                                         {/* Category Tag (Absolute Top-Left) */}
                                                                         <div className="absolute top-2 left-2 z-20 flex gap-1.5 items-center">
-                                                                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-background/80 backdrop-blur-md text-foreground border border-border shadow-sm">
+                                                                            <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-background/80 backdrop-blur-md text-foreground border border-border shadow-sm">
                                                                                 {getCategoryLabel(w.category)}
                                                                             </span>
                                                                         </div>
@@ -913,11 +931,11 @@ export default function DeltaForceDatabaseView() {
                                                                         {/* Configured Status Badge (Absolute Top-Right) */}
                                                                         <div className="absolute top-2 right-2 z-20">
                                                                             {!w.is_configured ? (
-                                                                                <span className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-border/40 text-muted-foreground shadow-sm">
+                                                                                <span className="text-[0.5rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-border/40 text-muted-foreground shadow-sm">
                                                                                     Por Defecto
                                                                                 </span>
                                                                             ) : (
-                                                                                <span className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-df-green-500/10 border border-df-green-500/30 text-df-green-600 dark:text-df-green-400 shadow-sm">
+                                                                                <span className="text-[0.5rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-df-green-500/10 border border-df-green-500/30 text-df-green-600 dark:text-df-green-400 shadow-sm">
                                                                                     Configurada
                                                                                 </span>
                                                                             )}
@@ -940,29 +958,47 @@ export default function DeltaForceDatabaseView() {
                                                                         <h3 className="text-lg font-black text-gray-900 dark:text-white leading-none truncate uppercase tracking-tight">
                                                                             {w.weapon_name}
                                                                         </h3>
-                                                                        <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                                                                        <span className="text-[0.5625rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                                                                             Calibre {w.caliber}
                                                                         </span>
                                                                     </div>
 
                                                                     {/* Main Stats - 2 Column Grid */}
-                                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4">
+                                                                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-4">
                                                                         {BASE_STAT_BARS.map((stat) => {
                                                                             const value = (w as any)[stat.key] || 0;
-                                                                             const numericVal = parseNumericValue(value);
-                                                                             const pct = Math.min((numericVal / stat.max) * 100, 100);
+                                                                            const numericVal = parseNumericValue(value);
+                                                                            const pct = Math.min((numericVal / stat.max) * 100, 100);
                                                                             const Icon = stat.icon;
+                                                                            const SEGMENTS = 20;
+                                                                            const filledSegments = Math.round((pct / 100) * SEGMENTS);
                                                                             return (
                                                                                 <div key={stat.key} className="space-y-0.5">
-                                                                                    <div className="flex justify-between items-center text-[9px]">
-                                                                                        <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                                                                                            <Icon size={10} className="opacity-70" />
-                                                                                            <span className="font-bold uppercase tracking-tighter">{stat.label}</span>
+                                                                                    <div className="flex justify-between items-end text-[0.5625rem] sm:text-xs">
+                                                                                        <div className="flex items-center gap-0.5 text-gray-500 dark:text-gray-400 pb-0.5 leading-none">
+                                                                                            <Icon size={10} className="opacity-60" />
+                                                                                            <span className="font-bold uppercase tracking-tighter text-[0.5625rem]">{stat.label}</span>
                                                                                         </div>
-                                                                                        <span className="text-gray-800 dark:text-gray-200">{value}{stat.unit}</span>
+                                                                                        <span className="font-mono font-black text-gray-800 dark:text-gray-200 text-[0.75rem] sm:text-xs leading-none">{value}{stat.unit}</span>
                                                                                     </div>
-                                                                                    <div className="h-1 w-full bg-gray-200 dark:bg-gray-900/60 rounded-full overflow-hidden">
-                                                                                        <div className="h-full rounded-full bg-df-green-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                                                                                    <div className="flex gap-px h-1.5">
+                                                                                        {Array.from({ length: SEGMENTS }).map((_, i) => {
+                                                                                            const isFilled = i < filledSegments;
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={i}
+                                                                                                    className="flex-1 rounded-[1px] transition-all duration-500"
+                                                                                                    style={{
+                                                                                                        backgroundColor: isFilled
+                                                                                                            ? "#10b981"
+                                                                                                            : "rgba(128,128,128,0.15)",
+                                                                                                        boxShadow: isFilled && i === filledSegments - 1
+                                                                                                            ? "0 0 4px rgba(16,185,129,0.55)"
+                                                                                                            : undefined,
+                                                                                                    }}
+                                                                                                />
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
                                                                                 </div>
                                                                             );
@@ -970,21 +1006,39 @@ export default function DeltaForceDatabaseView() {
                                                                         {/* Perforación de blindaje — solo en Operaciones */}
                                                                         {gameMode === "operations" && (() => {
                                                                             const stat = ARMOR_PEN_STAT;
-                                                                             const value = (w as any)[stat.key] || 0;
-                                                                             const numericVal = parseNumericValue(value);
-                                                                             const pct = Math.min((numericVal / stat.max) * 100, 100);
+                                                                            const value = (w as any)[stat.key] || 0;
+                                                                            const numericVal = parseNumericValue(value);
+                                                                            const pct = Math.min((numericVal / stat.max) * 100, 100);
                                                                             const Icon = stat.icon;
+                                                                            const SEGMENTS = 20;
+                                                                            const filledSegments = Math.round((pct / 100) * SEGMENTS);
                                                                             return (
                                                                                 <div className="col-span-2 space-y-0.5">
-                                                                                    <div className="flex justify-between items-center text-[9px]">
-                                                                                        <div className="flex items-center gap-1 text-amber-500/80">
-                                                                                            <Icon size={10} className="opacity-70" />
-                                                                                            <span className="font-bold uppercase tracking-tighter">{stat.label}</span>
+                                                                                    <div className="flex justify-between items-end text-[0.5625rem] sm:text-xs">
+                                                                                        <div className="flex items-center gap-0.5 text-amber-500/85 pb-0.5 leading-none">
+                                                                                            <Icon size={10} className="opacity-60" />
+                                                                                            <span className="font-bold uppercase tracking-tighter text-[0.5625rem]">{stat.label}</span>
                                                                                         </div>
-                                                                                        <span className="text-amber-600 dark:text-amber-400 font-bold">{value}</span>
+                                                                                        <span className="font-mono font-black text-amber-600 dark:text-amber-400 text-[0.75rem] sm:text-xs leading-none">{value}</span>
                                                                                     </div>
-                                                                                    <div className="h-1 w-full bg-gray-200 dark:bg-gray-900/60 rounded-full overflow-hidden">
-                                                                                        <div className="h-full rounded-full bg-amber-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                                                                                    <div className="flex gap-px h-1.5">
+                                                                                        {Array.from({ length: SEGMENTS }).map((_, i) => {
+                                                                                            const isFilled = i < filledSegments;
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={i}
+                                                                                                    className="flex-1 rounded-[1px] transition-all duration-500"
+                                                                                                    style={{
+                                                                                                        backgroundColor: isFilled
+                                                                                                            ? "#f59e0b"
+                                                                                                            : "rgba(128,128,128,0.15)",
+                                                                                                        boxShadow: isFilled && i === filledSegments - 1
+                                                                                                            ? "0 0 4px rgba(245,158,11,0.55)"
+                                                                                                            : undefined,
+                                                                                                    }}
+                                                                                                />
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
                                                                                 </div>
                                                                             );
@@ -995,71 +1049,117 @@ export default function DeltaForceDatabaseView() {
                                                                     <div className="flex items-center justify-around py-3 border-y border-border/40 mt-4 gap-1 overflow-hidden">
                                                                         <div className="flex flex-col items-center gap-0.5 min-w-[40px] text-center">
                                                                             <Clock size={10} className="text-muted-foreground" />
-                                                                            <span className="text-[10px] text-muted-foreground leading-none font-bold">
+                                                                            <span className="text-[0.625rem] text-muted-foreground leading-none font-bold">
                                                                                 {w.base_fire_rate}
                                                                             </span>
-                                                                            <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">Cadencia</span>
+                                                                            <span className="text-[0.4375rem] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">Cadencia</span>
                                                                         </div>
                                                                         <div className="flex flex-col items-center gap-0.5 min-w-[40px] text-center">
                                                                             <Package size={10} className="text-muted-foreground" />
-                                                                            <span className="text-[10px] text-muted-foreground leading-none font-bold">
+                                                                            <span className="text-[0.625rem] text-muted-foreground leading-none font-bold">
                                                                                 {w.base_capacity}
                                                                             </span>
-                                                                            <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">Capacidad</span>
+                                                                            <span className="text-[0.4375rem] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">Capacidad</span>
                                                                         </div>
                                                                         <div className="flex flex-col items-center gap-0.5 min-w-[40px] text-center">
                                                                             <Wind size={10} className="text-muted-foreground" />
-                                                                            <span className="text-[10px] text-muted-foreground leading-none font-bold">
+                                                                            <span className="text-[0.625rem] text-muted-foreground leading-none font-bold">
                                                                                 {w.base_muzzle_velocity}m/s
                                                                             </span>
-                                                                            <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">Vel. Boca</span>
+                                                                            <span className="text-[0.4375rem] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">Vel. Boca</span>
                                                                         </div>
                                                                     </div>
 
                                                                     {/* Bottom Actions Section */}
-                                                                    {user ? (
-                                                                        <div className="mt-auto pt-4 flex items-center justify-end gap-2">
-                                                                            {w.is_configured ? (
-                                                                                <div className="flex items-center gap-2 w-full justify-between mt-2 pt-2 border-t border-border/20">
-                                                                                    <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider">
-                                                                                        Ajustes Base
-                                                                                    </span>
-                                                                                    <div className="flex items-center gap-1">
+                                                                    {(() => {
+                                                                        const showAmmo = gameMode === "operations";
+                                                                        const weaponCaliber = calibersList.find((c: any) => c.name.toLowerCase() === w.caliber.toLowerCase());
+                                                                        const caliberImages = showAmmo && weaponCaliber ? getCaliberImages(weaponCaliber.image_url) : [];
+                                                                        const renderAmmoThumbnails = () => {
+                                                                            if (caliberImages.length === 0) {
+                                                                                if (!showAmmo) {
+                                                                                    return (
+                                                                                        <span className="text-[0.5rem] text-muted-foreground uppercase font-bold tracking-wider">
+                                                                                            Ajustes Base
+                                                                                        </span>
+                                                                                    );
+                                                                                }
+                                                                                return null;
+                                                                            }
+                                                                            return (
+                                                                                <div className="flex flex-wrap items-center gap-2 py-0.5">
+                                                                                    {caliberImages.map((img: string, idx: number) => {
+                                                                                        return (
+                                                                                            <div key={idx} className="group/ammo relative shrink-0" title={w.caliber}>
+                                                                                                <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-border/50 flex items-center justify-center overflow-hidden hover:border-df-green-500 transition-colors">
+                                                                                                    <img src={img} alt={w.caliber} className="w-full h-full object-contain p-1" />
+                                                                                                </div>
+                                                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/ammo:block bg-zinc-950 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap z-30">
+                                                                                                    {w.caliber}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            );
+                                                                        };
+
+                                                                        return user ? (
+                                                                            <div className="mt-auto flex flex-col w-full">
+                                                                                {w.is_configured ? (
+                                                                                    <div className="flex items-center gap-2 w-full justify-between pt-2 border-t border-border/20">
+                                                                                        {renderAmmoThumbnails()}
+                                                                                        <div className="flex items-center gap-1">
+                                                                                            <button
+                                                                                                onClick={() => handleEditClick(w, "weapons")}
+                                                                                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[0.5625rem] font-black uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-muted-foreground hover:text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-border/40"
+                                                                                                title="Editar estadísticas base"
+                                                                                            >
+                                                                                                <Edit className="w-3 h-3" />
+                                                                                                <span>Editar</span>
+                                                                                            </button>
+                                                                                            <button
+                                                                                                onClick={() => handleDeleteClick(w.id, w.weapon_name, "weapons")}
+                                                                                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[0.5625rem] font-black uppercase tracking-wider bg-red-500/10 text-red-505 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-transparent"
+                                                                                                title="Restablecer estadísticas a por defecto"
+                                                                                            >
+                                                                                                <Trash2 className="w-3 h-3" />
+                                                                                                <span>Restablecer</span>
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="w-full flex flex-col gap-2">
+                                                                                        {showAmmo && caliberImages.length > 0 && (
+                                                                                            <div className="flex items-center gap-2 w-full justify-between pt-2 border-t border-border/20">
+                                                                                                <span className="text-[0.5rem] text-muted-foreground uppercase font-bold tracking-wider">Munición</span>
+                                                                                                {renderAmmoThumbnails()}
+                                                                                            </div>
+                                                                                        )}
                                                                                         <button
-                                                                                            onClick={() => handleEditClick(w, "weapons")}
-                                                                                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-muted-foreground hover:text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-border/40"
-                                                                                            title="Editar estadísticas base"
+                                                                                            onClick={() => handleConfigureStats(w)}
+                                                                                            className="w-full mt-2 flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 text-white text-[0.625rem] font-black uppercase tracking-wider transition-all shadow-sm shadow-df-green-500/20"
+                                                                                            title="Configurar estadísticas base"
                                                                                         >
-                                                                                            <Edit className="w-3 h-3" />
-                                                                                            <span>Editar</span>
-                                                                                        </button>
-                                                                                        <button
-                                                                                            onClick={() => handleDeleteClick(w.id, w.weapon_name, "weapons")}
-                                                                                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-red-500/10 text-red-505 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-transparent"
-                                                                                            title="Restablecer estadísticas a por defecto"
-                                                                                        >
-                                                                                            <Trash2 className="w-3 h-3" />
-                                                                                            <span>Restablecer</span>
+                                                                                            <Plus className="w-3.5 h-3.5" />
+                                                                                            <span>Configurar Estadísticas Base</span>
                                                                                         </button>
                                                                                     </div>
-                                                                                </div>
-                                                                            ) : (
-                                                                                <button
-                                                                                    onClick={() => handleConfigureStats(w)}
-                                                                                    className="w-full mt-4 flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 text-white text-[10px] font-black uppercase tracking-wider transition-all shadow-sm shadow-df-green-500/20"
-                                                                                    title="Configurar estadísticas base"
-                                                                                >
-                                                                                    <Plus className="w-3.5 h-3.5" />
-                                                                                    <span>Configurar Estadísticas Base</span>
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="mt-auto pt-3 border-t border-border/30 flex items-center justify-between text-[8px] text-muted-foreground uppercase font-bold tracking-wider opacity-60">
-                                                                            <span>Estadísticas Oficiales Base</span>
-                                                                            <span>Delta Force</span>
-                                                                        </div>
-                                                                    )}
+                                                                                )}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="mt-auto pt-2 border-t border-border/20 flex items-center justify-between w-full">
+                                                                                {showAmmo ? renderAmmoThumbnails() : (
+                                                                                    <span className="text-[0.5rem] text-muted-foreground uppercase font-bold tracking-wider opacity-60">
+                                                                                        Estadísticas Oficiales Base
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="text-[0.5rem] text-muted-foreground uppercase font-bold tracking-wider opacity-60">
+                                                                                    Delta Force
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -1089,7 +1189,7 @@ export default function DeltaForceDatabaseView() {
                                         <div className="overflow-x-auto">
                                             <table className="w-full border-collapse text-left">
                                                 <thead>
-                                                    <tr className="border-b border-border bg-zinc-50/50 dark:bg-zinc-900/40 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                    <tr className="border-b border-border bg-zinc-50/50 dark:bg-zinc-900/40 text-[0.625rem] font-bold text-muted-foreground uppercase tracking-widest">
                                                         <th className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">Bala</th>
                                                         <th className="p-3">Calibre / Armas Compatibles</th>
                                                         <th className="p-3 text-center">Nivel Perf.</th>
@@ -1154,9 +1254,9 @@ export default function DeltaForceDatabaseView() {
                                                                             )}
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
-                                                                            <div className="font-extrabold text-[13px] text-foreground truncate">{a.name}</div>
+                                                                            <div className="font-extrabold text-[0.8125rem] text-foreground truncate">{a.name}</div>
                                                                             {a.description && (
-                                                                                <div className="text-[10px] text-muted-foreground/60 mt-0.5 max-w-[120px] truncate" title={a.description}>
+                                                                                <div className="text-[0.625rem] text-muted-foreground/60 mt-0.5 max-w-[120px] truncate" title={a.description}>
                                                                                     {a.description}
                                                                                 </div>
                                                                             )}
@@ -1173,14 +1273,14 @@ export default function DeltaForceDatabaseView() {
                                                                                 {caliberWeapons.map((w) => (
                                                                                     <span
                                                                                         key={w.id}
-                                                                                        className="px-1 py-0.5 rounded bg-zinc-50 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-300 font-semibold text-[9px] border border-zinc-200/50 dark:border-zinc-800 shadow-sm"
+                                                                                        className="px-1 py-0.5 rounded bg-zinc-50 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-300 font-semibold text-[0.5625rem] border border-zinc-200/50 dark:border-zinc-800 shadow-sm"
                                                                                     >
                                                                                         {w.weapon_name}
                                                                                     </span>
                                                                                 ))}
                                                                             </div>
                                                                         ) : (
-                                                                            <span className="text-[8px] text-muted-foreground/50 italic">Sin armas</span>
+                                                                            <span className="text-[0.5rem] text-muted-foreground/50 italic">Sin armas</span>
                                                                         )}
                                                                     </div>
                                                                 </td>
@@ -1201,8 +1301,8 @@ export default function DeltaForceDatabaseView() {
                                                                              {dmgRatio}%
                                                                          </span>
                                                                          <User className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-help transition-colors" />
-                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[9px] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
-                                                                             <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[8px]">Daño Corporal</span>
+                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
+                                                                             <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[0.5rem]">Daño Corporal</span>
                                                                              Daño aplicado en zonas sin blindaje o extremidades (Nv. 0)
                                                                          </div>
                                                                      </div>
@@ -1227,10 +1327,10 @@ export default function DeltaForceDatabaseView() {
                                                                              }
                                                                              return (
                                                                                  <div key={i} className="flex flex-col items-center gap-1" title={`Nv.${i + 1}: ${val}%`}>
-                                                                                     <div className={cn("text-[10px] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
+                                                                                     <div className={cn("text-[0.625rem] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
                                                                                          {val}%
                                                                                      </div>
-                                                                                     <span className={cn("text-[10px] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
+                                                                                     <span className={cn("text-[0.625rem] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
                                                                                          {i + 1}
                                                                                      </span>
                                                                                  </div>
@@ -1240,11 +1340,11 @@ export default function DeltaForceDatabaseView() {
                                                                 </td>
                                                                 <td className="p-3 text-center">
                                                                      <div className="inline-block group/degraded relative">
-                                                                         <span className={cn("px-2.5 py-1 rounded-xl text-[11px] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
+                                                                         <span className={cn("px-2.5 py-1 rounded-xl text-[0.6875rem] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
                                                                              {degradation}
                                                                          </span>
-                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[9px] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
-                                                                             <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[8px]">Pérdida de Perforación</span>
+                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
+                                                                             <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[0.5rem]">Pérdida de Perforación</span>
                                                                              {degradation === "bajo" && <span>El proyectil apenas pierde capacidad de penetración tras el primer impacto.</span>}
                                                                              {degradation === "medio" && <span>Pérdida de penetración moderada tras atravesar el primer blindaje.</span>}
                                                                              {degradation === "alto" && <span>Pérdida de penetración severa al impactar contra placas de blindaje.</span>}
@@ -1349,7 +1449,7 @@ export default function DeltaForceDatabaseView() {
                                                                     <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-wider">
                                                                         {c.name}
                                                                     </h3>
-                                                                    <span className="inline-flex text-[9px] font-black text-df-green-650 dark:text-df-green-400 bg-df-green-500/10 border border-df-green-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider w-fit">
+                                                                    <span className="inline-flex text-[0.5625rem] font-black text-df-green-650 dark:text-df-green-400 bg-df-green-500/10 border border-df-green-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider w-fit">
                                                                         {caliberAmmo.length} Proyectiles
                                                                     </span>
                                                                 </div>
@@ -1357,18 +1457,18 @@ export default function DeltaForceDatabaseView() {
                                                                 {/* Compatible Weapons list */}
                                                                 {caliberWeapons.length > 0 ? (
                                                                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                                                        <span className="text-[8px] text-muted-foreground/60 uppercase font-black tracking-widest mr-1">Compatibilidad:</span>
+                                                                        <span className="text-[0.5rem] text-muted-foreground/60 uppercase font-black tracking-widest mr-1">Compatibilidad:</span>
                                                                         {caliberWeapons.map((w) => (
                                                                             <span
                                                                                 key={w.id}
-                                                                                className="px-1.5 py-0.5 rounded bg-zinc-50 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-300 font-semibold text-[9px] border border-zinc-200/50 dark:border-zinc-800 shadow-sm"
+                                                                                className="px-1.5 py-0.5 rounded bg-zinc-50 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-300 font-semibold text-[0.5625rem] border border-zinc-200/50 dark:border-zinc-800 shadow-sm"
                                                                             >
                                                                                 {w.weapon_name}
                                                                             </span>
                                                                         ))}
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="text-[9px] text-muted-foreground/60 italic mt-1.5">
+                                                                    <div className="text-[0.5625rem] text-muted-foreground/60 italic mt-1.5">
                                                                         Sin armas asociadas en el catálogo
                                                                     </div>
                                                                 )}
@@ -1381,7 +1481,7 @@ export default function DeltaForceDatabaseView() {
                                                                 <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         onClick={() => handleAddClick("ammo", c.name)}
-                                                                        className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-df-green-500 hover:bg-df-green-600 text-white transition-all shadow-sm shadow-df-green-500/10 flex items-center gap-1"
+                                                                        className="px-2.5 py-1.5 rounded-lg text-[0.5625rem] font-black uppercase tracking-wider bg-df-green-500 hover:bg-df-green-600 text-white transition-all shadow-sm shadow-df-green-500/10 flex items-center gap-1"
                                                                         title="Agregar bala a este calibre"
                                                                     >
                                                                         <Plus className="w-3 h-3" />
@@ -1435,7 +1535,7 @@ export default function DeltaForceDatabaseView() {
                                                             <div className="overflow-x-auto">
                                                                 <table className="w-full border-collapse text-left">
                                                                     <thead>
-                                                                        <tr className="border-b border-border bg-zinc-50/50 dark:bg-zinc-900/40 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                                        <tr className="border-b border-border bg-zinc-50/50 dark:bg-zinc-900/40 text-[0.625rem] font-bold text-muted-foreground uppercase tracking-widest">
                                                                             <th className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">Bala</th>
                                                                             <th className="p-3 text-center">Nivel Perf.</th>
                                                                             <th className="p-3 text-center">Puntos Perf.</th>
@@ -1490,9 +1590,9 @@ export default function DeltaForceDatabaseView() {
                                                                                                 )}
                                                                                             </div>
                                                                                             <div className="min-w-0 flex-1">
-                                                                                                <div className="font-extrabold text-[13px] text-foreground truncate">{a.name}</div>
+                                                                                                <div className="font-extrabold text-[0.8125rem] text-foreground truncate">{a.name}</div>
                                                                                                 {a.description && (
-                                                                                                    <div className="text-[10px] text-muted-foreground/60 mt-0.5 max-w-[120px] truncate" title={a.description}>
+                                                                                                    <div className="text-[0.625rem] text-muted-foreground/60 mt-0.5 max-w-[120px] truncate" title={a.description}>
                                                                                                         {a.description}
                                                                                                     </div>
                                                                                                 )}
@@ -1516,8 +1616,8 @@ export default function DeltaForceDatabaseView() {
                                                                                                  {dmgRatio}%
                                                                                              </span>
                                                                                              <User className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-help transition-colors" />
-                                                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[9px] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
-                                                                                                 <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[8px]">Daño Corporal</span>
+                                                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
+                                                                                                 <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[0.5rem]">Daño Corporal</span>
                                                                                                  Daño aplicado en zonas sin blindaje o extremidades (Nv. 0)
                                                                                              </div>
                                                                                          </div>
@@ -1544,10 +1644,10 @@ export default function DeltaForceDatabaseView() {
                                                                                                  
                                                                                                  return (
                                                                                                      <div key={i} className="flex flex-col items-center gap-1" title={`Nv.${i + 1}: ${val}%`}>
-                                                                                                         <div className={cn("text-[10px] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
+                                                                                                         <div className={cn("text-[0.625rem] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
                                                                                                              {val}%
                                                                                                          </div>
-                                                                                                         <span className={cn("text-[10px] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
+                                                                                                         <span className={cn("text-[0.625rem] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
                                                                                                              {i + 1}
                                                                                                          </span>
                                                                                                      </div>
@@ -1557,11 +1657,11 @@ export default function DeltaForceDatabaseView() {
                                                                                     </td>
                                                                                     <td className="p-3 text-center">
                                                                                          <div className="inline-block group/degraded relative">
-                                                                                             <span className={cn("px-2.5 py-1 rounded-xl text-[11px] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
+                                                                                             <span className={cn("px-2.5 py-1 rounded-xl text-[0.6875rem] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
                                                                                                  {degradation}
                                                                                              </span>
-                                                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[9px] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
-                                                                                                 <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[8px]">Pérdida de Perforación</span>
+                                                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
+                                                                                                 <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[0.5rem]">Pérdida de Perforación</span>
                                                                                                  {degradation === "bajo" && <span>El proyectil apenas pierde capacidad de penetración tras el primer impacto.</span>}
                                                                                                  {degradation === "medio" && <span>Pérdida de penetración moderada tras atravesar el primer blindaje.</span>}
                                                                                                  {degradation === "alto" && <span>Pérdida de penetración severa al impactar contra placas de blindaje.</span>}
@@ -1662,7 +1762,7 @@ export default function DeltaForceDatabaseView() {
                                                                                     {/* Tier Badge inside Image */}
                                                                                     <div className="absolute top-3 left-3 z-10">
                                                                                         <span className={cn(
-                                                                                            "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border backdrop-blur-md",
+                                                                                            "text-[0.5rem] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border backdrop-blur-md",
                                                                                             g.tier === 6 ? "bg-red-500/10 border-red-500/30 text-red-650 dark:text-red-400" :
                                                                                             g.tier === 5 ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" :
                                                                                             g.tier === 4 ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400" :
@@ -1693,7 +1793,7 @@ export default function DeltaForceDatabaseView() {
                                                                                         <div className="flex justify-between items-start gap-4">
                                                                                             <div className="min-w-0">
                                                                                                 <span className={cn(
-                                                                                                    "text-[8px] font-black uppercase tracking-widest block mb-0.5",
+                                                                                                    "text-[0.5rem] font-black uppercase tracking-widest block mb-0.5",
                                                                                                     isHelmet ? "text-cyan-600 dark:text-cyan-400" : "text-rose-600 dark:text-rose-400"
                                                                                                 )}>
                                                                                                     {isHelmet ? "Casco Táctico" : "Chaleco de Combate"} • Nv. {g.tier}
@@ -1725,7 +1825,7 @@ export default function DeltaForceDatabaseView() {
                                                                                         </div>
 
                                                                                         {/* Stats List - Minimalist emulating the game UI */}
-                                                                                        <div className="divide-y divide-zinc-200/50 dark:divide-zinc-800/70 text-[10px]">
+                                                                                        <div className="divide-y divide-zinc-200/50 dark:divide-zinc-800/70 text-[0.625rem]">
                                                                                             {/* Durability */}
                                                                                             <div className="py-1.5 space-y-1">
                                                                                                 <div className="flex justify-between items-center text-muted-foreground">
@@ -1745,7 +1845,7 @@ export default function DeltaForceDatabaseView() {
                                                                                             {/* Shield Effects (Speed Penalties) */}
                                                                                             {(g.speed_penalty !== 0 || g.ergo_penalty !== 0) && (
                                                                                                 <div className="py-1.5 space-y-1">
-                                                                                                    <span className="block text-[8px] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Efectos de blindaje</span>
+                                                                                                    <span className="block text-[0.5rem] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Efectos de blindaje</span>
                                                                                                     <div className="space-y-0.5">
                                                                                                         {g.ergo_penalty !== 0 && (
                                                                                                             <div className="flex items-center gap-1.5 text-zinc-650 dark:text-zinc-200 font-medium">
@@ -1811,7 +1911,7 @@ export default function DeltaForceDatabaseView() {
 
                                                                                     {/* Description */}
                                                                                     {g.description && (
-                                                                                        <p className="text-[9px] text-zinc-600 dark:text-zinc-300/90 leading-relaxed mt-2.5 pt-2.5 border-t border-dashed border-zinc-200 dark:border-zinc-800/80 line-clamp-3">
+                                                                                        <p className="text-[0.5625rem] text-zinc-600 dark:text-zinc-300/90 leading-relaxed mt-2.5 pt-2.5 border-t border-dashed border-zinc-200 dark:border-zinc-800/80 line-clamp-3">
                                                                                             {g.description}
                                                                                         </p>
                                                                                     )}
@@ -1847,7 +1947,7 @@ export default function DeltaForceDatabaseView() {
                                 </h2>
                                 {activeFormType === "weapons" && (
                                     <span className={cn(
-                                        "inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider mt-0.5 px-2 py-0.5 rounded-md",
+                                        "inline-flex items-center gap-1 text-[0.5625rem] font-black uppercase tracking-wider mt-0.5 px-2 py-0.5 rounded-md",
                                         gameMode === "operations"
                                             ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                             : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
@@ -1876,7 +1976,7 @@ export default function DeltaForceDatabaseView() {
                             {activeFormType === "weapons" && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nombre de Arma</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre de Arma</label>
                                         <input
                                             type="text"
                                             value={weaponFields.weapon_name}
@@ -1886,7 +1986,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Categoría</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Categoría</label>
                                         <input
                                             type="text"
                                             value={getCategoryLabel(weaponFields.category)}
@@ -1896,7 +1996,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
                                         <select
                                             value={weaponFields.caliber}
                                             onChange={(e) => setWeaponFields(prev => ({ ...prev, caliber: e.target.value }))}
@@ -1910,7 +2010,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Daño Base</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Daño Base</label>
                                          <input
                                              type="text"
                                              value={weaponFields.base_damage}
@@ -1922,7 +2022,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Rango (m)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Rango (m)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_range}
@@ -1933,7 +2033,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Control Retroceso (0-100)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Control Retroceso (0-100)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_control}
@@ -1945,7 +2045,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Manejo/Ergonomía (0-100)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Manejo/Ergonomía (0-100)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_handling}
@@ -1957,7 +2057,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Estabilidad (0-100)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Estabilidad (0-100)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_stability}
@@ -1969,7 +2069,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Precisión (0-100)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Precisión (0-100)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_accuracy}
@@ -1981,7 +2081,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Cadencia (DPM)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Cadencia (DPM)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_fire_rate}
@@ -1992,7 +2092,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Capacidad Mag (Rds)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Capacidad Mag (Rds)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_capacity}
@@ -2003,7 +2103,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Velocidad Boca (m/s)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Velocidad Boca (m/s)</label>
                                         <input
                                             type="number"
                                             value={weaponFields.base_muzzle_velocity}
@@ -2016,7 +2116,7 @@ export default function DeltaForceDatabaseView() {
                                     {/* Perforación de blindaje — solo visible en modo Operaciones */}
                                     {gameMode === "operations" && (
                                         <div className="sm:col-span-2">
-                                            <label className="block text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-1">
+                                            <label className="block text-[0.625rem] font-bold text-amber-600 dark:text-amber-400 uppercase mb-1">
                                                 🛡️ Perforación de Blindaje Base (0-100) — Solo Operaciones</label>
                                              <input
                                                  type="text"
@@ -2030,7 +2130,7 @@ export default function DeltaForceDatabaseView() {
                                     )}
 
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Imagen del Arma</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imagen del Arma</label>
                                         <div className="space-y-2">
                                             <div className="flex gap-2">
                                                 <input
@@ -2081,7 +2181,7 @@ export default function DeltaForceDatabaseView() {
                                     {/* Name & Caliber */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="sm:col-span-2">
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nombre de Munición</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre de Munición</label>
                                             <input
                                                 type="text"
                                                 value={ammoFields.name}
@@ -2092,7 +2192,7 @@ export default function DeltaForceDatabaseView() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
                                             <select
                                                 value={ammoFields.caliber}
                                                 onChange={(e) => setAmmoFields(prev => ({ ...prev, caliber: e.target.value }))}
@@ -2109,7 +2209,7 @@ export default function DeltaForceDatabaseView() {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Proporción de Daño Corporal (%)</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Proporción de Daño Corporal (%)</label>
                                             <input
                                                 type="number"
                                                 value={ammoFields.damage_ratio}
@@ -2121,7 +2221,7 @@ export default function DeltaForceDatabaseView() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Daño al Cuerpo (Base)</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Daño al Cuerpo (Base)</label>
                                             <input
                                                 type="text"
                                                 value={ammoFields.body_damage}
@@ -2131,7 +2231,7 @@ export default function DeltaForceDatabaseView() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Puntos de Perforación (Rating)</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Puntos de Perforación (Rating)</label>
                                             <input
                                                 type="text"
                                                 value={ammoFields.armor_penetration}
@@ -2141,7 +2241,7 @@ export default function DeltaForceDatabaseView() {
                                             />
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
                                             <textarea
                                                 value={ammoFields.description}
                                                 onChange={(e) => setAmmoFields(prev => ({ ...prev, description: e.target.value }))}
@@ -2154,7 +2254,7 @@ export default function DeltaForceDatabaseView() {
 
                                     {/* Penetration Level visual selector */}
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Nivel de Perforación</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Nivel de Perforación</label>
                                         <div className="flex gap-1.5">
                                             {[0, 1, 2, 3, 4, 5, 6].map(lvl => {
                                                 const lvlColors: Record<number, string> = {
@@ -2181,7 +2281,7 @@ export default function DeltaForceDatabaseView() {
                                                             damage_vs_armor_5: calculateDamagePenetration(lvl, 5),
                                                             damage_vs_armor_6: calculateDamagePenetration(lvl, 6),
                                                         }))}
-                                                        className={cn("flex-1 py-2 rounded-lg border text-[11px] font-black transition-all", lvlColors[lvl])}
+                                                        className={cn("flex-1 py-2 rounded-lg border text-[0.6875rem] font-black transition-all", lvlColors[lvl])}
                                                     >
                                                         Nv.{lvl}
                                                     </button>
@@ -2193,7 +2293,7 @@ export default function DeltaForceDatabaseView() {
                                     {/* Degradation & Falloff */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Disminución de Perforación</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Disminución de Perforación</label>
                                             <div className="flex gap-2">
                                                 {(["bajo", "medio", "alto"] as const).map(d => (
                                                     <button
@@ -2201,7 +2301,7 @@ export default function DeltaForceDatabaseView() {
                                                         type="button"
                                                         onClick={() => setAmmoFields(prev => ({ ...prev, armor_pen_degradation: d }))}
                                                         className={cn(
-                                                            "flex-1 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all capitalize",
+                                                            "flex-1 py-1.5 rounded-lg border text-[0.625rem] font-black uppercase tracking-wider transition-all capitalize",
                                                             ammoFields.armor_pen_degradation === d
                                                                 ? d === "bajo" ? "bg-emerald-500 text-white border-emerald-500"
                                                                     : d === "medio" ? "bg-orange-500 text-white border-orange-500"
@@ -2215,7 +2315,7 @@ export default function DeltaForceDatabaseView() {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Coeficiente de Caída (%)</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Coeficiente de Caída (%)</label>
                                             <input
                                                 type="number"
                                                 value={ammoFields.pen_falloff_coefficient}
@@ -2229,13 +2329,13 @@ export default function DeltaForceDatabaseView() {
 
                                     {/* Damage vs Armor per level */}
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">
                                             Eficiencia de Daño a Durabilidad de Blindaje (%) — por Nivel
                                         </label>
                                         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                                             {[1, 2, 3, 4, 5, 6].map(n => (
                                                 <div key={n}>
-                                                    <label className="block text-[9px] text-center font-bold text-muted-foreground mb-1">Nv.{n}</label>
+                                                    <label className="block text-[0.5625rem] text-center font-bold text-muted-foreground mb-1">Nv.{n}</label>
                                                     <input
                                                         type="number"
                                                         value={(ammoFields as any)[`damage_vs_armor_${n}`]}
@@ -2249,14 +2349,14 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     {/* Armas Compatibles (Automático) */}
-                                    <div className="sm:col-span-2 p-3 bg-df-green-500/5 border border-df-green-500/20 rounded-xl text-[10px] text-muted-foreground space-y-1">
+                                    <div className="sm:col-span-2 p-3 bg-df-green-500/5 border border-df-green-500/20 rounded-xl text-[0.625rem] text-muted-foreground space-y-1">
                                         <span className="font-bold text-df-green-600 dark:text-df-green-400 block uppercase tracking-wider">💡 Compatibilidad Automática</span>
                                         <span>Las armas compatibles con esta munición se determinan dinámicamente en base a su calibre. Actualmente, las armas registradas con el calibre <span className="font-bold text-foreground">"{ammoFields.caliber}"</span> tendrán esta bala disponible de forma automática.</span>
                                     </div>
 
                                     {/* Imagen de la Munición con Fallback */}
                                     <div className="sm:col-span-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-border rounded-xl space-y-2">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase block">Imagen de la Munición</span>
+                                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase block">Imagen de la Munición</span>
                                         {(() => {
                                             const ammoCaliberObj = calibersList.find(c => c.name.toLowerCase() === ammoFields.caliber.toLowerCase());
                                             const caliberImg = ammoCaliberObj?.image_url || "";
@@ -2298,7 +2398,7 @@ export default function DeltaForceDatabaseView() {
                                                         if (caliberImages.length <= 0) return null;
                                                         return (
                                                             <div className="space-y-1.5 pt-1">
-                                                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider block">
+                                                                <span className="text-[0.5625rem] font-black text-muted-foreground uppercase tracking-wider block">
                                                                     Seleccionar de las imágenes del calibre:
                                                                 </span>
                                                                 <div className="flex flex-wrap gap-2 p-2 bg-zinc-50 dark:bg-zinc-900/30 border border-border rounded-xl">
@@ -2320,7 +2420,7 @@ export default function DeltaForceDatabaseView() {
                                                                                 <img src={url} alt={`Caliber image ${idx + 1}`} className="w-full h-full object-contain" />
                                                                                 {isSelected && (
                                                                                     <div className="absolute inset-0 bg-df-green-500/10 flex items-center justify-center">
-                                                                                        <span className="bg-df-green-500 text-white text-[7px] font-bold px-1 rounded-sm shadow-sm">✓</span>
+                                                                                        <span className="bg-df-green-500 text-white text-[0.4375rem] font-bold px-1 rounded-sm shadow-sm">✓</span>
                                                                                     </div>
                                                                                 )}
                                                                             </button>
@@ -2345,7 +2445,7 @@ export default function DeltaForceDatabaseView() {
                                                                     </button>
                                                                 )}
                                                             </div>
-                                                            <div className="text-[10px] space-y-1">
+                                                            <div className="text-[0.625rem] space-y-1">
                                                                 {hasCustomImage ? (
                                                                     <>
                                                                         <span className="inline-flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">
@@ -2367,7 +2467,7 @@ export default function DeltaForceDatabaseView() {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <p className="text-[10px] text-muted-foreground italic">
+                                                        <p className="text-[0.625rem] text-muted-foreground italic">
                                                             Sube una imagen para esta bala, o sube una imagen al calibre "{ammoFields.caliber}" para usarla como fallback.
                                                         </p>
                                                     )}
@@ -2382,7 +2482,7 @@ export default function DeltaForceDatabaseView() {
                             {activeFormType === "gear" && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nombre del Equipamiento</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre del Equipamiento</label>
                                         <input
                                             type="text"
                                             value={gearFields.name}
@@ -2394,7 +2494,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Tipo de Protección</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Tipo de Protección</label>
                                         <select
                                             value={gearFields.type}
                                             onChange={(e) => {
@@ -2413,7 +2513,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nivel (Tier 1-6)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nivel (Tier 1-6)</label>
                                         <select
                                             value={gearFields.tier}
                                             onChange={(e) => setGearFields(prev => ({ ...prev, tier: parseInt(e.target.value) || 1 }))}
@@ -2426,7 +2526,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Puntos de Durabilidad Máxima</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Puntos de Durabilidad Máxima</label>
                                         <input
                                             type="number"
                                             value={gearFields.max_durability}
@@ -2437,7 +2537,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Penalización Velocidad (%)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Penalización Velocidad (%)</label>
                                         <input
                                             type="number"
                                             step="0.1"
@@ -2449,7 +2549,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Penalización Ergo (%)</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Penalización Ergo (%)</label>
                                         <input
                                             type="number"
                                             step="0.1"
@@ -2463,7 +2563,7 @@ export default function DeltaForceDatabaseView() {
                                     {gearFields.type === "armor" ? (
                                         <>
                                             <div className="sm:col-span-2">
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas (Chaleco)</label>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas (Chaleco)</label>
                                                 <div className="flex gap-2">
                                                     {["pecho", "abdomen", "hombro"].map(z => {
                                                         const selected = gearFields.zones_protected.includes(z);
@@ -2484,7 +2584,7 @@ export default function DeltaForceDatabaseView() {
                                                                     });
                                                                 }}
                                                                 className={cn(
-                                                                    "px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all capitalize",
+                                                                    "px-3 py-1.5 rounded-lg border font-bold text-[0.625rem] transition-all capitalize",
                                                                     selected
                                                                         ? "bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400"
                                                                         : "bg-zinc-50 dark:bg-zinc-950 border-border text-muted-foreground"
@@ -2498,7 +2598,7 @@ export default function DeltaForceDatabaseView() {
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Eficiencia de Reparación</label>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Eficiencia de Reparación</label>
                                                 <select
                                                     value={gearFields.repair_efficiency}
                                                     onChange={(e) => setGearFields(prev => ({ ...prev, repair_efficiency: e.target.value as "bajo" | "medio" | "alto" }))}
@@ -2511,7 +2611,7 @@ export default function DeltaForceDatabaseView() {
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Costo de Durabilidad (Reparación)</label>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Costo de Durabilidad (Reparación)</label>
                                                 <select
                                                     value={gearFields.durability_cost}
                                                     onChange={(e) => setGearFields(prev => ({ ...prev, durability_cost: e.target.value as "bajo" | "medio" | "alto" }))}
@@ -2524,7 +2624,7 @@ export default function DeltaForceDatabaseView() {
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Peso (kg)</label>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Peso (kg)</label>
                                                 <input
                                                     type="number"
                                                     step="0.1"
@@ -2537,7 +2637,7 @@ export default function DeltaForceDatabaseView() {
                                         </>
                                     ) : (
                                         <div className="sm:col-span-2">
-                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas</label>
+                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas</label>
                                             <div className="flex gap-2">
                                                 {["Cabeza", "Orejas", "Cara", "Cuello"].map(z => {
                                                     const selected = gearFields.zones_protected.includes(z);
@@ -2547,7 +2647,7 @@ export default function DeltaForceDatabaseView() {
                                                             type="button"
                                                             onClick={() => toggleZone(z)}
                                                             className={cn(
-                                                                "px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all",
+                                                                "px-3 py-1.5 rounded-lg border font-bold text-[0.625rem] transition-all",
                                                                 selected
                                                                     ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-600 dark:text-cyan-400"
                                                                     : "bg-zinc-50 dark:bg-zinc-950 border-border text-muted-foreground"
@@ -2562,7 +2662,7 @@ export default function DeltaForceDatabaseView() {
                                     )}
 
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
                                         <textarea
                                             value={gearFields.description}
                                             onChange={(e) => setGearFields(prev => ({ ...prev, description: e.target.value }))}
@@ -2573,7 +2673,7 @@ export default function DeltaForceDatabaseView() {
                                     </div>
 
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Imagen de la Protección</label>
+                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imagen de la Protección</label>
                                         <div className="space-y-2">
                                             <div className="flex gap-2">
                                                 <input
@@ -2622,7 +2722,7 @@ export default function DeltaForceDatabaseView() {
                             {activeFormType === "calibers" && (
                                 <div className="sm:col-span-2 space-y-4">
                                             <div>
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nombre del Calibre</label>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre del Calibre</label>
                                                 <input
                                                     type="text"
                                                     value={caliberFields.name}
@@ -2633,14 +2733,14 @@ export default function DeltaForceDatabaseView() {
                                                     className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
                                                 />
                                                 {editMode === "add" && (
-                                                    <span className="block text-[9px] text-amber-500 font-semibold mt-1">
+                                                    <span className="block text-[0.5625rem] text-amber-500 font-semibold mt-1">
                                                         ⚠️ Al agregar un calibre, se autogenerarán 5 niveles de munición de forma automática.
                                                     </span>
                                                 )}
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Imágenes del Calibre (Galería)</label>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imágenes del Calibre (Galería)</label>
                                                 <div className="space-y-3">
                                                     <div className="flex gap-2">
                                                         <input
@@ -2706,7 +2806,7 @@ export default function DeltaForceDatabaseView() {
                                                                     <img src={url} alt={`Imagen ${idx + 1}`} className="w-full h-full object-contain p-1" />
                                                                     
                                                                     {idx === 0 && (
-                                                                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 text-[8px] font-bold bg-df-green-500 text-black rounded uppercase tracking-wider">
+                                                                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 text-[0.5rem] font-bold bg-df-green-500 text-black rounded uppercase tracking-wider">
                                                                             Principal
                                                                         </span>
                                                                     )}
@@ -2728,14 +2828,14 @@ export default function DeltaForceDatabaseView() {
                                                         </div>
                                                     ) : (
                                                         <div className="text-center py-6 border border-dashed border-border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/10">
-                                                            <p className="text-[10px] text-muted-foreground italic">No hay imágenes en la galería del calibre.</p>
+                                                            <p className="text-[0.625rem] text-muted-foreground italic">No hay imágenes en la galería del calibre.</p>
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">
                                                     Armas Compatibles (Vincular directamente)
                                                 </label>
                                                 <div className="relative mb-2 group">
@@ -2745,7 +2845,7 @@ export default function DeltaForceDatabaseView() {
                                                         placeholder="Buscar arma para enlazar..."
                                                         value={weaponSearchInForm}
                                                         onChange={(e) => setWeaponSearchInForm(e.target.value)}
-                                                        className="pl-8 pr-3 py-1.5 w-full text-[11px] bg-zinc-50 dark:bg-zinc-950 border border-border focus:outline-none focus:ring-1 focus:ring-df-green-500/50 rounded-xl"
+                                                        className="pl-8 pr-3 py-1.5 w-full text-[0.6875rem] bg-zinc-50 dark:bg-zinc-950 border border-border focus:outline-none focus:ring-1 focus:ring-df-green-500/50 rounded-xl"
                                                     />
                                                 </div>
                                                 <div className="max-h-48 overflow-y-auto border border-border rounded-xl p-2 bg-zinc-50 dark:bg-zinc-950 divide-y divide-border/20">
@@ -2760,7 +2860,7 @@ export default function DeltaForceDatabaseView() {
                                                         
                                                         if (filteredFormWeapons.length === 0) {
                                                             return (
-                                                                <div className="text-center py-4 text-muted-foreground italic text-[10px]">
+                                                                <div className="text-center py-4 text-muted-foreground italic text-[0.625rem]">
                                                                     No se encontraron armas en el catálogo.
                                                                 </div>
                                                             );
@@ -2794,8 +2894,8 @@ export default function DeltaForceDatabaseView() {
                                                                             <Swords className="w-4 h-4 text-muted-foreground" />
                                                                         )}
                                                                         <div>
-                                                                            <span className="font-bold text-foreground block leading-tight text-[11px] uppercase">{w.weapon_name}</span>
-                                                                            <span className="text-[9px] text-muted-foreground">{getCategoryLabel(w.category)}</span>
+                                                                            <span className="font-bold text-foreground block leading-tight text-[0.6875rem] uppercase">{w.weapon_name}</span>
+                                                                            <span className="text-[0.5625rem] text-muted-foreground">{getCategoryLabel(w.category)}</span>
                                                                         </div>
                                                                     </div>
                                                                     <div className={cn(
@@ -2804,14 +2904,14 @@ export default function DeltaForceDatabaseView() {
                                                                             ? "bg-df-green-500 border-df-green-500 text-white"
                                                                             : "border-border"
                                                                     )}>
-                                                                        {isSelected && <span className="text-[10px] font-bold">✓</span>}
+                                                                        {isSelected && <span className="text-[0.625rem] font-bold">✓</span>}
                                                                     </div>
                                                                 </div>
                                                             );
                                                         });
                                                     })()}
                                                 </div>
-                                                <span className="block text-[9px] text-muted-foreground mt-1.5">
+                                                <span className="block text-[0.5625rem] text-muted-foreground mt-1.5">
                                                     Selecciona las armas que usan este calibre. Las armas seleccionadas se asociarán a este calibre, y las desmarcadas se desvincularán.
                                                 </span>
                                             </div>

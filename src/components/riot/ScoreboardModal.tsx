@@ -145,7 +145,7 @@ export function ScoreboardModal({
                   </span>
                 </div>
                 {headerInfo.headerRelativeTime && (
-                  <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight px-1">
+                  <div className="text-[0.625rem] sm:text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight px-1">
                     {headerInfo.headerRelativeTime}
                   </div>
                 )}

@@ -982,7 +982,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-[10px] h-7 px-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                              className="text-[0.625rem] h-7 px-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                               onClick={() => markAllAsRead()}
                             >
                               <Check className="mr-1 h-3 w-3" />
@@ -1040,13 +1040,13 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                                   >
                                     {notification.title}
                                   </span>
-                                  <span className="text-[9px] text-gray-500 whitespace-nowrap shrink-0">
+                                  <span className="text-[0.5625rem] text-gray-500 whitespace-nowrap shrink-0">
                                     {formatNotificationTime(
                                       notification.created_at
                                     )}
                                   </span>
                                 </div>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2">
+                                <p className="text-[0.625rem] text-gray-500 dark:text-gray-400 line-clamp-2">
                                   {notification.message}
                                 </p>
                               </div>
@@ -1190,7 +1190,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                       <Icon className="w-6 h-6" strokeWidth={2} />
                       {user && unreadCount > 0 && (
                         <Badge
-                          className="absolute top-0 right-0 h-4 w-4 flex items-center justify-center p-0 text-[8px] font-bold"
+                          className="absolute top-0 right-0 h-4 w-4 flex items-center justify-center p-0 text-[0.5rem] font-bold"
                           variant="destructive"
                         >
                           {unreadCount > 9 ? "9+" : unreadCount}

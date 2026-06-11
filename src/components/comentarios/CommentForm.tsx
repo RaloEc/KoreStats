@@ -23,6 +23,7 @@ interface CommentFormProps {
   ctaText?: string;
   initialText?: string;
   isLoading?: boolean;
+  juegoAsociado?: "lol" | "delta-force";
 }
 
 export const CommentForm: React.FC<CommentFormProps> = ({
@@ -31,6 +32,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   ctaText = "Enviar",
   initialText = "",
   isLoading = false,
+  juegoAsociado = "lol",
 }) => {
   const { profile } = useAuth();
   const [content, setContent] = useState(initialText); // Ahora es HTML
@@ -75,6 +77,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                 className="min-h-[40px]"
                 restrictMentionsToFriends={false}
                 currentUserId={profile?.id}
+                juegoAsociado={juegoAsociado}
               />
 
               <div className="flex justify-between items-center mt-1">
@@ -99,7 +102,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                   }}
                   title="Agregar GIF"
                 >
-                  <span className="font-bold text-[10px]">GIF</span>
+                  <span className="font-bold text-[0.625rem]">GIF</span>
                 </button>
               </GifPicker>
 
@@ -150,7 +153,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
                   className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 transition-colors"
                   title="Remover GIF"
                 >
-                  <span className="text-[10px] font-bold px-1">✕</span>
+                  <span className="text-[0.625rem] font-bold px-1">✕</span>
                 </button>
               </div>
             </div>

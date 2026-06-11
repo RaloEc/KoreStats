@@ -208,7 +208,7 @@ export default function PublicProfileClient({
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-[10px] md:text-sm font-bold">
+            <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-[0.625rem] md:text-sm font-bold">
               {profile.team_name && (
                 <span className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-foreground border border-border">
                   {profile.team_name}
@@ -244,7 +244,7 @@ export default function PublicProfileClient({
               disabled={isFollowLoading}
               variant={isFollowing ? "outline" : "default"}
               size="sm"
-              className={`rounded-full px-4 h-8 text-[10px] ${isFollowing ? "bg-background/80 hover:bg-background/90" : "font-bold"}`}
+              className={`rounded-full px-4 h-8 text-[0.625rem] ${isFollowing ? "bg-background/80 hover:bg-background/90" : "font-bold"}`}
             >
               {isFollowLoading ? "..." : isFollowing ? "Siguiendo" : "Seguir"}
             </Button>

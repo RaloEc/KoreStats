@@ -561,7 +561,7 @@ export default function ProAccountCardVisual({
                   className="object-cover"
                 />
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-slate-900 border border-slate-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-10 shadow-sm">
+              <div className="absolute -bottom-1 -right-1 bg-slate-900 border border-slate-700 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded-full z-10 shadow-sm">
                 {account.summoner_level}
               </div>
             </div>
@@ -570,7 +570,7 @@ export default function ProAccountCardVisual({
               <div className="flex items-center gap-2 mb-0.5">
                 <Badge
                   variant="outline"
-                  className="h-4 px-1 text-[9px] font-bold uppercase tracking-wider border-slate-300 dark:border-white/20 text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-black/20 rounded-sm"
+                  className="h-4 px-1 text-[0.5625rem] font-bold uppercase tracking-wider border-slate-300 dark:border-white/20 text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-black/20 rounded-sm"
                 >
                   {regionName}
                 </Badge>
@@ -598,7 +598,7 @@ export default function ProAccountCardVisual({
               )}
             </Button>
             {!isExpanded && (
-              <span className="text-[8px] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">
+              <span className="text-[0.5rem] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">
                 {account.last_updated
                   ? new Date(account.last_updated).toLocaleDateString()
                   : ""}
@@ -639,7 +639,7 @@ export default function ProAccountCardVisual({
                         className="object-cover"
                       />
                     </div>
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 whitespace-nowrap leading-none">
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 text-white text-[0.625rem] font-black px-2 py-0.5 rounded-full shadow-lg z-10 whitespace-nowrap leading-none">
                       {account.summoner_level}
                     </div>
                   </div>
@@ -648,7 +648,7 @@ export default function ProAccountCardVisual({
                     <div className="flex items-center gap-2 mb-1">
                       <Badge
                         variant="outline"
-                        className="uppercase font-bold text-[9px] px-1.5 h-4 tracking-widest border-slate-300 dark:border-white/10 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5"
+                        className="uppercase font-bold text-[0.5625rem] px-1.5 h-4 tracking-widest border-slate-300 dark:border-white/10 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5"
                       >
                         {regionName}
                       </Badge>
@@ -678,11 +678,11 @@ export default function ProAccountCardVisual({
                     <div className="mt-2.5 w-full max-w-[180px]">
                       <div className="flex justify-between items-end mb-1">
                         <span
-                          className={`text-[10px] font-black uppercase tracking-wider ${winrate >= 50 ? "text-emerald-500" : "text-rose-500"}`}
+                          className={`text-[0.625rem] font-black uppercase tracking-wider ${winrate >= 50 ? "text-emerald-500" : "text-rose-500"}`}
                         >
                           {winrate}% WR
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest">
+                        <span className="text-[0.625rem] font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest">
                           {soloWins}W {soloLosses}L
                         </span>
                       </div>
@@ -705,7 +705,7 @@ export default function ProAccountCardVisual({
                       key={queue.id}
                       className="relative bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center group/card transition-all hover:bg-white/80 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-sm h-full"
                     >
-                      <div className="absolute top-3 right-3 text-[9px] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">
+                      <div className="absolute top-3 right-3 text-[0.5625rem] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">
                         {queue.label === "Solo / Duo" ? "SOLO" : "FLEX"}
                       </div>
                       <div className="relative w-24 h-24 my-auto transition-transform group-hover/card:scale-110 duration-300">
@@ -761,7 +761,7 @@ export default function ProAccountCardVisual({
                         <Button
                           onClick={onSync}
                           disabled={isSyncing || cooldownSeconds > 0 || !user}
-                          className={`w-full h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-600/20 font-bold uppercase tracking-widest text-[10px] rounded-xl shadow-none ${
+                          className={`w-full h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-600/20 font-bold uppercase tracking-widest text-[0.625rem] rounded-xl shadow-none ${
                             !user ? "cursor-not-allowed" : ""
                           }`}
                         >
@@ -805,7 +805,7 @@ export default function ProAccountCardVisual({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
               {/* 1. Rendimiento Promedio (Top Priority) */}
               <div className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 backdrop-blur-md flex flex-col h-full justify-between">
-                <h4 className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
                   <Zap className="w-3.5 h-3.5" /> Promedio
                 </h4>
 
@@ -827,7 +827,7 @@ export default function ProAccountCardVisual({
                             {averageStats.avgAssists}
                           </span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
+                        <span className="text-[0.625rem] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
                           {averageStats.kda} KDA
                         </span>
                       </div>
@@ -840,14 +840,14 @@ export default function ProAccountCardVisual({
                         <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">
                           {averageStats.csPerMin}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
+                        <span className="text-[0.625rem] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
                           CS/Min
                         </span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center text-[10px] text-slate-400">
+                  <div className="flex-1 flex items-center justify-center text-[0.625rem] text-slate-400">
                     Sin datos
                   </div>
                 )}
@@ -855,7 +855,7 @@ export default function ProAccountCardVisual({
 
               {/* 2. Roles Preferidos */}
               <div className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 backdrop-blur-md flex flex-col h-full justify-between">
-                <h4 className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
                   <Target className="w-3.5 h-3.5" /> Roles
                 </h4>
                 <div className="flex-1 flex flex-col justify-center space-y-3">
@@ -877,10 +877,10 @@ export default function ProAccountCardVisual({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-wider truncate">
+                            <span className="text-[0.625rem] font-black text-slate-700 dark:text-white uppercase tracking-wider truncate">
                               {role.role === "UTILITY" ? "SUPPORT" : role.role}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-500 dark:text-white/50">
+                            <span className="text-[0.625rem] font-bold text-slate-500 dark:text-white/50">
                               {role.winrate}% WR
                             </span>
                           </div>
@@ -894,7 +894,7 @@ export default function ProAccountCardVisual({
                       </div>
                     ))
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-[10px] text-slate-400">
+                    <div className="flex-1 flex items-center justify-center text-[0.625rem] text-slate-400">
                       Sin datos
                     </div>
                   )}
@@ -903,7 +903,7 @@ export default function ProAccountCardVisual({
 
               {/* 3. Últimas 20 */}
               <div className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 backdrop-blur-md flex flex-col h-full justify-between">
-                <h4 className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
                   <Activity className="w-3.5 h-3.5" /> Recientes
                 </h4>
                 <div className="flex-1 flex items-center justify-around gap-2">
@@ -922,14 +922,14 @@ export default function ProAccountCardVisual({
                         />
                       </div>
                       <div
-                        className={`text-[9px] font-black rounded-md px-1.5 py-0.5 ${Math.round((stat.wins / stat.count) * 100) >= 50 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/10 text-rose-600 dark:text-rose-400"}`}
+                        className={`text-[0.5625rem] font-black rounded-md px-1.5 py-0.5 ${Math.round((stat.wins / stat.count) * 100) >= 50 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/10 text-rose-600 dark:text-rose-400"}`}
                       >
                         {Math.round((stat.wins / stat.count) * 100)}%
                       </div>
                     </div>
                   ))}
                   {recentStats.length === 0 && (
-                    <div className="flex-1 flex items-center justify-center text-[10px] text-slate-400">
+                    <div className="flex-1 flex items-center justify-center text-[0.625rem] text-slate-400">
                       Sin datos
                     </div>
                   )}
@@ -938,7 +938,7 @@ export default function ProAccountCardVisual({
 
               {/* 4. Maestría */}
               <div className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 backdrop-blur-md flex flex-col h-full justify-between">
-                <h4 className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
+                <h4 className="flex items-center gap-2 text-[0.625rem] font-black tracking-[0.2em] text-slate-500 dark:text-white/30 mb-2 capitalize">
                   <Flame className="w-3.5 h-3.5" /> Maestría
                 </h4>
                 <div className="flex-1 flex items-center justify-around gap-2">
@@ -956,7 +956,7 @@ export default function ProAccountCardVisual({
                           className="object-cover"
                         />
                       </div>
-                      <div className="text-[9px] font-bold text-slate-600 dark:text-white/60">
+                      <div className="text-[0.5625rem] font-bold text-slate-600 dark:text-white/60">
                         {(mastery.championPoints / 1000).toFixed(0)}k
                       </div>
                     </div>
@@ -968,7 +968,7 @@ export default function ProAccountCardVisual({
 
           {/* Footer Info (Updated Time) - Aligned to Right Column */}
           <div className="lg:col-start-6 lg:col-span-7 px-4 lg:px-6 pb-0.5 flex justify-end items-end">
-            <div className="text-[9px] font-bold text-slate-400 dark:text-white/10 uppercase tracking-[0.2em]">
+            <div className="text-[0.5625rem] font-bold text-slate-400 dark:text-white/10 uppercase tracking-[0.2em]">
               SINC:{" "}
               {account.last_updated
                 ? new Date(account.last_updated).toLocaleDateString()

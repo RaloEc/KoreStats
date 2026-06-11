@@ -108,7 +108,7 @@ export function MatchPageHeader({
           <div className="flex flex-col justify-center">
             <h2
               className={cn(
-                "text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-[0.2em] leading-none mb-0.5 sm:mb-1.5",
+                "text-[0.625rem] sm:text-xs font-black uppercase tracking-wider sm:tracking-[0.2em] leading-none mb-0.5 sm:mb-1.5",
                 isWin
                   ? "text-blue-600 dark:text-blue-400"
                   : "text-red-600 dark:text-red-400",
@@ -116,7 +116,7 @@ export function MatchPageHeader({
             >
               {isWin ? "Victoria" : "Derrota"}
             </h2>
-            <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-tighter leading-none">
+            <span className="text-[0.5rem] sm:text-[0.625rem] font-bold text-slate-400 dark:text-white/40 uppercase tracking-tighter leading-none">
               {queueName}
             </span>
           </div>
@@ -126,12 +126,12 @@ export function MatchPageHeader({
         <div className="flex-1 flex flex-row items-center justify-end px-3 sm:px-6 gap-3 sm:gap-8 min-w-0">
           {/* Duration Block */}
           <div className="flex flex-col items-end">
-            <span className="hidden sm:block text-[9px] font-black text-slate-400 dark:text-white/40 uppercase tracking-widest leading-none mb-1.5">
+            <span className="hidden sm:block text-[0.5625rem] font-black text-slate-400 dark:text-white/40 uppercase tracking-widest leading-none mb-1.5">
               Duración
             </span>
             <div className="flex items-center gap-1 sm:gap-2">
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300 dark:text-white/20" />
-              <span className="text-[10px] sm:text-sm font-bold text-slate-600 dark:text-white/90 tabular-nums leading-none">
+              <span className="text-[0.625rem] sm:text-sm font-bold text-slate-600 dark:text-white/90 tabular-nums leading-none">
                 {formatDuration(match.game_duration)}
               </span>
             </div>
@@ -139,12 +139,12 @@ export function MatchPageHeader({
 
           {/* Time Ago Block */}
           <div className="flex flex-col items-end">
-            <span className="hidden sm:block text-[9px] font-black text-slate-400 dark:text-white/40 uppercase tracking-widest leading-none mb-1.5">
+            <span className="hidden sm:block text-[0.5625rem] font-black text-slate-400 dark:text-white/40 uppercase tracking-widest leading-none mb-1.5">
               Hace
             </span>
             <div className="flex items-center gap-1 sm:gap-2">
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300 dark:text-white/20" />
-              <span className="text-[10px] sm:text-sm font-bold text-slate-600 dark:text-white/90 leading-none">
+              <span className="text-[0.625rem] sm:text-sm font-bold text-slate-600 dark:text-white/90 leading-none">
                 {formatTimeAgo(match.game_creation)}
               </span>
             </div>
@@ -154,10 +154,10 @@ export function MatchPageHeader({
         {/* Ending Decoration/Logo */}
         <div className="hidden lg:flex items-center px-6 border-l border-slate-100 dark:border-white/5 h-14 bg-slate-50 dark:bg-white/[0.01]">
           <div className="flex flex-col items-end opacity-20 dark:opacity-20">
-            <span className="text-[8px] font-black text-slate-900 dark:text-white uppercase tracking-[0.3em]">
+            <span className="text-[0.5rem] font-black text-slate-900 dark:text-white uppercase tracking-[0.3em]">
               KORESTATS
             </span>
-            <span className="text-[7px] font-bold text-blue-600 dark:text-blue-500 uppercase tracking-widest mt-0.5">
+            <span className="text-[0.4375rem] font-bold text-blue-600 dark:text-blue-500 uppercase tracking-widest mt-0.5">
               MATCH ANALYSIS
             </span>
           </div>

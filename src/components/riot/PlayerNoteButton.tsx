@@ -69,7 +69,7 @@ export function PlayerNoteButton({
                 setIsOpen(true);
               }}
               className={cn(
-                "relative inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold border transition-all duration-200",
+                "relative inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[0.6875rem] font-semibold border transition-all duration-200",
                 hasNote
                   ? "border-amber-400 bg-amber-500/10 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-sm shadow-amber-500/5 hover:scale-105"
                   : "border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200",
@@ -97,13 +97,13 @@ export function PlayerNoteButton({
                     <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
                       <StickyNote className="w-3.5 h-3.5 text-amber-500" />
                     </div>
-                    <span className="text-[10px] font-bold dark:text-white uppercase tracking-wider">
+                    <span className="text-[0.625rem] font-bold dark:text-white uppercase tracking-wider">
                       Nota Personal
                     </span>
                   </div>
                   <div className="pl-8 flex items-center gap-1.5 overflow-hidden">
                     <div className="w-1 h-3 bg-slate-200 dark:bg-white/10 rounded-full shrink-0" />
-                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate">
+                    <span className="text-[0.625rem] font-medium text-slate-400 dark:text-slate-500 truncate">
                       {gameName}
                     </span>
                   </div>
@@ -116,7 +116,7 @@ export function PlayerNoteButton({
                         {existingNote.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-white/5"
+                            className="text-[0.5625rem] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-white/5"
                           >
                             {tag.split("_").join(" ")}
                           </span>
@@ -133,7 +133,7 @@ export function PlayerNoteButton({
                             className="flex gap-2 bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-200/50 dark:border-white/5"
                           >
                             <div className="mt-1.5 w-1 h-1 rounded-full bg-amber-500/50 shrink-0" />
-                            <p className="text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed italic flex-1">
+                            <p className="text-[0.75rem] text-slate-600 dark:text-slate-300 leading-relaxed italic flex-1">
                               {noteLine}
                             </p>
                           </div>
@@ -141,12 +141,12 @@ export function PlayerNoteButton({
                     </div>
                   </>
                 ) : (
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
                     Haz clic para añadir una nota sobre {gameName}
                   </p>
                 )}
 
-                <div className="flex items-center gap-1.5 text-[9px] font-medium text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-white/5 pt-2 mt-1">
+                <div className="flex items-center gap-1.5 text-[0.5625rem] font-medium text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-white/5 pt-2 mt-1">
                   <Tag className="w-3 h-3" />
                   Privado • Solo tú lo ves
                 </div>

@@ -72,7 +72,7 @@ export const TeamComparison: React.FC<TeamComparisonProps> = memo(
     return (
       <div className="group/comparison flex flex-col gap-6 p-5 rounded-2xl border border-slate-200/60 dark:border-white/[0.03] bg-white/80 dark:bg-black/80 backdrop-blur-md transition-all duration-300">
         <div className="flex items-center justify-between">
-          <h4 className="text-[10px] uppercase font-bold text-black tracking-[0.2em] dark:text-white">
+          <h4 className="text-[0.625rem] uppercase font-bold text-black tracking-[0.2em] dark:text-white">
             Rendimiento vs Equipo
           </h4>
           <div className="h-px flex-1 bg-slate-200/50 dark:bg-white/[0.03] ml-4" />

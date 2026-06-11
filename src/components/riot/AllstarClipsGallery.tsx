@@ -163,11 +163,11 @@ export function AllstarClipsGallery({ userId, puuid, className, isOwnProfile = f
                                         </div>
 
                                         <div className="absolute top-2 left-2 flex gap-2">
-                                            <Badge variant="secondary" className="bg-black/60 backdrop-blur-md border-white/10 text-[10px] h-5">
+                                            <Badge variant="secondary" className="bg-black/60 backdrop-blur-md border-white/10 text-[0.625rem] h-5">
                                                 Clip de LoL
                                             </Badge>
                                             {clip.is_pinned && (
-                                                <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50 backdrop-blur-md text-[10px] h-5 px-1.5 flex items-center gap-1">
+                                                <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50 backdrop-blur-md text-[0.625rem] h-5 px-1.5 flex items-center gap-1">
                                                     <Star className="w-3 h-3 fill-current" />
                                                 </Badge>
                                             )}
@@ -192,7 +192,7 @@ export function AllstarClipsGallery({ userId, puuid, className, isOwnProfile = f
                                             <p className="text-sm font-semibold line-clamp-1 text-white">
                                                 {clip.clip_title || "Mejor jugada"}
                                             </p>
-                                            <p className="text-[10px] text-zinc-400">
+                                            <p className="text-[0.625rem] text-zinc-400">
                                                 {new Date(clip.created_at).toLocaleDateString()}
                                             </p>
                                         </div>

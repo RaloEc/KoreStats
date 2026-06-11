@@ -51,7 +51,7 @@ export default function TwitchLivePlayer({ username }: TwitchLivePlayerProps) {
                     {username}{" "}
                     <span className="text-purple-400">está en directo</span>
                   </h3>
-                  <Badge className="bg-red-600 hover:bg-red-700 text-[10px] font-black tracking-widest px-1.5 h-4">
+                  <Badge className="bg-red-600 hover:bg-red-700 text-[0.625rem] font-black tracking-widest px-1.5 h-4">
                     LIVE
                   </Badge>
                 </div>

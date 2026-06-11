@@ -45,6 +45,8 @@ const MODULE_TYPES = [
     { key: "events", label: "Eventos", description: "Eventos y parches" },
     { key: "rotations", label: "Rotaciones", description: "Rotaciones gratuitas" },
     { key: "pro_players", label: "Pro Players", description: "Jugadores profesionales" },
+    { key: "command_center", label: "Centro de Comando", description: "Header premium superior con estadísticas y datos de season" },
+    { key: "clans", label: "Clanes", description: "Sistema de clanes del juego" },
 ];
 
 interface GameModule {

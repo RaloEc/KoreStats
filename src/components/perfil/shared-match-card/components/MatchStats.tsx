@@ -104,7 +104,7 @@ export const MatchStats: React.FC<MatchStatsProps> = memo(
 
               <div className="flex items-center justify-between mb-1">
                 {/* Label */}
-                <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-slate-700 dark:text-slate-400 font-extrabold op-75">
+                <div className="text-[0.5rem] sm:text-[0.5625rem] uppercase tracking-wider text-slate-700 dark:text-slate-400 font-extrabold op-75">
                   {stat.label}
                 </div>
                 {/* Icon */}
@@ -124,7 +124,7 @@ export const MatchStats: React.FC<MatchStatsProps> = memo(
 
               {/* Subtexto */}
               {stat.sub && (
-                <div className="text-[7px] sm:text-[8px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide mt-0.5 opacity-80">
+                <div className="text-[0.4375rem] sm:text-[0.5rem] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide mt-0.5 opacity-80">
                   {stat.sub}
                 </div>
               )}
@@ -143,7 +143,7 @@ export const MatchStats: React.FC<MatchStatsProps> = memo(
                 <Tooltip key={tag}>
                   <TooltipTrigger asChild>
                     <span
-                      className={`group/tag inline-flex items-center px-2.5 py-1 rounded-full font-black text-[9px] sm:text-[10px] ${tagInfo.color} cursor-help shadow-sm dark:shadow-md transition-transform duration-150 hover:scale-105 border border-white/30 dark:border-white/10`}
+                      className={`group/tag inline-flex items-center px-2.5 py-1 rounded-full font-black text-[0.5625rem] sm:text-[0.625rem] ${tagInfo.color} cursor-help shadow-sm dark:shadow-md transition-transform duration-150 hover:scale-105 border border-white/30 dark:border-white/10`}
                     >
                       {tagInfo.label}
                     </span>

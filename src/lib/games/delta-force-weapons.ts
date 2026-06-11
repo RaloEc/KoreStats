@@ -24,6 +24,8 @@ export interface WeaponAggregate {
   upvotes: number;
   downvotes: number;
   community_score: number;
+  game_mode?: string;
+  patch_version?: string | null;
 }
 
 const STAT_MAP: Record<string, string> = {
@@ -78,17 +80,31 @@ function categorizeWeapon(stats: Record<string, number>, rawName: string): strin
   return "Long Range";
 }
 
-export async function getDeltaForceWeaponsMeta(mode: "operations" | "warfare" = "operations") {
+const CATEGORY_DEFAULTS: Record<string, Record<string, number>> = {
+  Assault: { damage: 32, fireRate: 700, control: 60, stability: 62, accuracy: 65, range: 45, armorPenetration: 30, capacity: 30, muzzleVelocity: 600, soundRange: 80 },
+  Shotgun: { damage: 85, fireRate: 120, control: 40, stability: 35, accuracy: 45, range: 15, armorPenetration: 15, capacity: 8, muzzleVelocity: 350, soundRange: 120 },
+  SMG: { damage: 24, fireRate: 850, control: 65, stability: 70, accuracy: 55, range: 25, armorPenetration: 20, capacity: 30, muzzleVelocity: 400, soundRange: 60 },
+  LMG: { damage: 30, fireRate: 650, control: 50, stability: 55, accuracy: 60, range: 50, armorPenetration: 25, capacity: 100, muzzleVelocity: 550, soundRange: 90 },
+  Marksman: { damage: 48, fireRate: 350, control: 55, stability: 50, accuracy: 75, range: 65, armorPenetration: 40, capacity: 20, muzzleVelocity: 700, soundRange: 100 },
+  Sniper: { damage: 95, fireRate: 45, control: 30, stability: 30, accuracy: 90, range: 85, armorPenetration: 55, capacity: 5, muzzleVelocity: 850, soundRange: 150 },
+  Secondary: { damage: 26, fireRate: 400, control: 70, stability: 65, accuracy: 60, range: 18, armorPenetration: 15, capacity: 15, muzzleVelocity: 300, soundRange: 50 },
+};
+
+export async function getDeltaForceWeaponsMeta(mode: "operations" | "warfare" | "all" = "all") {
   const supabase = await createClient();
 
   // 1. Fetch records
-  const { data: records, error } = await supabase
+  let query = supabase
     .from("weapon_stats_records")
-    .select("weapon_name, stats, share_code")
+    .select("weapon_name, stats, share_code, game_mode")
     .not("weapon_name", "is", null)
-    .not("weapon_name", "eq", "")
-    .eq("game_mode", mode)
-    .order("created_at", { ascending: false });
+    .not("weapon_name", "eq", "");
+
+  if (mode !== "all") {
+    query = query.eq("game_mode", mode);
+  }
+
+  const { data: records, error } = await query.order("created_at", { ascending: false });
 
   if (error || !records || records.length === 0) return { weapons: [], top_voted: [] };
 
@@ -103,13 +119,17 @@ export async function getDeltaForceWeaponsMeta(mode: "operations" | "warfare" = 
     officialMap.set(w.slug.toUpperCase(), { category: w.category, image_url: w.image_url, name: w.name });
   }
 
-  // 3. Aggregate
-  const groups = new Map<string, { stats: Record<string, number>[]; rawName: string; shareCodes: string[] }>();
+  // 3. Aggregate by (WeaponName + GameMode)
+  const groups = new Map<string, { stats: Record<string, number>[]; rawName: string; shareCodes: string[]; gameMode: string }>();
   for (const record of records) {
     if (!record.weapon_name) continue;
     const normalizedName = normalizeWeaponName(record.weapon_name);
-    const key = normalizedName.toUpperCase();
-    if (!groups.has(key)) groups.set(key, { stats: [], rawName: normalizedName, shareCodes: [] });
+    const recMode = record.game_mode || "operations";
+    const key = `${normalizedName.toUpperCase()}_${recMode.toUpperCase()}`;
+    
+    if (!groups.has(key)) {
+      groups.set(key, { stats: [], rawName: normalizedName, shareCodes: [], gameMode: recMode });
+    }
     if (record.share_code) groups.get(key)!.shareCodes.push(record.share_code);
     groups.get(key)!.stats.push(normalizeStats(record.stats));
   }
@@ -117,6 +137,8 @@ export async function getDeltaForceWeaponsMeta(mode: "operations" | "warfare" = 
   const weapons: WeaponAggregate[] = [];
   for (const [, group] of Array.from(groups)) {
     const count = group.stats.length;
+    if (count === 0) continue; // Solo armas con datos reales de la comunidad
+
     const avgOf = (key: string) => {
       const values = group.stats.map((s) => s[key]).filter((v) => v != null && !isNaN(v));
       if (values.length === 0) return 0;
@@ -165,26 +187,34 @@ export async function getDeltaForceWeaponsMeta(mode: "operations" | "warfare" = 
       upvotes: 0,
       downvotes: 0,
       community_score: 0,
+      game_mode: group.gameMode,
     });
   }
 
   // 4. Votes
   const serviceSupabase = getServiceClient();
-  const { data: votesData } = await serviceSupabase
+  let votesQuery = serviceSupabase
     .from("weapon_votes")
-    .select("weapon_name, vote")
-    .eq("game_mode", mode);
+    .select("weapon_name, vote, game_mode");
+  
+  if (mode !== "all") {
+    votesQuery = votesQuery.eq("game_mode", mode);
+  }
+  
+  const { data: votesData } = await votesQuery;
 
   const voteMap = new Map();
   for (const v of (votesData || [])) {
-    const key = normalizeWeaponName(v.weapon_name).toUpperCase();
+    const recMode = v.game_mode || "operations";
+    const key = `${normalizeWeaponName(v.weapon_name).toUpperCase()}_${recMode.toUpperCase()}`;
     if (!voteMap.has(key)) voteMap.set(key, { upvotes: 0, downvotes: 0 });
     const entry = voteMap.get(key)!;
     if (v.vote === 1) entry.upvotes++; else entry.downvotes++;
   }
 
   for (const w of weapons) {
-    const vd = voteMap.get(normalizeWeaponName(w.weapon_name).toUpperCase());
+    const key = `${normalizeWeaponName(w.weapon_name).toUpperCase()}_${(w.game_mode || "operations").toUpperCase()}`;
+    const vd = voteMap.get(key);
     if (vd) {
       w.upvotes = vd.upvotes;
       w.downvotes = vd.downvotes;

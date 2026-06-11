@@ -875,7 +875,7 @@ export function MatchHistoryList({
                     <div className="flex flex-wrap items-center gap-2">
                       {streakTone ? (
                         <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.6875rem] font-medium tracking-wide
                             ${streakTone === "loss"
                               ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-200"
                               : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"

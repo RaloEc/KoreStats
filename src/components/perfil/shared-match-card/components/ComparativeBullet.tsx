@@ -32,7 +32,7 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = memo(
       <div className="group/bullet space-y-1.5">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-black/70 dark:text-slate-400">
+            <span className="text-[0.625rem] font-bold uppercase tracking-widest text-black/70 dark:text-slate-400">
               {label}
             </span>
             <div className="flex items-center gap-1.5">
@@ -41,7 +41,7 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = memo(
               </span>
               {deltaLabel && (
                 <span
-                  className={`text-[9px] font-bold px-1 py-0.5 rounded-sm ${
+                  className={`text-[0.5625rem] font-bold px-1 py-0.5 rounded-sm ${
                     isBetter
                       ? "text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-500/10"
                       : "text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-500/10"
@@ -55,10 +55,10 @@ export const ComparativeBullet: React.FC<ComparativeBulletProps> = memo(
 
           {avg > 0 && (
             <div className="text-right">
-              <span className="block text-[8px] uppercase font-bold text-black/60 dark:text-slate-500 tracking-tight">
+              <span className="block text-[0.5rem] uppercase font-bold text-black/60 dark:text-slate-500 tracking-tight">
                 Promedio
               </span>
-              <span className="text-[10px] font-bold text-black dark:text-slate-300">
+              <span className="text-[0.625rem] font-bold text-black dark:text-slate-300">
                 {avgLabel ?? avg.toFixed(0)}
               </span>
             </div>

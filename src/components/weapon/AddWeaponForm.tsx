@@ -80,9 +80,10 @@ const calculateTTK = (damage: number, fireRate: number, penetration: number = 0,
 
 interface AddWeaponFormProps {
     onSuccess?: () => void;
+    currentPatch?: string;
 }
 
-export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
+export default function AddWeaponForm({ onSuccess, currentPatch }: AddWeaponFormProps) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [isOpen, setIsOpen] = useState(false);
@@ -274,7 +275,13 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={(open) => {
+            if (!open) {
+                handleClose();
+            } else {
+                setIsOpen(true);
+            }
+        }}>
             <DialogTrigger asChild>
                 <Button
                     size="sm"
@@ -286,7 +293,12 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="w-[calc(100%-2rem)] md:w-full md:max-w-[950px] p-0 overflow-hidden border-none bg-transparent shadow-2xl">
+            <DialogContent 
+                className="w-[calc(100%-2rem)] md:w-full md:max-w-[950px] p-0 overflow-hidden border-none bg-transparent shadow-2xl"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+            >
                 <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black overflow-hidden shadow-2xl">
                     <DialogHeader className="hidden">
                         <DialogTitle>Registrar Nueva Arma</DialogTitle>
@@ -299,12 +311,11 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                 Registrar Nueva Arma
                             </h3>
                         </div>
-                        {/* <button
-                            onClick={handleClose}
-                            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-                        >
-                            <X size={16} />
-                        </button> */}
+                        {currentPatch && (
+                            <span className="inline-flex items-center gap-1 text-[0.5625rem] font-black uppercase tracking-wider px-2 py-1 rounded-full bg-df-green-500/10 border border-df-green-500/30 text-df-green-600 dark:text-df-green-400">
+                                ✓ {currentPatch}
+                            </span>
+                        )}
                     </div>
 
                     <div className="p-4 space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
@@ -315,7 +326,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                     <ImageIcon size={12} className="inline mr-1" />
                                     Captura de estadísticas (Obligatoria)
                                 </span>
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">
+                                <span className="text-[0.625rem] text-gray-400 dark:text-gray-500 font-normal">
                                     Sugerencia: puedes pegar con Ctrl+V
                                 </span>
                             </label>
@@ -325,7 +336,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                     <Upload size={24} className="text-gray-400 dark:text-gray-500" />
                                     <div className="text-center">
                                         <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">Haz clic o pega la imagen aquí</p>
-                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Sube la captura de la pantalla de accesorios</p>
+                                        <p className="text-[0.625rem] text-gray-500 dark:text-gray-400 mt-1">Sube la captura de la pantalla de accesorios</p>
                                     </div>
                                     <input
                                         ref={fileInputRef}
@@ -365,7 +376,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
 
                                                     <div className="relative z-10 flex flex-col items-center gap-2 bg-gray-900/90 px-5 py-3 rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
                                                         <Loader2 size={28} className="animate-spin text-df-green-400" />
-                                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] animate-pulse">
+                                                        <span className="text-[0.625rem] font-black text-white uppercase tracking-[0.2em] animate-pulse">
                                                             Escaneando
                                                         </span>
                                                     </div>
@@ -380,7 +391,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                             <AlertCircle size={28} />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-80">
+                                                            <span className="text-[0.625rem] font-black uppercase tracking-widest opacity-80">
                                                                 Captura no válida
                                                             </span>
                                                             <p className="text-xs font-bold leading-tight italic">
@@ -389,7 +400,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                         </div>
                                                         <button
                                                             onClick={handleRemoveFile}
-                                                            className="mt-1 px-4 py-1.5 bg-white text-red-600 rounded-lg text-[10px] font-black uppercase hover:bg-gray-100 transition-colors"
+                                                            className="mt-1 px-4 py-1.5 bg-white text-red-600 rounded-lg text-[0.625rem] font-black uppercase hover:bg-gray-100 transition-colors"
                                                         >
                                                             Subir otra imagen
                                                         </button>
@@ -435,7 +446,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                         return (
                                                             <div key={stat.key} className="flex items-center gap-3">
                                                                 <Icon size={14} className="text-gray-500 flex-shrink-0" />
-                                                                <span className="text-[11px] font-medium text-gray-400 w-16 flex-shrink-0 text-left">
+                                                                <span className="text-[0.6875rem] font-medium text-gray-400 w-16 flex-shrink-0 text-left">
                                                                     {stat.label}
                                                                 </span>
                                                                 <div className="flex-1 h-1.5 bg-gray-800/60 rounded-full overflow-hidden">
@@ -444,7 +455,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                         style={{ width: `${pct}%` }}
                                                                     />
                                                                 </div>
-                                                                <span className="text-[11px] text-white w-auto text-right whitespace-nowrap">
+                                                                <span className="text-[0.6875rem] text-white w-auto text-right whitespace-nowrap">
                                                                     {value}{stat.unit}
                                                                 </span>
                                                             </div>
@@ -471,10 +482,10 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                     <Icon size={14} className="text-gray-400 flex-shrink-0" />
                                                                 </div>
                                                                 <div className="flex flex-col">
-                                                                    <p className="text-[7px] text-gray-500 leading-none uppercase font-bold tracking-tight mb-0.5">
+                                                                    <p className="text-[0.4375rem] text-gray-500 leading-none uppercase font-bold tracking-tight mb-0.5">
                                                                         {stat.label}
                                                                     </p>
-                                                                    <p className="text-[11px] text-gray-100 leading-tight">
+                                                                    <p className="text-[0.6875rem] text-gray-100 leading-tight">
                                                                         {value}{stat.unit}
                                                                     </p>
                                                                 </div>
@@ -487,7 +498,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                 <div className="pt-3 border-t border-gray-800/30">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <Zap size={10} className="text-amber-400" />
-                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Análisis de Perfil</span>
+                                                        <span className="text-[0.5625rem] font-bold text-gray-400 uppercase tracking-widest">Análisis de Perfil</span>
                                                     </div>
 
                                                     <div className="grid grid-cols-2 gap-2">
@@ -547,8 +558,8 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                             return (
                                                                 <>
                                                                     <div className={`col-span-2 py-1 px-3 border-t border-gray-800/20 flex items-center justify-between transition-all`}>
-                                                                        <span className={cn("text-[9px] font-black uppercase tracking-wider", color)}>{profile}</span>
-                                                                        <span className="text-[8px] text-gray-400 opacity-70 font-bold uppercase italic rounded-md">Recomendado</span>
+                                                                        <span className={cn("text-[0.5625rem] font-black uppercase tracking-wider", color)}>{profile}</span>
+                                                                        <span className="text-[0.5rem] text-gray-400 opacity-70 font-bold uppercase italic rounded-md">Recomendado</span>
                                                                     </div>
 
                                                                     {/* Row 1: Time to Kill & Fire Power */}
@@ -556,16 +567,16 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
                                                                                 <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center cursor-help transition-colors hover:bg-white/10">
-                                                                                    <p className="text-[8px] text-gray-500 uppercase font-bold mb-0.5">TTK vs Nivel 4</p>
+                                                                                    <p className="text-[0.5rem] text-gray-500 uppercase font-bold mb-0.5">TTK vs Nivel 4</p>
                                                                                     <div className="flex items-baseline gap-1">
                                                                                         <span className="text-sm font-black text-amber-400">
                                                                                             {(calculateTTK(damage, fireRate, armorPen, 4) / 1000).toFixed(2)}
                                                                                         </span>
-                                                                                        <span className="text-[8px] text-gray-400 font-bold uppercase">s</span>
+                                                                                        <span className="text-[0.5rem] text-gray-400 font-bold uppercase">s</span>
                                                                                     </div>
                                                                                 </div>
                                                                             </TooltipTrigger>
-                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[10px] p-2 leading-tight">
+                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[0.625rem] p-2 leading-tight">
                                                                                 <p>Tiempo teórico para eliminar a un enemigo con Blindaje Nivel 4.</p>
                                                                             </TooltipContent>
                                                                         </Tooltip>
@@ -575,16 +586,16 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
                                                                                 <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center cursor-help transition-colors hover:bg-white/10">
-                                                                                    <p className="text-[8px] text-gray-500 uppercase font-bold mb-0.5">Poder de Fuego</p>
+                                                                                    <p className="text-[0.5rem] text-gray-500 uppercase font-bold mb-0.5">Poder de Fuego</p>
                                                                                     <div className="flex items-baseline gap-1">
                                                                                         <span className="text-sm font-black text-rose-500">
                                                                                             {dps}
                                                                                         </span>
-                                                                                        <span className="text-[8px] text-gray-400 font-bold uppercase">dps</span>
+                                                                                        <span className="text-[0.5rem] text-gray-400 font-bold uppercase">dps</span>
                                                                                     </div>
                                                                                 </div>
                                                                             </TooltipTrigger>
-                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[10px] p-2 leading-tight">
+                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[0.625rem] p-2 leading-tight">
                                                                                 <p>Daño por segundo bruto. Potencial de daño del arma sin blindaje.</p>
                                                                             </TooltipContent>
                                                                         </Tooltip>
@@ -595,16 +606,16 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
                                                                                 <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center cursor-help transition-colors hover:bg-white/10">
-                                                                                    <p className="text-[8px] text-gray-500 uppercase font-bold mb-0.5">Balas p/ Matar</p>
+                                                                                    <p className="text-[0.5rem] text-gray-500 uppercase font-bold mb-0.5">Balas p/ Matar</p>
                                                                                     <div className="flex items-baseline gap-1">
                                                                                         <span className="text-sm font-black text-indigo-400">
                                                                                             {getBTK(damage, armorPen, 4)}
                                                                                         </span>
-                                                                                        <span className="text-[8px] text-gray-400 font-bold uppercase">BTK</span>
+                                                                                        <span className="text-[0.5rem] text-gray-400 font-bold uppercase">BTK</span>
                                                                                     </div>
                                                                                 </div>
                                                                             </TooltipTrigger>
-                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[10px] p-2 leading-tight">
+                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[0.625rem] p-2 leading-tight">
                                                                                 <p>Cantidad de impactos necesarios contra un chaleco Nivel 4.</p>
                                                                             </TooltipContent>
                                                                         </Tooltip>
@@ -614,16 +625,16 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
                                                                                 <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center cursor-help transition-colors hover:bg-white/10">
-                                                                                    <p className="text-[8px] text-gray-500 uppercase font-bold mb-0.5">Movilidad / ADS</p>
+                                                                                    <p className="text-[0.5rem] text-gray-500 uppercase font-bold mb-0.5">Movilidad / ADS</p>
                                                                                     <div className="flex items-baseline gap-1">
                                                                                         <span className="text-sm font-black text-emerald-400">
                                                                                             {Math.min(agilityScore, 100)}
                                                                                         </span>
-                                                                                        <span className="text-[8px] text-gray-400 font-bold uppercase">pts</span>
+                                                                                        <span className="text-[0.5rem] text-gray-400 font-bold uppercase">pts</span>
                                                                                     </div>
                                                                                 </div>
                                                                             </TooltipTrigger>
-                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[10px] p-2 leading-tight">
+                                                                            <TooltipContent className="bg-zinc-900 border-white/10 text-[0.625rem] p-2 leading-tight">
                                                                                 <p>Índice de agilidad. Combina velocidad de apuntado y respuesta táctica.</p>
                                                                             </TooltipContent>
                                                                         </Tooltip>
@@ -639,7 +650,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
 
                                     {/* Status Banners */}
                                     {hasStats && (
-                                        <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 text-[10px] text-emerald-600 dark:text-emerald-400">
+                                        <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 text-[0.625rem] text-emerald-600 dark:text-emerald-400">
                                             <CheckCircle size={12} />
                                             <span className="font-medium">
                                                 IA: {(stats as any).nombreArma || "Arma detectada correctamente"}
@@ -658,7 +669,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                     Código del Arma (Obligatorio)
                                 </span>
                                 {!hasStats && !isAnalyzing && (
-                                    <span className="text-[10px] text-orange-500 font-normal">
+                                    <span className="text-[0.625rem] text-orange-500 font-normal">
                                         * Requiere análisis previo
                                     </span>
                                 )}
@@ -671,7 +682,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                 className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-df-green-500/50 focus:ring-1 focus:ring-df-green-500/20 text-sm font-mono transition-all"
                             />
                             <div className="mt-1.5 flex items-center justify-between">
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                                <p className="text-[0.625rem] text-gray-400 dark:text-gray-500">
                                     {hasStats ? "✓ Listo para registrar" : "Pega el código mientras esperas el análisis"}
                                 </p>
                                 {shareCode.trim() && (() => {
@@ -682,17 +693,17 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                     const isWarfare = warfareKw.some(k => lc.includes(norm(k)));
                                     const isOps = !isWarfare && opsKw.some(k => lc.includes(norm(k)));
                                     if (isWarfare) return (
-                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30">
+                                        <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30">
                                             ⚔ Warfare detectado
                                         </span>
                                     );
                                     if (isOps) return (
-                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-df-green-600 dark:text-df-green-400 bg-df-green-500/10 border-df-green-500/30">
+                                        <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-df-green-600 dark:text-df-green-400 bg-df-green-500/10 border-df-green-500/30">
                                             🎯 Operaciones
                                         </span>
                                     );
                                     return (
-                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-gray-500 bg-gray-500/10 border-gray-500/20 dark:border-white/10">
+                                        <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border text-gray-500 bg-gray-500/10 border-gray-500/20 dark:border-white/10">
                                             ? Desconocido
                                         </span>
                                     );
@@ -707,7 +718,7 @@ export default function AddWeaponForm({ onSuccess }: AddWeaponFormProps) {
                                     <Zap size={12} className="inline mr-1 text-amber-500" />
                                     Título de la Build / Nombre (Opcional)
                                 </span>
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">
+                                <span className="text-[0.625rem] text-gray-400 dark:text-gray-500 font-normal">
                                     Máx 25 carac.
                                 </span>
                             </label>

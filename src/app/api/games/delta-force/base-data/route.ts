@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient, getServiceClient } from "@/lib/supabase/server";
 import {
     DEFAULT_WEAPONS,
@@ -180,6 +181,10 @@ export async function GET(req: NextRequest) {
         const type = searchParams.get("type"); // 'weapons' | 'ammo' | 'gear'
         const caliber = searchParams.get("caliber"); // Optional filter for ammo
 
+        const CACHE_HEADERS = {
+            "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=59",
+        };
+
         const supabase = await createClient();
 
         if (type === "weapons") {
@@ -218,7 +223,7 @@ export async function GET(req: NextRequest) {
 
             if (!officialWeapons || officialWeapons.length === 0) {
                 const fallback = DEFAULT_WEAPONS.filter(w => w.game_mode === mode);
-                return NextResponse.json({ weapons: fallback.length ? fallback : DEFAULT_WEAPONS });
+                return NextResponse.json({ weapons: fallback.length ? fallback : DEFAULT_WEAPONS }, { headers: CACHE_HEADERS });
             }
 
             // Create a lookup map for base stats by weapon_name (case insensitive)
@@ -235,10 +240,48 @@ export async function GET(req: NextRequest) {
                 defaultMap.set(dw.weapon_name.toLowerCase().trim(), dw);
             }
 
+            const findStats = (owName: string, owSlug: string) => {
+                const nameLower = owName.toLowerCase().trim();
+                const slugLower = owSlug.toLowerCase().trim();
+                
+                if (statsMap.has(nameLower)) return statsMap.get(nameLower);
+                if (statsMap.has(slugLower)) return statsMap.get(slugLower);
+                
+                let result: any = null;
+                statsMap.forEach((value, key) => {
+                    if (result) return;
+                    const keyTokens = key.split(/[^a-z0-9]+/).filter(t => t.length > 0);
+                    const nameTokens = nameLower.split(/[^a-z0-9]+/).filter(t => t.length > 0);
+                    if (keyTokens.length > 0 && nameTokens.length > 0 && keyTokens[0] === nameTokens[0]) {
+                        result = value;
+                    }
+                });
+                return result;
+            };
+
+            const findDefault = (owName: string, owSlug: string) => {
+                const nameLower = owName.toLowerCase().trim();
+                const slugLower = owSlug.toLowerCase().trim();
+                
+                if (defaultMap.has(nameLower)) return defaultMap.get(nameLower);
+                if (defaultMap.has(slugLower)) return defaultMap.get(slugLower);
+                
+                let result: any = null;
+                defaultMap.forEach((value, key) => {
+                    if (result) return;
+                    const keyTokens = key.split(/[^a-z0-9]+/).filter(t => t.length > 0);
+                    const nameTokens = nameLower.split(/[^a-z0-9]+/).filter(t => t.length > 0);
+                    if (keyTokens.length > 0 && nameTokens.length > 0 && keyTokens[0] === nameTokens[0]) {
+                        result = value;
+                    }
+                });
+                return result;
+            };
+
             // Merge official weapons with base stats or defaults
             const mergedWeapons = officialWeapons.map((ow) => {
-                const stats = statsMap.get(ow.name.toLowerCase().trim()) || statsMap.get(ow.slug.toLowerCase().trim());
-                const defaults = defaultMap.get(ow.name.toLowerCase().trim()) || defaultMap.get(ow.slug.toLowerCase().trim());
+                const stats = findStats(ow.name, ow.slug);
+                const defaults = findDefault(ow.name, ow.slug);
 
                 return {
                     id: stats?.id || ow.id,
@@ -247,7 +290,7 @@ export async function GET(req: NextRequest) {
                     weapon_name: ow.name,
                     category: ow.category,
                     game_mode: mode,
-                    caliber: stats ? stats.caliber : null,
+                    caliber: stats ? stats.caliber : (defaults ? defaults.caliber : null),
                     base_damage: stats?.base_damage ? String(stats.base_damage) : (defaults?.base_damage ?? "0"),
                     base_fire_rate: stats?.base_fire_rate ?? defaults?.base_fire_rate ?? 0,
                     base_control: stats?.base_control ?? defaults?.base_control ?? 0,
@@ -265,7 +308,7 @@ export async function GET(req: NextRequest) {
                 };
             });
 
-            return NextResponse.json({ weapons: mergedWeapons });
+            return NextResponse.json({ weapons: mergedWeapons }, { headers: CACHE_HEADERS });
         }
 
         if (type === "ammo") {
@@ -277,9 +320,9 @@ export async function GET(req: NextRequest) {
 
             if (error) {
                 console.log("[delta-force-base-data] Error fetching ammo:", error?.message);
-                return NextResponse.json({ ammo: DEFAULT_AMMO });
+                return NextResponse.json({ ammo: DEFAULT_AMMO }, { headers: CACHE_HEADERS });
             }
-            return NextResponse.json({ ammo: data ?? [] });
+            return NextResponse.json({ ammo: data ?? [] }, { headers: CACHE_HEADERS });
         }
 
         if (type === "calibers") {
@@ -292,7 +335,7 @@ export async function GET(req: NextRequest) {
                 console.error("[delta-force-base-data] Error fetching calibers:", error.message);
                 return NextResponse.json({ error: error.message }, { status: 500 });
             }
-            return NextResponse.json({ calibers: data ?? [] });
+            return NextResponse.json({ calibers: data ?? [] }, { headers: CACHE_HEADERS });
         }
 
         if (type === "gear") {
@@ -303,9 +346,9 @@ export async function GET(req: NextRequest) {
 
             if (error || !data || data.length === 0) {
                 console.log("[delta-force-base-data] Falling back to default gear:", error?.message);
-                return NextResponse.json({ gear: DEFAULT_GEAR });
+                return NextResponse.json({ gear: DEFAULT_GEAR }, { headers: CACHE_HEADERS });
             }
-            return NextResponse.json({ gear: data });
+            return NextResponse.json({ gear: data }, { headers: CACHE_HEADERS });
         }
 
         return NextResponse.json({ error: "Invalid type requested" }, { status: 400 });
@@ -488,6 +531,7 @@ export async function POST(req: NextRequest) {
         }
 
         console.log("[base-data POST] SUCCESS — rows:", data?.length);
+        revalidatePath("/api/games/delta-force/base-data");
         return NextResponse.json({ success: true, data, logs: syncLogs });
     } catch (queryErr: any) {
         console.error("[base-data POST] Query exception:", queryErr?.constructor?.name, queryErr?.message);
@@ -582,6 +626,7 @@ export async function PUT(req: NextRequest) {
             }
         }
 
+        revalidatePath("/api/games/delta-force/base-data");
         return NextResponse.json({ success: true, data, logs: syncLogs });
     } catch (err: any) {
         console.error("[base-data PUT] exception:", err?.message);
@@ -629,6 +674,7 @@ export async function DELETE(req: NextRequest) {
 
             return NextResponse.json({ error: errMsg }, { status: 500 });
         }
+        revalidatePath("/api/games/delta-force/base-data");
         return NextResponse.json({ success: true });
     } catch (err: any) {
         console.error("[base-data DELETE] exception:", err?.message);

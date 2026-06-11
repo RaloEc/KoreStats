@@ -1,8 +1,11 @@
-/**
- * Layout para la página de perfil
- * Soporta un slot paralelo @modal para Intercepting Routes
- * Esto permite abrir detalles de partidas en un modal sin desmontar el historial
- */
+import { Unbounded } from "next/font/google";
+
+const unbounded = Unbounded({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-unbounded",
+  display: "swap",
+});
 
 export default function PerfilLayout({
   children,
@@ -12,9 +15,9 @@ export default function PerfilLayout({
   modal: React.ReactNode;
 }) {
   return (
-    <>
+    <div className={unbounded.variable}>
       {children}
       {modal}
-    </>
+    </div>
   );
 }

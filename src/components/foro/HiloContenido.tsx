@@ -618,7 +618,7 @@ export default function HiloContenido({
             <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-900 mt-4">
               <X size={14} className="text-gray-400" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+            <span className="text-[0.625rem] font-black uppercase tracking-[0.2em] text-gray-400">
               El usuario eliminó el análisis técnico
             </span>
           </div>

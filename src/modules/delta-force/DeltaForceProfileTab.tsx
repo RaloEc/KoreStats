@@ -43,6 +43,7 @@ import ReportWeaponButton from "@/components/weapon/ReportWeaponButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { calculateDamageFalloff, getDamageProfile, calculateStandardTTK } from "@/lib/delta-force/defaultData";
 
 /* ─── Interfaces ─── */
 
@@ -59,6 +60,8 @@ interface WeaponRecord {
     created_at: string;
     share_code?: string | null;
     description?: string | null;
+    game_mode?: string | null;
+    patch_version?: string | null;
 }
 
 interface GroupedWeapon {
@@ -68,9 +71,55 @@ interface GroupedWeapon {
     latestDate: string;
     shareCodes: string[];
     description: string | null;
+    gameMode: string;
+    patch_version: string | null;
 }
 
+
 /* ─── Constants Shared with Meta (Keep Synced) ─── */
+
+const TIER_CONFIG = {
+    S: {
+        label: "META DOMINANTE",
+        color: "from-amber-400 to-orange-500",
+        textColor: "text-amber-500 dark:text-amber-400",
+        bgColor: "bg-amber-500/10",
+        borderColor: "border-amber-500/50 dark:border-amber-500/30",
+        glowColor: "shadow-amber-500/20",
+        barColor: "#f59e0b",
+        badge: "bg-gradient-to-r from-amber-500 to-orange-500",
+    },
+    A: {
+        label: "MUY FUERTE",
+        color: "from-emerald-400 to-green-500",
+        textColor: "text-emerald-600 dark:text-emerald-400",
+        bgColor: "bg-emerald-500/10",
+        borderColor: "border-emerald-500/50 dark:border-emerald-500/30",
+        glowColor: "shadow-emerald-500/15",
+        barColor: "#10b981",
+        badge: "bg-gradient-to-r from-emerald-500 to-green-500",
+    },
+    B: {
+        label: "VIABLE",
+        color: "from-blue-400 to-cyan-500",
+        textColor: "text-blue-600 dark:text-blue-400",
+        bgColor: "bg-blue-500/10",
+        borderColor: "border-blue-500/50 dark:border-blue-500/30",
+        glowColor: "shadow-blue-500/10",
+        barColor: "#3b82f6",
+        badge: "bg-gradient-to-r from-blue-500 to-cyan-500",
+    },
+    C: {
+        label: "SITUACIONAL",
+        color: "from-gray-400 to-slate-500",
+        textColor: "text-gray-600 dark:text-gray-400",
+        bgColor: "bg-gray-500/10",
+        borderColor: "border-gray-400 dark:border-gray-700/50",
+        glowColor: "",
+        barColor: "#6b7280",
+        badge: "bg-gradient-to-r from-gray-500 to-slate-500",
+    },
+};
 
 const STAT_BARS = [
     { key: "damage", label: "Daño", icon: Crosshair, max: 60, unit: "" },
@@ -116,37 +165,22 @@ function normalizeStats(raw: Record<string, any>): Record<string, number> {
     return result;
 }
 
-const calculateTTK = (damage: number, fireRate: number, penetration: number = 0, armorLevel: number = 0) => {
-    if (!damage || !fireRate || damage <= 0 || fireRate <= 0) return 0;
-    const hp = 100;
-    const rps = fireRate / 60;
-
-    // 1. Determinar el Coeficiente de Mitigación (mu)
-    let mu = 1.0;
-    if (armorLevel > 0) {
-        const armorThreshold = armorLevel * 10;
-        if (penetration >= armorThreshold) {
-            mu = 1.0; // Perforación limpia
-        } else if (penetration >= armorThreshold - 5) {
-            mu = 0.75; // Mitigación por nivel cercano
-        } else {
-            mu = 0.45; // Blindaje superior al daño
-        }
-    }
-
-    // 2. Calcular Daño Efectivo por bala
-    const effectiveDamage = damage * mu;
-
-    // 3. Balas para matar (BTK) - Siempre redondear hacia arriba
-    const btk = Math.ceil(hp / effectiveDamage);
-
-    // 4. TTK Final (El primer disparo es instante 0, por eso btk - 1)
-    const ttkSeconds = (btk - 1) / rps;
-
-    return Math.round(ttkSeconds * 1000);
+const calculateTTK = (
+    damage: number,
+    fireRate: number,
+    penetration: number = 0,
+    armorLevel: number = 4,
+    category?: string,
+    gameMode: string = "operations",
+    distance: number = 30,
+    range?: number
+) => {
+    // Para las tarjetas, la comparación estándar es Bala Nivel X contra Chaleco Nivel X (donde X es armorLevel).
+    const bulletLevel = armorLevel > 0 ? armorLevel : 4;
+    return calculateStandardTTK(damage, fireRate, armorLevel, bulletLevel, category, gameMode, distance, penetration, range);
 };
 
-function getWeaponTags(stats: Record<string, number>) {
+function getWeaponTags(stats: Record<string, number>, category?: string, gameMode: string = "operations") {
     const fireRate = stats.fireRate || 0;
     const handling = stats.handling || 0;
     const accuracy = stats.accuracy || 0;
@@ -155,25 +189,25 @@ function getWeaponTags(stats: Record<string, number>) {
     const range = stats.range || 0;
     const armorPen = stats.armorPenetration || 0;
 
-    const tags: { label: string; color: string; desc: string }[] = [];
+    const tags: { label: string; desc: string }[] = [];
 
     // TTK Tags
-    const ttk = calculateTTK(damage, fireRate, armorPen, 4);
+    const ttk = calculateTTK(damage, fireRate, armorPen, 4, category, gameMode);
     if (ttk > 0) {
-        if (ttk <= 200) tags.push({ label: "TTK Instantáneo", color: "text-rose-600 dark:text-rose-400", desc: "Eliminación casi inmediata (menos de 0.200s) contra chaleco Nv. 4." });
-        else if (ttk <= 280) tags.push({ label: "TTK Competitivo", color: "text-orange-500", desc: "Rendimiento óptimo para combates contra blindaje (0.200 - 0.280s)." });
-        else if (ttk <= 380) tags.push({ label: "TTK Sólido", color: "text-amber-500", desc: "Daño consistente contra objetivos blindados (0.280 - 0.380s)." });
+        if (ttk <= 200) tags.push({ label: "TTK Instantáneo", desc: "Eliminación casi inmediata (menos de 0.200s) contra chaleco Nv. 4." });
+        else if (ttk <= 280) tags.push({ label: "TTK Competitivo", desc: "Rendimiento óptimo para combates contra blindaje (0.200 - 0.280s)." });
+        else if (ttk <= 380) tags.push({ label: "TTK Sólido", desc: "Daño consistente contra objetivos blindados (0.280 - 0.380s)." });
     }
 
-    if (fireRate > 750) tags.push({ label: "Alta Cadencia", color: "text-rose-500", desc: "Velocidad de disparo extrema (superior a 750 RPM)." });
-    else if (fireRate < 500) tags.push({ label: "Baja Cadencia", color: "text-orange-500", desc: "Disparos lentos pero muy controlables." });
+    if (fireRate > 750) tags.push({ label: "Alta Cadencia", desc: "Velocidad de disparo extrema (superior a 750 RPM)." });
+    else if (fireRate < 500) tags.push({ label: "Baja Cadencia", desc: "Disparos lentos pero muy controlables." });
 
-    if (damage > 35) tags.push({ label: "Alto Poder", color: "text-red-500", desc: "Daño por bala muy elevado (ideal para tiros precisos)." });
-    if (accuracy > 70) tags.push({ label: "Láser", color: "text-emerald-500", desc: "Precisión máxima; las balas van exactamente donde apuntas." });
-    if (handling > 65) tags.push({ label: "Ágil", color: "text-amber-500", desc: "Rapidez excepcional al apuntar y cambiar de arma." });
-    if (stability > 75) tags.push({ label: "Sin Retroceso", color: "text-blue-500", desc: "Estructura muy estable que apenas se mueve al disparar." });
-    if (range > 75) tags.push({ label: "Largo Alcance", color: "text-purple-500", desc: "Efectividad garantizada a distancias muy largas." });
-    if (armorPen > 45) tags.push({ label: "Perforante", color: "text-slate-500", desc: "Ignora gran parte del blindaje corporal enemigo." });
+    if (damage > 35) tags.push({ label: "Alto Poder", desc: "Daño por bala muy elevado (ideal para tiros precisos)." });
+    if (accuracy > 70) tags.push({ label: "Láser", desc: "Precisión máxima; las balas van exactamente donde apuntas." });
+    if (handling > 65) tags.push({ label: "Ágil", desc: "Rapidez excepcional al apuntar y cambiar de arma." });
+    if (stability > 75) tags.push({ label: "Sin Retroceso", desc: "Estructura muy estable que apenas se mueve al disparar." });
+    if (range > 75) tags.push({ label: "Largo Alcance", desc: "Efectividad garantizada a distancias muy largas." });
+    if (armorPen > 45) tags.push({ label: "Perforante", desc: "Ignora gran parte del blindaje corporal enemigo." });
 
     return tags;
 }
@@ -188,9 +222,12 @@ async function fetchUserWeaponRecords(userId: string): Promise<WeaponRecord[]> {
 
 async function fetchGlobalMeta() {
     const res = await fetch("/api/games/delta-force/weapons");
-    if (!res.ok) return [];
+    if (!res.ok) return { weapons: [], current_patch: "Temporada 9 - ECHO" };
     const data = await res.json();
-    return data.weapons || [];
+    return {
+        weapons: data.weapons || [],
+        current_patch: data.current_patch || "Temporada 9 - ECHO",
+    };
 }
 
 /* ─── Main Component ─── */
@@ -232,9 +269,34 @@ export default function DeltaForceProfileTab({
         retry: 1,
     });
 
-    const { data: metaData = [] } = useQuery({
+    const { data: metaResponse } = useQuery({
         queryKey: ["delta-force-weapons-meta"],
         queryFn: fetchGlobalMeta,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const metaData = metaResponse?.weapons || [];
+    const currentPatch = metaResponse?.current_patch || "Temporada 9 - ECHO";
+
+    const { data: baseWeaponsOps = [] } = useQuery({
+        queryKey: ["df-base-weapons-ops"],
+        queryFn: async () => {
+            const res = await fetch("/api/games/delta-force/base-data?type=weapons&mode=operations");
+            if (!res.ok) return [];
+            const data = await res.json();
+            return data.weapons || [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const { data: baseWeaponsWar = [] } = useQuery({
+        queryKey: ["df-base-weapons-war"],
+        queryFn: async () => {
+            const res = await fetch("/api/games/delta-force/base-data?type=weapons&mode=warfare");
+            if (!res.ok) return [];
+            const data = await res.json();
+            return data.weapons || [];
+        },
         staleTime: 5 * 60 * 1000,
     });
 
@@ -244,11 +306,42 @@ export default function DeltaForceProfileTab({
         if (!metaData || !Array.isArray(metaData)) return map;
         metaData.forEach((m: any) => {
             if (!m.weapon_name) return;
-            const normalizedName = m.weapon_name.replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "").trim().toUpperCase();
+            const normalizedName = m.weapon_name
+                .replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "")
+                .trim()
+                .toUpperCase()
+                .replace(/\s+/g, "-"); // Reemplaza espacios por guiones (ej. "AS VAL" -> "AS-VAL")
             map.set(normalizedName, m);
         });
         return map;
     }, [metaData]);
+
+    const baseWeaponsMap = useMemo(() => {
+        const map = new Map<string, any>();
+        const normalize = (name: string) => {
+            return name
+                .replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "")
+                .trim()
+                .toUpperCase()
+                .replace(/\s+/g, "-");
+        };
+
+        if (Array.isArray(baseWeaponsOps)) {
+            baseWeaponsOps.forEach((w: any) => {
+                if (!w.weapon_name) return;
+                const key = `${normalize(w.weapon_name)}_operations`;
+                map.set(key, w);
+            });
+        }
+        if (Array.isArray(baseWeaponsWar)) {
+            baseWeaponsWar.forEach((w: any) => {
+                if (!w.weapon_name) return;
+                const key = `${normalize(w.weapon_name)}_warfare`;
+                map.set(key, w);
+            });
+        }
+        return map;
+    }, [baseWeaponsOps, baseWeaponsWar]);
 
     const categorizedWeapons = useMemo(() => {
         const groups = new Map<string, WeaponRecord[]>();
@@ -290,6 +383,7 @@ export default function DeltaForceProfileTab({
 
             const displayName = records[0].weapon_name?.replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "").trim() || "Arma sin nombre";
 
+            const gMode = records[0].game_mode || "operations";
             weaponList.push({
                 name: displayName,
                 records,
@@ -297,27 +391,37 @@ export default function DeltaForceProfileTab({
                 latestDate: records[0].created_at,
                 shareCodes: records.map((r) => r.share_code).filter((c): c is string => !!c),
                 description: records[0].description || null,
+                gameMode: gMode,
+                patch_version: records[0].patch_version || null,
             });
         }
 
         // Apply Sorting by TTK if active
         if (sortByTtk) {
             weaponList.sort((a, b) => {
-                const ttkA = calculateTTK(a.bestStats.damage, a.bestStats.fireRate) || 9999;
-                const ttkB = calculateTTK(b.bestStats.damage, b.bestStats.fireRate) || 9999;
+                const metaA = metaMap.get(a.name.toUpperCase().replace(/\s+/g, "-"));
+                const categoryA = metaA?.category || "Fusil de asalto";
+                const metaB = metaMap.get(b.name.toUpperCase().replace(/\s+/g, "-"));
+                const categoryB = metaB?.category || "Fusil de asalto";
+                const ttkA = calculateTTK(a.bestStats.damage, a.bestStats.fireRate, a.bestStats.armorPenetration, 4, categoryA, a.gameMode, 30, a.bestStats.range) || 9999;
+                const ttkB = calculateTTK(b.bestStats.damage, b.bestStats.fireRate, b.bestStats.armorPenetration, 4, categoryB, b.gameMode, 30, b.bestStats.range) || 9999;
                 return ttkA - ttkB;
             });
         }
 
         // Apply Tag Filter
         const filtered = activeTag
-            ? weaponList.filter(w => getWeaponTags(w.bestStats).some(t => t.label === activeTag))
+            ? weaponList.filter(w => {
+                const meta = metaMap.get(w.name.toUpperCase().replace(/\s+/g, "-"));
+                const category = meta?.category || "Fusil de asalto";
+                return getWeaponTags(w.bestStats, category, w.gameMode).some(t => t.label === activeTag);
+              })
             : weaponList;
 
         // Group by category
         const categorized = new Map<string, GroupedWeapon[]>();
         filtered.forEach(w => {
-            const meta = metaMap.get(w.name.toUpperCase());
+            const meta = metaMap.get(w.name.toUpperCase().replace(/\s+/g, "-"));
             const cat = meta?.category || "Otros";
             if (!categorized.has(cat)) categorized.set(cat, []);
             categorized.get(cat)!.push(w);
@@ -331,10 +435,18 @@ export default function DeltaForceProfileTab({
         const tagSet = new Set<string>();
         weaponRecords.forEach(r => {
             const stats = normalizeStats(r.stats);
-            getWeaponTags(stats).forEach(t => tagSet.add(t.label));
+            const wName = r.weapon_name || "";
+            const normalizedName = wName
+                .replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "")
+                .trim()
+                .toUpperCase()
+                .replace(/\s+/g, "-");
+            const meta = metaMap.get(normalizedName);
+            const category = meta?.category || "Fusil de asalto";
+            getWeaponTags(stats, category, r.game_mode || "operations").forEach(t => tagSet.add(t.label));
         });
         return Array.from(tagSet).sort();
-    }, [weaponRecords]);
+    }, [weaponRecords, metaMap]);
 
     if (isLoading) {
         return (
@@ -412,7 +524,7 @@ export default function DeltaForceProfileTab({
                             <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
                                 Arsenal Analizado
                             </h2>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] leading-none mt-1.5">
+                            <p className="text-[0.625rem] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] leading-none mt-1.5">
                                 {weaponRecords.length} Variantes Registradas
                             </p>
                         </div>
@@ -478,7 +590,7 @@ export default function DeltaForceProfileTab({
                                 <button
                                     onClick={() => setSortByTtk(!sortByTtk)}
                                     className={cn(
-                                        "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap",
+                                        "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[0.625rem] font-black uppercase tracking-wider transition-all whitespace-nowrap",
                                         sortByTtk
                                             ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30 active:scale-95"
                                             : "bg-gray-100 dark:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 border border-transparent hover:border-rose-500/20"
@@ -503,7 +615,7 @@ export default function DeltaForceProfileTab({
                                     {category}
                                 </h3>
                                 <div className="h-px w-full bg-gradient-to-r from-border/50 to-transparent" />
-                                <span className="text-[10px] font-bold text-gray-900 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/50 px-2 py-0.5 rounded-md">
+                                <span className="text-[0.625rem] font-bold text-gray-900 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/50 px-2 py-0.5 rounded-md">
                                     {weapons.length}
                                 </span>
                             </div>
@@ -513,10 +625,12 @@ export default function DeltaForceProfileTab({
                                     <WeaponGroupCard
                                         key={weapon.records[0].id}
                                         weapon={weapon}
-                                        meta={metaMap.get(weapon.name.toUpperCase())}
+                                        meta={metaMap.get(weapon.name.toUpperCase().replace(/\s+/g, "-"))}
+                                        baseWeapon={baseWeaponsMap.get(`${weapon.name.toUpperCase().replace(/\s+/g, "-")}_${weapon.gameMode}`)}
                                         isOwnProfile={isOwnProfile}
                                         onDelete={() => handleDelete(weapon.records[0].id)}
                                         onSave={(newName) => handleSaveName(weapon.records[0].id, newName)}
+                                        currentPatch={currentPatch}
                                     />
                                 ))}
                             </div>
@@ -537,21 +651,42 @@ export default function DeltaForceProfileTab({
 function WeaponGroupCard({
     weapon,
     meta,
+    baseWeapon,
     isOwnProfile,
     onSave,
     onDelete,
+    currentPatch,
 }: {
     weapon: GroupedWeapon;
     meta?: any;
+    baseWeapon?: any;
     isOwnProfile?: boolean;
     onSave?: (newName: string) => void;
     onDelete?: () => void;
+    currentPatch: string;
 }) {
-    const tags = getWeaponTags(weapon.bestStats);
+    const tags = getWeaponTags(weapon.bestStats, meta?.category, weapon.gameMode);
+    const getShortPatch = (patch: string | null | undefined) => {
+        if (!patch) return "";
+        const match = patch.match(/\d+/);
+        return match ? `S${match[0]}` : patch.substring(0, 4).toUpperCase();
+    };
+    const shortPatch = getShortPatch(weapon.patch_version);
+
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(weapon.description || weapon.name);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const tier = meta?.tier || "C";
+    const config = TIER_CONFIG[tier];
+    const tierGlowStyle: Record<string, { dark: string; light: string }> = {
+        S: { dark: "rgba(245,158,11,0.13)", light: "rgba(245,158,11,0.06)" },
+        A: { dark: "rgba(16,185,129,0.13)", light: "rgba(16,185,129,0.06)" },
+        B: { dark: "rgba(59,130,246,0.13)", light: "rgba(59,130,246,0.06)" },
+        C: { dark: "rgba(107,114,128,0.10)", light: "rgba(107,114,128,0.04)" },
+    };
+    const glow = tierGlowStyle[tier] ?? tierGlowStyle.C;
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -575,26 +710,104 @@ function WeaponGroupCard({
         }
     };
 
+    const isOutdated = !!weapon.patch_version && weapon.patch_version !== currentPatch;
+
     return (
-        <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-white dark:bg-gray-950/40 shadow-sm transition-all hover:shadow-md dark:hover:border-gray-700 flex flex-col h-full">
+        <div
+            className={cn(
+                "group relative overflow-hidden rounded-2xl border bg-white dark:bg-gray-950/60 shadow-sm dark:shadow-none flex flex-col h-full transition-all duration-300",
+                config.borderColor,
+                isOutdated && "opacity-90"
+            )}
+            style={{ color: config.barColor }}
+        >
+            {/* Banner de advertencia para builds de parches anteriores */}
+            {isOutdated && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-700 dark:text-amber-400">
+                    <span className="text-sm leading-none">⚠️</span>
+                    <p className="text-[0.5625rem] font-bold leading-tight">
+                        Build de <span className="font-black">{weapon.patch_version}</span> — puede no reflejar el parche actual.
+                    </p>
+                </div>
+            )}
             <div className="relative p-3.5 flex flex-col flex-1 h-full">
                 {/* Image Section */}
-                <div className="relative w-full h-32 flex items-center justify-center rounded-xl overflow-hidden border border-border/40">
+                <div
+                    className="relative w-full h-32 flex items-center justify-center rounded-xl overflow-hidden border border-border/30 bg-gray-100/50 dark:bg-white/5"
+                    style={{
+                        /* Cuadrícula táctica sutil */
+                        backgroundImage: [
+                            `repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(128,128,128,0.07) 19px, rgba(128,128,128,0.07) 20px)`,
+                            `repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(128,128,128,0.07) 19px, rgba(128,128,128,0.07) 20px)`,
+                        ].join(","),
+                    }}
+                >
+                    {/* Glow de tier — modo oscuro */}
+                    <div
+                        className="absolute inset-0 pointer-events-none hidden dark:block"
+                        style={{ background: `radial-gradient(ellipse 85% 65% at 50% 75%, ${glow.dark}, transparent)` }}
+                    />
+                    {/* Glow de tier — modo claro */}
+                    <div
+                        className="absolute inset-0 pointer-events-none dark:hidden"
+                        style={{ background: `radial-gradient(ellipse 85% 65% at 50% 75%, ${glow.light}, transparent)` }}
+                    />
+
                     {/* TTK Badge Overlay */}
                     {(() => {
-                        const ttk = calculateTTK(weapon.bestStats.damage, weapon.bestStats.fireRate, weapon.bestStats.armorPenetration, 4);
+                        const armorLevel = weapon.gameMode === "warfare" ? 0 : 4;
+                        const ttk = calculateTTK(
+                            weapon.bestStats.damage,
+                            weapon.bestStats.fireRate,
+                            weapon.bestStats.armorPenetration,
+                            armorLevel,
+                            meta?.category,
+                            weapon.gameMode || "operations",
+                            30,
+                            weapon.bestStats.range
+                        );
                         if (!ttk) return null;
+                        const tooltipText = weapon.gameMode === "warfare"
+                            ? "TTK en Warfare a 30m contra objetivo sin blindaje (100 HP)"
+                            : "TTK en Operaciones a 30m usando bala Nivel 4 contra chaleco Nivel 4";
                         return (
                             <div className="absolute top-2 right-2 z-20">
-                                <div className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/10 flex flex-col items-center" title="TTK frente a chaleco Nivel 4">
-                                    <span className="text-[7px] font-black text-gray-400 uppercase leading-none">TTK Nv4</span>
-                                    <span className="text-[10px] font-mono font-black text-white leading-tight">
-                                        {(ttk / 1000).toFixed(2)}s
-                                    </span>
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/10 flex flex-col items-center cursor-help">
+                                                <span className="text-[0.4375rem] font-black text-gray-400 uppercase leading-none">TTK {armorLevel > 0 ? "Nv4" : "Base"}</span>
+                                                <span className="text-[0.625rem] font-mono font-black text-white leading-tight">
+                                                    {ttk.toFixed(2)}s
+                                                </span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" className="text-[0.625rem] font-bold bg-popover border border-border/80 text-popover-foreground shadow-md px-2.5 py-1.5 z-50">
+                                            {tooltipText}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
                         );
                     })()}
+
+                    {/* Patch Badge (Absolute Bottom-Right) */}
+                    {shortPatch && (
+                        <div className="absolute bottom-2 right-2 z-20">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-sm backdrop-blur-md cursor-help">
+                                            {shortPatch}
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="text-[0.625rem] font-bold bg-popover border border-border/80 text-popover-foreground shadow-md px-2.5 py-1.5 z-50">
+                                        Esta build fue registrada en la {weapon.patch_version || "Temporada actual"}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    )}
 
                     {/* Controles de Administración */}
                     {isOwnProfile && (
@@ -613,18 +826,18 @@ function WeaponGroupCard({
                                         <Trash2 size={11} />
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent side="bottom" align="start" className="w-48 p-3 bg-gray-900 border-white/10 shadow-2xl">
-                                    <p className="text-[10px] font-bold text-white uppercase mb-2">¿Eliminar esta build?</p>
+                                <PopoverContent side="bottom" align="start" className="w-48 p-3 bg-gray-900 border-white/10 shadow-2xl z-50">
+                                    <p className="text-[0.625rem] font-bold text-white uppercase mb-2">¿Eliminar esta build?</p>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => { onDelete?.(); setIsDeleteOpen(false); }}
-                                            className="flex-1 py-1 rounded-md bg-rose-600 text-white text-[9px] font-black uppercase hover:bg-rose-700 transition-colors"
+                                            className="flex-1 py-1 rounded-md bg-rose-600 text-white text-[0.5625rem] font-black uppercase hover:bg-rose-700 transition-colors"
                                         >
                                             Sí, borrar
                                         </button>
                                         <button
                                             onClick={() => setIsDeleteOpen(false)}
-                                            className="flex-1 py-1 rounded-md bg-gray-800 text-gray-400 text-[9px] font-black uppercase hover:bg-gray-700 transition-colors"
+                                            className="flex-1 py-1 rounded-md bg-gray-800 text-gray-400 text-[0.5625rem] font-black uppercase hover:bg-gray-700 transition-colors"
                                         >
                                             No
                                         </button>
@@ -641,6 +854,23 @@ function WeaponGroupCard({
                         </div>
                     )}
 
+                    {/* Category Tag & Mode (Absolute Bottom-Left) */}
+                    <div className="absolute bottom-2 left-2 z-20 flex gap-1.5 items-center">
+                        <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-background/80 backdrop-blur-md text-foreground border border-border shadow-sm">
+                            {meta?.category || "Arma"}
+                        </span>
+                        {weapon.gameMode && (
+                            <span className={cn(
+                                "text-[0.5rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border shadow-sm backdrop-blur-md",
+                                weapon.gameMode === "operations" 
+                                    ? "bg-teal-500/10 text-teal-400 border-teal-500/30" 
+                                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                            )}>
+                                {weapon.gameMode === "operations" ? "Operaciones" : "Warfare"}
+                            </span>
+                        )}
+                    </div>
+
                     {meta?.image_url ? (
                         <img
                             src={meta.image_url}
@@ -651,7 +881,7 @@ function WeaponGroupCard({
                     ) : (
                         <div className="relative z-10 flex flex-col items-center opacity-30">
                             <Swords size={32} />
-                            <span className="text-[8px] font-bold mt-1 uppercase">Imagen Pendiente</span>
+                            <span className="text-[0.5rem] font-bold mt-1 uppercase">Imagen Pendiente</span>
                         </div>
                     )}
                 </div>
@@ -676,33 +906,62 @@ function WeaponGroupCard({
                         </h3>
                     )}
                     {weapon.description && (
-                        <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                        <span className="text-[0.5625rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                             {weapon.name}
                         </span>
                     )}
                 </div>
 
-                {/* Main Stats */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                {/* Main Stats - 2 Column Grid - Segmented HUD bars */}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-2">
                     {STAT_BARS.map((stat) => {
                         const value = weapon.bestStats[stat.key] || 0;
                         const pct = Math.min((value / stat.max) * 100, 100);
                         const Icon = stat.icon;
+                        const SEGMENTS = 20;
+                        const filledSegments = Math.round((pct / 100) * SEGMENTS);
+
+                        const baseKey = `base_${stat.key}`;
+                        const rawBase = baseWeapon?.[baseKey];
+                        const baseValue = typeof rawBase === 'string' ? parseInt(rawBase, 10) : typeof rawBase === 'number' ? rawBase : null;
+                        const basePct = baseValue !== null ? Math.min((baseValue / stat.max) * 100, 100) : null;
+                        const baseSegments = basePct !== null ? Math.round((basePct / 100) * SEGMENTS) : null;
 
                         return (
                             <div key={stat.key} className="space-y-0.5">
-                                <div className="flex justify-between items-center text-[9px]">
-                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                        <Icon size={10} className="stroke-[2.5px]" />
+                                <div className="flex justify-between items-end text-[0.5625rem]">
+                                    <div className="flex items-center gap-0.5 text-gray-500 dark:text-gray-400 pb-0.5 leading-none">
+                                        <Icon size={10} className="opacity-65" />
                                         <span className="font-bold uppercase tracking-tighter">{stat.label}</span>
                                     </div>
-                                    <span className="text-muted-foreground font-bold">{value}{stat.unit}</span>
+                                    <span className="text-gray-800 dark:text-gray-200 font-bold">{Math.round(value)}</span>
                                 </div>
-                                <div className="h-1 w-full bg-gray-100 dark:bg-gray-900/60 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full bg-gray-400 dark:bg-gray-600 transition-all duration-700"
-                                        style={{ width: `${pct}%` }}
-                                    />
+                                {/* Segmented bar */}
+                                <div className="flex gap-px h-1.5">
+                                    {Array.from({ length: SEGMENTS }).map((_, i) => {
+                                        const isFilled = i < filledSegments;
+                                        const isBase = baseSegments !== null && i === baseSegments - 1;
+                                        return (
+                                            <div
+                                                key={i}
+                                                title={isBase ? `Base: ${baseValue}` : undefined}
+                                                className="flex-1 rounded-[1px] transition-all duration-500"
+                                                style={{
+                                                    backgroundColor: isFilled
+                                                        ? config.barColor
+                                                        : 'var(--seg-empty)',
+                                                    boxShadow: isFilled && i === filledSegments - 1
+                                                        ? `0 0 4px ${config.barColor}88`
+                                                        : undefined,
+                                                }}
+                                            >
+                                                {/* Marcador base */}
+                                                {isBase && (
+                                                    <div className="w-full h-full bg-white/80 dark:bg-white/40 rounded-[1px] ring-1 ring-gray-500/30 dark:ring-white/30" />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         );
@@ -710,7 +969,7 @@ function WeaponGroupCard({
                 </div>
 
                 {/* Extra Stats - Compact Row (Unified Design) */}
-                <div className="flex items-center justify-around py-3 border-y border-border/40 mt-4 gap-1 overflow-hidden">
+                <div className="flex items-center justify-around py-2.5 border-y border-border/40 my-2 gap-1 overflow-hidden">
                     {EXTRA_STATS.map((stat) => {
                         const value = weapon.bestStats[stat.key];
                         const Icon = stat.icon;
@@ -718,10 +977,10 @@ function WeaponGroupCard({
                         return (
                             <div key={stat.key} className="flex flex-col items-center gap-0.5 min-w-[40px]">
                                 <Icon size={10} className="text-muted-foreground" />
-                                <span className="text-[10px] text-muted-foreground leading-none font-bold">
+                                <span className="text-[0.625rem] text-muted-foreground leading-none font-bold">
                                     {value}{stat.unit}
                                 </span>
-                                <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">
+                                <span className="text-[0.4375rem] text-muted-foreground uppercase font-bold tracking-tighter whitespace-nowrap">
                                     {stat.label === 'Vel. Boca' ? 'Vel.' : stat.label}
                                 </span>
                             </div>
@@ -730,7 +989,7 @@ function WeaponGroupCard({
                 </div>
 
                 {/* Bottom Section */}
-                <div className="mt-auto pt-5 space-y-4">
+                <div className="mt-auto pt-3 space-y-3">
                     {/* Share Codes moved up */}
                     {weapon.shareCodes && weapon.shareCodes.length > 0 && (
                         <div className="flex flex-col gap-1">
@@ -744,17 +1003,14 @@ function WeaponGroupCard({
                     {tags.length > 0 && (
                         <TooltipProvider>
                             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
-                                {tags.map(tag => (
+                                {tags.slice(0, 3).map(tag => (
                                     <Tooltip key={tag.label}>
                                         <TooltipTrigger asChild>
-                                            <span className={cn(
-                                                "text-[9px] font-black uppercase tracking-tighter cursor-help transition-opacity hover:opacity-80",
-                                                tag.color
-                                            )}>
+                                            <span className="text-[0.5625rem] font-black uppercase tracking-tighter transition-colors cursor-help hover:opacity-80 text-slate-500 dark:text-slate-400">
                                                 {tag.label}
                                             </span>
                                         </TooltipTrigger>
-                                        <TooltipContent side="bottom" className="text-[10px] font-bold bg-black dark:bg-white text-white dark:text-black border-none">
+                                        <TooltipContent side="bottom" className="text-[0.625rem] font-bold bg-popover border border-border/80 text-popover-foreground shadow-md px-2.5 py-1.5 z-50">
                                             {tag.desc}
                                         </TooltipContent>
                                     </Tooltip>
@@ -763,7 +1019,7 @@ function WeaponGroupCard({
                         </TooltipProvider>
                     )}
 
-                    <div className="flex items-center justify-between text-[8px] text-gray-900 dark:text-gray-400 font-black uppercase tracking-tight pt-1">
+                    <div className="flex items-center justify-between text-[0.5rem] text-gray-900 dark:text-gray-400 font-black uppercase tracking-tight pt-1">
                         <span>{new Date(weapon.latestDate).toLocaleDateString()}</span>
                     </div>
                 </div>
@@ -800,7 +1056,7 @@ function ShareCodeChip({ code, isCompact }: { code: string; isCompact?: boolean 
         >
             <code className={cn(
                 "font-mono truncate flex-1 leading-none text-gray-500",
-                isCompact ? "text-[8px]" : "text-[9px]"
+                isCompact ? "text-[0.5rem]" : "text-[0.5625rem]"
             )}>
                 {code}
             </code>

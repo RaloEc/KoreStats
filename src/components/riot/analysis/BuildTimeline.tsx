@@ -150,7 +150,7 @@ export function BuildTimeline({
                         </TooltipTrigger>
                         <TooltipContent
                           side="right"
-                          className="bg-slate-900 border-slate-700 text-white text-[11px] font-semibold"
+                          className="bg-slate-900 border-slate-700 text-white text-[0.6875rem] font-semibold"
                         >
                           Minuto {group.minute}
                         </TooltipContent>

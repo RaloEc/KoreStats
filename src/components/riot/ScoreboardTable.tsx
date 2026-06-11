@@ -311,7 +311,7 @@ export function ScoreboardTable({
         <div className="flex items-center gap-2 z-10">
           <div
             className={cn(
-              "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shadow-sm ring-1 ring-inset flex items-center gap-1",
+              "px-1.5 py-0.5 rounded-md text-[0.5625rem] font-black uppercase tracking-wider shadow-sm ring-1 ring-inset flex items-center gap-1",
               isWin
                 ? "bg-blue-500 text-white ring-blue-400/30"
                 : "bg-rose-500 text-white ring-rose-400/30",
@@ -321,7 +321,7 @@ export function ScoreboardTable({
             {isWin ? "Victoria" : "Derrota"}
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight leading-none">
+            <span className="text-[0.5625rem] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight leading-none">
               Equipo {isWin ? "Ganador" : "Perdedor"}
             </span>
           </div>
@@ -332,7 +332,7 @@ export function ScoreboardTable({
             <span className="text-xs font-black text-slate-900 dark:text-white leading-none tracking-tight">
               {isWin ? team1Kills : team2Kills}
             </span>
-            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+            <span className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
               KILLS
             </span>
           </div>
@@ -341,7 +341,7 @@ export function ScoreboardTable({
             <span className="text-xs font-black text-amber-500 dark:text-amber-400 leading-none tracking-tight">
               {((isWin ? team1Gold : team2Gold) / 1000).toFixed(1)}k
             </span>
-            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+            <span className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
               ORO
             </span>
           </div>
@@ -436,7 +436,7 @@ export function ScoreboardTable({
           <TeamBlock teamPlayers={team1} isWin={true} isListMode />
           <div className="flex items-center justify-center py-2 h-0 relative z-10">
             <div className="absolute bg-white dark:bg-slate-950 px-4 py-1 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 italic">
+              <span className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 italic">
                 VS
               </span>
             </div>

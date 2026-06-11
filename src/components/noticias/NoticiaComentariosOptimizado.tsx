@@ -14,12 +14,14 @@ interface NoticiaComentariosOptimizadoProps {
   noticiaId: string;
   pageSize?: number;
   order?: 'asc' | 'desc';
+  juegoAsociado?: 'lol' | 'delta-force';
 }
 
 const NoticiaComentariosOptimizado: React.FC<NoticiaComentariosOptimizadoProps> = ({
   noticiaId,
   pageSize = 10,
-  order = 'desc'
+  order = 'desc',
+  juegoAsociado = 'lol'
 }) => {
   // Estado para el modal de autenticación
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -103,6 +105,7 @@ const NoticiaComentariosOptimizado: React.FC<NoticiaComentariosOptimizadoProps> 
                 placeholder="Escribe tu comentario..."
                 ctaText="Comentar"
                 isLoading={submitting}
+                juegoAsociado={juegoAsociado}
               />
             ) : (
               <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
@@ -136,6 +139,7 @@ const NoticiaComentariosOptimizado: React.FC<NoticiaComentariosOptimizadoProps> 
                   onDelete={handleDeleteComment}
                   isAuthor={user && user.id === comment.authorId}
                   currentUser={user}
+                  juegoAsociado={juegoAsociado}
                 />
               ))
             )}

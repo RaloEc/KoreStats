@@ -45,12 +45,12 @@ const PerformanceTooltipContent = ({
       <span className="font-bold text-sm text-slate-900 dark:text-white">
         Puntaje: {score.toFixed(1)}/120
       </span>
-      <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+      <span className="text-[0.625rem] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
         #{ranking} de 10
       </span>
     </div>
     <div className="space-y-1 border-t border-slate-200 dark:border-slate-800 pt-2 mb-2">
-      <div className="flex justify-between text-[11px] gap-4">
+      <div className="flex justify-between text-[0.6875rem] gap-4">
         <span className="text-slate-500 dark:text-slate-400">
           Distribución de Daño (26%)
         </span>
@@ -58,7 +58,7 @@ const PerformanceTooltipContent = ({
           {breakdown ? breakdown.damage.toFixed(1) : "0.0"}
         </span>
       </div>
-      <div className="flex justify-between text-[11px]">
+      <div className="flex justify-between text-[0.6875rem]">
         <span className="text-slate-500 dark:text-slate-400">
           Participación Kills (21%)
         </span>
@@ -66,7 +66,7 @@ const PerformanceTooltipContent = ({
           {breakdown ? breakdown.kp.toFixed(1) : "0.0"}
         </span>
       </div>
-      <div className="flex justify-between text-[11px]">
+      <div className="flex justify-between text-[0.6875rem]">
         <span className="text-slate-500 dark:text-slate-400">
           KDA / Supervivencia (18%)
         </span>
@@ -74,7 +74,7 @@ const PerformanceTooltipContent = ({
           {breakdown ? breakdown.kda.toFixed(1) : "0.0"}
         </span>
       </div>
-      <div className="flex justify-between text-[11px]">
+      <div className="flex justify-between text-[0.6875rem]">
         <span className="text-slate-500 dark:text-slate-400">
           Oro Generado (13%)
         </span>
@@ -82,7 +82,7 @@ const PerformanceTooltipContent = ({
           {breakdown ? breakdown.gold.toFixed(1) : "0.0"}
         </span>
       </div>
-      <div className="flex justify-between text-[11px]">
+      <div className="flex justify-between text-[0.6875rem]">
         <span className="text-slate-500 dark:text-slate-400">
           Farmeo (CS/min) (12%)
         </span>
@@ -90,7 +90,7 @@ const PerformanceTooltipContent = ({
           {breakdown ? breakdown.cs.toFixed(1) : "0.0"}
         </span>
       </div>
-      <div className="flex justify-between text-[11px]">
+      <div className="flex justify-between text-[0.6875rem]">
         <span className="text-slate-500 dark:text-slate-400">
           Visión / Utilidad (10%)
         </span>
@@ -99,7 +99,7 @@ const PerformanceTooltipContent = ({
         </span>
       </div>
       {breakdown && breakdown.victoryBonus > 0 && (
-        <div className="flex justify-between text-[11px] text-blue-600 dark:text-blue-400 border-t border-slate-200/60 dark:border-slate-800/60 pt-1 mt-1 font-medium">
+        <div className="flex justify-between text-[0.6875rem] text-blue-600 dark:text-blue-400 border-t border-slate-200/60 dark:border-slate-800/60 pt-1 mt-1 font-medium">
           <span>Bono de Victoria</span>
           <span className="font-bold">
             +{breakdown.victoryBonus.toFixed(0)}
@@ -109,7 +109,7 @@ const PerformanceTooltipContent = ({
       {breakdown && breakdown.penalties !== 0 && (
         <div
           className={cn(
-            "flex justify-between text-[11px]",
+            "flex justify-between text-[0.6875rem]",
             breakdown.penalties > 0
               ? "text-rose-600 dark:text-rose-400"
               : "text-emerald-600 dark:text-emerald-400",
@@ -123,7 +123,7 @@ const PerformanceTooltipContent = ({
         </div>
       )}
     </div>
-    <div className="text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
+    <div className="text-[0.5625rem] text-slate-400 dark:text-slate-500 italic leading-tight">
       * Los valores a la derecha indican los puntos reales aportados al score
       final.
     </div>
@@ -225,7 +225,7 @@ export const ScoreboardPlayerRow = memo(
               {/* Rank Position Badge - Sobrepuesto en esquina superior derecha */}
               <span
                 className={cn(
-                  "absolute -top-0.5 -right-0.5 z-10 text-[7px] font-black w-[14px] h-[14px] flex items-center justify-center rounded-full shadow-lg border transition-colors",
+                  "absolute -top-0.5 -right-0.5 z-10 text-[0.4375rem] font-black w-[14px] h-[14px] flex items-center justify-center rounded-full shadow-lg border transition-colors",
                   rankPos === 1
                     ? "bg-amber-400 text-slate-900 border-amber-500"
                     : rankPos <= 3
@@ -236,7 +236,7 @@ export const ScoreboardPlayerRow = memo(
                 {rankPos || "-"}
               </span>
               {(player.champ_level || player.champLevel) && (
-                <div className="absolute -bottom-1 -right-1 bg-slate-900 text-[7px] text-white px-1 rounded-full border border-slate-700 z-10">
+                <div className="absolute -bottom-1 -right-1 bg-slate-900 text-[0.4375rem] text-white px-1 rounded-full border border-slate-700 z-10">
                   {player.champ_level || player.champLevel}
                 </div>
               )}
@@ -300,7 +300,7 @@ export const ScoreboardPlayerRow = memo(
             <div className="flex items-center gap-1.5">
               <span
                 className={cn(
-                  "text-[11px] font-bold truncate",
+                  "text-[0.6875rem] font-bold truncate",
                   isCurrentUser
                     ? "text-blue-500 dark:text-blue-400"
                     : "text-slate-900 dark:text-slate-100",
@@ -309,12 +309,12 @@ export const ScoreboardPlayerRow = memo(
                 {player.summoner_name}
               </span>
               {badges.includes("MVP") && (
-                <span className="text-[7px] font-black bg-amber-400 text-slate-900 px-1 rounded-sm">
+                <span className="text-[0.4375rem] font-black bg-amber-400 text-slate-900 px-1 rounded-sm">
                   MVP
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] tabular-nums">
+            <div className="flex items-center gap-1.5 text-[0.625rem] tabular-nums">
               <span className="font-bold text-slate-700 dark:text-slate-300">
                 {player.kills}/{player.deaths}/{player.assists}
               </span>
@@ -327,13 +327,13 @@ export const ScoreboardPlayerRow = memo(
 
           {/* Stats secundarias (Dmg/Oro) */}
           <div className="hidden min-[380px]:flex flex-col items-end justify-center px-2 border-r border-slate-200 dark:border-slate-800">
-            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+            <span className="text-[0.625rem] font-bold text-slate-700 dark:text-slate-300">
               {(dmgToChamps / 1000).toFixed(1)}k{" "}
-              <span className="text-[8px] font-normal text-slate-400">dmg</span>
+              <span className="text-[0.5rem] font-normal text-slate-400">dmg</span>
             </span>
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500">
+            <span className="text-[0.625rem] font-bold text-amber-600 dark:text-amber-500">
               {(gold / 1000).toFixed(1)}k{" "}
-              <span className="text-[8px] font-normal text-slate-400">oro</span>
+              <span className="text-[0.5rem] font-normal text-slate-400">oro</span>
             </span>
           </div>
 
@@ -390,7 +390,7 @@ export const ScoreboardPlayerRow = memo(
                   unoptimized
                 />
                 {(player.champ_level || player.champLevel) && (
-                  <div className="absolute bottom-0 right-0 bg-slate-950/90 text-[8px] sm:text-[9px] text-white px-1.5 py-0.5 font-black rounded-tl-md border-t border-l border-slate-700/50 backdrop-blur-sm">
+                  <div className="absolute bottom-0 right-0 bg-slate-950/90 text-[0.5rem] sm:text-[0.5625rem] text-white px-1.5 py-0.5 font-black rounded-tl-md border-t border-l border-slate-700/50 backdrop-blur-sm">
                     {player.champ_level || player.champLevel}
                   </div>
                 )}
@@ -404,7 +404,7 @@ export const ScoreboardPlayerRow = memo(
                     <TooltipTrigger asChild>
                       <span
                         className={cn(
-                          "text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 transition-all cursor-help",
+                          "text-[0.5625rem] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 transition-all cursor-help",
                           rankPos === 1
                             ? "bg-amber-400 text-slate-900 border-amber-500"
                             : rankPos <= 3
@@ -429,7 +429,7 @@ export const ScoreboardPlayerRow = memo(
               {/* Mobile version without tooltip */}
               <span
                 className={cn(
-                  "sm:hidden absolute -top-1 -right-1 z-10 text-[8px] font-black w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-lg border-2 transition-colors",
+                  "sm:hidden absolute -top-1 -right-1 z-10 text-[0.5rem] font-black w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-lg border-2 transition-colors",
                   rankPos === 1
                     ? "bg-amber-400 text-slate-900 border-amber-500"
                     : rankPos <= 3
@@ -572,7 +572,7 @@ export const ScoreboardPlayerRow = memo(
           <div className="hidden sm:flex flex-col flex-1 min-w-0 gap-0">
             <span
               className={cn(
-                "text-sm sm:text-[13px] font-medium truncate tracking-tighter sm:tracking-tight w-full",
+                "text-sm sm:text-[0.8125rem] font-medium truncate tracking-tighter sm:tracking-tight w-full",
                 isCurrentUser
                   ? "text-blue-600 dark:text-blue-400"
                   : "text-slate-900 dark:text-white",
@@ -581,14 +581,14 @@ export const ScoreboardPlayerRow = memo(
               {player.summoner_name || "Unknown"}
             </span>
 
-            <div className="text-[10px] sm:text-[9px] font-medium text-slate-500 dark:text-slate-400/70 truncate leading-tight">
+            <div className="text-[0.625rem] sm:text-[0.5625rem] font-medium text-slate-500 dark:text-slate-400/70 truncate leading-tight">
               {player.champion_name}
             </div>
 
             <div className="flex items-center gap-1.5 leading-none mt-0.5">
               <span
                 className={cn(
-                  "text-[10px] sm:text-[9px] font-bold italic uppercase tracking-wider",
+                  "text-[0.625rem] sm:text-[0.5625rem] font-bold italic uppercase tracking-wider",
                   rankBadge && rankBadge !== "Unranked"
                     ? rankColor
                     : "text-slate-400 dark:text-slate-500",
@@ -597,7 +597,7 @@ export const ScoreboardPlayerRow = memo(
                 {rankBadge && rankBadge !== "Unranked" ? rankBadge : "S/R"}
               </span>
               {badges.includes("MVP") && (
-                <span className="bg-amber-400/10 text-amber-600 dark:text-amber-400 text-[9px] sm:text-[8px] font-bold px-1 rounded border border-amber-400/20">
+                <span className="bg-amber-400/10 text-amber-600 dark:text-amber-400 text-[0.5625rem] sm:text-[0.5rem] font-bold px-1 rounded border border-amber-400/20">
                   MVP
                 </span>
               )}
@@ -616,7 +616,7 @@ export const ScoreboardPlayerRow = memo(
             >
               {player.summoner_name || "Unknown"}
             </span>
-            <div className="text-[9px] font-medium text-slate-500 dark:text-slate-400/70 truncate">
+            <div className="text-[0.5625rem] font-medium text-slate-500 dark:text-slate-400/70 truncate">
               {player.champion_name}
             </div>
           </div>
@@ -625,13 +625,13 @@ export const ScoreboardPlayerRow = memo(
         {/* Mobile: KDA + Items */}
         <div className="flex sm:hidden items-center gap-2 flex-1 justify-end">
           <div className="flex flex-col items-center shrink-0">
-            <div className="text-[11px] font-bold text-slate-900 dark:text-white leading-none">
+            <div className="text-[0.6875rem] font-bold text-slate-900 dark:text-white leading-none">
               {player.kills}/{player.deaths}/{player.assists}
             </div>
-            <div className="text-[9px] font-bold text-slate-500/60 mt-0.5">
+            <div className="text-[0.5625rem] font-bold text-slate-500/60 mt-0.5">
               {(player.kda || 0).toFixed(2)} P/R
             </div>
-            <div className="text-[9px] font-medium text-slate-500/80 mt-0.5">
+            <div className="text-[0.5625rem] font-medium text-slate-500/80 mt-0.5">
               {cs} CS
             </div>
           </div>
@@ -732,14 +732,14 @@ export const ScoreboardPlayerRow = memo(
         <div className="hidden sm:grid flex-1 grid-cols-[1.2fr_1.4fr_auto] items-center gap-x-10 w-full">
           <div className="col-span-2 sm:col-span-1 flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-4 sm:gap-1 px-1">
             <div className="flex flex-col items-center sm:flex-row sm:gap-4 shrink-0">
-              <div className="text-[14px] font-bold text-slate-900 dark:text-white leading-none tracking-tight">
+              <div className="text-[0.875rem] font-bold text-slate-900 dark:text-white leading-none tracking-tight">
                 {player.kills}
                 <span className="text-slate-400/40 mx-0.5">/</span>
                 {player.deaths}
                 <span className="text-slate-400/40 mx-0.5">/</span>
                 {player.assists}
               </div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500/60 sm:mt-0.5">
+              <div className="text-[0.625rem] font-bold uppercase tracking-widest text-slate-500/60 sm:mt-0.5">
                 {(player.kda || 0).toFixed(2)}
               </div>
             </div>
@@ -780,7 +780,7 @@ export const ScoreboardPlayerRow = memo(
 
           <div className="flex sm:hidden items-center justify-between shrink-0 px-1">
             {/* Mobile Stats Summary */}
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-[0.625rem]">
               <div className="flex items-center gap-0.5">
                 <span className="font-bold text-slate-700 dark:text-slate-200">
                   {cs}
@@ -795,7 +795,7 @@ export const ScoreboardPlayerRow = memo(
                 <span className="text-slate-500 font-medium">DMG</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-[0.625rem]">
               <div className="flex items-center gap-0.5">
                 <span className="font-bold text-slate-700 dark:text-slate-200">
                   {vision}
@@ -826,7 +826,7 @@ export const ScoreboardPlayerRow = memo(
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none tabular-nums">
                   {s.val}
                 </span>
-                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">
+                <span className="text-[0.5625rem] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">
                   {s.lab}
                 </span>
               </div>

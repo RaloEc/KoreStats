@@ -165,7 +165,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
                     <span className="text-blue-600 dark:text-blue-400">
                       @{usuario.public_id}
                     </span>
-                    <span className="text-gray-400 dark:text-gray-500 font-normal text-[11px]">
+                    <span className="text-gray-400 dark:text-gray-500 font-normal text-[0.6875rem]">
                       ({usuario.username})
                     </span>
                   </>
@@ -173,7 +173,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
                   usuario.username
                 )}
                 {isPublicProfile && usuario.team_name && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-400 font-bold uppercase transition-colors">
+                  <span className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-[0.625rem] text-gray-400 font-bold uppercase transition-colors">
                     {usuario.team_name}
                   </span>
                 )}
@@ -187,7 +187,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             {(usuario.rol === "pro_player" || usuario.rol === "admin") && (
               <Badge
                 variant="outline"
-                className={`flex-shrink-0 text-[10px] font-black tracking-widest px-1.5 py-0.5 border-0 h-fit ${
+                className={`flex-shrink-0 text-[0.625rem] font-black tracking-widest px-1.5 py-0.5 border-0 h-fit ${
                   usuario.rol === "pro_player"
                     ? "bg-blue-500/5 text-blue-500/60 dark:text-blue-400/40"
                     : "bg-amber-500/5 text-amber-500/60 dark:text-amber-400/40"

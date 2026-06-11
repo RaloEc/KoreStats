@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@/components/icons/FontAwesomeIcon";
-import { faDownload, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -96,7 +95,7 @@ export default function InstallPWA() {
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Cerrar"
         >
-          <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+          <X className="w-4 h-4" />
         </button>
 
         <div className="pr-6">
@@ -111,7 +110,7 @@ export default function InstallPWA() {
             className="w-full gap-2"
             size="lg"
           >
-            <FontAwesomeIcon icon={faDownload} className="w-4 h-4" />
+            <Download className="w-4 h-4" />
             Instalar Ahora
           </Button>
         </div>

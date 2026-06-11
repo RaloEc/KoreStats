@@ -169,8 +169,6 @@ module.exports = {
         unbounded: ["var(--font-unbounded)", ...fontFamily.sans],
         minecraft: ["Inter", ...fontFamily.sans],
         "black-ops": ["var(--font-black-ops)", ...fontFamily.sans],
-        "saira-stencil": ["var(--font-saira-stencil)", ...fontFamily.sans],
-        "stardos-stencil": ["var(--font-stardos-stencil)", ...fontFamily.sans],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

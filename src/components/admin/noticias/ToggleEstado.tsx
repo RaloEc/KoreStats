@@ -74,7 +74,7 @@ export function ToggleEstado({
         >
           {etiqueta}
         </span>
-        <span className="text-[10px] text-muted-foreground leading-none">
+        <span className="text-[0.625rem] text-muted-foreground leading-none">
           {valorActual
             ? isActiva
               ? "Visible para todos"

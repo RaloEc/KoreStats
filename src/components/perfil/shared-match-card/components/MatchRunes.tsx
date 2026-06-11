@@ -124,7 +124,7 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
         <div className="space-y-3 text-xs">
           {primaryStyle && (
             <div>
-              <p className="text-[11px] uppercase font-semibold text-muted-foreground">
+              <p className="text-[0.6875rem] uppercase font-semibold text-muted-foreground">
                 Primaria • {getRuneStyleLabel(primaryStyle.style)}
               </p>
               {renderRuneSelections(primaryStyle)}
@@ -132,7 +132,7 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
           )}
           {secondaryStyle && (
             <div>
-              <p className="text-[11px] uppercase font-semibold text-muted-foreground">
+              <p className="text-[0.6875rem] uppercase font-semibold text-muted-foreground">
                 Secundaria • {getRuneStyleLabel(secondaryStyle.style)}
               </p>
               {renderRuneSelections(secondaryStyle)}
@@ -140,7 +140,7 @@ export const MatchRunes: React.FC<MatchRunesProps> = memo(
           )}
           {renderShardIcons() && (
             <div>
-              <p className="text-[11px] uppercase font-semibold text-muted-foreground">
+              <p className="text-[0.6875rem] uppercase font-semibold text-muted-foreground">
                 Fragmentos
               </p>
               {renderShardIcons()}

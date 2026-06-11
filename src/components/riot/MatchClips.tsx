@@ -91,7 +91,7 @@ export function MatchClips({ matchId }: { matchId: string }) {
                             </div>
 
                             <div className="absolute top-2 left-2">
-                                <Badge variant="secondary" className="bg-black/60 backdrop-blur-md border-white/10 text-[10px] h-5">
+                                <Badge variant="secondary" className="bg-black/60 backdrop-blur-md border-white/10 text-[0.625rem] h-5">
                                     Allstar.gg
                                 </Badge>
                             </div>

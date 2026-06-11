@@ -416,12 +416,12 @@ export function MobileMatchCard({
         {/* Encabezado compacto */}
         <div className="mb-3">
           <div className="flex items-center gap-2">
-            <span className="flex-1 text-[11px] font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 truncate">
+            <span className="flex-1 text-[0.6875rem] font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 truncate">
               {queueName}
             </span>
             <div className="flex-1 flex flex-col items-center gap-1">
               <span
-                className={`inline-flex items-center justify-center text-[11px] font-bold uppercase tracking-wide ${resultBadgeClass}`}
+                className={`inline-flex items-center justify-center text-[0.6875rem] font-bold uppercase tracking-wide ${resultBadgeClass}`}
               >
                 {resultLabel}
               </span>
@@ -443,7 +443,7 @@ export function MobileMatchCard({
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex items-center gap-0">
               <div className="flex flex-col items-center gap-1">
-                <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
+                <p className="text-[0.6875rem] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
                   {match.champion_name}
                 </p>
                 <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0">
@@ -466,7 +466,7 @@ export function MobileMatchCard({
                   </RunesTooltip>
                   {playerRankingPosition && playerRankingPosition > 0 && (
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
+                      className={`text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
                         playerRankingPosition,
                       )}`}
                       title={`Ranking global #${playerRankingPosition}`}
@@ -493,7 +493,7 @@ export function MobileMatchCard({
 
           {laneOpponent && (
             <>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-slate-500">
                 VS
               </span>
               <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
@@ -511,7 +511,7 @@ export function MobileMatchCard({
                     {renderSpellIcon(laneOpponent.summoner2Id, "Enemy Spell 2")}
                   </div>
                   <div className="flex flex-col items-center gap-1">
-                    <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
+                    <p className="text-[0.6875rem] font-bold text-slate-900 dark:text-white truncate max-w-[80px] text-center">
                       {laneOpponent.championName}
                     </p>
                     <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0 bg-slate-800">
@@ -547,7 +547,7 @@ export function MobileMatchCard({
                       {opponentRankingPosition &&
                         opponentRankingPosition > 0 && (
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
+                            className={`text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
                               opponentRankingPosition,
                             )}`}
                             title={`Ranking global #${opponentRankingPosition}`}
@@ -638,7 +638,7 @@ export function MobileMatchCard({
             matches={recentMatches}
             currentMatch={match}
             currentPuuid={match.puuid}
-            className="text-[11px]"
+            className="text-[0.6875rem]"
             showInline={true}
             linkedAccountsMap={linkedAccountsMap}
           />

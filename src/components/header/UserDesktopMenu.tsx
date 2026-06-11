@@ -113,7 +113,7 @@ export const UserDesktopMenu: React.FC<UserDesktopMenuProps> = ({
                       authUser?.email?.split("@")[0] ||
                       "Usuario"}
                   </span>
-                  <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/60">
+                  <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[0.625rem] font-medium border bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/60">
                     {profile?.role || "user"}
                   </span>
                 </div>

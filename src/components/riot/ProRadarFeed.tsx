@@ -105,7 +105,7 @@ export function ProRadarFeed() {
                                 <h3 className="font-black text-sm sm:text-base text-foreground truncate" title={insight.title}>
                                     {insight.title}
                                 </h3>
-                                <span className="flex-shrink-0 text-[10px] text-muted-foreground font-bold flex items-center gap-1 mt-0.5">
+                                <span className="flex-shrink-0 text-[0.625rem] text-muted-foreground font-bold flex items-center gap-1 mt-0.5">
                                     <Clock className="w-3 h-3" />
                                     {getRelative(insight.date)}
                                 </span>

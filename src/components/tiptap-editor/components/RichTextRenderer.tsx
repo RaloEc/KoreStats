@@ -8,6 +8,7 @@ import parse, {
   DOMNode,
 } from "html-react-parser";
 import { UserHoverCard } from "./UserHoverCard";
+import { WeaponHoverCard } from "./WeaponHoverCard";
 import { cn } from "@/lib/utils";
 
 interface RichTextRendererProps {
@@ -68,6 +69,32 @@ export const RichTextRenderer: React.FC<RichTextRendererProps> = ({
                 {domToReact(children as DOMNode[], options)}
               </span>
             </UserHoverCard>
+          );
+        }
+
+        // Check for weapon-mention span
+        if (
+          name === "span" &&
+          (attribs["data-type"] === "weaponMention" ||
+            attribs.class?.includes("weapon-mention"))
+        ) {
+          const label = attribs["data-label"] || attribs["data-id"] || "";
+          const cleanText = label.startsWith("#") ? label : `#${label}`;
+
+          const cleanClass = 
+            "weapon-mention inline-flex items-center align-middle bg-[#0eea8e]/10 dark:bg-[#0eea8e]/5 border border-[#0eea8e]/20 rounded px-1.5 py-0.5 mx-0.5 select-all font-semibold text-xs leading-none text-[#03ba6d] dark:text-[#0eea8e] cursor-pointer hover:opacity-80 transition-all";
+
+          return (
+            <WeaponHoverCard weaponName={label}>
+              <span
+                className={cleanClass}
+                data-id={attribs["data-id"]}
+                data-type="weaponMention"
+                data-label={label}
+              >
+                {cleanText}
+              </span>
+            </WeaponHoverCard>
           );
         }
       }

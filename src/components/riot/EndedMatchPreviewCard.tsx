@@ -147,7 +147,7 @@ function ParticipantRow({
           <div className={`truncate text-xs font-semibold ${nameColor}`}>
             {participant.summonerName}
           </div>
-          <div className="truncate text-[11px] text-slate-400">
+          <div className="truncate text-[0.6875rem] text-slate-400">
             {championName ?? `Champ ${participant.championId}`}
           </div>
         </div>

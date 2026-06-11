@@ -211,7 +211,7 @@ export function MatchAnalysis({
 
       {/* Global Analysis Separator */}
       <div className="flex items-center gap-3 pt-8 pb-2">
-        <h3 className="text-[10px] font-black text-slate-500 dark:text-white/40 uppercase tracking-[0.3em] shrink-0">
+        <h3 className="text-[0.625rem] font-black text-slate-500 dark:text-white/40 uppercase tracking-[0.3em] shrink-0">
           Panorama Global
         </h3>
         <div className="h-px bg-gradient-to-r from-slate-200 dark:from-white/20 to-transparent flex-1" />

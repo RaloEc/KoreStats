@@ -136,7 +136,7 @@ export function AllstarClipsVerticalFeed({ puuid, className, followedOnly }: All
                                 <div className="p-3 flex items-center justify-between">
                                     <div className="flex flex-col">
                                         <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 line-clamp-1">{clip.clip_title || "Mejor jugada"}</h3>
-                                        <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">
+                                        <span className="text-[0.625rem] font-bold text-slate-500 dark:text-zinc-400 uppercase">
                                             {new Date(clip.created_at).toLocaleDateString()}
                                         </span>
                                     </div>

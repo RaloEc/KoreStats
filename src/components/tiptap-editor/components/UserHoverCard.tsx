@@ -148,7 +148,7 @@ export function UserHoverCard({ username, children }: UserHoverCardProps) {
                   {/* Role Badge could go here */}
                 </h4>
                 {profile.role !== "user" && (
-                  <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold uppercase rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  <span className="inline-block mt-1 px-2 py-0.5 text-[0.625rem] font-semibold uppercase rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                     {profile.role}
                   </span>
                 )}

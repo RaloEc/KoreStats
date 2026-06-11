@@ -154,7 +154,7 @@ export function PlayerSummaryClient({
       </RunesTooltip>
       {typeof data.rankingPosition === "number" && data.rankingPosition > 0 && (
         <span
-          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
+          className={`text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full shadow ${getRankingBadgeClass(
             data.rankingPosition,
           )}`}
           title={`Ranking global #${data.rankingPosition}`}
@@ -171,7 +171,7 @@ export function PlayerSummaryClient({
         }`}
     >
       {data.label && (
-        <span className="text-[10px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
+        <span className="text-[0.625rem] uppercase tracking-wide text-slate-600 dark:text-slate-400">
           {data.label}
         </span>
       )}
@@ -187,7 +187,7 @@ export function PlayerSummaryClient({
         </div>
       )}
       {typeof data.csPerMinute === "number" && (
-        <div className="text-[11px] text-slate-600 dark:text-slate-400 text-center">
+        <div className="text-[0.6875rem] text-slate-600 dark:text-slate-400 text-center">
           {data.csPerMinute.toFixed(1)} CS/min
         </div>
       )}

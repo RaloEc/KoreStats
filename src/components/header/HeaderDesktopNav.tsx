@@ -49,6 +49,7 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
           <li className="menu-item">
             <Link
               href="/noticias"
+              prefetch={true}
               className="px-4 py-2 rounded-lg transition-colors font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={closeAllMenus}
             >
@@ -58,6 +59,7 @@ export const HeaderDesktopNav: React.FC<HeaderDesktopNavProps> = ({
           <li className="menu-item">
             <Link
               href="/foro"
+              prefetch={true}
               className="px-4 py-2 rounded-lg transition-colors font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
               onClick={closeAllMenus}
             >

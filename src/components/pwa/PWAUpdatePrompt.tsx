@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@/components/icons/FontAwesomeIcon";
-import { faSync, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { RefreshCw, X } from "lucide-react";
 
 export default function PWAUpdatePrompt() {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
@@ -85,7 +84,7 @@ export default function PWAUpdatePrompt() {
           className="absolute top-2 right-2 text-white/80 hover:text-white transition-colors"
           aria-label="Cerrar"
         >
-          <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+          <X className="w-4 h-4" />
         </button>
 
         <div className="pr-6">
@@ -100,7 +99,7 @@ export default function PWAUpdatePrompt() {
               onClick={handleUpdate}
               className="flex-1 bg-white text-green-600 font-semibold py-2 px-4 rounded-lg hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
             >
-              <FontAwesomeIcon icon={faSync} className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" />
               Actualizar
             </button>
             <button

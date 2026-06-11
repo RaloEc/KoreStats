@@ -244,3 +244,9 @@ export interface Comentario {
 // SOCIAL - Re-exportar tipos sociales
 // =================================================================
 export * from "./social";
+
+// =================================================================
+// CLANES - Re-exportar tipos de clanes
+// =================================================================
+export * from "./clanes";
+

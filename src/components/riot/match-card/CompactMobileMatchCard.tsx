@@ -308,7 +308,7 @@ export function CompactMobileMatchCard({
               </div>
               {/* Badge de nivel - ajustado para no estorbar a los spells */}
               <div className="absolute -bottom-1 -right-1 bg-slate-900 border border-slate-600 rounded-full w-4 h-4 flex items-center justify-center z-10">
-                <span className="text-[8px] font-bold text-slate-200">
+                <span className="text-[0.5rem] font-bold text-slate-200">
                   {currentParticipant?.champLevel ?? 18}
                 </span>
               </div>
@@ -327,7 +327,7 @@ export function CompactMobileMatchCard({
             {renderSecondaryRune()}
             {playerRankingPosition && playerRankingPosition > 0 && (
               <span
-                className={`text-[8px] font-bold px-1 py-0.5 rounded-full shadow mt-0.5 ${getRankingBadgeClass(
+                className={`text-[0.5rem] font-bold px-1 py-0.5 rounded-full shadow mt-0.5 ${getRankingBadgeClass(
                   playerRankingPosition,
                 )}`}
                 title={`Ranking global #${playerRankingPosition}`}
@@ -343,7 +343,7 @@ export function CompactMobileMatchCard({
           {/* Fila Superior: Info + KDA */}
           <div className="flex flex-col items-center gap-0.5">
             <span
-              className={`text-[10px] uppercase font-black tracking-wider leading-none ${resultClass}`}
+              className={`text-[0.625rem] uppercase font-black tracking-wider leading-none ${resultClass}`}
             >
               {resultLabel}
             </span>
@@ -352,7 +352,7 @@ export function CompactMobileMatchCard({
               <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 {match.kills}/{match.deaths}/{match.assists}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium">
+              <span className="text-[0.625rem] text-slate-500 font-medium">
                 {(currentParticipant?.totalMinionsKilled ?? 0) +
                   (currentParticipant?.neutralMinionsKilled ?? 0)}
                 cs
@@ -402,16 +402,16 @@ export function CompactMobileMatchCard({
         {/* Stats finales */}
         <div className="flex flex-col items-end gap-0 flex-shrink-0 ml-1">
           {/* Queue Absoluta */}
-          <span className="absolute top-1.5 right-2 text-[9px] font-bold text-slate-500/80 uppercase tracking-tight">
+          <span className="absolute top-1.5 right-2 text-[0.5625rem] font-bold text-slate-500/80 uppercase tracking-tight">
             {queueName}
           </span>
 
           {/* Espaciador para no solapar con Queue */}
           <div className="mt-3 flex flex-col items-end">
-            <span className="text-[10px] text-slate-400 font-medium">
+            <span className="text-[0.625rem] text-slate-400 font-medium">
               {formatDuration(match.matches.game_duration)}
             </span>
-            <span className="text-[9px] text-amber-500 font-bold">
+            <span className="text-[0.5625rem] text-amber-500 font-bold">
               {(match.gold_earned / 1000).toFixed(1)}k
             </span>
           </div>

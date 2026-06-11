@@ -190,7 +190,7 @@ export default function WeaponReportsAdmin({ gameId }: { gameId: string }) {
               <h2 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-3">
                 Moderación de Armas
                 {realPendingCount > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">
+                  <span className="bg-red-500 text-white text-[0.625rem] px-2 py-0.5 rounded-full animate-pulse">
                     {realPendingCount} PENDIENTES
                   </span>
                 )}
@@ -288,10 +288,10 @@ function ReportCard({
         "px-6 py-3 flex items-center justify-between border-b",
         isPast ? "bg-muted/50" : "bg-red-50 dark:bg-red-500/5"
       )}>
-        <Badge variant={isPast ? "secondary" : "destructive"} className="uppercase font-black text-[9px] px-2">
+        <Badge variant={isPast ? "secondary" : "destructive"} className="uppercase font-black text-[0.5625rem] px-2">
           {REASON_LABELS[report.reason] || report.reason}
         </Badge>
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase tracking-widest">
           {formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: es })}
         </span>
       </div>
@@ -299,10 +299,10 @@ function ReportCard({
       {/* Info del Reportador (Minimal) */}
       <div className="px-6 py-4 flex items-center justify-between bg-muted/10 border-b border-border/40">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-black text-primary">
+          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[0.5rem] font-black text-primary">
             {report.reporter?.username?.charAt(0) || "U"}
           </div>
-          <span className="text-[10px] font-bold text-muted-foreground">
+          <span className="text-[0.625rem] font-bold text-muted-foreground">
             Reportado por <span className="text-foreground">{report.reporter?.username || "Anónimo"}</span>
           </span>
         </div>
@@ -317,7 +317,7 @@ function ReportCard({
             <div className="space-y-5">
               {/* Imagen y Categoría */}
               <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-900 border border-border/60 flex items-center justify-center p-4">
-                <span className="absolute top-3 left-3 text-[10px] font-black uppercase bg-black text-white px-2 py-1 rounded-lg border border-white/20 z-10 shadow-lg">
+                <span className="absolute top-3 left-3 text-[0.625rem] font-black uppercase bg-black text-white px-2 py-1 rounded-lg border border-white/20 z-10 shadow-lg">
                   {ws.category}
                 </span>
                 {ws.image_url ? (
@@ -333,10 +333,10 @@ function ReportCard({
                   {ws.description || ws.weapon_name}
                 </h4>
                 <div className="flex items-center justify-center gap-2">
-                  <Badge variant="outline" className="text-[10px] font-black border-primary/20 bg-primary/5 text-primary uppercase px-2 py-0">
+                  <Badge variant="outline" className="text-[0.625rem] font-black border-primary/20 bg-primary/5 text-primary uppercase px-2 py-0">
                     {ws.weapon_name}
                   </Badge>
-                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">
+                  <span className="text-[0.625rem] font-bold text-gray-500 dark:text-gray-400 uppercase">
                     Por: <span className="text-gray-900 dark:text-white font-black">{ws.perfil?.username || "Desconocido"}</span>
                   </span>
                 </div>
@@ -353,7 +353,7 @@ function ReportCard({
                   
                   return (
                     <div key={s.key} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
+                      <div className="flex justify-between items-center text-[0.625rem] font-black uppercase tracking-tight">
                         <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
                           <Icon size={12} className="text-blue-600 dark:text-blue-400 stroke-[2.5]" />
                           <span>{s.label}</span>
@@ -386,7 +386,7 @@ function ReportCard({
                    
                    return (
                     <div key={s.key} className="flex flex-col items-center">
-                      <span className="text-[8px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">{s.label}</span>
+                      <span className="text-[0.5rem] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">{s.label}</span>
                       <span className="text-xs font-mono font-black text-zinc-950 dark:text-white">{val}{unit}</span>
                     </div>
                   );
@@ -404,7 +404,7 @@ function ReportCard({
         {/* Comentario del reportador */}
         {report.details && (
           <div className="relative p-4 rounded-2xl bg-muted/30 border border-muted-foreground/10 text-sm leading-relaxed text-muted-foreground italic">
-             <span className="absolute -top-2 left-4 text-[7px] font-black uppercase bg-background px-1.5 py-0.5 rounded border">Comentario</span>
+             <span className="absolute -top-2 left-4 text-[0.4375rem] font-black uppercase bg-background px-1.5 py-0.5 rounded border">Comentario</span>
              "{report.details}"
           </div>
         )}
@@ -414,7 +414,7 @@ function ReportCard({
           <div className="mt-auto grid grid-cols-2 gap-3 pt-2">
             <Button
               variant="destructive"
-              className="h-11 font-black uppercase text-[10px] tracking-widest rounded-xl hover:scale-105 transition-transform"
+              className="h-11 font-black uppercase text-[0.625rem] tracking-widest rounded-xl hover:scale-105 transition-transform"
               disabled={isProcessing}
               onClick={() => onAction("delete_weapon")}
             >
@@ -424,7 +424,7 @@ function ReportCard({
 
             <Button
               variant="outline"
-              className="h-11 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-muted transition-all"
+              className="h-11 font-black uppercase text-[0.625rem] tracking-widest rounded-xl hover:bg-muted transition-all"
               disabled={isProcessing}
               onClick={() => onAction("dismiss")}
             >

@@ -394,12 +394,12 @@ function CompactParticipantRow({
               className={cn("object-cover", liveStats?.isDead && "grayscale")}
             />
             {liveStats?.isDead && liveStats.respawnTimer > 0 && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white font-bold text-[10px]">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white font-bold text-[0.625rem]">
                 {Math.ceil(liveStats.respawnTimer)}
               </div>
             )}
             {liveStats && !liveStats.isDead && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[6px] text-white text-center font-medium leading-none py-px">
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[0.375rem] text-white text-center font-medium leading-none py-px">
                 {liveStats.level}
               </div>
             )}
@@ -411,7 +411,7 @@ function CompactParticipantRow({
       <div className="min-w-0 flex-1 z-10 flex items-center justify-between">
         <div className="min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-1">
-            <div className={`truncate text-[11px] font-bold ${nameColor}`}>
+            <div className={`truncate text-[0.6875rem] font-bold ${nameColor}`}>
               {participant.summonerName}
             </div>
             {isFrequent && (
@@ -422,11 +422,11 @@ function CompactParticipantRow({
             )}
           </div>
           {!liveStats ? (
-            <div className="truncate text-[9px] text-slate-500 dark:text-slate-400 leading-none">
+            <div className="truncate text-[0.5625rem] text-slate-500 dark:text-slate-400 leading-none">
               {fixedName ?? `Champ ${participant.championId}`}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-[9px] font-medium leading-none text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 text-[0.5625rem] font-medium leading-none text-slate-500 dark:text-slate-400">
               <span className="text-slate-900 dark:text-slate-200">
                 {liveStats.kills}/{liveStats.deaths}/{liveStats.assists}
               </span>
@@ -586,7 +586,7 @@ function ParticipantRow({
               </div>
             )}
             {liveStats && !liveStats.isDead && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center font-medium">
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[0.5rem] text-white text-center font-medium">
                 Lvl {liveStats.level}
               </div>
             )}
@@ -608,11 +608,11 @@ function ParticipantRow({
           )}
         </div>
         <div className="flex items-center justify-between gap-2">
-          <div className="truncate text-[11px] text-slate-600 dark:text-slate-400">
+          <div className="truncate text-[0.6875rem] text-slate-600 dark:text-slate-400">
             {fixedName ?? `Champ ${participant.championId}`}
           </div>
           {liveStats && (
-            <div className="flex items-center gap-2 text-[10px] font-medium leading-none">
+            <div className="flex items-center gap-2 text-[0.625rem] font-medium leading-none">
               <span className="text-slate-900 dark:text-slate-200">
                 {liveStats.kills}/{liveStats.deaths}/{liveStats.assists}
               </span>
@@ -700,7 +700,7 @@ function ParticipantRow({
                     {note.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[10px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                        className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[0.625rem] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
                       >
                         {tag}
                       </span>
@@ -1209,7 +1209,7 @@ export function ActiveMatchCard({
               {effectivePhaseConfig && (
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
+                    "rounded-full px-2 py-0.5 text-[0.625rem] font-bold uppercase",
                     effectivePhaseConfig.color,
                   )}
                 >
@@ -1260,7 +1260,7 @@ export function ActiveMatchCard({
                     <span className="text-slate-300 dark:text-slate-600">
                       •
                     </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <span className="text-[0.625rem] text-slate-500 dark:text-slate-400">
                       {currentUserParticipant.summonerName}
                     </span>
                   </>

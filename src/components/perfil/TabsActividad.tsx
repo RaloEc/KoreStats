@@ -262,7 +262,7 @@ export const TabsActividad = ({
                                 <div className="flex items-center gap-2 ml-auto text-gray-500 dark:text-gray-400">
                                   {hilo.hasWeaponStats && (
                                     <span
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full border"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide rounded-full border"
                                       style={{
                                         backgroundColor: `color-mix(in srgb, var(--user-color) 12%, transparent)`,
                                         color: `var(--user-color)`,
@@ -429,7 +429,7 @@ export const TabsActividad = ({
                           <div className="flex flex-col gap-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide rounded-full border"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide rounded-full border"
                                 style={{
                                   backgroundColor: `color-mix(in srgb, var(--user-color) 12%, transparent)`,
                                   color: `var(--user-color)`,
@@ -443,7 +443,7 @@ export const TabsActividad = ({
                                 />
                                 {record.weapon_name ?? "Arma sin nombre"}
                               </span>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full border text-muted-foreground">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[0.6875rem] font-semibold rounded-full border text-muted-foreground">
                                 {categoryTitle}
                               </span>
                             </div>

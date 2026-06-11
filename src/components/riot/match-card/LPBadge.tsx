@@ -17,7 +17,7 @@ export function LPBadge({ lp, className = "" }: LPBadgeProps) {
   return (
     <div
       className={`
-      inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider
+      inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider
       ${
         isPositive
           ? "text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20"
