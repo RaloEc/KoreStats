@@ -492,7 +492,7 @@ export default function DeltaForceWeaponsMeta() {
                                             setGameMode(mode.id);
                                             setSearchQuery("");
                                             setActiveCategory("all");
-                                            setSelectedWeapon("all");
+                                            setSelectedCategoryDropdown("all");
                                             setSelectedCompare([]);
                                             setIsComparing(false);
                                         }}
