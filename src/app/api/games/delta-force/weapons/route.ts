@@ -346,7 +346,7 @@ export async function GET(request: NextRequest) {
     const top_voted = [...weapons]
       .filter(w => w.community_score > 0)
       .sort((a, b) => b.community_score - a.community_score)
-      .slice(0, 5);
+      .slice(0, 3);
 
     return NextResponse.json({
       weapons,

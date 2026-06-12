@@ -351,9 +351,34 @@ export default function GamePageClient({
                 `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
             );
 
+            // Obtener el bloque actual de 2 horas UTC (0, 2, 4, ..., 22)
             const blockIndex = Math.floor(utcH / 2);
-            // Rotamos nombres en español de mapas
-            const maps = ["Layali Grove", "Tide Prison", "Brakkesh", "Zero Dam", "Space City"];
+            
+            // Evaluamos la hora UTC float actual
+            const utcTimeFloat = utcH + now.getUTCMinutes() / 60;
+            
+            // Brakkesh Normal está abierto de 02:00 a 14:00 UTC (21:00 a 09:00 en UTC-5)
+            const isBrakkeshNormalOpen = utcTimeFloat >= 2 && utcTimeFloat < 14;
+            
+            let mapsSelected: string[] = [];
+            
+            // Prisión Tide (Hard) está en todos los bloques y siempre abierta
+            mapsSelected.push("Tide Prison");
+            
+            // En bloques impares (0~2, 4~6, 8~10, etc. en UTC) alternan Space City (Normal) y Brakkesh (Normal).
+            // En bloques pares (2~4, 6~8, 10~12, etc.) está Space City (Hard) y siempre está abierta.
+            const isOddBlock = blockIndex % 2 === 0;
+            
+            if (isOddBlock) {
+                if (isBrakkeshNormalOpen) {
+                    mapsSelected.push("Brakkesh");
+                } else {
+                    mapsSelected.push("Space City");
+                }
+            } else {
+                mapsSelected.push("Space City");
+            }
+
             const translationMap: Record<string, string> = {
                 "Zero Dam": "Represa Zero",
                 "Layali Grove": "Bosque Layali",
@@ -361,8 +386,9 @@ export default function GamePageClient({
                 "Tide Prison": "Prisión Tide",
                 "Space City": "Ciudad Espacial"
             };
-            const mapSelected = maps[blockIndex % maps.length] || "Zero Dam";
-            setCurrentMapName(translationMap[mapSelected] || mapSelected);
+
+            const mapNamesTranslated = mapsSelected.map(name => translationMap[name] || name);
+            setCurrentMapName(mapNamesTranslated.join(" / "));
         };
 
         updateRotation();
@@ -453,6 +479,40 @@ export default function GamePageClient({
         return num.toString();
     };
 
+    const calculatedMetaWeapon = useMemo(() => {
+        if (!weaponsMeta?.weapons || weaponsMeta.weapons.length === 0) {
+            return { name: "N/A", tier: "N/A" };
+        }
+        // Arma Meta es la de mayor overall_score (ya ordenada en la API)
+        const bestWeapon = weaponsMeta.weapons[0];
+        return {
+            name: bestWeapon.weapon_name,
+            tier: bestWeapon.tier || "S"
+        };
+    }, [weaponsMeta]);
+
+    const calculatedMostUsed = useMemo(() => {
+        if (!weaponsMeta?.weapons || weaponsMeta.weapons.length === 0) {
+            return { name: "N/A", count: 0 };
+        }
+        
+        let bestWeapon = weaponsMeta.weapons[0];
+        let maxCount = -Infinity;
+
+        weaponsMeta.weapons.forEach((w) => {
+            const count = w.analyses_count || 0;
+            if (count > maxCount) {
+                maxCount = count;
+                bestWeapon = w;
+            }
+        });
+
+        return {
+            name: bestWeapon.weapon_name,
+            count: maxCount
+        };
+    }, [weaponsMeta]);
+
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
 
@@ -469,6 +529,10 @@ export default function GamePageClient({
                     isAdmin={isAdmin}
                     moduleId={commandCenterModule?.id}
                     moduleConfig={bannerConfig}
+                    metaWeaponName={calculatedMetaWeapon.name}
+                    metaWeaponTier={calculatedMetaWeapon.tier}
+                    mostUsedWeaponName={calculatedMostUsed.name}
+                    mostUsedWeaponCount={calculatedMostUsed.count}
                     onUpdateSeason={(newName, newVersion) => {
                         setSeasonName(newName);
                         setSeasonVersion(newVersion);
@@ -839,6 +903,10 @@ interface DeltaForceHeaderProps {
     isAdmin: boolean;
     moduleId?: string;
     moduleConfig?: any;
+    metaWeaponName?: string;
+    metaWeaponTier?: string;
+    mostUsedWeaponName?: string;
+    mostUsedWeaponCount?: number;
     onUpdateSeason: (name: string, version: string) => void;
 }
 
@@ -854,6 +922,10 @@ const DeltaForceHeader = ({
     isAdmin,
     moduleId,
     moduleConfig,
+    metaWeaponName,
+    metaWeaponTier,
+    mostUsedWeaponName,
+    mostUsedWeaponCount,
     onUpdateSeason,
 }: DeltaForceHeaderProps) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -906,7 +978,7 @@ const DeltaForceHeader = ({
 
     return (
         <div
-            className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 dark:border-teal-500/20 bg-slate-50 dark:bg-[#090f11] shadow-md dark:shadow-[0_0_50px_rgba(20,184,166,0.1)] mt-0 mb-12 p-8 md:p-12 min-h-[350px] flex flex-col justify-between"
+            className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-teal-500/20 bg-slate-50 dark:bg-[#090f11] shadow-md dark:shadow-[0_0_50px_rgba(20,184,166,0.1)] mt-0 mb-8 p-5 md:p-6 flex flex-col justify-between"
             style={
                 bannerImageSrc
                     ? { backgroundImage: `url(${bannerImageSrc})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -922,28 +994,28 @@ const DeltaForceHeader = ({
             {/* Efecto de escaneo superior */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-teal-500 to-transparent opacity-40 animate-pulse pointer-events-none z-10" />
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center w-full z-10">
                 {/* Sección Izquierda: Título y Botones */}
-                <div className="lg:col-span-7 space-y-6 text-left">
-                    <div className="space-y-2">
+                <div className="lg:col-span-7 space-y-4 text-left">
+                    <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-teal-500 animate-ping" />
-                            <span className="text-[0.625rem] font-black uppercase tracking-[0.3em] text-teal-600 dark:text-teal-400">Canal de Inteligencia Activo</span>
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping" />
+                            <span className="text-[0.5625rem] font-black uppercase tracking-[0.3em] text-teal-600 dark:text-teal-400">Canal de Inteligencia Activo</span>
                         </div>
-                        <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase font-mono">
+                        <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase font-mono">
                             CENTRO DE MANDO DELTA FORCE
                         </h1>
-                        <p className="text-slate-600 dark:text-gray-400 text-sm md:text-base font-medium max-w-xl leading-relaxed">
+                        <p className="text-slate-600 dark:text-gray-400 text-xs font-medium max-w-xl leading-relaxed">
                             Última información de inteligencia, meta de armas, operaciones activas y actividad comunitaria de KoreStats.
                         </p>
                     </div>
 
                     {/* Botones de acción rápida con micro-animaciones */}
-                    <div className="flex flex-wrap gap-3 pt-2">
+                    <div className="flex flex-wrap gap-2 pt-1">
                         {activeModules.includes("weapons") && (
                             <Link
                                 href={`/games/${gameSlug}/weapons`}
-                                className="group relative inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-teal-500 text-black font-black text-[0.625rem] uppercase tracking-widest transition-all hover:bg-teal-400 active:scale-95 shadow-[0_0_15px_rgba(20,184,166,0.25)]"
+                                className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-500 text-black font-black text-[0.625rem] uppercase tracking-widest transition-all hover:bg-teal-400 active:scale-95 shadow-[0_0_15px_rgba(20,184,166,0.25)]"
                             >
                                 <Swords size={12} className="group-hover:rotate-12 transition-transform" />
                                 <span>Ver Meta</span>
@@ -953,7 +1025,7 @@ const DeltaForceHeader = ({
                         {activeModules.includes("builds") && (
                             <Link
                                 href={`/games/${gameSlug}/weapons`}
-                                className="group relative inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white hover:bg-slate-50 dark:bg-neutral-900 dark:hover:bg-neutral-800 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black text-[0.625rem] uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                                className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-slate-50 dark:bg-neutral-900 dark:hover:bg-neutral-800 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black text-[0.625rem] uppercase tracking-widest transition-all active:scale-95 shadow-sm"
                             >
                                 <Hammer size={12} className="group-hover:-rotate-12 transition-transform text-teal-600 dark:text-teal-400" />
                                 <span>Builds de Armas</span>
@@ -967,7 +1039,7 @@ const DeltaForceHeader = ({
                                     e.preventDefault();
                                     document.getElementById("noticias-seccion")?.scrollIntoView({ behavior: 'smooth' });
                                 }}
-                                className="group relative inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-transparent border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white font-black text-[0.625rem] uppercase tracking-widest transition-all active:scale-95"
+                                className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-transparent border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white font-black text-[0.625rem] uppercase tracking-widest transition-all active:scale-95"
                             >
                                 <Newspaper size={12} className="text-slate-500 dark:text-gray-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
                                 <span>Últimas Noticias</span>
@@ -977,28 +1049,50 @@ const DeltaForceHeader = ({
                 </div>
 
                 {/* Sección Derecha: Widgets */}
-                <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                     {/* Tarjeta 1: Meta Weapon */}
                     {activeModules.includes("weapons") && (
-                        <div className="p-4 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[90px] shadow-sm dark:shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-3 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[75px] shadow-sm dark:shadow-lg animate-in fade-in zoom-in-95 duration-200">
                             <div>
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[0.5625rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Arma Meta</span>
-                                    <span className="text-[0.5rem] font-black uppercase bg-teal-500/20 text-teal-600 dark:text-teal-400 px-1.5 py-0.5 rounded border border-teal-500/30">S-TIER</span>
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <span className="text-[0.5rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Arma Meta</span>
+                                    <span className="text-[0.4375rem] font-black uppercase bg-teal-500/20 text-teal-600 dark:text-teal-400 px-1.5 py-0.2 rounded border border-teal-500/30">
+                                        {metaWeaponTier ? `${metaWeaponTier}-TIER` : "S-TIER"}
+                                    </span>
                                 </div>
-                                <p className="text-lg font-black text-teal-600 dark:text-teal-400 leading-tight tracking-tight uppercase">K437</p>
+                                <p className="text-sm font-black text-teal-600 dark:text-teal-400 leading-tight tracking-tight uppercase">
+                                    {metaWeaponName || "N/A"}
+                                </p>
                             </div>
-                            <span className="text-[0.5625rem] font-medium text-slate-500 dark:text-gray-500 uppercase tracking-tight">Build Más Usada</span>
+                            <span className="text-[0.5rem] font-medium text-slate-500 dark:text-gray-500 uppercase tracking-tight">Estadísticas Netas</span>
                         </div>
                     )}
 
-                    {/* Tarjeta 2: Current Season */}
-                    <div className="p-4 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[90px] shadow-sm dark:shadow-lg">
+                    {/* Tarjeta 2: Most Used Weapon */}
+                    {activeModules.includes("weapons") && (
+                        <div className="p-3 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[75px] shadow-sm dark:shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                            <div>
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <span className="text-[0.5rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Build Más Usada</span>
+                                    <span className="text-[0.4375rem] font-black uppercase bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.2 rounded border border-amber-500/30">
+                                        {mostUsedWeaponCount || 0} Builds
+                                    </span>
+                                </div>
+                                <p className="text-sm font-black text-amber-500 dark:text-amber-400 leading-tight tracking-tight uppercase">
+                                    {mostUsedWeaponName || "N/A"}
+                                </p>
+                            </div>
+                            <span className="text-[0.5rem] font-medium text-slate-500 dark:text-gray-500 uppercase tracking-tight">Volumen de Análisis</span>
+                        </div>
+                    )}
+
+                    {/* Tarjeta 3: Current Season */}
+                    <div className="p-3 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[75px] shadow-sm dark:shadow-lg">
                         {isEditing ? (
-                            <div className="flex flex-col gap-2 w-full h-full justify-between">
-                                <div className="space-y-1.5">
+                            <div className="flex flex-col gap-1 w-full h-full justify-between">
+                                <div className="space-y-1">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[0.5625rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Editando Season</span>
+                                        <span className="text-[0.5rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Editando Season</span>
                                         <button 
                                             onClick={() => setIsEditing(false)} 
                                             className="text-slate-400 hover:text-red-500 transition-colors p-0.5"
@@ -1012,7 +1106,7 @@ const DeltaForceHeader = ({
                                         type="text" 
                                         value={tempSeasonName} 
                                         onChange={(e) => setTempSeasonName(e.target.value)}
-                                        className="w-full text-xs font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-neutral-900 border border-teal-500/30 rounded px-1.5 py-0.5 uppercase focus:outline-none focus:border-teal-500"
+                                        className="w-full text-[10px] font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-neutral-900 border border-teal-500/30 rounded px-1 py-0.5 uppercase focus:outline-none focus:border-teal-500"
                                         placeholder="Nombre de la Season"
                                         disabled={isSaving}
                                     />
@@ -1020,16 +1114,16 @@ const DeltaForceHeader = ({
                                         type="text" 
                                         value={tempSeasonVersion} 
                                         onChange={(e) => setTempSeasonVersion(e.target.value)}
-                                        className="w-full text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-slate-100 dark:bg-neutral-900 border border-teal-500/30 rounded px-1.5 py-0.5 focus:outline-none focus:border-teal-500"
+                                        className="w-full text-[9px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-slate-100 dark:bg-neutral-900 border border-teal-500/30 rounded px-1 py-0.5 focus:outline-none focus:border-teal-500"
                                         placeholder="Versión (ej: v1.0.4)"
                                         disabled={isSaving}
                                     />
                                 </div>
-                                {saveError && <p className="text-[9px] text-red-500 font-bold leading-tight">{saveError}</p>}
+                                {saveError && <p className="text-[8px] text-red-500 font-bold leading-tight">{saveError}</p>}
                                 <div className="flex justify-end gap-1 pt-1 border-t border-slate-200 dark:border-white/5">
                                     <button 
                                         onClick={handleSave} 
-                                        className="px-2 py-0.5 rounded bg-teal-500 text-black hover:bg-teal-400 transition-colors text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
+                                        className="px-2 py-0.5 rounded bg-teal-500 text-black hover:bg-teal-400 transition-colors text-[8px] font-black uppercase tracking-wider flex items-center gap-1"
                                         disabled={isSaving}
                                     >
                                         {isSaving ? (
@@ -1042,10 +1136,10 @@ const DeltaForceHeader = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col justify-between h-full min-h-[66px] relative group">
+                            <div className="flex flex-col justify-between h-full min-h-[50px] relative group">
                                 <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        <span className="text-[0.5625rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Season Actual</span>
+                                    <div className="flex justify-between items-center mb-0.5">
+                                        <span className="text-[0.5rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500">Season Actual</span>
                                         {isAdmin && (
                                             <button 
                                                 onClick={() => {
@@ -1061,42 +1155,28 @@ const DeltaForceHeader = ({
                                             </button>
                                         )}
                                     </div>
-                                    <p className="text-lg font-black text-slate-900 dark:text-white leading-tight tracking-tight uppercase truncate">{seasonNameText}</p>
+                                    <p className="text-sm font-black text-slate-900 dark:text-white leading-tight tracking-tight uppercase truncate">{seasonNameText}</p>
                                 </div>
-                                <span className="text-[0.5625rem] font-mono font-bold text-teal-600 dark:text-teal-400 block mt-1">{seasonVersionText}</span>
+                                <span className="text-[0.5rem] font-mono font-bold text-teal-600 dark:text-teal-400 block mt-0.5">{seasonVersionText}</span>
                             </div>
                         )}
                     </div>
 
-                    {/* Tarjeta 3: Active Rotation */}
-                    {activeModules.includes("rotations") && (
-                        <div className="p-4 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[90px] shadow-sm dark:shadow-lg animate-in fade-in zoom-in-95 duration-200">
-                            <div>
-                                <span className="text-[0.5625rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500 block mb-1">Rotación Activa</span>
-                                <p className="text-lg font-black text-slate-900 dark:text-white leading-tight tracking-tight uppercase truncate">{currentMapName}</p>
-                            </div>
-                            <div className="flex items-center gap-1 text-[0.5625rem] font-bold text-amber-600 dark:text-amber-500">
-                                <Clock size={10} />
-                                <span>{timeLeftStr}</span>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Tarjeta 4: Platform Stats */}
-                    <div className="p-4 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[90px] shadow-sm dark:shadow-lg">
-                        <span className="text-[0.5625rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500 block mb-1.5">Estadísticas</span>
+                    <div className="p-3 rounded-xl border border-slate-200 dark:border-white/5 bg-white/95 dark:bg-[#090f11]/85 backdrop-blur-md text-left flex flex-col justify-between min-h-[75px] shadow-sm dark:shadow-lg">
+                        <span className="text-[0.5rem] font-black uppercase tracking-wider text-slate-500 dark:text-gray-500 block mb-1">Estadísticas</span>
                         <div className="grid grid-cols-3 gap-2 text-center text-slate-900 dark:text-white">
                             <div className="flex flex-col items-center">
                                 <span className="text-xs font-black text-teal-600 dark:text-teal-400 leading-none">{formatStatNumber(stats?.buildsCount || 0)}</span>
-                                <span className="text-[0.4375rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-tight mt-0.5">Builds</span>
+                                <span className="text-[0.375rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-tight mt-0.5">Builds</span>
                             </div>
                             <div className="flex flex-col items-center border-x border-slate-200 dark:border-white/5">
                                 <span className="text-xs font-black text-teal-600 dark:text-teal-400 leading-none">{formatStatNumber(stats?.newsCount || 0)}</span>
-                                <span className="text-[0.4375rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-tight mt-0.5">Noticias</span>
+                                <span className="text-[0.375rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-tight mt-0.5">Noticias</span>
                             </div>
                             <div className="flex flex-col items-center">
                                 <span className="text-xs font-black text-teal-600 dark:text-teal-400 leading-none">{formatStatNumber(stats?.usersCount || 0)}</span>
-                                <span className="text-[0.4375rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-tight mt-0.5">Users</span>
+                                <span className="text-[0.375rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-tight mt-0.5">Users</span>
                             </div>
                         </div>
                     </div>

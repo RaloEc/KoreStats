@@ -150,11 +150,11 @@ function getMapStatus(mapName: string, difficulty: string, timezoneOffset: numbe
     const utcM = now.getUTCMinutes();
     const utcTimeFloat = utcH + utcM / 60;
     
-    // Abierto de 22:00 a 10:00 UTC (17:00 a 05:00 en UTC-5)
-    const isOpen = utcTimeFloat >= 22 || utcTimeFloat < 10;
+    // Abierto de 02:00 a 14:00 UTC (21:00 a 09:00 en UTC-5)
+    const isOpen = utcTimeFloat >= 2 && utcTimeFloat < 14;
     
-    // Convertir 22:00 UTC a hora local
-    const localStartHour = (22 + timezoneOffset + 24) % 24;
+    // Convertir 02:00 UTC a hora local
+    const localStartHour = (2 + timezoneOffset + 24) % 24;
     const opensAtStr = `${String(localStartHour).padStart(2, "0")}:00`;
     
     return { isOpen, opensAt: opensAtStr };

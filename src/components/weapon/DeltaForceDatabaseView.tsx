@@ -114,12 +114,34 @@ interface DatabaseResponse {
     calibers?: BaseCaliber[];
 }
 
-export default function DeltaForceDatabaseView() {
+interface DeltaForceDatabaseViewProps {
+    subTab?: "weapons" | "ammo" | "gear";
+    setSubTab?: (tab: "weapons" | "ammo" | "gear") => void;
+    searchQuery?: string;
+    setSearchQuery?: (query: string) => void;
+    showHeader?: boolean;
+}
+
+export default function DeltaForceDatabaseView({
+    subTab: externalSubTab,
+    setSubTab: externalSetSubTab,
+    searchQuery: externalSearchQuery,
+    setSearchQuery: externalSetSearchQuery,
+    showHeader = true,
+}: DeltaForceDatabaseViewProps = {}) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
-    const [subTab, setSubTab] = useState<"weapons" | "ammo" | "gear">("weapons");
+    
+    const [localSubTab, localSetSubTab] = useState<"weapons" | "ammo" | "gear">("weapons");
+    const subTab = externalSubTab !== undefined ? externalSubTab : localSubTab;
+    const setSubTab = externalSetSubTab !== undefined ? externalSetSubTab : localSetSubTab;
+
     const [gameMode, setGameMode] = useState<"operations" | "warfare">("operations");
-    const [searchQuery, setSearchQuery] = useState("");
+
+    const [localSearchQuery, localSetSearchQuery] = useState("");
+    const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
+    const setSearchQuery = externalSetSearchQuery !== undefined ? externalSetSearchQuery : localSetSearchQuery;
+
     const [weaponSearchInForm, setWeaponSearchInForm] = useState("");
     
     // Accordion State for calibers in Ammo Tab
@@ -343,11 +365,11 @@ export default function DeltaForceDatabaseView() {
 
     const filteredCalibers = calibersList.filter((c) => {
         const query = searchQuery.toLowerCase();
-        const matchesCaliberName = c.name.toLowerCase().includes(query);
-        const caliberAmmo = ammo.filter(a => a.caliber.toLowerCase() === c.name.toLowerCase());
-        const matchesAmmo = caliberAmmo.some(a => a.name.toLowerCase().includes(query));
+        const matchesCaliberName = c.name && c.name.toLowerCase().includes(query);
+        const caliberAmmo = ammo.filter(a => a.caliber && a.caliber.toLowerCase() === c.name.toLowerCase());
+        const matchesAmmo = caliberAmmo.some(a => a.name && a.name.toLowerCase().includes(query));
         const caliberWeapons = weapons.filter(w => w.caliber && w.caliber.toLowerCase() === c.name.toLowerCase());
-        const matchesWeapon = caliberWeapons.some(w => w.weapon_name.toLowerCase().includes(query));
+        const matchesWeapon = caliberWeapons.some(w => w.weapon_name && w.weapon_name.toLowerCase().includes(query));
         return matchesCaliberName || matchesAmmo || matchesWeapon;
     });
 
@@ -356,15 +378,15 @@ export default function DeltaForceDatabaseView() {
         if (!queryClean) return [];
         const terms = queryClean.toLowerCase().split(/\s+/).filter(Boolean);
         return ammo.filter((a) => {
-            const caliberWeapons = weapons.filter(w => w.caliber && w.caliber.toLowerCase() === a.caliber.toLowerCase());
+            const caliberWeapons = weapons.filter(w => w.caliber && a.caliber && w.caliber.toLowerCase() === a.caliber.toLowerCase());
             return terms.every((term) => {
-                const matchesAmmoName = a.name.toLowerCase().includes(term);
-                const matchesCaliber = a.caliber.toLowerCase().includes(term);
-                const matchesWeapon = caliberWeapons.some(w => w.weapon_name.toLowerCase().includes(term));
+                const matchesAmmoName = a.name && a.name.toLowerCase().includes(term);
+                const matchesCaliber = a.caliber && a.caliber.toLowerCase().includes(term);
+                const matchesWeapon = caliberWeapons.some(w => w.weapon_name && w.weapon_name.toLowerCase().includes(term));
                 return matchesAmmoName || matchesCaliber || matchesWeapon;
             });
         }).sort((a, b) => {
-            const calCompare = a.caliber.localeCompare(b.caliber);
+            const calCompare = (a.caliber || "").localeCompare(b.caliber || "");
             if (calCompare !== 0) return calCompare;
             return (a.penetration_level ?? 0) - (b.penetration_level ?? 0);
         });
@@ -718,100 +740,100 @@ export default function DeltaForceDatabaseView() {
     return (
         <div className="space-y-6 relative">
             {/* Header / Sub-tabs selector */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/60 pb-4">
-                <div className="flex gap-2 p-1 bg-zinc-100 dark:bg-zinc-900/60 border border-border/40 rounded-xl overflow-x-auto max-w-full">
-                    <button
-                        onClick={() => { setSubTab("weapons"); setSearchQuery(""); }}
-                        className={cn(
-                            "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0",
-                            subTab === "weapons"
-                                ? "bg-white dark:bg-zinc-850 text-foreground shadow-md"
-                                : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Swords className="w-3.5 h-3.5" />
-                        Armas Base
-                    </button>
-                    <button
-                        onClick={() => { setSubTab("ammo"); setSearchQuery(""); }}
-                        className={cn(
-                            "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0",
-                            subTab === "ammo"
-                                ? "bg-white dark:bg-zinc-850 text-foreground shadow-md"
-                                : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Wind className="w-3.5 h-3.5" />
-                        Municiones
-                    </button>
-                    <button
-                        onClick={() => { setSubTab("gear"); setSearchQuery(""); }}
-                        className={cn(
-                            "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0",
-                            subTab === "gear"
-                                ? "bg-white dark:bg-zinc-850 text-foreground shadow-md"
-                                : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Shield className="w-3.5 h-3.5" />
-                        Protección
-                    </button>
-                </div>
+            {showHeader && (
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-border/60 pb-4 relative min-h-[56px] w-full">
+                    {/* Left placeholder to balance the absolute centered switch */}
+                    <div className="hidden md:block w-48 shrink-0" />
 
-                {/* Search, Filters and Admin Add Button */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:max-w-xs group">
-                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground group-focus-within:text-df-green-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder={`Buscar ${subTab === "weapons" ? "armas" : subTab === "ammo" ? "calibres o balas" : "equipamiento"}...`}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-4 py-2 w-full text-xs bg-white dark:bg-zinc-950 border border-border/80 rounded-xl focus:outline-none focus:ring-1 focus:ring-df-green-500/50"
-                        />
+                    <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-900/80 border border-gray-200 dark:border-white/5 rounded-xl overflow-x-auto max-w-full md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-10">
+                        <button
+                            onClick={() => { setSubTab("weapons"); setSearchQuery(""); }}
+                            className={cn(
+                                "px-5 py-2 rounded-lg text-[0.6875rem] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2 shrink-0",
+                                subTab === "weapons"
+                                    ? "bg-white dark:bg-zinc-800 text-foreground shadow border border-gray-200/60 dark:border-gray-700/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Swords className="w-3.5 h-3.5" />
+                            Armas Base
+                        </button>
+                        <button
+                            onClick={() => { setSubTab("ammo"); setSearchQuery(""); }}
+                            className={cn(
+                                "px-5 py-2 rounded-lg text-[0.6875rem] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2 shrink-0",
+                                subTab === "ammo"
+                                    ? "bg-white dark:bg-zinc-800 text-foreground shadow border border-gray-200/60 dark:border-gray-700/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Wind className="w-3.5 h-3.5" />
+                            Municiones
+                        </button>
+                        <button
+                            onClick={() => { setSubTab("gear"); setSearchQuery(""); }}
+                            className={cn(
+                                "px-5 py-2 rounded-lg text-[0.6875rem] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2 shrink-0",
+                                subTab === "gear"
+                                    ? "bg-white dark:bg-zinc-800 text-foreground shadow border border-gray-200/60 dark:border-gray-700/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Shield className="w-3.5 h-3.5" />
+                            Protección
+                        </button>
                     </div>
 
-                    {user && (
-                        <>
-                            {subTab === "gear" && (
-                                <button
-                                    onClick={() => handleAddClick("gear")}
-                                    className="px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 transition-all text-xs text-white font-black uppercase flex items-center gap-1.5 shadow-sm shadow-df-green-500/25 animate-in fade-in duration-200"
-                                >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    Agregar
-                                </button>
-                            )}
-                            {subTab === "ammo" && (
-                                <div className="flex gap-2 animate-in fade-in duration-200">
+                    {/* Search, Filters and Admin Add Button */}
+                    <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto shrink-0 justify-end z-20">
+                        <div className="relative flex-1 md:w-64 group">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground group-focus-within:text-df-green-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={`Buscar ${subTab === "weapons" ? "armas" : subTab === "ammo" ? "calibres o balas" : "equipamiento"}...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 pr-4 py-2 w-full text-xs bg-white dark:bg-zinc-950 border border-border/80 rounded-xl focus:outline-none focus:ring-1 focus:ring-df-green-500/50"
+                            />
+                        </div>
+
+                        {user && (
+                            <>
+                                {subTab === "gear" && (
                                     <button
-                                        onClick={() => handleAddClick("calibers")}
-                                        className="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/60 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all text-xs text-foreground font-black uppercase flex items-center gap-1.5 shadow-sm"
+                                        onClick={() => handleAddClick("gear")}
+                                        className="px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 transition-all text-xs text-white font-black uppercase flex items-center gap-1.5 shadow-sm shadow-df-green-500/25 animate-in fade-in duration-200"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
-                                        Nuevo Calibre
+                                        Agregar
                                     </button>
-                                    <button
-                                        onClick={() => handleAddClick("ammo")}
-                                        className="px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 transition-all text-xs text-white font-black uppercase flex items-center gap-1.5 shadow-sm shadow-df-green-500/25"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Nueva Munición
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                                {subTab === "ammo" && (
+                                    <div className="flex gap-2 animate-in fade-in duration-200">
+                                        <button
+                                            onClick={() => handleAddClick("calibers")}
+                                            className="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/60 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all text-xs text-foreground font-black uppercase flex items-center gap-1.5 shadow-sm"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Nuevo Calibre
+                                        </button>
+                                        <button
+                                            onClick={() => handleAddClick("ammo")}
+                                            className="px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 transition-all text-xs text-white font-black uppercase flex items-center gap-1.5 shadow-sm shadow-df-green-500/25"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Nueva Munición
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {subTab === "weapons" && (
                 <div className="space-y-3">
-                    <div className="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-border/50 rounded-xl text-[0.625rem] text-muted-foreground flex items-center gap-2">
-                        <span className="text-df-green-500 font-bold">💡 Nota:</span>
-                        <span>Las armas se agregan desde el panel de administración. Aquí configuras sus estadísticas de combate base para la enciclopedia y simulador.</span>
-                    </div>
-
                     {/* MODE SWITCH */}
                     <div className="flex items-center justify-center">
                         <div className="inline-flex p-1 bg-zinc-100 dark:bg-zinc-900 border border-border/60 rounded-xl gap-1">
@@ -1208,15 +1230,15 @@ export default function DeltaForceDatabaseView() {
                                                         const dmgRatio = (a as any).damage_ratio ?? 100;
                                                         const degradation = (a as any).armor_pen_degradation ?? "bajo";
                                                         const falloff = (a as any).pen_falloff_coefficient ?? 0;
-                                                         const armorPen = a.armor_penetration || "-";
-                                                         const bodyDamage = a.body_damage || "-";
+                                                        const armorPen = a.armor_penetration || "-";
+                                                        const bodyDamage = a.body_damage || "-";
                                                         
                                                         // Obtener la imagen por defecto del calibre
-                                                        const parentCaliber = calibersList.find(c => c.name.toLowerCase() === a.caliber.toLowerCase());
+                                                        const parentCaliber = a.caliber ? calibersList.find(c => c.name.toLowerCase() === a.caliber.toLowerCase()) : null;
                                                         const defaultImageUrl = parentCaliber ? getFirstImageUrl(parentCaliber.image_url) : "";
                                                         
                                                         // Armas compatibles
-                                                        const caliberWeapons = weapons.filter(w => w.caliber && w.caliber.toLowerCase() === a.caliber.toLowerCase());
+                                                        const caliberWeapons = weapons.filter(w => w.caliber && a.caliber && w.caliber.toLowerCase() === a.caliber.toLowerCase());
                                                         
                                                         const penColors = {
                                                             0: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
@@ -1394,7 +1416,7 @@ export default function DeltaForceDatabaseView() {
                                     <div className="space-y-3">
                                         {filteredCalibers.map((c) => {
                                             const isExpanded = !!expandedCalibers[c.name];
-                                            const caliberAmmo = ammo.filter(a => a.caliber.toLowerCase() === c.name.toLowerCase())
+                                            const caliberAmmo = ammo.filter(a => a.caliber && a.caliber.toLowerCase() === c.name.toLowerCase())
                                                 .sort((a, b) => (a.penetration_level ?? 0) - (b.penetration_level ?? 0));
                                             const caliberWeapons = weapons.filter(w => w.caliber && w.caliber.toLowerCase() === c.name.toLowerCase());
                                             
@@ -1831,7 +1853,7 @@ export default function DeltaForceDatabaseView() {
                                                                                                 <div className="flex justify-between items-center text-muted-foreground">
                                                                                                     <span className="font-semibold text-zinc-500 dark:text-zinc-350">Durabilidad</span>
                                                                                                     <span className="font-mono font-bold text-zinc-800 dark:text-zinc-100">
-                                                                                                        {g.max_durability.toFixed(1)} / {g.max_durability.toFixed(1)}
+                                                                                                        {(g.max_durability || 0).toFixed(1)} / {(g.max_durability || 0).toFixed(1)}
                                                                                                     </span>
                                                                                                 </div>
                                                                                                 <div className="h-[2px] w-full bg-zinc-200 dark:bg-zinc-800/80 rounded-full overflow-hidden">
@@ -1898,11 +1920,11 @@ export default function DeltaForceDatabaseView() {
                                                                                             )}
 
                                                                                             {/* Weight */}
-                                                                                            {g.weight_kg !== undefined && g.weight_kg > 0 && (
+                                                                                            {g.weight_kg !== undefined && g.weight_kg !== null && g.weight_kg > 0 && (
                                                                                                 <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
                                                                                                     <span className="text-zinc-500 dark:text-zinc-350">Peso</span>
                                                                                                     <span className="font-mono font-bold text-zinc-850 dark:text-zinc-100">
-                                                                                                        {g.weight_kg.toFixed(2)} KG
+                                                                                                        {(g.weight_kg || 0).toFixed(2)} KG
                                                                                                     </span>
                                                                                                 </div>
                                                                                             )}
