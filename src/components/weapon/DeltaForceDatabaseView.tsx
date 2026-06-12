@@ -262,9 +262,15 @@ export default function DeltaForceDatabaseView({
     const { data: weaponsData, isLoading: loadingWeapons } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-weapons", gameMode],
         queryFn: async () => {
+            console.log(`[DF-Wiki-Debug] Fetching weapons for mode: ${gameMode}`);
             const res = await fetch(`/api/games/delta-force/base-data?type=weapons&mode=${gameMode}`);
-            if (!res.ok) throw new Error("Failed to fetch weapons");
-            return res.json();
+            if (!res.ok) {
+                console.error("[DF-Wiki-Debug] Weapons fetch failed status:", res.status);
+                throw new Error("Failed to fetch weapons");
+            }
+            const data = await res.json();
+            console.log("[DF-Wiki-Debug] Weapons fetch success. Data keys:", Object.keys(data), "Weapons length:", data?.weapons?.length);
+            return data;
         },
     });
 
@@ -272,9 +278,15 @@ export default function DeltaForceDatabaseView({
     const { data: ammoData, isLoading: loadingAmmo } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-ammo"],
         queryFn: async () => {
+            console.log("[DF-Wiki-Debug] Fetching base ammo");
             const res = await fetch("/api/games/delta-force/base-data?type=ammo");
-            if (!res.ok) throw new Error("Failed to fetch ammo");
-            return res.json();
+            if (!res.ok) {
+                console.error("[DF-Wiki-Debug] Ammo fetch failed status:", res.status);
+                throw new Error("Failed to fetch ammo");
+            }
+            const data = await res.json();
+            console.log("[DF-Wiki-Debug] Ammo fetch success. Data keys:", Object.keys(data), "Ammo length:", data?.ammo?.length);
+            return data;
         },
     });
 
@@ -282,9 +294,15 @@ export default function DeltaForceDatabaseView({
     const { data: calibersData, isLoading: loadingCalibers } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-calibers"],
         queryFn: async () => {
+            console.log("[DF-Wiki-Debug] Fetching base calibers");
             const res = await fetch("/api/games/delta-force/base-data?type=calibers");
-            if (!res.ok) throw new Error("Failed to fetch calibers");
-            return res.json();
+            if (!res.ok) {
+                console.error("[DF-Wiki-Debug] Calibers fetch failed status:", res.status);
+                throw new Error("Failed to fetch calibers");
+            }
+            const data = await res.json();
+            console.log("[DF-Wiki-Debug] Calibers fetch success. Data keys:", Object.keys(data), "Calibers length:", data?.calibers?.length);
+            return data;
         },
     });
 
@@ -292,9 +310,15 @@ export default function DeltaForceDatabaseView({
     const { data: gearData, isLoading: loadingGear } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-gear"],
         queryFn: async () => {
+            console.log("[DF-Wiki-Debug] Fetching base gear");
             const res = await fetch("/api/games/delta-force/base-data?type=gear");
-            if (!res.ok) throw new Error("Failed to fetch gear");
-            return res.json();
+            if (!res.ok) {
+                console.error("[DF-Wiki-Debug] Gear fetch failed status:", res.status);
+                throw new Error("Failed to fetch gear");
+            }
+            const data = await res.json();
+            console.log("[DF-Wiki-Debug] Gear fetch success. Data keys:", Object.keys(data), "Gear length:", data?.gear?.length);
+            return data;
         },
     });
 
@@ -302,6 +326,17 @@ export default function DeltaForceDatabaseView({
     const ammo = ammoData?.ammo || [];
     const gear = gearData?.gear || [];
     const calibersList = calibersData?.calibers || [];
+
+    console.log("[DF-Wiki-Debug] Render state:", {
+        weaponsLength: weapons.length,
+        ammoLength: ammo.length,
+        gearLength: gear.length,
+        calibersLength: calibersList.length,
+        subTab,
+        gameMode,
+        searchQuery
+    });
+
 
     // Filter calculations
     const filteredWeapons = weapons.filter((w) =>
