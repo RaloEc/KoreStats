@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, getServiceClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
+
 /**
  * GET /api/games/delta-force/weapons
  *

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient, getServiceClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
 import {
     DEFAULT_WEAPONS,
     DEFAULT_AMMO,
