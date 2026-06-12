@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
         const caliber = searchParams.get("caliber"); // Optional filter for ammo
 
         const CACHE_HEADERS = {
-            "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=59",
+            "Cache-Control": "no-store, max-age=0",
         };
 
         const supabase = await createClient();
