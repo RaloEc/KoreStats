@@ -37,9 +37,11 @@ interface WeaponAggregate {
   image_url: string | null;
   is_official: boolean;
   upvotes: number;
-  downvotes: number;
+  downvotes?: number;
   community_score: number;
   patch_version: string | null;
+  ui_damage?: number;
+  special_badges?: string[];
 }
 
 // Spanish-to-English stat key mapping
@@ -67,9 +69,13 @@ const STAT_MAP: Record<string, string> = {
   soundRange: "soundRange",
 };
 
-function normalizeStats(raw: Record<string, any>): Record<string, number> {
-  const result: Record<string, number> = {};
+function normalizeStats(raw: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(raw)) {
+    if (key === "ui_damage" || key === "special_badges") {
+        result[key] = value;
+        continue;
+    }
     const mappedKey = STAT_MAP[key];
     if (mappedKey && typeof value === "number" && !isNaN(value)) {
       result[mappedKey] = value;
@@ -116,27 +122,41 @@ export async function GET(request: NextRequest) {
     const validMode = mode === "warfare" ? "warfare" : "operations";
 
     // ─── Obtener el parche activo del command_center ───────────────────────────
-    const FALLBACK_PATCH = "Temporada 9 - ECHO";
+    const FALLBACK_PATCH = "Season 10 - MELTDOWN";
     let currentPatch = FALLBACK_PATCH;
+    let showTtkBadge = true;
     try {
       const serviceSupabaseForPatch = getServiceClient();
-      const { data: moduleData } = await serviceSupabaseForPatch
-        .from("game_modules")
-        .select("config")
-        .eq("module_type", "command_center")
-        .eq("game_slug", "delta-force")
-        .eq("enabled", true)
+      
+      // Obtener ID del juego Delta Force
+      const { data: gameData } = await serviceSupabaseForPatch
+        .from("juegos")
+        .select("id")
+        .eq("slug", "delta-force")
         .single();
-      if (moduleData?.config) {
-        const name = moduleData.config.season_name;
-        const version = moduleData.config.season_version;
-        if (name && version) {
-          const versionStr = /temporada|season/i.test(String(version))
-            ? version
-            : `Temporada ${version}`;
-          currentPatch = `${versionStr} - ${name}`;
-        } else if (name) {
-          currentPatch = name as string;
+
+      if (gameData?.id) {
+        const { data: moduleData } = await serviceSupabaseForPatch
+          .from("game_modules")
+          .select("config")
+          .eq("game_id", gameData.id)
+          .eq("module_type", "command_center")
+          .eq("enabled", true)
+          .single();
+        if (moduleData?.config) {
+          if (typeof moduleData.config.show_ttk_badge === 'boolean') {
+            showTtkBadge = moduleData.config.show_ttk_badge;
+          }
+          const name = moduleData.config.season_name;
+          const version = moduleData.config.season_version;
+          if (name && version) {
+            const versionStr = /temporada|season/i.test(String(version))
+              ? version
+              : `Temporada ${version}`;
+            currentPatch = `${versionStr} - ${name}`;
+          } else if (name) {
+            currentPatch = name as string;
+          }
         }
       }
     } catch (e) {
@@ -183,7 +203,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Group by share_code, fallback to id
-    const groups = new Map<string, { record_id: string; user_id: string | null; stats: Record<string, number>[]; rawName: string; shareCodes: string[]; description: string | null; patch_version: string | null }>();
+    const groups = new Map<string, { record_id: string; user_id: string | null; stats: Record<string, any>[]; rawName: string; shareCodes: string[]; description: string | null; patch_version: string | null }>();
 
     for (const record of records) {
       if (!record.weapon_name) continue;
@@ -235,6 +255,18 @@ export async function GET(request: NextRequest) {
 
       // Calculation of DPS (Damage Per Second) as requested: (FireRate / 60) * Damage
       const avgDps = Math.round((avgFireRate / 60) * avgDamage * 10) / 10;
+
+      // Extract ui_damage and special_badges from the most recent or first stat
+      let uiDamage: number | undefined = undefined;
+      let specialBadges: string[] | undefined = undefined;
+      for (const stat of group.stats) {
+          if (stat.ui_damage !== undefined) uiDamage = stat.ui_damage;
+          if (stat.special_badges !== undefined && (Array.isArray(stat.special_badges) || typeof stat.special_badges === 'string') && stat.special_badges.length > 0) {
+              specialBadges = Array.isArray(stat.special_badges) 
+                  ? stat.special_badges 
+                  : [stat.special_badges];
+          }
+      }
 
       // Refined Overall Score Calculation
       // We balance combat efficiency (DPS + Penetration) with handling/accuracy
@@ -302,6 +334,8 @@ export async function GET(request: NextRequest) {
         downvotes: 0,
         community_score: 0,
         patch_version: group.patch_version,
+        ui_damage: uiDamage,
+        special_badges: specialBadges,
       });
     }
 
@@ -358,6 +392,7 @@ export async function GET(request: NextRequest) {
       total_analyses: records.length,
       last_updated: new Date().toISOString(),
       current_patch: currentPatch,
+      show_ttk_badge: showTtkBadge,
     });
   } catch (error) {
     console.error("[delta-force-weapons] Unexpected error:", error);

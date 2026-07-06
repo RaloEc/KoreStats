@@ -36,6 +36,8 @@ import {
     Heart,
     ArrowLeft,
     ChevronDown,
+    Plus,
+    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -50,6 +52,7 @@ import AddWeaponForm from "./AddWeaponForm";
 import ReportWeaponButton from "./ReportWeaponButton";
 import WeaponCompareView from "./WeaponCompareView";
 import DeltaForceDatabaseView from "./DeltaForceDatabaseView";
+import { WeaponFormDialog } from "@/components/admin/WeaponFormDialog";
 
 /* ─── Types ─── */
 
@@ -81,6 +84,8 @@ interface WeaponMeta {
     community_score: number;
     user_id?: string | null;
     patch_version: string | null;
+    ui_damage?: number;
+    special_badges?: string[];
 }
 
 interface WeaponsResponse {
@@ -90,6 +95,7 @@ interface WeaponsResponse {
     game_mode: string;
     last_updated: string;
     current_patch: string;
+    show_ttk_badge?: boolean;
 }
 
 type GameMode = "operations" | "warfare";
@@ -271,8 +277,10 @@ export default function DeltaForceWeaponsMeta() {
     const [patchFilter, setPatchFilter] = useState<"current" | "all">("current");
     const [wikiSubTab, setWikiSubTab] = useState<"weapons" | "ammo" | "gear">("weapons");
     const [wikiSearchQuery, setWikiSearchQuery] = useState("");
+    const [weaponMetaDialogOpen, setWeaponMetaDialogOpen] = useState(false);
     const voteSystem = useWeaponVote(gameMode);
     const queryClient = useQueryClient();
+    const { profile } = useAuth();
 
     const handleCompareToggle = useCallback((weapon: WeaponMeta) => {
         setSelectedCompare((prev) => {
@@ -318,7 +326,7 @@ export default function DeltaForceWeaponsMeta() {
         staleTime: 5 * 60 * 1000,
     });
 
-    const currentPatch = data?.current_patch || "Temporada 9 - ECHO";
+    const currentPatch = data?.current_patch || "Season 10 - MELTDOWN";
 
     const { data: baseWeaponsData } = useQuery({
         queryKey: ["df-base-weapons-for-meta", gameMode],
@@ -525,8 +533,8 @@ export default function DeltaForceWeaponsMeta() {
 
                     {/* Wiki Search (Aligned right) */}
                     {activeTab === "database" && (
-                        <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto shrink-0 justify-end z-20">
-                            <div className="relative flex-1 md:w-64 group">
+                        <div className="flex flex-col items-end gap-2 w-full md:w-auto md:ml-auto shrink-0 z-20">
+                            <div className="relative w-full md:w-64 group">
                                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground group-focus-within:text-df-green-500 transition-colors" />
                                 <input
                                     type="text"
@@ -536,6 +544,46 @@ export default function DeltaForceWeaponsMeta() {
                                     className="pl-9 pr-4 py-2.5 w-full text-xs bg-white dark:bg-zinc-950 border border-border/80 rounded-xl focus:outline-none focus:ring-1 focus:ring-df-green-500/50"
                                 />
                             </div>
+                            {profile?.role === 'admin' && (
+                                <div className="flex gap-2 w-full md:w-auto justify-end">
+                                    {wikiSubTab === "weapons" && (
+                                        <button
+                                            onClick={() => setWeaponMetaDialogOpen(true)}
+                                            className="px-3 py-2.5 rounded-xl bg-df-green-500/10 hover:bg-df-green-500/20 text-df-green-600 dark:text-df-green-400 border border-df-green-500/30 transition-colors text-xs font-black uppercase flex items-center gap-1.5 shrink-0"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Agregar Arma
+                                        </button>
+                                    )}
+                                    {wikiSubTab === "gear" && (
+                                        <button
+                                            onClick={() => window.dispatchEvent(new CustomEvent("df_open_form", { detail: { type: "gear" } }))}
+                                            className="px-3 py-2.5 rounded-xl bg-df-green-500/10 hover:bg-df-green-500/20 text-df-green-600 dark:text-df-green-400 border border-df-green-500/30 transition-colors text-xs font-black uppercase flex items-center gap-1.5 shrink-0"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Agregar
+                                        </button>
+                                    )}
+                                    {wikiSubTab === "ammo" && (
+                                        <>
+                                            <button
+                                                onClick={() => window.dispatchEvent(new CustomEvent("df_open_form", { detail: { type: "calibers" } }))}
+                                                className="px-3 py-2.5 rounded-xl bg-df-green-500/10 hover:bg-df-green-500/20 text-df-green-600 dark:text-df-green-400 border border-df-green-500/30 transition-colors text-xs font-black uppercase flex items-center gap-1.5 shrink-0"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">Nuevo</span> Calibre
+                                            </button>
+                                            <button
+                                                onClick={() => window.dispatchEvent(new CustomEvent("df_open_form", { detail: { type: "ammo" } }))}
+                                                className="px-3 py-2.5 rounded-xl bg-df-green-500/10 hover:bg-df-green-500/20 text-df-green-600 dark:text-df-green-400 border border-df-green-500/30 transition-colors text-xs font-black uppercase flex items-center gap-1.5 shrink-0"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">Nueva</span> Bala
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -579,13 +627,28 @@ export default function DeltaForceWeaponsMeta() {
                 </div>
 
                 {activeTab === "database" ? (
-                    <DeltaForceDatabaseView
-                        subTab={wikiSubTab}
-                        setSubTab={setWikiSubTab}
-                        searchQuery={wikiSearchQuery}
-                        setSearchQuery={setWikiSearchQuery}
-                        showHeader={false}
-                    />
+                    <>
+                        <DeltaForceDatabaseView
+                            subTab={wikiSubTab}
+                            setSubTab={setWikiSubTab}
+                            searchQuery={wikiSearchQuery}
+                            setSearchQuery={setWikiSearchQuery}
+                            showHeader={false}
+                        />
+                        {profile?.role === "admin" && (
+                            <WeaponFormDialog
+                                open={weaponMetaDialogOpen}
+                                onOpenChange={setWeaponMetaDialogOpen}
+                                weapon={null}
+                                gameId="63865a65-f510-4a9e-843f-e83f405f3b42"
+                                existingWeapons={Array.isArray(baseWeaponsData) ? baseWeaponsData.map(w => ({ ...w, name: w.weapon_name, slug: w.weapon_name })) as any : []}
+                                onSuccess={() => {
+                                    queryClient.invalidateQueries({ queryKey: ["df-base-weapons-for-meta"] });
+                                    queryClient.invalidateQueries({ queryKey: ["deltaForceBaseData", "weapons"] });
+                                }}
+                            />
+                        )}
+                    </>
                 ) : (
                     <div className="space-y-5">
                         {/* ─── Sub-header: Title + count + Loadout branding ─── */}
@@ -833,6 +896,7 @@ export default function DeltaForceWeaponsMeta() {
                                                             isCompareSelected={selectedCompare.some((w) => w.id === weapon.id)}
                                                             onCompareToggle={() => handleCompareToggle(weapon)}
                                                             isCompareDisabled={selectedCompare.length >= 3 && !selectedCompare.some((w) => w.id === weapon.id)}
+                                                            showTtkBadge={data?.show_ttk_badge}
                                                         />
                                                     </div>
                                                 );
@@ -872,6 +936,7 @@ export default function DeltaForceWeaponsMeta() {
                                                             isCompareSelected={selectedCompare.some((w) => w.id === weapon.id)}
                                                             onCompareToggle={() => handleCompareToggle(weapon)}
                                                             isCompareDisabled={selectedCompare.length >= 3 && !selectedCompare.some((w) => w.id === weapon.id)}
+                                                            showTtkBadge={data?.show_ttk_badge}
                                                         />
                                                     ))}
                                                 </div>
@@ -974,6 +1039,7 @@ function WeaponMetaCard({
     isCompareSelected,
     onCompareToggle,
     isCompareDisabled,
+    showTtkBadge = true,
 }: {
     weapon: WeaponMeta;
     config: any;
@@ -984,6 +1050,7 @@ function WeaponMetaCard({
     isCompareSelected: boolean;
     onCompareToggle: () => void;
     isCompareDisabled: boolean;
+    showTtkBadge?: boolean;
 }) {
     const queryClient = useQueryClient();
     const { user } = useAuth();
@@ -1088,6 +1155,7 @@ function WeaponMetaCard({
 
                     {/* TTK Badge Overlay */}
                     {(() => {
+                        if (showTtkBadge === false) return null;
                         const ttk = calculateTTK(
                             weapon.avg_damage,
                             weapon.avg_fire_rate,
@@ -1147,10 +1215,43 @@ function WeaponMetaCard({
                     )}
                 </div>
 
+                {/* Special Badges / Anomaly Chips */}
+                {weapon.special_badges && weapon.special_badges.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1.5 mt-2 px-2">
+                        <TooltipProvider delayDuration={100}>
+                            {weapon.special_badges.map((badge: string, idx: number) => {
+                                const tooltipText =
+                                    badge.includes("Conversión") ? "El modo de disparo fue cambiado por un accesorio especial" :
+                                    badge.includes("Cargador") ? "Esta build usa un cargador ampliado (más del 40% de capacidad base)" :
+                                    badge.includes("Cañón Doble") ? "Daño por clic es doble al disparar dos balas simultáneas" :
+                                    badge.includes("Munión") || badge.includes("Especial") ? "El daño supera en más de 5% al valor base del arma" :
+                                    "Accesorio especial detectado";
+
+                                return (
+                                    <Tooltip key={idx}>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wide bg-amber-500/15 border border-amber-500/40 text-amber-400 cursor-help select-none transition-colors hover:bg-amber-500/25">
+                                                <Sparkles className="w-2.5 h-2.5" />
+                                                {badge}
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="text-[0.625rem] font-bold max-w-[200px]">
+                                            {tooltipText}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            })}
+                        </TooltipProvider>
+                    </div>
+                )}
+
                 {/* Main Stats - 2 Column Grid - Segmented HUD bars */}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-4">
                     {STAT_BARS.map((stat) => {
-                        const value = weapon[stat.key as keyof WeaponMeta] as number;
+                        const isDamage = (stat.key as string) === "avg_damage" || (stat.key as string) === "damage";
+                        const value = isDamage && weapon.ui_damage !== undefined 
+                            ? weapon.ui_damage 
+                            : (weapon[stat.key as keyof WeaponMeta] as number);
                         const pct = Math.min((value / stat.max) * 100, 100);
                         const Icon = stat.icon;
                         const SEGMENTS = 20;

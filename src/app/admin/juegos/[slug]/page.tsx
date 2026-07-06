@@ -28,12 +28,14 @@ import {
     LayoutGrid,
     ListFilter,
     Search,
+    FileText,
 } from "lucide-react";
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,6 +69,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import WeaponReportsAdmin from "@/components/admin/WeaponReportsAdmin";
+import { PatchNotesExtractorWidget } from "@/components/widgets/PatchNotesExtractorWidget";
 
 // Módulos disponibles (mismos que en la lista general)
 const MODULE_TYPES = [
@@ -95,6 +98,8 @@ const CATEGORY_LABELS: Record<string, string> = {
     Special: "Arma Especial",
 };
 
+import { WeaponFormDialog, type DeltaWeapon } from "@/components/admin/WeaponFormDialog";
+
 interface Juego {
     id: string;
     nombre: string;
@@ -111,311 +116,7 @@ interface GameModule {
     config?: Record<string, any> | null;
 }
 
-interface DeltaWeapon {
-    id: string;
-    name: string;
-    slug: string;
-    category: string;
-    game_mode: "operations" | "warfare" | null;
-    image_url: string | null;
-    description: string | null;
-    is_active: boolean;
-    sort_order: number;
-}
 
-// ─── Weapon Form Dialog ───────────────────────────────────────────────────────
-function WeaponFormDialog({
-    open,
-    onOpenChange,
-    weapon,
-    gameId,
-    existingWeapons,
-    onSuccess,
-}: {
-    open: boolean;
-    onOpenChange: (v: boolean) => void;
-    weapon: DeltaWeapon | null;
-    gameId: string;
-    existingWeapons: DeltaWeapon[];
-    onSuccess: () => void;
-}) {
-    const [name, setName] = useState("");
-    const [slug, setSlug] = useState("");
-    const [category, setCategory] = useState("Assault");
-    const [description, setDescription] = useState("");
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isActive, setIsActive] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [dragOver, setDragOver] = useState(false);
-
-    useEffect(() => {
-        if (weapon) {
-            setName(weapon.name);
-            setSlug(weapon.slug);
-            setCategory(weapon.category);
-            setDescription(weapon.description || "");
-            setIsActive(weapon.is_active);
-            setImagePreview(weapon.image_url);
-            setImageFile(null);
-        } else {
-            setName("");
-            setSlug("");
-            setCategory("Assault");
-            setDescription("");
-            setIsActive(true);
-            setImagePreview(null);
-            setImageFile(null);
-        }
-    }, [weapon, open]);
-
-    const isDuplicateName = name.trim() !== "" && existingWeapons.some(w =>
-        w.name.toLowerCase() === name.trim().toLowerCase() && w.id !== weapon?.id
-    );
-    const isDuplicateSlug = slug.trim() !== "" && existingWeapons.some(w =>
-        w.slug.toLowerCase() === slug.trim().toLowerCase() && w.id !== weapon?.id
-    );
-
-    // Auto-generar slug desde el nombre
-    const normalizeSlug = (str: string) => {
-        return str
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "") // Elimina acentos/tildes
-            .toUpperCase()
-            .replace(/Ñ/g, "N")
-            .replace(/[^A-Z0-9-]/g, "-") // Solo letras, números y guiones
-            .replace(/-+/g, "-") // Elimina guiones repetidos
-            .replace(/^-|-$/g, ""); // Elimina guiones al inicio o final
-    };
-
-    const handleNameChange = (val: string) => {
-        setName(val);
-        if (!weapon) {
-            setSlug(normalizeSlug(val));
-        }
-    };
-
-    const handleImageSelect = (file: File) => {
-        if (!file.type.startsWith("image/")) return;
-        setImageFile(file);
-        setImagePreview(URL.createObjectURL(file));
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setDragOver(false);
-        const file = e.dataTransfer.files[0];
-        if (file) handleImageSelect(file);
-    };
-
-    const handleSave = async () => {
-        if (!name || !slug || !category) {
-            toast({ title: "Faltan datos", description: "Nombre, slug y categoría son obligatorios.", variant: "destructive" });
-            return;
-        }
-
-        // Validación de duplicados (excluyendo el arma actual si se está editando)
-        const isDuplicateName = existingWeapons.some(w =>
-            w.name.toLowerCase() === name.toLowerCase() && w.id !== weapon?.id
-        );
-        if (isDuplicateName || isDuplicateSlug) {
-            toast({
-                title: "No se puede guardar",
-                description: isDuplicateName ? "Ya existe un arma con este nombre." : "Ya existe un arma con este slug.",
-                variant: "destructive"
-            });
-            return;
-        }
-
-        setSaving(true);
-        try {
-            let imageUrl = weapon?.image_url || null;
-
-            // 1. Subir imagen si hay una nueva
-            if (imageFile) {
-                const formData = new FormData();
-                formData.append("image", imageFile);
-                formData.append("slug", slug);
-
-                const uploadRes = await fetch("/api/admin/weapons/upload-image", {
-                    method: "POST",
-                    body: formData,
-                });
-                if (!uploadRes.ok) {
-                    const err = await uploadRes.json();
-                    throw new Error(err.error || "Error al subir imagen");
-                }
-                const uploadData = await uploadRes.json();
-                imageUrl = uploadData.url;
-            }
-
-            // 2. Crear o editar el registro
-            const payload = { name, slug, category, description, image_url: imageUrl, is_active: isActive, game_id: gameId };
-
-            const url = weapon ? `/api/admin/weapons/${weapon.id}` : "/api/admin/weapons";
-            const method = weapon ? "PATCH" : "POST";
-
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || "Error al guardar");
-            }
-
-            toast({ title: weapon ? "Arma actualizada" : "Arma creada", description: `${name} guardada correctamente.` });
-            onSuccess();
-            onOpenChange(false);
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : "Error desconocido";
-            toast({ title: "Error", description: msg, variant: "destructive" });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg border-zinc-200/50 dark:border-white/10 shadow-2xl">
-                <DialogHeader>
-                    <DialogTitle>{weapon ? "Editar Arma" : "Nueva Arma"}</DialogTitle>
-                    <DialogDescription>
-                        {weapon ? "Modifica los datos del arma." : "Agrega una nueva arma al catálogo de Delta Force."}
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 py-2">
-                    {/* Imagen */}
-                    <div className="space-y-2">
-                        <Label className="text-foreground font-medium">Imagen del arma</Label>
-                        <div
-                            className={`relative border-2 border-dashed rounded-xl transition-all cursor-pointer h-36 flex items-center justify-center overflow-hidden
-                                ${dragOver
-                                    ? "border-primary bg-primary/10 dark:bg-primary/5"
-                                    : "border-border bg-muted/40 hover:border-primary/60 hover:bg-muted/60"
-                                }`}
-                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                            onDragLeave={() => setDragOver(false)}
-                            onDrop={handleDrop}
-                            onClick={() => document.getElementById("weapon-img-input")?.click()}
-                        >
-                            {imagePreview ? (
-                                <>
-                                    <Image src={imagePreview} alt="preview" fill className="object-contain p-2" unoptimized />
-                                    <button
-                                        className="absolute top-2 right-2 bg-background border border-border rounded-full p-1 shadow-sm hover:bg-destructive/10 hover:border-destructive/40 transition-colors"
-                                        onClick={(e) => { e.stopPropagation(); setImagePreview(null); setImageFile(null); }}
-                                    >
-                                        <X className="h-3 w-3 text-foreground" />
-                                    </button>
-                                </>
-                            ) : (
-                                <div className="text-center">
-                                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-60" />
-                                    <p className="text-xs font-medium text-muted-foreground">Arrastra o haz clic para subir</p>
-                                    <p className="text-[10px] mt-1 text-muted-foreground/70">WebP recomendado · Fondo transparente</p>
-                                </div>
-                            )}
-                        </div>
-                        <input
-                            id="weapon-img-input"
-                            type="file"
-                            accept="image/webp,image/png,image/jpeg"
-                            className="hidden"
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageSelect(f); }}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5 text-left">
-                            <Label className={isDuplicateName ? "text-destructive" : ""}>
-                                Nombre <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                placeholder="CI-19"
-                                value={name}
-                                onChange={(e) => handleNameChange(e.target.value)}
-                                className={isDuplicateName ? "border-destructive focus-visible:ring-destructive" : ""}
-                            />
-                            {isDuplicateName && (
-                                <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">
-                                    ¡Nombre duplicado! Ya existe.
-                                </p>
-                            )}
-                        </div>
-                        <div className="space-y-1.5 text-left">
-                            <Label className={isDuplicateSlug ? "text-destructive" : ""}>
-                                Slug (archivo)
-                            </Label>
-                            <Input
-                                placeholder="CI-19"
-                                value={slug}
-                                onChange={(e) => setSlug(normalizeSlug(e.target.value))}
-                                className={`font-mono text-sm ${isDuplicateSlug ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                            />
-                            {isDuplicateSlug ? (
-                                <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">
-                                    Slug ya en uso.
-                                </p>
-                            ) : (
-                                <p className="text-[10px] text-muted-foreground">Se usa para vincular estadísticas</p>
-                            )}
-                        </div>
-                    </div>
-
-
-                    {/* Categoría */}
-                    <div className="space-y-1.5">
-                        <Label>Categoría <span className="text-destructive">*</span></Label>
-                        <Select value={category} onValueChange={setCategory}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {WEAPON_CATEGORIES.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>
-                                        {CATEGORY_LABELS[cat]} ({cat})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Descripción */}
-                    <div className="space-y-1.5">
-                        <Label>Descripción (opcional)</Label>
-                        <Input placeholder="Fusil de asalto versátil..." value={description} onChange={(e) => setDescription(e.target.value)} />
-                    </div>
-
-                    {/* Activa */}
-                    <div className={`flex items-center justify-between rounded-lg p-3 border transition-colors ${isActive ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Arma activa</p>
-                            <p className="text-xs text-muted-foreground">Si está inactiva, no aparece en la web</p>
-                        </div>
-                        <button onClick={() => setIsActive(!isActive)} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
-                            {isActive
-                                ? <ToggleRight className="h-8 w-8 text-primary" />
-                                : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
-                            }
-                        </button>
-                    </div>
-                </div>
-
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button onClick={handleSave} disabled={saving || isDuplicateName || isDuplicateSlug}>
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-                        {weapon ? "Guardar cambios" : "Crear arma"}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function GameConfigPage() {
@@ -427,7 +128,7 @@ export default function GameConfigPage() {
     const [juego, setJuego] = useState<Juego | null>(null);
     const [modules, setModules] = useState<GameModule[]>([]);
     const [weapons, setWeapons] = useState<DeltaWeapon[]>([]);
-    const [activeTab, setActiveTab] = useState<"modules" | "weapons" | "reports">("modules");
+    const [activeTab, setActiveTab] = useState<"modules" | "weapons" | "reports" | "patch_extractor">("modules");
     const [loading, setLoading] = useState(true);
     const [togglingModule, setTogglingModule] = useState<string | null>(null);
     const [weaponDialogOpen, setWeaponDialogOpen] = useState(false);
@@ -440,6 +141,7 @@ export default function GameConfigPage() {
     const [bannerImage, setBannerImage] = useState("");
     const [seasonVersion, setSeasonVersion] = useState("");
     const [seasonName, setSeasonName] = useState("");
+    const [showTtkBadge, setShowTtkBadge] = useState(true);
     const [savingBanner, setSavingBanner] = useState(false);
     const [uploadingBanner, setUploadingBanner] = useState(false);
 
@@ -453,10 +155,12 @@ export default function GameConfigPage() {
             setBannerImage(commandCenterModule.config.banner_image_url || "");
             setSeasonVersion(commandCenterModule.config.season_version || "");
             setSeasonName(commandCenterModule.config.season_name || "");
+            setShowTtkBadge(commandCenterModule.config.show_ttk_badge ?? true);
         } else {
             setBannerImage("");
             setSeasonVersion("");
             setSeasonName("");
+            setShowTtkBadge(true);
         }
     }, [commandCenterModule]);
 
@@ -469,6 +173,7 @@ export default function GameConfigPage() {
                 banner_image_url: bannerImage,
                 season_version: seasonVersion,
                 season_name: seasonName,
+                show_ttk_badge: showTtkBadge,
             };
 
             const { error } = await supabase
@@ -702,7 +407,8 @@ export default function GameConfigPage() {
                     { key: "modules", label: "Módulos", icon: Settings },
                     ...(isDeltaForce ? [
                         { key: "weapons", label: "Armas / Meta", icon: Sword },
-                        { key: "reports", label: "Reportes", icon: Shield }
+                        { key: "reports", label: "Reportes", icon: Shield },
+                        { key: "patch_extractor", label: "Extractor de Parches", icon: FileText }
                     ] : []),
                 ].map(({ key, label, icon: Icon }) => (
                     <button
@@ -722,125 +428,113 @@ export default function GameConfigPage() {
             {/* ─── Tab: Módulos ─────────────────────────────────────────── */}
             {activeTab === "modules" && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {MODULE_TYPES.map((modType) => {
                             const enabled = isModuleEnabled(modType.key);
                             const isToggling = togglingModule === modType.key;
                             return (
                                 <div
                                     key={modType.key}
-                                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${enabled ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-muted"}`}
+                                    className={`flex items-center justify-between p-4 rounded-xl border ${enabled ? "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30" : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"}`}
                                 >
-                                    <div className="flex-1 min-w-0">
-                                        <p className={`text-sm font-semibold ${enabled ? "text-foreground" : "text-muted-foreground"}`}>
+                                    <div className="flex-1 min-w-0 pr-4">
+                                        <p className={`text-sm font-bold ${enabled ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300"}`}>
                                             {modType.label}
                                         </p>
-                                        <p className="text-xs text-muted-foreground truncate">{modType.description}</p>
+                                        <p className={`text-xs mt-0.5 truncate ${enabled ? "text-blue-700/70 dark:text-blue-300/70" : "text-zinc-500 dark:text-zinc-400"}`}>{modType.description}</p>
                                     </div>
-                                    <button
-                                        onClick={() => handleToggleModule(modType.key)}
-                                        disabled={isToggling}
-                                        className="ml-3 flex-shrink-0 focus:outline-none"
-                                    >
-                                        {isToggling
-                                            ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                            : enabled
-                                                ? <ToggleRight className="h-8 w-8 text-primary" />
-                                                : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
-                                        }
-                                    </button>
+                                    <div className="flex-shrink-0">
+                                        {isToggling ? (
+                                            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+                                        ) : (
+                                            <Switch
+                                                checked={enabled}
+                                                onCheckedChange={() => handleToggleModule(modType.key)}
+                                                className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-zinc-300 dark:data-[state=unchecked]:bg-zinc-700"
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
                     </div>
                     {isModuleEnabled("command_center") && (
-                        <Card className="max-w-2xl border-zinc-200/50 dark:border-white/10 mt-6">
-                            <CardHeader>
-                                <CardTitle className="text-lg">Configuración de Centro de Comando</CardTitle>
-                                <CardDescription>Personaliza los datos y la apariencia de la cabecera principal de Delta Force.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Banner Image */}
-                                <div className="space-y-2">
-                                    <Label className="text-foreground font-medium">Imagen del Banner (Fondo)</Label>
-                                    <div className="flex gap-4 items-center">
-                                        <div className="relative border rounded-xl w-40 h-24 flex items-center justify-center overflow-hidden bg-muted flex-shrink-0">
+                        <div className="mt-10 space-y-8 max-w-4xl">
+                            <div>
+                                <h3 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Centro de Comando</h3>
+                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Configura los detalles visuales y configuraciones globales para Delta Force.</p>
+                            </div>
+                            
+                            <div className="space-y-8">
+                                {/* Banner Section */}
+                                <div className="space-y-4">
+                                    <Label className="text-base font-semibold">Imagen del Banner</Label>
+                                    <div className="flex flex-col sm:flex-row gap-6">
+                                        <div className="relative w-full sm:w-72 h-36 rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex flex-col items-center justify-center overflow-hidden group">
                                             {bannerImage ? (
-                                                <Image src={bannerImage} alt="Preview Banner" fill className="object-cover" unoptimized />
+                                                <Image src={bannerImage} alt="Banner" fill className="object-cover" unoptimized />
                                             ) : (
-                                                <ImageIcon className="h-8 w-8 text-muted-foreground opacity-40" />
+                                                <>
+                                                    <ImageIcon className="h-8 w-8 mb-2 text-zinc-300 dark:text-zinc-700" />
+                                                    <span className="text-xs font-medium text-zinc-400 dark:text-zinc-600">Sube una imagen</span>
+                                                </>
                                             )}
-                                        </div>
-                                        <div className="flex-grow space-y-2">
-                                            <Input 
-                                                placeholder="https://example.com/banner.webp o sube una imagen" 
-                                                value={bannerImage}
-                                                onChange={(e) => setBannerImage(e.target.value)}
-                                                className="text-sm font-mono"
-                                            />
-                                            <div className="flex gap-2">
-                                                <Button 
-                                                    type="button" 
-                                                    variant="secondary" 
-                                                    size="sm"
-                                                    disabled={uploadingBanner}
-                                                    onClick={() => document.getElementById("banner-upload-input")?.click()}
-                                                >
-                                                    {uploadingBanner ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
-                                                    Subir Imagen
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                                <Button size="sm" variant="secondary" onClick={() => document.getElementById("banner-upload-input")?.click()} disabled={uploadingBanner}>
+                                                    {uploadingBanner ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                                                 </Button>
-                                                <input 
-                                                    id="banner-upload-input" 
-                                                    type="file" 
-                                                    accept="image/*" 
-                                                    className="hidden" 
-                                                    onChange={handleBannerUpload} 
-                                                />
                                                 {bannerImage && (
-                                                    <Button 
-                                                        type="button" 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        className="text-destructive hover:bg-destructive/10"
-                                                        onClick={() => setBannerImage("")}
-                                                    >
-                                                        Eliminar
-                                                    </Button>
+                                                    <Button size="sm" variant="destructive" onClick={() => setBannerImage("")}><X className="h-4 w-4" /></Button>
                                                 )}
                                             </div>
+                                            <input id="banner-upload-input" type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                                        </div>
+                                        <div className="flex-1 space-y-3 pt-2">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-zinc-600 dark:text-zinc-400">URL Directa</Label>
+                                                <Input placeholder="https://..." value={bannerImage} onChange={(e) => setBannerImage(e.target.value)} className="font-mono text-sm bg-transparent" />
+                                            </div>
+                                            <p className="text-xs text-zinc-500">
+                                                Pega una URL externa o haz clic en el recuadro para subir un archivo local desde tu dispositivo.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5 text-left">
-                                        <Label>Nombre de la Season</Label>
-                                        <Input 
-                                            placeholder="ECO Season" 
-                                            value={seasonName}
-                                            onChange={(e) => setSeasonName(e.target.value)}
-                                        />
+                                <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800/50" />
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="font-semibold">Nombre de la Temporada</Label>
+                                        <Input placeholder="Ej. ECO Season" value={seasonName} onChange={(e) => setSeasonName(e.target.value)} className="bg-transparent" />
                                     </div>
-                                    <div className="space-y-1.5 text-left">
-                                        <Label>Versión / Número de Season</Label>
-                                        <Input 
-                                            placeholder="v1.0.4" 
-                                            value={seasonVersion}
-                                            onChange={(e) => setSeasonVersion(e.target.value)}
-                                        />
+                                    <div className="space-y-2">
+                                        <Label className="font-semibold">Versión / Número</Label>
+                                        <Input placeholder="Ej. v1.0.4" value={seasonVersion} onChange={(e) => setSeasonVersion(e.target.value)} className="bg-transparent" />
                                     </div>
                                 </div>
 
-                                <Button 
-                                    onClick={handleSaveCommandCenterConfig} 
-                                    disabled={savingBanner} 
-                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {savingBanner ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-                                    Guardar Configuración de Banner
-                                </Button>
-                            </CardContent>
-                        </Card>
+                                {isDeltaForce && (
+                                    <>
+                                        <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800/50" />
+                                        <div className="flex items-center justify-between py-2">
+                                            <div className="space-y-1">
+                                                <Label className="text-base font-semibold">Mostrar Badge de TTK</Label>
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-400">Activa el indicador visual de tiempo para matar (TTK) en las tarjetas de armas y perfiles.</p>
+                                            </div>
+                                            <Switch checked={showTtkBadge} onCheckedChange={setShowTtkBadge} className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-zinc-300 dark:data-[state=unchecked]:bg-zinc-700" />
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="pt-4">
+                                    <Button onClick={handleSaveCommandCenterConfig} disabled={savingBanner} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8">
+                                        {savingBanner ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                        Guardar Configuración
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
             )}
@@ -848,6 +542,13 @@ export default function GameConfigPage() {
             {/* ─── Tab: Reportes (Delta Force) ───────────────────────────── */}
             {activeTab === "reports" && isDeltaForce && (
                 <WeaponReportsAdmin gameId={juego.id} />
+            )}
+
+            {/* ─── Tab: Extractor de Parches (Delta Force) ───────────────────────────── */}
+            {activeTab === "patch_extractor" && isDeltaForce && (
+                <div className="max-w-4xl mt-6">
+                    <PatchNotesExtractorWidget />
+                </div>
             )}
 
             {/* ─── Tab: Armas (Delta Force) ─────────────────────────────── */}

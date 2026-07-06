@@ -306,10 +306,12 @@ export async function GET(req: NextRequest) {
                     base_armor_penetration: mode === "operations"
                         ? (stats?.base_armor_penetration ? String(stats.base_armor_penetration) : (defaults?.base_armor_penetration ?? "0"))
                         : "0",
+                    base_fire_mode: stats?.base_fire_mode ?? defaults?.base_fire_mode ?? null,
                     image_url: ow.image_url || stats?.image_url || defaults?.image_url || null,
                     is_configured: !!stats,
                 };
             });
+
 
             return NextResponse.json({ weapons: mergedWeapons }, { headers: CACHE_HEADERS });
         }

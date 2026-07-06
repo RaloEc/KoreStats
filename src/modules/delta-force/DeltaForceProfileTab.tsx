@@ -29,6 +29,7 @@ import {
     Search,
     Trash2,
     Edit3,
+    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -67,7 +68,7 @@ interface WeaponRecord {
 interface GroupedWeapon {
     name: string;
     records: WeaponRecord[];
-    bestStats: Record<string, number>;
+    bestStats: Record<string, any>;
     latestDate: string;
     shareCodes: string[];
     description: string | null;
@@ -222,11 +223,12 @@ async function fetchUserWeaponRecords(userId: string): Promise<WeaponRecord[]> {
 
 async function fetchGlobalMeta() {
     const res = await fetch("/api/games/delta-force/weapons");
-    if (!res.ok) return { weapons: [], current_patch: "Temporada 9 - ECHO" };
+    if (!res.ok) return { weapons: [], current_patch: "Season 10 - MELTDOWN" };
     const data = await res.json();
     return {
         weapons: data.weapons || [],
-        current_patch: data.current_patch || "Temporada 9 - ECHO",
+        current_patch: data.current_patch || "Season 10 - MELTDOWN",
+        show_ttk_badge: data.show_ttk_badge ?? true,
     };
 }
 
@@ -276,7 +278,8 @@ export default function DeltaForceProfileTab({
     });
 
     const metaData = metaResponse?.weapons || [];
-    const currentPatch = metaResponse?.current_patch || "Temporada 9 - ECHO";
+    const currentPatch = metaResponse?.current_patch || "Season 10 - MELTDOWN";
+    const showTtkBadge = metaResponse?.show_ttk_badge ?? true;
 
     const { data: baseWeaponsOps = [] } = useQuery({
         queryKey: ["df-base-weapons-ops"],
@@ -371,11 +374,13 @@ export default function DeltaForceProfileTab({
         for (const [, records] of Array.from(groups)) {
             records.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-            const bestStats: Record<string, number> = {};
+            const bestStats: Record<string, any> = {};
             for (const record of records) {
                 const normalized = normalizeStats(record.stats);
                 for (const [key, value] of Object.entries(normalized)) {
-                    if (bestStats[key] === undefined || value > (bestStats[key] || 0)) {
+                    if (Array.isArray(value) || typeof value === 'string') {
+                        bestStats[key] = value;
+                    } else if (bestStats[key] === undefined || (typeof value === 'number' && value > (bestStats[key] || 0))) {
                         bestStats[key] = value;
                     }
                 }
@@ -413,7 +418,8 @@ export default function DeltaForceProfileTab({
         const filtered = activeTag
             ? weaponList.filter(w => {
                 const meta = metaMap.get(w.name.toUpperCase().replace(/\s+/g, "-"));
-                const category = meta?.category || "Fusil de asalto";
+                const baseW = baseWeaponsMap.get(`${w.name.toUpperCase().replace(/\s+/g, "-")}_${w.gameMode}`);
+                const category = meta?.category || baseW?.category || "Fusil de asalto";
                 return getWeaponTags(w.bestStats, category, w.gameMode).some(t => t.label === activeTag);
               })
             : weaponList;
@@ -422,14 +428,15 @@ export default function DeltaForceProfileTab({
         const categorized = new Map<string, GroupedWeapon[]>();
         filtered.forEach(w => {
             const meta = metaMap.get(w.name.toUpperCase().replace(/\s+/g, "-"));
-            const cat = meta?.category || "Otros";
+            const baseW = baseWeaponsMap.get(`${w.name.toUpperCase().replace(/\s+/g, "-")}_${w.gameMode}`);
+            const cat = meta?.category || baseW?.category || "Otros";
             if (!categorized.has(cat)) categorized.set(cat, []);
             categorized.get(cat)!.push(w);
         });
 
         // Sorting categories
         return Array.from(categorized).sort(([a], [b]) => a.localeCompare(b));
-    }, [weaponRecords, metaMap, activeTag, searchQuery, sortByTtk]);
+    }, [weaponRecords, metaMap, baseWeaponsMap, activeTag, searchQuery, sortByTtk]);
 
     const allAvailableTags = useMemo(() => {
         const tagSet = new Set<string>();
@@ -442,11 +449,12 @@ export default function DeltaForceProfileTab({
                 .toUpperCase()
                 .replace(/\s+/g, "-");
             const meta = metaMap.get(normalizedName);
-            const category = meta?.category || "Fusil de asalto";
+            const baseW = baseWeaponsMap.get(`${normalizedName}_${r.game_mode || "operations"}`);
+            const category = meta?.category || baseW?.category || "Fusil de asalto";
             getWeaponTags(stats, category, r.game_mode || "operations").forEach(t => tagSet.add(t.label));
         });
         return Array.from(tagSet).sort();
-    }, [weaponRecords, metaMap]);
+    }, [weaponRecords, metaMap, baseWeaponsMap]);
 
     if (isLoading) {
         return (
@@ -631,6 +639,7 @@ export default function DeltaForceProfileTab({
                                         onDelete={() => handleDelete(weapon.records[0].id)}
                                         onSave={(newName) => handleSaveName(weapon.records[0].id, newName)}
                                         currentPatch={currentPatch}
+                                        showTtkBadge={showTtkBadge}
                                     />
                                 ))}
                             </div>
@@ -656,6 +665,7 @@ function WeaponGroupCard({
     onSave,
     onDelete,
     currentPatch,
+    showTtkBadge = true
 }: {
     weapon: GroupedWeapon;
     meta?: any;
@@ -664,8 +674,10 @@ function WeaponGroupCard({
     onSave?: (newName: string) => void;
     onDelete?: () => void;
     currentPatch: string;
+    showTtkBadge?: boolean;
 }) {
-    const tags = getWeaponTags(weapon.bestStats, meta?.category, weapon.gameMode);
+    const effectiveCategory = meta?.category || baseWeapon?.category;
+    const tags = getWeaponTags(weapon.bestStats, effectiveCategory, weapon.gameMode);
     const getShortPatch = (patch: string | null | undefined) => {
         if (!patch) return "";
         const match = patch.match(/\d+/);
@@ -755,13 +767,14 @@ function WeaponGroupCard({
 
                     {/* TTK Badge Overlay */}
                     {(() => {
+                        if (!showTtkBadge) return null;
                         const armorLevel = weapon.gameMode === "warfare" ? 0 : 4;
                         const ttk = calculateTTK(
                             weapon.bestStats.damage,
                             weapon.bestStats.fireRate,
                             weapon.bestStats.armorPenetration,
                             armorLevel,
-                            meta?.category,
+                            effectiveCategory,
                             weapon.gameMode || "operations",
                             30,
                             weapon.bestStats.range
@@ -857,7 +870,7 @@ function WeaponGroupCard({
                     {/* Category Tag & Mode (Absolute Bottom-Left) */}
                     <div className="absolute bottom-2 left-2 z-20 flex gap-1.5 items-center">
                         <span className="text-[0.5625rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-background/80 backdrop-blur-md text-foreground border border-border shadow-sm">
-                            {meta?.category || "Arma"}
+                            {effectiveCategory || "Arma"}
                         </span>
                         {weapon.gameMode && (
                             <span className={cn(
@@ -871,9 +884,9 @@ function WeaponGroupCard({
                         )}
                     </div>
 
-                    {meta?.image_url ? (
+                    {(meta?.image_url || baseWeapon?.image_url) ? (
                         <img
-                            src={meta.image_url}
+                            src={meta?.image_url || baseWeapon?.image_url}
                             alt={weapon.name}
                             className="relative z-10 w-full h-full object-contain p-2"
                             loading="lazy"
@@ -912,10 +925,48 @@ function WeaponGroupCard({
                     )}
                 </div>
 
+                {/* Special Badges / Anomaly Chips */}
+                {weapon.bestStats.special_badges && (Array.isArray(weapon.bestStats.special_badges) || typeof weapon.bestStats.special_badges === 'string') && weapon.bestStats.special_badges.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1.5 mb-2 px-2">
+                        <TooltipProvider delayDuration={100}>
+                            {(Array.isArray(weapon.bestStats.special_badges) 
+                                ? weapon.bestStats.special_badges 
+                                : [weapon.bestStats.special_badges]
+                            ).map((badge: string, idx: number) => {
+                                const tooltipText =
+                                    badge.includes("Conversión") ? "El modo de disparo fue cambiado por un accesorio especial" :
+                                    badge.includes("Cargador") ? "Esta build usa un cargador ampliado (más del 40% de capacidad base)" :
+                                    badge.includes("Cañón Doble") ? "Daño por clic es doble al disparar dos balas simultáneas" :
+                                    badge.includes("Munión") || badge.includes("Especial") ? "El daño supera en más de 5% al valor base del arma" :
+                                    "Accesorio especial detectado";
+
+                                return (
+                                    <Tooltip key={idx}>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wide bg-amber-500/15 border border-amber-500/40 text-amber-400 cursor-help select-none transition-colors hover:bg-amber-500/25">
+                                                <Sparkles className="w-2.5 h-2.5" />
+                                                {badge}
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="text-[0.625rem] font-bold max-w-[200px]">
+                                            {tooltipText}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            })}
+                        </TooltipProvider>
+                    </div>
+                )}
+
                 {/* Main Stats - 2 Column Grid - Segmented HUD bars */}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-2">
                     {STAT_BARS.map((stat) => {
-                        const value = weapon.bestStats[stat.key] || 0;
+                        const isDamage = (stat.key as string) === "damage" || (stat.key as string) === "dano";
+                        const rawValue = isDamage && weapon.bestStats.ui_damage !== undefined 
+                            ? weapon.bestStats.ui_damage 
+                            : (weapon.bestStats[stat.key] || 0);
+                        const value = typeof rawValue === "number" ? rawValue : (parseFloat(rawValue as string) || 0);
+
                         const pct = Math.min((value / stat.max) * 100, 100);
                         const Icon = stat.icon;
                         const SEGMENTS = 20;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BaseWeapon, BaseAmmo, BaseGear, BaseCaliber, calculateDamagePenetration } from "@/lib/delta-force/defaultData";
+import { WeaponFormDialog } from "@/components/admin/WeaponFormDialog";
 
 export const getCaliberImages = (urlStr: string | null | undefined): string[] => {
     if (!urlStr) return [];
@@ -129,12 +130,20 @@ export default function DeltaForceDatabaseView({
     setSearchQuery: externalSetSearchQuery,
     showHeader = true,
 }: DeltaForceDatabaseViewProps = {}) {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const queryClient = useQueryClient();
-    
+
     const [localSubTab, localSetSubTab] = useState<"weapons" | "ammo" | "gear">("weapons");
     const subTab = externalSubTab !== undefined ? externalSubTab : localSubTab;
     const setSubTab = externalSetSubTab !== undefined ? externalSetSubTab : localSetSubTab;
+
+    useEffect(() => {
+        const handleOpenForm = (e: any) => {
+            handleAddClick(e.detail.type, e.detail.parentCaliber);
+        };
+        window.addEventListener("df_open_form", handleOpenForm);
+        return () => window.removeEventListener("df_open_form", handleOpenForm);
+    }, []);
 
     const [gameMode, setGameMode] = useState<"operations" | "warfare">("operations");
 
@@ -143,7 +152,7 @@ export default function DeltaForceDatabaseView({
     const setSearchQuery = externalSetSearchQuery !== undefined ? externalSetSearchQuery : localSetSearchQuery;
 
     const [weaponSearchInForm, setWeaponSearchInForm] = useState("");
-    
+
     // Accordion State for calibers in Ammo Tab
     const [expandedCalibers, setExpandedCalibers] = useState<Record<string, boolean>>({});
 
@@ -162,6 +171,7 @@ export default function DeltaForceDatabaseView({
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [tempCaliberImageUrl, setTempCaliberImageUrl] = useState("");
+    const [weaponMetaDialogOpen, setWeaponMetaDialogOpen] = useState(false);
 
     // Delete confirmation state
     const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -186,6 +196,7 @@ export default function DeltaForceDatabaseView({
         base_capacity: 30,
         base_muzzle_velocity: 880,
         base_armor_penetration: "20",
+        base_fire_mode: "",
         image_url: "",
     });
 
@@ -207,12 +218,14 @@ export default function DeltaForceDatabaseView({
         compatible_weapons: [] as string[],
         body_damage: "",
         armor_penetration: "",
+        is_hidden: false,
     });
 
     const [caliberFields, setCaliberFields] = useState({
         name: "",
         image_urls: [] as string[],
         weapons: [] as string[],
+        is_hidden: false,
     });
 
     const [gearFields, setGearFields] = useState({
@@ -263,14 +276,11 @@ export default function DeltaForceDatabaseView({
     const { data: weaponsData, isLoading: loadingWeapons } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-weapons", gameMode],
         queryFn: async () => {
-            console.warn(`[DF-Wiki-Debug] Fetching weapons for mode: ${gameMode}`);
             const res = await fetch(`/api/games/delta-force/base-data?type=weapons&mode=${gameMode}`);
             if (!res.ok) {
-                console.error("[DF-Wiki-Debug] Weapons fetch failed status:", res.status);
                 throw new Error("Failed to fetch weapons");
             }
             const data = await res.json();
-            console.warn("[DF-Wiki-Debug] Weapons fetch success. Data keys:", Object.keys(data), "Weapons length:", data?.weapons?.length);
             return data;
         },
     });
@@ -279,14 +289,11 @@ export default function DeltaForceDatabaseView({
     const { data: ammoData, isLoading: loadingAmmo } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-ammo"],
         queryFn: async () => {
-            console.warn("[DF-Wiki-Debug] Fetching base ammo");
             const res = await fetch("/api/games/delta-force/base-data?type=ammo");
             if (!res.ok) {
-                console.error("[DF-Wiki-Debug] Ammo fetch failed status:", res.status);
                 throw new Error("Failed to fetch ammo");
             }
             const data = await res.json();
-            console.warn("[DF-Wiki-Debug] Ammo fetch success. Data keys:", Object.keys(data), "Ammo length:", data?.ammo?.length);
             return data;
         },
     });
@@ -295,14 +302,11 @@ export default function DeltaForceDatabaseView({
     const { data: calibersData, isLoading: loadingCalibers } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-calibers"],
         queryFn: async () => {
-            console.warn("[DF-Wiki-Debug] Fetching base calibers");
             const res = await fetch("/api/games/delta-force/base-data?type=calibers");
             if (!res.ok) {
-                console.error("[DF-Wiki-Debug] Calibers fetch failed status:", res.status);
                 throw new Error("Failed to fetch calibers");
             }
             const data = await res.json();
-            console.warn("[DF-Wiki-Debug] Calibers fetch success. Data keys:", Object.keys(data), "Calibers length:", data?.calibers?.length);
             return data;
         },
     });
@@ -311,34 +315,22 @@ export default function DeltaForceDatabaseView({
     const { data: gearData, isLoading: loadingGear } = useQuery<DatabaseResponse>({
         queryKey: ["df-base-gear"],
         queryFn: async () => {
-            console.warn("[DF-Wiki-Debug] Fetching base gear");
             const res = await fetch("/api/games/delta-force/base-data?type=gear");
             if (!res.ok) {
-                console.error("[DF-Wiki-Debug] Gear fetch failed status:", res.status);
                 throw new Error("Failed to fetch gear");
             }
             const data = await res.json();
-            console.warn("[DF-Wiki-Debug] Gear fetch success. Data keys:", Object.keys(data), "Gear length:", data?.gear?.length);
             return data;
         },
     });
 
     const weapons = weaponsData?.weapons || [];
-    const ammo = ammoData?.ammo || [];
     const gear = gearData?.gear || [];
-    const calibersList = calibersData?.calibers || [];
 
-    console.warn("[DF-Wiki-Debug] Render state:", {
-        weaponsLength: weapons.length,
-        ammoLength: ammo.length,
-        gearLength: gear.length,
-        calibersLength: calibersList.length,
-        subTab,
-        gameMode,
-        searchQuery
-    });
-
-
+    // Filter out hidden items for non-admins
+    const isAdmin = profile?.role === "admin";
+    const ammo = (ammoData?.ammo || []).filter((a: any) => isAdmin || !a.is_hidden);
+    const calibersList = (calibersData?.calibers || []).filter((c: any) => isAdmin || !c.is_hidden);
 
     // Filter calculations
     const filteredWeapons = weapons.filter((w) =>
@@ -466,6 +458,7 @@ export default function DeltaForceDatabaseView({
                 base_capacity: 30,
                 base_muzzle_velocity: 880,
                 base_armor_penetration: "20",
+                base_fire_mode: "",
                 image_url: "",
             });
         } else if (type === "ammo") {
@@ -487,12 +480,14 @@ export default function DeltaForceDatabaseView({
                 compatible_weapons: [],
                 body_damage: "",
                 armor_penetration: "",
+                is_hidden: false,
             });
         } else if (type === "calibers") {
             setCaliberFields({
                 name: "",
                 image_urls: [],
                 weapons: [],
+                is_hidden: false,
             });
         } else if (type === "gear") {
             setGearFields({
@@ -534,6 +529,7 @@ export default function DeltaForceDatabaseView({
             base_capacity: item.base_capacity || 30,
             base_muzzle_velocity: item.base_muzzle_velocity || 880,
             base_armor_penetration: item.base_armor_penetration || 20,
+            base_fire_mode: item.base_fire_mode || "",
             image_url: item.image_url || "",
         });
         setIsFormOpen(true);
@@ -562,6 +558,7 @@ export default function DeltaForceDatabaseView({
                 base_capacity: item.base_capacity,
                 base_muzzle_velocity: item.base_muzzle_velocity,
                 base_armor_penetration: item.base_armor_penetration ? String(item.base_armor_penetration) : "0",
+                base_fire_mode: item.base_fire_mode || "",
                 image_url: item.image_url || "",
             });
         } else if (type === "ammo") {
@@ -583,6 +580,7 @@ export default function DeltaForceDatabaseView({
                 compatible_weapons: item.compatible_weapons || [],
                 body_damage: item.body_damage || "",
                 armor_penetration: item.armor_penetration ? String(item.armor_penetration) : "",
+                is_hidden: item.is_hidden || false,
             });
         } else if (type === "calibers") {
             // Obtener armas asociadas a este calibre comparando insensible a mayúsculas/minúsculas
@@ -595,6 +593,7 @@ export default function DeltaForceDatabaseView({
                 name: item.name,
                 image_urls: getCaliberImages(item.image_url),
                 weapons: uniqueAssociated,
+                is_hidden: item.is_hidden || false,
             });
         } else if (type === "gear") {
             setGearFields({
@@ -630,10 +629,10 @@ export default function DeltaForceDatabaseView({
         const table = type === "weapons"
             ? "delta_force_weapons_base"
             : type === "ammo"
-            ? "delta_force_ammo"
-            : type === "calibers"
-            ? "delta_force_calibers"
-            : "delta_force_gear";
+                ? "delta_force_ammo"
+                : type === "calibers"
+                    ? "delta_force_calibers"
+                    : "delta_force_gear";
 
         setSubmitting(true);
         setDeleteError(null);
@@ -646,16 +645,16 @@ export default function DeltaForceDatabaseView({
             if (!res.ok || data.error) {
                 throw new Error(data.error || "Error al eliminar");
             }
-            
+
             // Invalidate queries
             const queryKey = type === "weapons"
                 ? "df-base-weapons"
                 : type === "ammo"
-                ? "df-base-ammo"
-                : type === "calibers"
-                ? "df-base-calibers"
-                : "df-base-gear";
-                
+                    ? "df-base-ammo"
+                    : type === "calibers"
+                        ? "df-base-calibers"
+                        : "df-base-gear";
+
             queryClient.invalidateQueries({ queryKey: [queryKey] });
             if (type === "calibers") {
                 // Si eliminamos calibres, también invalidar las balas y las armas desvinculadas en cascada
@@ -687,18 +686,20 @@ export default function DeltaForceDatabaseView({
         const table = activeFormType === "weapons"
             ? "delta_force_weapons_base"
             : activeFormType === "ammo"
-            ? "delta_force_ammo"
-            : activeFormType === "calibers"
-            ? "delta_force_calibers"
-            : "delta_force_gear";
+                ? "delta_force_ammo"
+                : activeFormType === "calibers"
+                    ? "delta_force_calibers"
+                    : "delta_force_gear";
 
         let payload: any = {};
         if (activeFormType === "weapons") {
             payload = {
                 ...weaponFields,
                 game_mode: gameMode,
-                // In warfare mode, armor penetration is always 0
+                // En modo Warfare, la perforación de blindaje es siempre 0
                 base_armor_penetration: gameMode === "operations" ? weaponFields.base_armor_penetration : 0,
+                // Convertir string vacío a null para base_fire_mode
+                base_fire_mode: weaponFields.base_fire_mode.trim() !== "" ? weaponFields.base_fire_mode : null,
             };
         } else if (activeFormType === "ammo") {
             payload = { ...ammoFields };
@@ -706,7 +707,8 @@ export default function DeltaForceDatabaseView({
             payload = {
                 name: caliberFields.name,
                 image_url: JSON.stringify(caliberFields.image_urls),
-                weapons: caliberFields.weapons
+                weapons: caliberFields.weapons,
+                is_hidden: caliberFields.is_hidden
             };
         } else if (activeFormType === "gear") {
             payload = {
@@ -834,8 +836,17 @@ export default function DeltaForceDatabaseView({
                             />
                         </div>
 
-                        {user && (
+                        {profile?.role === 'admin' && (
                             <>
+                                {subTab === "weapons" && (
+                                    <button
+                                        onClick={() => setWeaponMetaDialogOpen(true)}
+                                        className="px-3 py-2 rounded-xl bg-df-green-500 hover:bg-df-green-600 transition-all text-xs text-white font-black uppercase flex items-center gap-1.5 shadow-sm shadow-df-green-500/25 animate-in fade-in duration-200"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Agregar
+                                    </button>
+                                )}
                                 {subTab === "gear" && (
                                     <button
                                         onClick={() => handleAddClick("gear")}
@@ -926,7 +937,7 @@ export default function DeltaForceDatabaseView({
                                 groupedWeapons.map(({ category, items }) => {
                                     const isExpanded = !!expandedCategories[category] || searchQuery.trim() !== "";
                                     const categoryLabel = getCategoryLabel(category);
-                                    
+
                                     return (
                                         <div key={category} className="space-y-2">
                                             {/* Collapsible Header */}
@@ -1132,7 +1143,7 @@ export default function DeltaForceDatabaseView({
                                                                     {/* Bottom Actions Section */}
                                                                     {(() => {
                                                                         const showAmmo = gameMode === "operations";
-                                                                        const weaponCaliber = calibersList.find((c: any) => c.name.toLowerCase() === w.caliber.toLowerCase());
+                                                                        const weaponCaliber = w.caliber ? calibersList.find((c: any) => c.name.toLowerCase() === w.caliber.toLowerCase()) : undefined;
                                                                         const caliberImages = showAmmo && weaponCaliber ? getCaliberImages(weaponCaliber.image_url) : [];
                                                                         const renderAmmoThumbnails = () => {
                                                                             if (caliberImages.length === 0) {
@@ -1163,7 +1174,7 @@ export default function DeltaForceDatabaseView({
                                                                             );
                                                                         };
 
-                                                                        return user ? (
+                                                                        return profile?.role === 'admin' ? (
                                                                             <div className="mt-auto flex flex-col w-full">
                                                                                 {w.is_configured ? (
                                                                                     <div className="flex items-center gap-2 w-full justify-between pt-2 border-t border-border/20">
@@ -1258,7 +1269,7 @@ export default function DeltaForceDatabaseView({
                                                         <th className="p-3 text-center">Daño Efectivo al Blindaje (Nv. 1-6)</th>
                                                         <th className="p-3 text-center">Pérdida Perf.</th>
                                                         <th className="p-3 text-center">Caída</th>
-                                                        {user && <th className="p-3 text-right pr-4">Acción</th>}
+                                                        {profile?.role === 'admin' && <th className="p-3 text-right pr-4">Acción</th>}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-border/40 text-xs">
@@ -1269,14 +1280,14 @@ export default function DeltaForceDatabaseView({
                                                         const falloff = (a as any).pen_falloff_coefficient ?? 0;
                                                         const armorPen = a.armor_penetration || "-";
                                                         const bodyDamage = a.body_damage || "-";
-                                                        
+
                                                         // Obtener la imagen por defecto del calibre
                                                         const parentCaliber = a.caliber ? calibersList.find(c => c.name.toLowerCase() === a.caliber.toLowerCase()) : null;
                                                         const defaultImageUrl = parentCaliber ? getFirstImageUrl(parentCaliber.image_url) : "";
-                                                        
+
                                                         // Armas compatibles
                                                         const caliberWeapons = weapons.filter(w => w.caliber && a.caliber && w.caliber.toLowerCase() === a.caliber.toLowerCase());
-                                                        
+
                                                         const penColors = {
                                                             0: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
                                                             1: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
@@ -1284,18 +1295,18 @@ export default function DeltaForceDatabaseView({
                                                             3: { bg: "bg-blue-500/10 border border-blue-500/30", text: "text-blue-500" },
                                                             4: { bg: "bg-purple-500/10 border border-purple-500/30", text: "text-purple-500" },
                                                             5: { bg: "bg-amber-500/10 border border-amber-500/30", text: "text-amber-500" },
-                                                             6: { bg: "bg-red-500/10 border border-red-500/30", text: "text-red-500" },
+                                                            6: { bg: "bg-red-500/10 border border-red-500/30", text: "text-red-500" },
                                                         };
                                                         const pc = penColors[penLevel] || penColors[0];
                                                         const dmgRatioColor = dmgRatio > 100 ? "text-df-green-650 dark:text-df-green-400" : dmgRatio < 100 ? "text-rose-500" : "text-muted-foreground";
-                                                        
+
                                                         const degColors = {
                                                             bajo: "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
                                                             medio: "bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400",
                                                             alto: "bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400",
                                                         };
                                                         const armorVals = [1, 2, 3, 4, 5, 6].map(n => calculateDamagePenetration(penLevel, n));
-                                                        
+
                                                         return (
                                                             <tr key={a.id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors group/row">
                                                                 <td className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">
@@ -1355,65 +1366,65 @@ export default function DeltaForceDatabaseView({
                                                                     {bodyDamage}
                                                                 </td>
                                                                 <td className="p-3 text-center">
-                                                                     <div className="flex items-center justify-center gap-1 group/ratio relative">
-                                                                         <span className={cn("text-sm font-black font-mono tabular-nums", dmgRatioColor)}>
-                                                                             {dmgRatio}%
-                                                                         </span>
-                                                                         <User className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-help transition-colors" />
-                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
-                                                                             <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[0.5rem]">Daño Corporal</span>
-                                                                             Daño aplicado en zonas sin blindaje o extremidades (Nv. 0)
-                                                                         </div>
-                                                                     </div>
+                                                                    <div className="flex items-center justify-center gap-1 group/ratio relative">
+                                                                        <span className={cn("text-sm font-black font-mono tabular-nums", dmgRatioColor)}>
+                                                                            {dmgRatio}%
+                                                                        </span>
+                                                                        <User className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-help transition-colors" />
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
+                                                                            <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[0.5rem]">Daño Corporal</span>
+                                                                            Daño aplicado en zonas sin blindaje o extremidades (Nv. 0)
+                                                                        </div>
+                                                                    </div>
                                                                 </td>
                                                                 <td className="p-3 text-center">
-                                                                     <div className="flex items-end justify-center gap-1">
-                                                                         {armorVals.map((val, i) => {
-                                                                             let textClass = "";
-                                                                             let bgClass = "bg-zinc-100 dark:bg-zinc-800";
-                                                                             if (val === 100) {
-                                                                                 textClass = "text-green-500 dark:text-green-400";
-                                                                                 bgClass = "bg-green-500/10";
-                                                                             } else if (val >= 75) {
-                                                                                 textClass = "text-yellow-600 dark:text-yellow-400";
-                                                                                 bgClass = "bg-yellow-500/10";
-                                                                             } else if (val >= 50) {
-                                                                                 textClass = "text-orange-600 dark:text-orange-500";
-                                                                                 bgClass = "bg-orange-500/10";
-                                                                             } else if (val === 0) {
-                                                                                 textClass = "text-zinc-400 dark:text-zinc-650";
-                                                                                 bgClass = "bg-zinc-100 dark:bg-zinc-900/60";
-                                                                             }
-                                                                             return (
-                                                                                 <div key={i} className="flex flex-col items-center gap-1" title={`Nv.${i + 1}: ${val}%`}>
-                                                                                     <div className={cn("text-[0.625rem] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
-                                                                                         {val}%
-                                                                                     </div>
-                                                                                     <span className={cn("text-[0.625rem] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
-                                                                                         {i + 1}
-                                                                                     </span>
-                                                                                 </div>
-                                                                             );
-                                                                         })}
-                                                                     </div>
+                                                                    <div className="flex items-end justify-center gap-1">
+                                                                        {armorVals.map((val, i) => {
+                                                                            let textClass = "";
+                                                                            let bgClass = "bg-zinc-100 dark:bg-zinc-800";
+                                                                            if (val === 100) {
+                                                                                textClass = "text-green-500 dark:text-green-400";
+                                                                                bgClass = "bg-green-500/10";
+                                                                            } else if (val >= 75) {
+                                                                                textClass = "text-yellow-600 dark:text-yellow-400";
+                                                                                bgClass = "bg-yellow-500/10";
+                                                                            } else if (val >= 50) {
+                                                                                textClass = "text-orange-600 dark:text-orange-500";
+                                                                                bgClass = "bg-orange-500/10";
+                                                                            } else if (val === 0) {
+                                                                                textClass = "text-zinc-400 dark:text-zinc-650";
+                                                                                bgClass = "bg-zinc-100 dark:bg-zinc-900/60";
+                                                                            }
+                                                                            return (
+                                                                                <div key={i} className="flex flex-col items-center gap-1" title={`Nv.${i + 1}: ${val}%`}>
+                                                                                    <div className={cn("text-[0.625rem] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
+                                                                                        {val}%
+                                                                                    </div>
+                                                                                    <span className={cn("text-[0.625rem] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
+                                                                                        {i + 1}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
                                                                 </td>
                                                                 <td className="p-3 text-center">
-                                                                     <div className="inline-block group/degraded relative">
-                                                                         <span className={cn("px-2.5 py-1 rounded-xl text-[0.6875rem] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
-                                                                             {degradation}
-                                                                         </span>
-                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
-                                                                             <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[0.5rem]">Pérdida de Perforación</span>
-                                                                             {degradation === "bajo" && <span>El proyectil apenas pierde capacidad de penetración tras el primer impacto.</span>}
-                                                                             {degradation === "medio" && <span>Pérdida de penetración moderada tras atravesar el primer blindaje.</span>}
-                                                                             {degradation === "alto" && <span>Pérdida de penetración severa al impactar contra placas de blindaje.</span>}
-                                                                         </div>
-                                                                     </div>
+                                                                    <div className="inline-block group/degraded relative">
+                                                                        <span className={cn("px-2.5 py-1 rounded-xl text-[0.6875rem] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
+                                                                            {degradation}
+                                                                        </span>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
+                                                                            <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[0.5rem]">Pérdida de Perforación</span>
+                                                                            {degradation === "bajo" && <span>El proyectil apenas pierde capacidad de penetración tras el primer impacto.</span>}
+                                                                            {degradation === "medio" && <span>Pérdida de penetración moderada tras atravesar el primer blindaje.</span>}
+                                                                            {degradation === "alto" && <span>Pérdida de penetración severa al impactar contra placas de blindaje.</span>}
+                                                                        </div>
+                                                                    </div>
                                                                 </td>
                                                                 <td className="p-3 text-center font-mono text-muted-foreground text-xs font-bold">
                                                                     {falloff}%
                                                                 </td>
-                                                                {user && (
+                                                                {profile?.role === 'admin' && (
                                                                     <td className="p-3 text-right pr-4">
                                                                         <div className="opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center justify-end gap-1.5">
                                                                             <button
@@ -1456,7 +1467,7 @@ export default function DeltaForceDatabaseView({
                                             const caliberAmmo = ammo.filter(a => a.caliber && a.caliber.toLowerCase() === c.name.toLowerCase())
                                                 .sort((a, b) => (a.penetration_level ?? 0) - (b.penetration_level ?? 0));
                                             const caliberWeapons = weapons.filter(w => w.caliber && w.caliber.toLowerCase() === c.name.toLowerCase());
-                                            
+
                                             return (
                                                 <div
                                                     key={c.id}
@@ -1501,18 +1512,23 @@ export default function DeltaForceDatabaseView({
                                                                     );
                                                                 })()}
                                                             </div>
- 
+
                                                             {/* Caliber details */}
                                                             <div className="min-w-0 flex-1">
                                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
-                                                                    <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-wider">
+                                                                    <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-wider flex items-center gap-2">
                                                                         {c.name}
+                                                                        {(c as any).is_hidden && (
+                                                                            <span className="inline-flex text-[0.5rem] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                                                Oculto
+                                                                            </span>
+                                                                        )}
                                                                     </h3>
                                                                     <span className="inline-flex text-[0.5625rem] font-black text-df-green-650 dark:text-df-green-400 bg-df-green-500/10 border border-df-green-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider w-fit">
                                                                         {caliberAmmo.length} Proyectiles
                                                                     </span>
                                                                 </div>
- 
+
                                                                 {/* Compatible Weapons list */}
                                                                 {caliberWeapons.length > 0 ? (
                                                                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -1533,10 +1549,10 @@ export default function DeltaForceDatabaseView({
                                                                 )}
                                                             </div>
                                                         </div>
- 
+
                                                         {/* Right side controls */}
                                                         <div className="flex items-center gap-3 shrink-0 ml-4" onClick={(e) => e.stopPropagation()}>
-                                                            {user && (
+                                                            {profile?.role === 'admin' && (
                                                                 <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         onClick={() => handleAddClick("ammo", c.name)}
@@ -1562,7 +1578,7 @@ export default function DeltaForceDatabaseView({
                                                                     </button>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {/* Expand Indicator Chevron */}
                                                             <div onClick={() => setExpandedCalibers(prev => ({ ...prev, [c.name]: !prev[c.name] }))} className="p-1 cursor-pointer">
                                                                 <ChevronRight
@@ -1574,189 +1590,196 @@ export default function DeltaForceDatabaseView({
                                                             </div>
                                                         </div>
                                                     </div>
- 
+
                                                     {/* Accordion Content (Bullets Table) */}
                                                     <div
                                                         className={cn(
                                                             "grid transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] bg-zinc-50/20 dark:bg-zinc-900/5 overflow-hidden",
-                                                            isExpanded 
-                                                                ? "grid-rows-[1fr] opacity-100" 
+                                                            isExpanded
+                                                                ? "grid-rows-[1fr] opacity-100"
                                                                 : "grid-rows-[0fr] opacity-0 pointer-events-none"
                                                         )}
                                                     >
                                                         <div className="min-h-0">
                                                             <div className="border-t border-border/40">
-                                                        {caliberAmmo.length === 0 ? (
-                                                            <div className="p-8 text-center text-xs text-muted-foreground italic">
-                                                                No hay proyectiles configurados para este calibre.
-                                                            </div>
-                                                        ) : (
-                                                            <div className="overflow-x-auto">
-                                                                <table className="w-full border-collapse text-left">
-                                                                    <thead>
-                                                                        <tr className="border-b border-border bg-zinc-50/50 dark:bg-zinc-900/40 text-[0.625rem] font-bold text-muted-foreground uppercase tracking-widest">
-                                                                            <th className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">Bala</th>
-                                                                            <th className="p-3 text-center">Nivel Perf.</th>
-                                                                            <th className="p-3 text-center">Puntos Perf.</th>
-                                                                            <th className="p-3 text-center">Daño Cuerpo</th>
-                                                                            <th className="p-3 text-center">Prop. Daño</th>
-                                                                            <th className="p-3 text-center">Daño Efectivo al Blindaje (Nv. 1-6)</th>
-                                                                            <th className="p-3 text-center">Pérdida Perf.</th>
-                                                                            <th className="p-3 text-center">Caída</th>
-                                                                            {user && <th className="p-3 text-right pr-4">Acción</th>}
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="divide-y divide-border/40 text-xs">
-                                                                        {caliberAmmo.map((a) => {
-                                                                            const penLevel = (a as any).penetration_level ?? 0;
-                                                                            const dmgRatio = (a as any).damage_ratio ?? 100;
-                                                                            const degradation = (a as any).armor_pen_degradation ?? "bajo";
-                                                                            const falloff = (a as any).pen_falloff_coefficient ?? 0;
-                                                                            const armorPen = a.armor_penetration || "-";
-                                                                            const bodyDamage = a.body_damage || "-";
-                                                                            const penColors = {
-                                                                                0: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
-                                                                                1: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
-                                                                                2: { bg: "bg-emerald-500/10 border border-emerald-500/30", text: "text-emerald-500" },
-                                                                                3: { bg: "bg-blue-500/10 border border-blue-500/30", text: "text-blue-500" },
-                                                                                4: { bg: "bg-purple-500/10 border border-purple-500/30", text: "text-purple-500" },
-                                                                                5: { bg: "bg-amber-500/10 border border-amber-500/30", text: "text-amber-500" },
-                                                                                6: { bg: "bg-red-500/10 border border-red-500/30", text: "text-red-500" },
-                                                                            };
-                                                                            const pc = penColors[penLevel] || penColors[0];
-                                                                            const dmgRatioColor = dmgRatio > 100 ? "text-df-green-650 dark:text-df-green-400" : dmgRatio < 100 ? "text-rose-500" : "text-muted-foreground";
-                                                                            const degColors = {
-                                                                                bajo: "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
-                                                                                medio: "bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400",
-                                                                                alto: "bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400",
-                                                                            };
-                                                                            const armorVals = [1, 2, 3, 4, 5, 6].map(n => calculateDamagePenetration(penLevel, n));
-                                                                            
-                                                                            return (
-                                                                                <tr key={a.id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors group/row">
-                                                                                    <td className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">
-                                                                                        <div className="flex items-center gap-3 min-w-0">
-                                                                                            <div className="w-14 h-14 rounded-xl bg-zinc-100/50 dark:bg-zinc-900/30 overflow-hidden border border-border/40 shrink-0 flex items-center justify-center">
-                                                                                                {(a.image_url || getFirstImageUrl(c.image_url)) ? (
-                                                                                                    <img
-                                                                                                        src={a.image_url || getFirstImageUrl(c.image_url)}
-                                                                                                        alt={a.name}
-                                                                                                        className="w-full h-full object-contain p-1"
-                                                                                                        loading="lazy"
-                                                                                                    />
-                                                                                                ) : (
-                                                                                                    <Package className="w-6 h-6 text-zinc-300 dark:text-zinc-700 opacity-60" />
-                                                                                                )}
-                                                                                            </div>
-                                                                                            <div className="min-w-0 flex-1">
-                                                                                                <div className="font-extrabold text-[0.8125rem] text-foreground truncate">{a.name}</div>
-                                                                                                {a.description && (
-                                                                                                    <div className="text-[0.625rem] text-muted-foreground/60 mt-0.5 max-w-[120px] truncate" title={a.description}>
-                                                                                                        {a.description}
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center">
-                                                                                        <span className={cn("px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider", pc.bg, pc.text)}>
-                                                                                            Nv.{penLevel}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center font-mono font-bold text-foreground">
-                                                                                        {armorPen}
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center font-mono font-bold text-foreground">
-                                                                                        {bodyDamage}
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center">
-                                                                                         <div className="flex items-center justify-center gap-1 group/ratio relative">
-                                                                                             <span className={cn("text-sm font-black font-mono tabular-nums", dmgRatioColor)}>
-                                                                                                 {dmgRatio}%
-                                                                                             </span>
-                                                                                             <User className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-help transition-colors" />
-                                                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
-                                                                                                 <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[0.5rem]">Daño Corporal</span>
-                                                                                                 Daño aplicado en zonas sin blindaje o extremidades (Nv. 0)
-                                                                                             </div>
-                                                                                         </div>
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center">
-                                                                                         <div className="flex items-end justify-center gap-1">
-                                                                                             {armorVals.map((val, i) => {
-                                                                                                 let textClass = "";
-                                                                                                 let bgClass = "bg-zinc-100 dark:bg-zinc-800";
-                                                                                                 
-                                                                                                 if (val === 100) {
-                                                                                                     textClass = "text-green-500 dark:text-green-400";
-                                                                                                     bgClass = "bg-green-500/10";
-                                                                                                 } else if (val >= 75) {
-                                                                                                     textClass = "text-yellow-600 dark:text-yellow-400";
-                                                                                                     bgClass = "bg-yellow-500/10";
-                                                                                                 } else if (val >= 50) {
-                                                                                                     textClass = "text-orange-605 dark:text-orange-500";
-                                                                                                     bgClass = "bg-orange-500/10";
-                                                                                                 } else if (val === 0) {
-                                                                                                     textClass = "text-zinc-400 dark:text-zinc-650";
-                                                                                                     bgClass = "bg-zinc-100 dark:bg-zinc-900/60";
-                                                                                                 }
-                                                                                                 
-                                                                                                 return (
-                                                                                                     <div key={i} className="flex flex-col items-center gap-1" title={`Nv.${i + 1}: ${val}%`}>
-                                                                                                         <div className={cn("text-[0.625rem] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
-                                                                                                             {val}%
-                                                                                                         </div>
-                                                                                                         <span className={cn("text-[0.625rem] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
-                                                                                                             {i + 1}
-                                                                                                         </span>
-                                                                                                     </div>
-                                                                                                 );
-                                                                                             })}
-                                                                                         </div>
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center">
-                                                                                         <div className="inline-block group/degraded relative">
-                                                                                             <span className={cn("px-2.5 py-1 rounded-xl text-[0.6875rem] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
-                                                                                                 {degradation}
-                                                                                             </span>
-                                                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
-                                                                                                 <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[0.5rem]">Pérdida de Perforación</span>
-                                                                                                 {degradation === "bajo" && <span>El proyectil apenas pierde capacidad de penetración tras el primer impacto.</span>}
-                                                                                                 {degradation === "medio" && <span>Pérdida de penetración moderada tras atravesar el primer blindaje.</span>}
-                                                                                                 {degradation === "alto" && <span>Pérdida de penetración severa al impactar contra placas de blindaje.</span>}
-                                                                                             </div>
-                                                                                         </div>
-                                                                                    </td>
-                                                                                    <td className="p-3 text-center font-mono text-muted-foreground text-xs font-bold">
-                                                                                        {falloff}%
-                                                                                    </td>
-                                                                                    {user && (
-                                                                                        <td className="p-3 text-right pr-4">
-                                                                                            <div className="opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center justify-end gap-1">
-                                                                                                <button
-                                                                                                    onClick={() => handleEditClick(a, "ammo")}
-                                                                                                    className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 text-muted-foreground hover:text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
-                                                                                                    title="Editar munición"
-                                                                                                >
-                                                                                                    <Edit className="w-3 h-3" />
-                                                                                                </button>
-                                                                                                <button
-                                                                                                    onClick={() => handleDeleteClick(a.id, a.name, "ammo")}
-                                                                                                    className="p-1 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                                                                                                    title="Eliminar munición"
-                                                                                                >
-                                                                                                    <Trash2 className="w-3 h-3" />
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        </td>
-                                                                                    )}
+                                                                {caliberAmmo.length === 0 ? (
+                                                                    <div className="p-8 text-center text-xs text-muted-foreground italic">
+                                                                        No hay proyectiles configurados para este calibre.
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="overflow-x-auto">
+                                                                        <table className="w-full border-collapse text-left">
+                                                                            <thead>
+                                                                                <tr className="border-b border-border bg-zinc-50/50 dark:bg-zinc-900/40 text-[0.625rem] font-bold text-muted-foreground uppercase tracking-widest">
+                                                                                    <th className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">Bala</th>
+                                                                                    <th className="p-3 text-center">Nivel Perf.</th>
+                                                                                    <th className="p-3 text-center">Puntos Perf.</th>
+                                                                                    <th className="p-3 text-center">Daño Cuerpo</th>
+                                                                                    <th className="p-3 text-center">Prop. Daño</th>
+                                                                                    <th className="p-3 text-center">Daño Efectivo al Blindaje (Nv. 1-6)</th>
+                                                                                    <th className="p-3 text-center">Pérdida Perf.</th>
+                                                                                    <th className="p-3 text-center">Caída</th>
+                                                                                    {profile?.role === 'admin' && <th className="p-3 text-right pr-4">Acción</th>}
                                                                                 </tr>
-                                                                            );
-                                                                        })}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        )}
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-border/40 text-xs">
+                                                                                {caliberAmmo.map((a) => {
+                                                                                    const penLevel = (a as any).penetration_level ?? 0;
+                                                                                    const dmgRatio = (a as any).damage_ratio ?? 100;
+                                                                                    const degradation = (a as any).armor_pen_degradation ?? "bajo";
+                                                                                    const falloff = (a as any).pen_falloff_coefficient ?? 0;
+                                                                                    const armorPen = a.armor_penetration || "-";
+                                                                                    const bodyDamage = a.body_damage || "-";
+                                                                                    const penColors = {
+                                                                                        0: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
+                                                                                        1: { bg: "bg-zinc-500/10 border border-zinc-500/20", text: "text-zinc-400" },
+                                                                                        2: { bg: "bg-emerald-500/10 border border-emerald-500/30", text: "text-emerald-500" },
+                                                                                        3: { bg: "bg-blue-500/10 border border-blue-500/30", text: "text-blue-500" },
+                                                                                        4: { bg: "bg-purple-500/10 border border-purple-500/30", text: "text-purple-500" },
+                                                                                        5: { bg: "bg-amber-500/10 border border-amber-500/30", text: "text-amber-500" },
+                                                                                        6: { bg: "bg-red-500/10 border border-red-500/30", text: "text-red-500" },
+                                                                                    };
+                                                                                    const pc = penColors[penLevel] || penColors[0];
+                                                                                    const dmgRatioColor = dmgRatio > 100 ? "text-df-green-650 dark:text-df-green-400" : dmgRatio < 100 ? "text-rose-500" : "text-muted-foreground";
+                                                                                    const degColors = {
+                                                                                        bajo: "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
+                                                                                        medio: "bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400",
+                                                                                        alto: "bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400",
+                                                                                    };
+                                                                                    const armorVals = [1, 2, 3, 4, 5, 6].map(n => calculateDamagePenetration(penLevel, n));
+
+                                                                                    return (
+                                                                                        <tr key={a.id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors group/row">
+                                                                                            <td className="p-3 pl-4 w-[170px] min-w-[150px] max-w-[190px]">
+                                                                                                <div className="flex items-center gap-3 min-w-0">
+                                                                                                    <div className="w-14 h-14 rounded-xl bg-zinc-100/50 dark:bg-zinc-900/30 overflow-hidden border border-border/40 shrink-0 flex items-center justify-center">
+                                                                                                        {(a.image_url || getFirstImageUrl(c.image_url)) ? (
+                                                                                                            <img
+                                                                                                                src={a.image_url || getFirstImageUrl(c.image_url)}
+                                                                                                                alt={a.name}
+                                                                                                                className="w-full h-full object-contain p-1"
+                                                                                                                loading="lazy"
+                                                                                                            />
+                                                                                                        ) : (
+                                                                                                            <Package className="w-6 h-6 text-zinc-300 dark:text-zinc-700 opacity-60" />
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    <div className="min-w-0 flex-1">
+                                                                                                        <div className="font-extrabold text-[0.8125rem] text-foreground truncate flex items-center gap-2">
+                                                                                                            {a.name}
+                                                                                                            {(a as any).is_hidden && (
+                                                                                                                <span className="inline-flex text-[0.45rem] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded uppercase tracking-wider leading-none">
+                                                                                                                    Oculto
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                        {a.description && (
+                                                                                                            <div className="text-[0.625rem] text-muted-foreground/60 mt-0.5 max-w-[120px] truncate" title={a.description}>
+                                                                                                                {a.description}
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center">
+                                                                                                <span className={cn("px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider", pc.bg, pc.text)}>
+                                                                                                    Nv.{penLevel}
+                                                                                                </span>
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center font-mono font-bold text-foreground">
+                                                                                                {armorPen}
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center font-mono font-bold text-foreground">
+                                                                                                {bodyDamage}
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center">
+                                                                                                <div className="flex items-center justify-center gap-1 group/ratio relative">
+                                                                                                    <span className={cn("text-sm font-black font-mono tabular-nums", dmgRatioColor)}>
+                                                                                                        {dmgRatio}%
+                                                                                                    </span>
+                                                                                                    <User className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-help transition-colors" />
+                                                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ratio:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-44 text-center pointer-events-none">
+                                                                                                        <span className="font-bold block mb-0.5 text-df-green-400 uppercase tracking-wider text-[0.5rem]">Daño Corporal</span>
+                                                                                                        Daño aplicado en zonas sin blindaje o extremidades (Nv. 0)
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center">
+                                                                                                <div className="flex items-end justify-center gap-1">
+                                                                                                    {armorVals.map((val, i) => {
+                                                                                                        let textClass = "";
+                                                                                                        let bgClass = "bg-zinc-100 dark:bg-zinc-800";
+
+                                                                                                        if (val === 100) {
+                                                                                                            textClass = "text-green-500 dark:text-green-400";
+                                                                                                            bgClass = "bg-green-500/10";
+                                                                                                        } else if (val >= 75) {
+                                                                                                            textClass = "text-yellow-600 dark:text-yellow-400";
+                                                                                                            bgClass = "bg-yellow-500/10";
+                                                                                                        } else if (val >= 50) {
+                                                                                                            textClass = "text-orange-605 dark:text-orange-500";
+                                                                                                            bgClass = "bg-orange-500/10";
+                                                                                                        } else if (val === 0) {
+                                                                                                            textClass = "text-zinc-400 dark:text-zinc-650";
+                                                                                                            bgClass = "bg-zinc-100 dark:bg-zinc-900/60";
+                                                                                                        }
+
+                                                                                                        return (
+                                                                                                            <div key={i} className="flex flex-col items-center gap-1" title={`Nv.${i + 1}: ${val}%`}>
+                                                                                                                <div className={cn("text-[0.625rem] font-black w-8 text-center py-1 rounded-md", bgClass, textClass)}>
+                                                                                                                    {val}%
+                                                                                                                </div>
+                                                                                                                <span className={cn("text-[0.625rem] font-black tracking-wide", ARMOR_LEVEL_COLORS[i + 1] || "text-muted-foreground/50")}>
+                                                                                                                    {i + 1}
+                                                                                                                </span>
+                                                                                                            </div>
+                                                                                                        );
+                                                                                                    })}
+                                                                                                </div>
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center">
+                                                                                                <div className="inline-block group/degraded relative">
+                                                                                                    <span className={cn("px-2.5 py-1 rounded-xl text-[0.6875rem] font-black border capitalize cursor-help", degColors[degradation] || degColors.bajo)}>
+                                                                                                        {degradation}
+                                                                                                    </span>
+                                                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/degraded:block bg-zinc-950 text-zinc-100 text-[0.5625rem] p-2 rounded-xl shadow-xl border border-zinc-800 z-50 w-52 text-left pointer-events-none">
+                                                                                                        <span className="font-bold block mb-1 text-center uppercase tracking-wider text-df-green-400 text-[0.5rem]">Pérdida de Perforación</span>
+                                                                                                        {degradation === "bajo" && <span>El proyectil apenas pierde capacidad de penetración tras el primer impacto.</span>}
+                                                                                                        {degradation === "medio" && <span>Pérdida de penetración moderada tras atravesar el primer blindaje.</span>}
+                                                                                                        {degradation === "alto" && <span>Pérdida de penetración severa al impactar contra placas de blindaje.</span>}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                            <td className="p-3 text-center font-mono text-muted-foreground text-xs font-bold">
+                                                                                                {falloff}%
+                                                                                            </td>
+                                                                                            {profile?.role === 'admin' && (
+                                                                                                <td className="p-3 text-right pr-4">
+                                                                                                    <div className="opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center justify-end gap-1">
+                                                                                                        <button
+                                                                                                            onClick={() => handleEditClick(a, "ammo")}
+                                                                                                            className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 text-muted-foreground hover:text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+                                                                                                            title="Editar munición"
+                                                                                                        >
+                                                                                                            <Edit className="w-3 h-3" />
+                                                                                                        </button>
+                                                                                                        <button
+                                                                                                            onClick={() => handleDeleteClick(a.id, a.name, "ammo")}
+                                                                                                            className="p-1 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                                                                            title="Eliminar munición"
+                                                                                                        >
+                                                                                                            <Trash2 className="w-3 h-3" />
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            )}
+                                                                                        </tr>
+                                                                                    );
+                                                                                })}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1765,683 +1788,483 @@ export default function DeltaForceDatabaseView({
                                         })}
                                     </div>
                                 ))}
-                            </div>
-                        )}
+                        </div>
+                    )}
 
-                                {subTab === "gear" && (
-                                    <div className="space-y-10">
-                                        {groupedGear.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center py-20 space-y-3 text-muted-foreground bg-white dark:bg-zinc-950 border border-border/60 rounded-2xl">
-                                                <Shield className="w-10 h-10 opacity-20" />
-                                                <p className="text-sm font-semibold">No se encontraron elementos de protección</p>
-                                                <p className="text-xs opacity-60">Prueba con otra búsqueda o agrega un nuevo elemento.</p>
+                    {subTab === "gear" && (
+                        <div className="space-y-10">
+                            {groupedGear.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 space-y-3 text-muted-foreground bg-white dark:bg-zinc-950 border border-border/60 rounded-2xl">
+                                    <Shield className="w-10 h-10 opacity-20" />
+                                    <p className="text-sm font-semibold">No se encontraron elementos de protección</p>
+                                    <p className="text-xs opacity-60">Prueba con otra búsqueda o agrega un nuevo elemento.</p>
+                                </div>
+                            ) : (
+                                groupedGear.map(({ tier, items }) => {
+                                    const tierConfig = getTierColors(tier);
+                                    const isExpanded = !!expandedTiers[tier] || searchQuery.trim() !== "";
+                                    return (
+                                        <div key={tier} className="space-y-2">
+                                            {/* Collapsible Header */}
+                                            <div
+                                                onClick={() => setExpandedTiers(prev => ({ ...prev, [tier]: !prev[tier] }))}
+                                                className="flex items-center gap-3 cursor-pointer select-none group/tier-header py-1"
+                                            >
+                                                <ChevronRight className={cn(
+                                                    "w-4 h-4 text-muted-foreground transition-transform duration-300 group-hover/tier-header:text-foreground shrink-0",
+                                                    isExpanded ? "rotate-90" : "rotate-0"
+                                                )} />
+                                                <span className={cn(
+                                                    "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border transition-all duration-300 shrink-0",
+                                                    tierConfig.bg,
+                                                    tierConfig.text,
+                                                    "group-hover/tier-header:shadow-sm"
+                                                )}>
+                                                    {tierConfig.label}
+                                                </span>
+                                                <div className="h-px flex-1 bg-gradient-to-r from-zinc-200/60 dark:from-zinc-800/80 to-transparent" />
                                             </div>
-                                        ) : (
-                                            groupedGear.map(({ tier, items }) => {
-                                                const tierConfig = getTierColors(tier);
-                                                const isExpanded = !!expandedTiers[tier] || searchQuery.trim() !== "";
-                                                return (
-                                                    <div key={tier} className="space-y-2">
-                                                        {/* Collapsible Header */}
-                                                        <div 
-                                                            onClick={() => setExpandedTiers(prev => ({ ...prev, [tier]: !prev[tier] }))}
-                                                            className="flex items-center gap-3 cursor-pointer select-none group/tier-header py-1"
-                                                        >
-                                                            <ChevronRight className={cn(
-                                                                "w-4 h-4 text-muted-foreground transition-transform duration-300 group-hover/tier-header:text-foreground shrink-0", 
-                                                                isExpanded ? "rotate-90" : "rotate-0"
-                                                            )} />
-                                                            <span className={cn(
-                                                                "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border transition-all duration-300 shrink-0",
-                                                                tierConfig.bg,
-                                                                tierConfig.text,
-                                                                "group-hover/tier-header:shadow-sm"
-                                                            )}>
-                                                                {tierConfig.label}
-                                                            </span>
-                                                            <div className="h-px flex-1 bg-gradient-to-r from-zinc-200/60 dark:from-zinc-800/80 to-transparent" />
-                                                        </div>
 
-                                                        {/* Collapsible Content */}
-                                                        <div className={cn(
-                                                            "grid transition-all duration-300 ease-in-out",
-                                                            isExpanded ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0 overflow-hidden pointer-events-none mt-0"
-                                                        )}>
-                                                            <div className="min-h-0 overflow-hidden">
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-2">
-                                                                    {items.map((g) => {
-                                                                        const isHelmet = g.type === "helmet";
-                                                                        return (
-                                                                            <div
-                                                                                key={g.id}
-                                                                                className="group relative bg-zinc-50/40 dark:bg-zinc-950/70 border border-zinc-200/50 dark:border-zinc-800/80 hover:border-df-green-500/30 rounded-2xl transition-all duration-300 flex flex-col shadow-sm hover:shadow-md dark:shadow-none backdrop-blur-sm overflow-hidden"
-                                                                            >
-                                                                                {/* Image Section */}
-                                                                                <div className="relative bg-zinc-100/50 dark:bg-zinc-900/30 border-b border-zinc-200/40 dark:border-zinc-800/50 w-full h-44 flex items-center justify-center overflow-hidden shrink-0 transition-all duration-500 group-hover:border-df-green-500/20">
-                                                                                    {/* Tier Badge inside Image */}
-                                                                                    <div className="absolute top-3 left-3 z-10">
-                                                                                        <span className={cn(
-                                                                                            "text-[0.5rem] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border backdrop-blur-md",
-                                                                                            g.tier === 6 ? "bg-red-500/10 border-red-500/30 text-red-650 dark:text-red-400" :
-                                                                                            g.tier === 5 ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" :
-                                                                                            g.tier === 4 ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400" :
+                                            {/* Collapsible Content */}
+                                            <div className={cn(
+                                                "grid transition-all duration-300 ease-in-out",
+                                                isExpanded ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0 overflow-hidden pointer-events-none mt-0"
+                                            )}>
+                                                <div className="min-h-0 overflow-hidden">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-2">
+                                                        {items.map((g) => {
+                                                            const isHelmet = g.type === "helmet";
+                                                            return (
+                                                                <div
+                                                                    key={g.id}
+                                                                    className="group relative bg-zinc-50/40 dark:bg-zinc-950/70 border border-zinc-200/50 dark:border-zinc-800/80 hover:border-df-green-500/30 rounded-2xl transition-all duration-300 flex flex-col shadow-sm hover:shadow-md dark:shadow-none backdrop-blur-sm overflow-hidden"
+                                                                >
+                                                                    {/* Image Section */}
+                                                                    <div className="relative bg-zinc-100/50 dark:bg-zinc-900/30 border-b border-zinc-200/40 dark:border-zinc-800/50 w-full h-44 flex items-center justify-center overflow-hidden shrink-0 transition-all duration-500 group-hover:border-df-green-500/20">
+                                                                        {/* Tier Badge inside Image */}
+                                                                        <div className="absolute top-3 left-3 z-10">
+                                                                            <span className={cn(
+                                                                                "text-[0.5rem] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border backdrop-blur-md",
+                                                                                g.tier === 6 ? "bg-red-500/10 border-red-500/30 text-red-650 dark:text-red-400" :
+                                                                                    g.tier === 5 ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" :
+                                                                                        g.tier === 4 ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400" :
                                                                                             g.tier === 3 ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" :
-                                                                                            g.tier === 2 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" :
-                                                                                            "bg-zinc-800/20 border-zinc-700/30 text-zinc-400"
-                                                                                        )}>
-                                                                                            Nv. {g.tier}
+                                                                                                g.tier === 2 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" :
+                                                                                                    "bg-zinc-800/20 border-zinc-700/30 text-zinc-400"
+                                                                            )}>
+                                                                                Nv. {g.tier}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        {g.image_url ? (
+                                                                            <img
+                                                                                src={g.image_url}
+                                                                                alt={g.name}
+                                                                                className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.04] filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_4px_8px_rgba(0,0,0,0.2)]"
+                                                                                loading="lazy"
+                                                                            />
+                                                                        ) : (
+                                                                            <Shield className={cn("w-10 h-10 text-zinc-300 dark:text-zinc-700 opacity-40", isHelmet && "rotate-180")} />
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Info Section */}
+                                                                    <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
+                                                                        <div className="space-y-3">
+                                                                            {/* Header: Title + Type + Actions */}
+                                                                            <div className="flex justify-between items-start gap-4">
+                                                                                <div className="min-w-0">
+                                                                                    <span className={cn(
+                                                                                        "text-[0.5rem] font-black uppercase tracking-widest block mb-0.5",
+                                                                                        isHelmet ? "text-cyan-600 dark:text-cyan-400" : "text-rose-600 dark:text-rose-400"
+                                                                                    )}>
+                                                                                        {isHelmet ? "Casco Táctico" : "Chaleco de Combate"} • Nv. {g.tier}
+                                                                                    </span>
+                                                                                    <h3 className="text-sm font-black tracking-tight text-zinc-900 dark:text-white uppercase leading-snug truncate" title={g.name}>
+                                                                                        {g.name}
+                                                                                    </h3>
+                                                                                </div>
+
+                                                                                {/* Actions (Edit / Delete) */}
+                                                                                {profile?.role === 'admin' && (
+                                                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 shrink-0">
+                                                                                        <button
+                                                                                            onClick={() => handleEditClick(g, "gear")}
+                                                                                            className="p-1 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-muted-foreground hover:text-foreground transition-all"
+                                                                                            title="Editar"
+                                                                                        >
+                                                                                            <Edit className="w-3 h-3" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => handleDeleteClick(g.id, g.name, "gear")}
+                                                                                            className="p-1 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                                                            title="Eliminar"
+                                                                                        >
+                                                                                            <Trash2 className="w-3 h-3" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+
+                                                                            {/* Stats List - Minimalist emulating the game UI */}
+                                                                            <div className="divide-y divide-zinc-200/50 dark:divide-zinc-800/70 text-[0.625rem]">
+                                                                                {/* Durability */}
+                                                                                <div className="py-1.5 space-y-1">
+                                                                                    <div className="flex justify-between items-center text-muted-foreground">
+                                                                                        <span className="font-semibold text-zinc-500 dark:text-zinc-350">Durabilidad</span>
+                                                                                        <span className="font-mono font-bold text-zinc-800 dark:text-zinc-100">
+                                                                                            {(g.max_durability || 0).toFixed(1)} / {(g.max_durability || 0).toFixed(1)}
                                                                                         </span>
                                                                                     </div>
-
-                                                                                    {g.image_url ? (
-                                                                                        <img
-                                                                                            src={g.image_url}
-                                                                                            alt={g.name}
-                                                                                            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.04] filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_4px_8px_rgba(0,0,0,0.2)]"
-                                                                                            loading="lazy"
+                                                                                    <div className="h-[2px] w-full bg-zinc-200 dark:bg-zinc-800/80 rounded-full overflow-hidden">
+                                                                                        <div
+                                                                                            className="h-full rounded-full bg-df-green-500 transition-all duration-700"
+                                                                                            style={{ width: "100%" }}
                                                                                         />
-                                                                                    ) : (
-                                                                                        <Shield className={cn("w-10 h-10 text-zinc-300 dark:text-zinc-700 opacity-40", isHelmet && "rotate-180")} />
-                                                                                    )}
+                                                                                    </div>
                                                                                 </div>
 
-                                                                                {/* Info Section */}
-                                                                                <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
-                                                                                    <div className="space-y-3">
-                                                                                        {/* Header: Title + Type + Actions */}
-                                                                                        <div className="flex justify-between items-start gap-4">
-                                                                                            <div className="min-w-0">
-                                                                                                <span className={cn(
-                                                                                                    "text-[0.5rem] font-black uppercase tracking-widest block mb-0.5",
-                                                                                                    isHelmet ? "text-cyan-600 dark:text-cyan-400" : "text-rose-600 dark:text-rose-400"
-                                                                                                )}>
-                                                                                                    {isHelmet ? "Casco Táctico" : "Chaleco de Combate"} • Nv. {g.tier}
-                                                                                                </span>
-                                                                                                <h3 className="text-sm font-black tracking-tight text-zinc-900 dark:text-white uppercase leading-snug truncate" title={g.name}>
-                                                                                                    {g.name}
-                                                                                                </h3>
-                                                                                            </div>
-
-                                                                                            {/* Actions (Edit / Delete) */}
-                                                                                            {user && (
-                                                                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 shrink-0">
-                                                                                                    <button
-                                                                                                        onClick={() => handleEditClick(g, "gear")}
-                                                                                                        className="p-1 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-muted-foreground hover:text-foreground transition-all"
-                                                                                                        title="Editar"
-                                                                                                    >
-                                                                                                        <Edit className="w-3 h-3" />
-                                                                                                    </button>
-                                                                                                    <button
-                                                                                                        onClick={() => handleDeleteClick(g.id, g.name, "gear")}
-                                                                                                        className="p-1 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                                                                                                        title="Eliminar"
-                                                                                                    >
-                                                                                                        <Trash2 className="w-3 h-3" />
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                            )}
-                                                                                        </div>
-
-                                                                                        {/* Stats List - Minimalist emulating the game UI */}
-                                                                                        <div className="divide-y divide-zinc-200/50 dark:divide-zinc-800/70 text-[0.625rem]">
-                                                                                            {/* Durability */}
-                                                                                            <div className="py-1.5 space-y-1">
-                                                                                                <div className="flex justify-between items-center text-muted-foreground">
-                                                                                                    <span className="font-semibold text-zinc-500 dark:text-zinc-350">Durabilidad</span>
-                                                                                                    <span className="font-mono font-bold text-zinc-800 dark:text-zinc-100">
-                                                                                                        {(g.max_durability || 0).toFixed(1)} / {(g.max_durability || 0).toFixed(1)}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <div className="h-[2px] w-full bg-zinc-200 dark:bg-zinc-800/80 rounded-full overflow-hidden">
-                                                                                                    <div
-                                                                                                        className="h-full rounded-full bg-df-green-500 transition-all duration-700"
-                                                                                                        style={{ width: "100%" }}
-                                                                                                    />
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                            {/* Shield Effects (Speed Penalties) */}
-                                                                                            {(g.speed_penalty !== 0 || g.ergo_penalty !== 0) && (
-                                                                                                <div className="py-1.5 space-y-1">
-                                                                                                    <span className="block text-[0.5rem] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Efectos de blindaje</span>
-                                                                                                    <div className="space-y-0.5">
-                                                                                                        {g.ergo_penalty !== 0 && (
-                                                                                                            <div className="flex items-center gap-1.5 text-zinc-650 dark:text-zinc-200 font-medium">
-                                                                                                                <Zap size={9} className="text-zinc-400 dark:text-zinc-350 shrink-0" />
-                                                                                                                <span>
-                                                                                                                    {g.ergo_penalty < 0 ? "" : "+"}{(g.ergo_penalty * 100).toFixed(0)}% de velocidad de apuntado
-                                                                                                                </span>
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                        {g.speed_penalty !== 0 && (
-                                                                                                            <div className="flex items-center gap-1.5 text-zinc-650 dark:text-zinc-200 font-medium">
-                                                                                                                <Activity size={9} className="text-zinc-400 dark:text-zinc-350 shrink-0" />
-                                                                                                                <span>
-                                                                                                                    {g.speed_penalty < 0 ? "" : "+"}{(g.speed_penalty * 100).toFixed(0)}% de velocidad de movimiento
-                                                                                                                </span>
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            )}
-
-                                                                                            {/* Protected Zones */}
-                                                                                            {g.zones_protected && g.zones_protected.length > 0 && (
-                                                                                                <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
-                                                                                                    <span className="text-zinc-500 dark:text-zinc-350">Partes protegidas</span>
-                                                                                                    <span className="font-bold text-zinc-800 dark:text-zinc-100 capitalize">
-                                                                                                        {g.zones_protected.join(" / ")}
+                                                                                {/* Shield Effects (Speed Penalties) */}
+                                                                                {(g.speed_penalty !== 0 || g.ergo_penalty !== 0) && (
+                                                                                    <div className="py-1.5 space-y-1">
+                                                                                        <span className="block text-[0.5rem] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Efectos de blindaje</span>
+                                                                                        <div className="space-y-0.5">
+                                                                                            {g.ergo_penalty !== 0 && (
+                                                                                                <div className="flex items-center gap-1.5 text-zinc-650 dark:text-zinc-200 font-medium">
+                                                                                                    <Zap size={9} className="text-zinc-400 dark:text-zinc-350 shrink-0" />
+                                                                                                    <span>
+                                                                                                        {g.ergo_penalty < 0 ? "" : "+"}{(g.ergo_penalty * 100).toFixed(0)}% de velocidad de apuntado
                                                                                                     </span>
                                                                                                 </div>
                                                                                             )}
-
-                                                                                            {/* Durability Cost */}
-                                                                                            {!isHelmet && g.durability_cost && (
-                                                                                                <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
-                                                                                                    <span className="text-zinc-500 dark:text-zinc-350">Costo de durabilidad</span>
-                                                                                                    <span className="font-bold text-zinc-800 dark:text-zinc-100 capitalize">
-                                                                                                        {g.durability_cost}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                            )}
-
-                                                                                            {/* Repair Efficiency */}
-                                                                                            {!isHelmet && g.repair_efficiency && (
-                                                                                                <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
-                                                                                                    <span className="text-zinc-500 dark:text-zinc-350">Eficiencia de reparación</span>
-                                                                                                    <span className="font-bold text-zinc-800 dark:text-zinc-100 capitalize">
-                                                                                                        {g.repair_efficiency === "medio" ? "Media" : g.repair_efficiency}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                            )}
-
-                                                                                            {/* Weight */}
-                                                                                            {g.weight_kg !== undefined && g.weight_kg !== null && g.weight_kg > 0 && (
-                                                                                                <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
-                                                                                                    <span className="text-zinc-500 dark:text-zinc-350">Peso</span>
-                                                                                                    <span className="font-mono font-bold text-zinc-850 dark:text-zinc-100">
-                                                                                                        {(g.weight_kg || 0).toFixed(2)} KG
+                                                                                            {g.speed_penalty !== 0 && (
+                                                                                                <div className="flex items-center gap-1.5 text-zinc-650 dark:text-zinc-200 font-medium">
+                                                                                                    <Activity size={9} className="text-zinc-400 dark:text-zinc-350 shrink-0" />
+                                                                                                    <span>
+                                                                                                        {g.speed_penalty < 0 ? "" : "+"}{(g.speed_penalty * 100).toFixed(0)}% de velocidad de movimiento
                                                                                                     </span>
                                                                                                 </div>
                                                                                             )}
                                                                                         </div>
                                                                                     </div>
+                                                                                )}
 
-                                                                                    {/* Description */}
-                                                                                    {g.description && (
-                                                                                        <p className="text-[0.5625rem] text-zinc-600 dark:text-zinc-300/90 leading-relaxed mt-2.5 pt-2.5 border-t border-dashed border-zinc-200 dark:border-zinc-800/80 line-clamp-3">
-                                                                                            {g.description}
-                                                                                        </p>
-                                                                                    )}
-                                                                                </div>
+                                                                                {/* Protected Zones */}
+                                                                                {g.zones_protected && g.zones_protected.length > 0 && (
+                                                                                    <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
+                                                                                        <span className="text-zinc-500 dark:text-zinc-350">Partes protegidas</span>
+                                                                                        <span className="font-bold text-zinc-800 dark:text-zinc-100 capitalize">
+                                                                                            {g.zones_protected.join(" / ")}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Durability Cost */}
+                                                                                {!isHelmet && g.durability_cost && (
+                                                                                    <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
+                                                                                        <span className="text-zinc-500 dark:text-zinc-350">Costo de durabilidad</span>
+                                                                                        <span className="font-bold text-zinc-800 dark:text-zinc-100 capitalize">
+                                                                                            {g.durability_cost}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Repair Efficiency */}
+                                                                                {!isHelmet && g.repair_efficiency && (
+                                                                                    <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
+                                                                                        <span className="text-zinc-500 dark:text-zinc-350">Eficiencia de reparación</span>
+                                                                                        <span className="font-bold text-zinc-800 dark:text-zinc-100 capitalize">
+                                                                                            {g.repair_efficiency === "medio" ? "Media" : g.repair_efficiency}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Weight */}
+                                                                                {g.weight_kg !== undefined && g.weight_kg !== null && g.weight_kg > 0 && (
+                                                                                    <div className="flex justify-between items-center py-1.5 text-zinc-650 dark:text-zinc-200">
+                                                                                        <span className="text-zinc-500 dark:text-zinc-350">Peso</span>
+                                                                                        <span className="font-mono font-bold text-zinc-850 dark:text-zinc-100">
+                                                                                            {(g.weight_kg || 0).toFixed(2)} KG
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        );
-                                                                    })}
+                                                                        </div>
+
+                                                                        {/* Description */}
+                                                                        {g.description && (
+                                                                            <p className="text-[0.5625rem] text-zinc-600 dark:text-zinc-300/90 leading-relaxed mt-2.5 pt-2.5 border-t border-dashed border-zinc-200 dark:border-zinc-800/80 line-clamp-3">
+                                                                                {g.description}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    )}
 
                     {/* FLOATING ADMIN MODAL DIALOG */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-                    {/* Backdrop */}
-                    <div
-                        onClick={() => setIsFormOpen(false)}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-all"
-                    />
-
-                    {/* Modal Content container */}
-                    <div className="relative bg-white dark:bg-zinc-900 border border-border rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto shadow-2xl p-6 animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center pb-4 border-b border-border mb-4">
-                            <div>
-                                <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
-                                    {editMode === "add" ? "Configurar" : "Editar"} — {activeFormType === "weapons" ? "Estadísticas de Arma" : activeFormType === "ammo" ? "Munición" : activeFormType === "calibers" ? "Calibre" : "Equipamiento"}
-                                </h2>
-                                {activeFormType === "weapons" && (
-                                    <span className={cn(
-                                        "inline-flex items-center gap-1 text-[0.5625rem] font-black uppercase tracking-wider mt-0.5 px-2 py-0.5 rounded-md",
-                                        gameMode === "operations"
-                                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                    )}>
-                                        {gameMode === "operations" ? <Shield className="w-2.5 h-2.5" /> : <Swords className="w-2.5 h-2.5" />}
-                                        Modo: {gameMode === "operations" ? "Operaciones" : "Warfare"}
-                                    </span>
-                                )}
-                            </div>
-                            <button
+                    {isFormOpen && (
+                        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+                            {/* Backdrop */}
+                            <div
                                 onClick={() => setIsFormOpen(false)}
-                                className="p-1 text-muted-foreground hover:text-foreground rounded-lg transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-all"
+                            />
 
-                        {errorMsg && (
-                            <div className="p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold">
-                                {errorMsg}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
-                            {/* WEAPONS FIELD CONFIGS */}
-                            {activeFormType === "weapons" && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre de Arma</label>
-                                        <input
-                                            type="text"
-                                            value={weaponFields.weapon_name}
-                                            disabled
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-border text-muted-foreground cursor-not-allowed font-semibold focus:outline-none"
-                                        />
-                                    </div>
-
+                            {/* Modal Content container */}
+                            <div className="relative bg-white dark:bg-zinc-900 border border-border rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+                                <div className="flex justify-between items-center pb-4 border-b border-border mb-4">
                                     <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Categoría</label>
-                                        <input
-                                            type="text"
-                                            value={getCategoryLabel(weaponFields.category)}
-                                            disabled
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-border text-muted-foreground cursor-not-allowed font-semibold focus:outline-none"
-                                        />
+                                        <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
+                                            {editMode === "add" ? "Configurar" : "Editar"} — {activeFormType === "weapons" ? "Estadísticas de Arma" : activeFormType === "ammo" ? "Munición" : activeFormType === "calibers" ? "Calibre" : "Equipamiento"}
+                                        </h2>
+                                        {activeFormType === "weapons" && (
+                                            <span className={cn(
+                                                "inline-flex items-center gap-1 text-[0.5625rem] font-black uppercase tracking-wider mt-0.5 px-2 py-0.5 rounded-md",
+                                                gameMode === "operations"
+                                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                                    : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                            )}>
+                                                {gameMode === "operations" ? <Shield className="w-2.5 h-2.5" /> : <Swords className="w-2.5 h-2.5" />}
+                                                Modo: {gameMode === "operations" ? "Operaciones" : "Warfare"}
+                                            </span>
+                                        )}
                                     </div>
+                                    <button
+                                        onClick={() => setIsFormOpen(false)}
+                                        className="p-1 text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
 
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
-                                        <select
-                                            value={weaponFields.caliber}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, caliber: e.target.value }))}
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        >
-                                            {calibersList.map((c) => (
-                                                <option key={c.id} value={c.name}>{c.name}</option>
-                                            ))}
-                                        </select>
+                                {errorMsg && (
+                                    <div className="p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold">
+                                        {errorMsg}
                                     </div>
+                                )}
 
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Daño Base</label>
-                                         <input
-                                             type="text"
-                                             value={weaponFields.base_damage}
-                                             onChange={(e) => setWeaponFields(prev => ({ ...prev, base_damage: e.target.value }))}
-                                             placeholder="Ej: 33 o 14x8"
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Rango (m)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_range}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_range: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Control Retroceso (0-100)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_control}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_control: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            min="0" max="100"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Manejo/Ergonomía (0-100)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_handling}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_handling: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            min="0" max="100"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Estabilidad (0-100)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_stability}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_stability: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            min="0" max="100"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Precisión (0-100)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_accuracy}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_accuracy: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            min="0" max="100"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Cadencia (DPM)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_fire_rate}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_fire_rate: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Capacidad Mag (Rds)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_capacity}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_capacity: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Velocidad Boca (m/s)</label>
-                                        <input
-                                            type="number"
-                                            value={weaponFields.base_muzzle_velocity}
-                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, base_muzzle_velocity: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    {/* Perforación de blindaje — solo visible en modo Operaciones */}
-                                    {gameMode === "operations" && (
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-[0.625rem] font-bold text-amber-600 dark:text-amber-400 uppercase mb-1">
-                                                🛡️ Perforación de Blindaje Base (0-100) — Solo Operaciones</label>
-                                             <input
-                                                 type="text"
-                                                 value={weaponFields.base_armor_penetration}
-                                                 onChange={(e) => setWeaponFields(prev => ({ ...prev, base_armor_penetration: e.target.value }))}
-                                                 required
-                                                 placeholder="Ej: 20 o 16x8"
-                                                className="w-full px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-400/40 focus:ring-1 focus:ring-amber-400 text-amber-900 dark:text-amber-200"
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imagen del Arma</label>
-                                        <div className="space-y-2">
-                                            <div className="flex gap-2">
+                                <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
+                                    {/* WEAPONS FIELD CONFIGS */}
+                                    {activeFormType === "weapons" && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="sm:col-span-2">
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre de Arma</label>
                                                 <input
                                                     type="text"
-                                                    value={weaponFields.image_url}
-                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, image_url: e.target.value }))}
-                                                    placeholder="https://... o sube una imagen"
-                                                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    value={weaponFields.weapon_name}
+                                                    disabled
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-border text-muted-foreground cursor-not-allowed font-semibold focus:outline-none"
                                                 />
-                                                <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-border rounded-xl text-xs font-bold text-foreground cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center shrink-0">
-                                                    {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Subir archivo"}
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                handleImageUpload(file, "delta-force-weapons", (url) => {
-                                                                    setWeaponFields(prev => ({ ...prev, image_url: url }));
-                                                                });
-                                                            }
-                                                        }}
-                                                        className="hidden"
-                                                        disabled={uploadingImage}
-                                                    />
-                                                </label>
                                             </div>
-                                            {weaponFields.image_url && (
-                                                <div className="relative w-24 h-16 rounded-xl overflow-hidden border border-border bg-zinc-100/50 dark:bg-zinc-900/30 flex items-center justify-center">
-                                                    <img src={weaponFields.image_url} alt="Preview" className="w-full h-full object-contain p-1" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setWeaponFields(prev => ({ ...prev, image_url: "" }))}
-                                                        className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                                                    >
-                                                        <X className="w-3 h-3" />
-                                                    </button>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Categoría</label>
+                                                <input
+                                                    type="text"
+                                                    value={getCategoryLabel(weaponFields.category)}
+                                                    disabled
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-border text-muted-foreground cursor-not-allowed font-semibold focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
+                                                <select
+                                                    value={weaponFields.caliber}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, caliber: e.target.value }))}
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                >
+                                                    {calibersList.map((c) => (
+                                                        <option key={c.id} value={c.name}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Daño Base</label>
+                                                <input
+                                                    type="text"
+                                                    value={weaponFields.base_damage}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_damage: e.target.value }))}
+                                                    placeholder="Ej: 33 o 14x8"
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Rango (m)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_range}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_range: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Control Retroceso (0-100)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_control}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_control: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    min="0" max="100"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Manejo/Ergonomía (0-100)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_handling}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_handling: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    min="0" max="100"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Estabilidad (0-100)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_stability}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_stability: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    min="0" max="100"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Precisión (0-100)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_accuracy}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_accuracy: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    min="0" max="100"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Cadencia (DPM)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_fire_rate}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_fire_rate: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Capacidad Mag (Rds)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_capacity}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_capacity: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Velocidad Boca (m/s)</label>
+                                                <input
+                                                    type="number"
+                                                    value={weaponFields.base_muzzle_velocity}
+                                                    onChange={(e) => setWeaponFields(prev => ({ ...prev, base_muzzle_velocity: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            {/* Modo de Disparo Base */}
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">
+                                                    Modo de Disparo
+                                                </label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {["Auto", "Único", "Ráfaga"].map(mode => {
+                                                        const currentModes = weaponFields.base_fire_mode ? weaponFields.base_fire_mode.split("/").map(m => m.trim()) : [];
+                                                        const isSelected = currentModes.includes(mode);
+                                                        return (
+                                                            <label key={mode} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-zinc-50 dark:bg-zinc-900/50 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={(e) => {
+                                                                        let newModes = [...currentModes];
+                                                                        if (e.target.checked) {
+                                                                            if (!newModes.includes(mode)) newModes.push(mode);
+                                                                        } else {
+                                                                            newModes = newModes.filter(m => m !== mode);
+                                                                        }
+                                                                        setWeaponFields(prev => ({ ...prev, base_fire_mode: newModes.join("/") }));
+                                                                    }}
+                                                                    className="rounded border-border text-primary focus:ring-primary bg-background"
+                                                                />
+                                                                <span className="text-sm font-medium">{mode}</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Perforación de blindaje — solo visible en modo Operaciones */}
+                                            {gameMode === "operations" && (
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-[0.625rem] font-bold text-amber-600 dark:text-amber-400 uppercase mb-1">
+                                                        🛡️ Perforación de Blindaje Base (0-100) — Solo Operaciones</label>
+                                                    <input
+                                                        type="text"
+                                                        value={weaponFields.base_armor_penetration}
+                                                        onChange={(e) => setWeaponFields(prev => ({ ...prev, base_armor_penetration: e.target.value }))}
+                                                        required
+                                                        placeholder="Ej: 20 o 16x8"
+                                                        className="w-full px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-400/40 focus:ring-1 focus:ring-amber-400 text-amber-900 dark:text-amber-200"
+                                                    />
                                                 </div>
                                             )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* AMMO FIELD CONFIGS */}
-                            {activeFormType === "ammo" && (
-                                <div className="space-y-4">
-                                    {/* Name & Caliber */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre de Munición</label>
-                                            <input
-                                                type="text"
-                                                value={ammoFields.name}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, name: e.target.value }))}
-                                                required
-                                                placeholder=".45-70 Govt FTX, 5.56mm M995, etc."
-                                                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
-                                            <select
-                                                value={ammoFields.caliber}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, caliber: e.target.value }))}
-                                                required
-                                                disabled={editMode === "edit"}
-                                                className={cn(
-                                                    "w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500",
-                                                    editMode === "edit" && "bg-zinc-100 dark:bg-zinc-900 cursor-not-allowed text-muted-foreground"
-                                                )}
-                                            >
-                                                {calibersList.map((c) => (
-                                                    <option key={c.id} value={c.name}>{c.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Proporción de Daño Corporal (%)</label>
-                                            <input
-                                                type="number"
-                                                value={ammoFields.damage_ratio}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, damage_ratio: parseInt(e.target.value) || 100 }))}
-                                                required
-                                                min="1"
-                                                placeholder="100"
-                                                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Daño al Cuerpo (Base)</label>
-                                            <input
-                                                type="text"
-                                                value={ammoFields.body_damage}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, body_damage: e.target.value }))}
-                                                placeholder="Ej: 60 o 56x7"
-                                                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Puntos de Perforación (Rating)</label>
-                                            <input
-                                                type="text"
-                                                value={ammoFields.armor_penetration}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, armor_penetration: e.target.value }))}
-                                                placeholder="Ej: 45 o 16x8"
-                                                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                            />
-                                        </div>
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
-                                            <textarea
-                                                value={ammoFields.description}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, description: e.target.value }))}
-                                                placeholder="Munición de punta blanda flexible con balística estable..."
-                                                rows={2}
-                                                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500 resize-none text-xs"
-                                            />
-                                        </div>
-                                    </div>
 
-                                    {/* Penetration Level visual selector */}
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Nivel de Perforación</label>
-                                        <div className="flex gap-1.5">
-                                            {[0, 1, 2, 3, 4, 5, 6].map(lvl => {
-                                                const lvlColors: Record<number, string> = {
-                                                    0: "border-zinc-400/30 text-zinc-400 data-[active=true]:bg-zinc-500 data-[active=true]:text-white data-[active=true]:border-zinc-500",
-                                                    1: "border-zinc-400/30 text-zinc-400 data-[active=true]:bg-zinc-500 data-[active=true]:text-white data-[active=true]:border-zinc-500",
-                                                    2: "border-emerald-500/30 text-emerald-500 data-[active=true]:bg-emerald-500 data-[active=true]:text-white data-[active=true]:border-emerald-500",
-                                                    3: "border-blue-500/30 text-blue-500 data-[active=true]:bg-blue-500 data-[active=true]:text-white data-[active=true]:border-blue-500",
-                                                    4: "border-purple-500/30 text-purple-500 data-[active=true]:bg-purple-500 data-[active=true]:text-white data-[active=true]:border-purple-500",
-                                                    5: "border-amber-500/30 text-amber-500 data-[active=true]:bg-amber-500 data-[active=true]:text-white data-[active=true]:border-amber-500",
-                                                    6: "border-red-500/30 text-red-500 data-[active=true]:bg-red-500 data-[active=true]:text-white data-[active=true]:border-red-500",
-                                                };
-                                                return (
-                                                    <button
-                                                        key={lvl}
-                                                        type="button"
-                                                        data-active={ammoFields.penetration_level === lvl}
-                                                        onClick={() => setAmmoFields(prev => ({
-                                                            ...prev,
-                                                            penetration_level: lvl,
-                                                            damage_vs_armor_1: calculateDamagePenetration(lvl, 1),
-                                                            damage_vs_armor_2: calculateDamagePenetration(lvl, 2),
-                                                            damage_vs_armor_3: calculateDamagePenetration(lvl, 3),
-                                                            damage_vs_armor_4: calculateDamagePenetration(lvl, 4),
-                                                            damage_vs_armor_5: calculateDamagePenetration(lvl, 5),
-                                                            damage_vs_armor_6: calculateDamagePenetration(lvl, 6),
-                                                        }))}
-                                                        className={cn("flex-1 py-2 rounded-lg border text-[0.6875rem] font-black transition-all", lvlColors[lvl])}
-                                                    >
-                                                        Nv.{lvl}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Degradation & Falloff */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Disminución de Perforación</label>
-                                            <div className="flex gap-2">
-                                                {(["bajo", "medio", "alto"] as const).map(d => (
-                                                    <button
-                                                        key={d}
-                                                        type="button"
-                                                        onClick={() => setAmmoFields(prev => ({ ...prev, armor_pen_degradation: d }))}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg border text-[0.625rem] font-black uppercase tracking-wider transition-all capitalize",
-                                                            ammoFields.armor_pen_degradation === d
-                                                                ? d === "bajo" ? "bg-emerald-500 text-white border-emerald-500"
-                                                                    : d === "medio" ? "bg-orange-500 text-white border-orange-500"
-                                                                    : "bg-rose-500 text-white border-rose-500"
-                                                                : "border-border text-muted-foreground hover:text-foreground"
-                                                        )}
-                                                    >
-                                                        {d}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Coeficiente de Caída (%)</label>
-                                            <input
-                                                type="number"
-                                                value={ammoFields.pen_falloff_coefficient}
-                                                onChange={(e) => setAmmoFields(prev => ({ ...prev, pen_falloff_coefficient: parseInt(e.target.value) || 0 }))}
-                                                min="0" max="100"
-                                                placeholder="0"
-                                                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Damage vs Armor per level */}
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">
-                                            Eficiencia de Daño a Durabilidad de Blindaje (%) — por Nivel
-                                        </label>
-                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                                            {[1, 2, 3, 4, 5, 6].map(n => (
-                                                <div key={n}>
-                                                    <label className="block text-[0.5625rem] text-center font-bold text-muted-foreground mb-1">Nv.{n}</label>
-                                                    <input
-                                                        type="number"
-                                                        value={(ammoFields as any)[`damage_vs_armor_${n}`]}
-                                                        onChange={(e) => handleDamageVsArmorChange(n, e.target.value)}
-                                                        min="0"
-                                                        className="w-full px-2 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500 text-center text-xs font-mono"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Armas Compatibles (Automático) */}
-                                    <div className="sm:col-span-2 p-3 bg-df-green-500/5 border border-df-green-500/20 rounded-xl text-[0.625rem] text-muted-foreground space-y-1">
-                                        <span className="font-bold text-df-green-600 dark:text-df-green-400 block uppercase tracking-wider">💡 Compatibilidad Automática</span>
-                                        <span>Las armas compatibles con esta munición se determinan dinámicamente en base a su calibre. Actualmente, las armas registradas con el calibre <span className="font-bold text-foreground">"{ammoFields.caliber}"</span> tendrán esta bala disponible de forma automática.</span>
-                                    </div>
-
-                                    {/* Imagen de la Munición con Fallback */}
-                                    <div className="sm:col-span-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-border rounded-xl space-y-2">
-                                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase block">Imagen de la Munición</span>
-                                        {(() => {
-                                            const ammoCaliberObj = calibersList.find(c => c.name.toLowerCase() === ammoFields.caliber.toLowerCase());
-                                            const caliberImg = ammoCaliberObj?.image_url || "";
-                                            const hasCustomImage = !!ammoFields.image_url;
-                                            const displayImg = ammoFields.image_url || caliberImg;
-
-                                            return (
-                                                <div className="space-y-3">
+                                            <div className="sm:col-span-2">
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imagen del Arma</label>
+                                                <div className="space-y-2">
                                                     <div className="flex gap-2">
                                                         <input
                                                             type="text"
-                                                            value={ammoFields.image_url}
-                                                            onChange={(e) => setAmmoFields(prev => ({ ...prev, image_url: e.target.value }))}
-                                                            placeholder={caliberImg ? "Usando imagen del calibre (Heredada)" : "Sin imagen. Pega una URL o sube una imagen"}
-                                                            className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border text-xs focus:ring-1 focus:ring-df-green-500"
+                                                            value={weaponFields.image_url}
+                                                            onChange={(e) => setWeaponFields(prev => ({ ...prev, image_url: e.target.value }))}
+                                                            placeholder="https://... o sube una imagen"
+                                                            className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
                                                         />
                                                         <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-border rounded-xl text-xs font-bold text-foreground cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center shrink-0">
-                                                            {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Subir Imagen"}
+                                                            {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Subir archivo"}
                                                             <input
                                                                 type="file"
                                                                 accept="image/*"
                                                                 onChange={(e) => {
                                                                     const file = e.target.files?.[0];
                                                                     if (file) {
-                                                                        handleImageUpload(file, "delta-force-ammo", (url) => {
-                                                                            setAmmoFields(prev => ({ ...prev, image_url: url }));
+                                                                        handleImageUpload(file, "delta-force-weapons", (url) => {
+                                                                            setWeaponFields(prev => ({ ...prev, image_url: url }));
                                                                         });
                                                                     }
                                                                 }}
@@ -2450,336 +2273,593 @@ export default function DeltaForceDatabaseView({
                                                             />
                                                         </label>
                                                     </div>
-
-                                                    {/* Selector visual de imágenes del calibre */}
-                                                    {(() => {
-                                                        const caliberImages = getCaliberImages(caliberImg);
-                                                        if (caliberImages.length <= 0) return null;
-                                                        return (
-                                                            <div className="space-y-1.5 pt-1">
-                                                                <span className="text-[0.5625rem] font-black text-muted-foreground uppercase tracking-wider block">
-                                                                    Seleccionar de las imágenes del calibre:
-                                                                </span>
-                                                                <div className="flex flex-wrap gap-2 p-2 bg-zinc-50 dark:bg-zinc-900/30 border border-border rounded-xl">
-                                                                    {caliberImages.map((url, idx) => {
-                                                                        const isSelected = ammoFields.image_url === url || (!ammoFields.image_url && idx === 0);
-                                                                        return (
-                                                                            <button
-                                                                                key={idx}
-                                                                                type="button"
-                                                                                onClick={() => setAmmoFields(prev => ({ ...prev, image_url: url }))}
-                                                                                className={cn(
-                                                                                    "relative w-12 h-12 rounded-lg border bg-white dark:bg-zinc-950 flex items-center justify-center overflow-hidden p-1 transition-all hover:scale-105 active:scale-95",
-                                                                                    isSelected
-                                                                                        ? "border-df-green-500 ring-1 ring-df-green-500/20 shadow-sm"
-                                                                                        : "border-border hover:border-zinc-400"
-                                                                                )}
-                                                                                title={`Usar imagen #${idx + 1} del calibre`}
-                                                                            >
-                                                                                <img src={url} alt={`Caliber image ${idx + 1}`} className="w-full h-full object-contain" />
-                                                                                {isSelected && (
-                                                                                    <div className="absolute inset-0 bg-df-green-500/10 flex items-center justify-center">
-                                                                                        <span className="bg-df-green-500 text-white text-[0.4375rem] font-bold px-1 rounded-sm shadow-sm">✓</span>
-                                                                                    </div>
-                                                                                )}
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                    {displayImg ? (
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-border bg-zinc-100/50 dark:bg-zinc-900/30 flex items-center justify-center">
-                                                                <img src={displayImg} alt="Preview Munición" className="w-full h-full object-contain p-1" />
-                                                                {hasCustomImage && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setAmmoFields(prev => ({ ...prev, image_url: "" }))}
-                                                                        className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                                                                        title="Quitar imagen personalizada"
-                                                                    >
-                                                                        <X className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-[0.625rem] space-y-1">
-                                                                {hasCustomImage ? (
-                                                                    <>
-                                                                        <span className="inline-flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">
-                                                                            Imagen Personalizada
-                                                                        </span>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setAmmoFields(prev => ({ ...prev, image_url: "" }))}
-                                                                            className="block text-red-500 hover:underline font-bold mt-1"
-                                                                        >
-                                                                            Restablecer a imagen del calibre
-                                                                        </button>
-                                                                    </>
-                                                                ) : (
-                                                                    <span className="inline-flex items-center gap-1 font-bold text-zinc-500 bg-zinc-550/10 border border-zinc-500/20 px-1.5 py-0.5 rounded uppercase">
-                                                                        Heredada del calibre
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                    {weaponFields.image_url && (
+                                                        <div className="relative w-24 h-16 rounded-xl overflow-hidden border border-border bg-zinc-100/50 dark:bg-zinc-900/30 flex items-center justify-center">
+                                                            <img src={weaponFields.image_url} alt="Preview" className="w-full h-full object-contain p-1" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setWeaponFields(prev => ({ ...prev, image_url: "" }))}
+                                                                className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
                                                         </div>
-                                                    ) : (
-                                                        <p className="text-[0.625rem] text-muted-foreground italic">
-                                                            Sube una imagen para esta bala, o sube una imagen al calibre "{ammoFields.caliber}" para usarla como fallback.
-                                                        </p>
                                                     )}
                                                 </div>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
+                                            </div>
+                                        </div>
+                                    )}
 
-                            {/* GEAR FIELD CONFIGS */}
-                            {activeFormType === "gear" && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre del Equipamiento</label>
-                                        <input
-                                            type="text"
-                                            value={gearFields.name}
-                                            onChange={(e) => setGearFields(prev => ({ ...prev, name: e.target.value }))}
-                                            required
-                                            placeholder="Chaleco Pesado Vanguardia Nv.5"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
+                                    {/* AMMO FIELD CONFIGS */}
+                                    {activeFormType === "ammo" && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 bg-red-500/10 p-3 rounded-xl border border-red-500/20 mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="hide-ammo-checkbox"
+                                                    checked={ammoFields.is_hidden}
+                                                    onChange={(e) => setAmmoFields(prev => ({ ...prev, is_hidden: e.target.checked }))}
+                                                    className="w-4 h-4 rounded border-red-500/30 text-red-500 focus:ring-red-500 bg-white/5"
+                                                />
+                                                <label htmlFor="hide-ammo-checkbox" className="text-xs font-bold text-red-500 cursor-pointer">
+                                                    Ocultar en la Wiki (Temporal / Fin de temporada)
+                                                </label>
+                                            </div>
+                                            {/* Name & Caliber */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre de Munición</label>
+                                                    <input
+                                                        type="text"
+                                                        value={ammoFields.name}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, name: e.target.value }))}
+                                                        required
+                                                        placeholder=".45-70 Govt FTX, 5.56mm M995, etc."
+                                                        className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Calibre</label>
+                                                    <select
+                                                        value={ammoFields.caliber}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, caliber: e.target.value }))}
+                                                        required
+                                                        disabled={editMode === "edit"}
+                                                        className={cn(
+                                                            "w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500",
+                                                            editMode === "edit" && "bg-zinc-100 dark:bg-zinc-900 cursor-not-allowed text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        {calibersList.map((c) => (
+                                                            <option key={c.id} value={c.name}>{c.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Proporción de Daño Corporal (%)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={ammoFields.damage_ratio}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, damage_ratio: parseInt(e.target.value) || 100 }))}
+                                                        required
+                                                        min="1"
+                                                        placeholder="100"
+                                                        className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Daño al Cuerpo (Base)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={ammoFields.body_damage}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, body_damage: e.target.value }))}
+                                                        placeholder="Ej: 60 o 56x7"
+                                                        className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Puntos de Perforación (Rating)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={ammoFields.armor_penetration}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, armor_penetration: e.target.value }))}
+                                                        placeholder="Ej: 45 o 16x8"
+                                                        className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
+                                                    <textarea
+                                                        value={ammoFields.description}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, description: e.target.value }))}
+                                                        placeholder="Munición de punta blanda flexible con balística estable..."
+                                                        rows={2}
+                                                        className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500 resize-none text-xs"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Tipo de Protección</label>
-                                        <select
-                                            value={gearFields.type}
-                                            onChange={(e) => {
-                                                const val = e.target.value as "armor" | "helmet";
-                                                setGearFields(prev => ({
-                                                    ...prev,
-                                                    type: val,
-                                                    zones_protected: val === "armor" ? ["pecho"] : ["Cabeza", "Orejas"]
-                                                }));
-                                            }}
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        >
-                                            <option value="armor">Armadura de Torso</option>
-                                            <option value="helmet">Casco</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nivel (Tier 1-6)</label>
-                                        <select
-                                            value={gearFields.tier}
-                                            onChange={(e) => setGearFields(prev => ({ ...prev, tier: parseInt(e.target.value) || 1 }))}
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        >
-                                            {[1, 2, 3, 4, 5, 6].map(t => (
-                                                <option key={t} value={t}>Nivel {t}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Puntos de Durabilidad Máxima</label>
-                                        <input
-                                            type="number"
-                                            value={gearFields.max_durability}
-                                            onChange={(e) => setGearFields(prev => ({ ...prev, max_durability: parseInt(e.target.value) || 0 }))}
-                                            required
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Penalización Velocidad (%)</label>
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            value={gearFields.speed_penalty}
-                                            onChange={(e) => setGearFields(prev => ({ ...prev, speed_penalty: parseFloat(e.target.value) || 0 }))}
-                                            placeholder="Ej: -3"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Penalización Ergo (%)</label>
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            value={gearFields.ergo_penalty}
-                                            onChange={(e) => setGearFields(prev => ({ ...prev, ergo_penalty: parseFloat(e.target.value) || 0 }))}
-                                            placeholder="Ej: -3"
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                        />
-                                    </div>
-
-                                    {gearFields.type === "armor" ? (
-                                        <>
-                                            <div className="sm:col-span-2">
-                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas (Chaleco)</label>
-                                                <div className="flex gap-2">
-                                                    {["pecho", "abdomen", "hombro"].map(z => {
-                                                        const selected = gearFields.zones_protected.includes(z);
+                                            {/* Penetration Level visual selector */}
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Nivel de Perforación</label>
+                                                <div className="flex gap-1.5">
+                                                    {[0, 1, 2, 3, 4, 5, 6].map(lvl => {
+                                                        const lvlColors: Record<number, string> = {
+                                                            0: "border-zinc-400/30 text-zinc-400 data-[active=true]:bg-zinc-500 data-[active=true]:text-white data-[active=true]:border-zinc-500",
+                                                            1: "border-zinc-400/30 text-zinc-400 data-[active=true]:bg-zinc-500 data-[active=true]:text-white data-[active=true]:border-zinc-500",
+                                                            2: "border-emerald-500/30 text-emerald-500 data-[active=true]:bg-emerald-500 data-[active=true]:text-white data-[active=true]:border-emerald-500",
+                                                            3: "border-blue-500/30 text-blue-500 data-[active=true]:bg-blue-500 data-[active=true]:text-white data-[active=true]:border-blue-500",
+                                                            4: "border-purple-500/30 text-purple-500 data-[active=true]:bg-purple-500 data-[active=true]:text-white data-[active=true]:border-purple-500",
+                                                            5: "border-amber-500/30 text-amber-500 data-[active=true]:bg-amber-500 data-[active=true]:text-white data-[active=true]:border-amber-500",
+                                                            6: "border-red-500/30 text-red-500 data-[active=true]:bg-red-500 data-[active=true]:text-white data-[active=true]:border-red-500",
+                                                        };
                                                         return (
                                                             <button
-                                                                key={z}
+                                                                key={lvl}
                                                                 type="button"
-                                                                onClick={() => {
-                                                                    setGearFields(prev => {
-                                                                        const exists = prev.zones_protected.includes(z);
-                                                                        const next = exists
-                                                                            ? prev.zones_protected.filter(x => x !== z)
-                                                                            : [...prev.zones_protected, z];
-                                                                        if (next.length === 0) {
-                                                                            return { ...prev, zones_protected: ["pecho"] };
-                                                                        }
-                                                                        return { ...prev, zones_protected: next };
-                                                                    });
-                                                                }}
-                                                                className={cn(
-                                                                    "px-3 py-1.5 rounded-lg border font-bold text-[0.625rem] transition-all capitalize",
-                                                                    selected
-                                                                        ? "bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400"
-                                                                        : "bg-zinc-50 dark:bg-zinc-950 border-border text-muted-foreground"
-                                                                )}
+                                                                data-active={ammoFields.penetration_level === lvl}
+                                                                onClick={() => setAmmoFields(prev => ({
+                                                                    ...prev,
+                                                                    penetration_level: lvl,
+                                                                    damage_vs_armor_1: calculateDamagePenetration(lvl, 1),
+                                                                    damage_vs_armor_2: calculateDamagePenetration(lvl, 2),
+                                                                    damage_vs_armor_3: calculateDamagePenetration(lvl, 3),
+                                                                    damage_vs_armor_4: calculateDamagePenetration(lvl, 4),
+                                                                    damage_vs_armor_5: calculateDamagePenetration(lvl, 5),
+                                                                    damage_vs_armor_6: calculateDamagePenetration(lvl, 6),
+                                                                }))}
+                                                                className={cn("flex-1 py-2 rounded-lg border text-[0.6875rem] font-black transition-all", lvlColors[lvl])}
                                                             >
-                                                                {z}
+                                                                Nv.{lvl}
                                                             </button>
                                                         );
                                                     })}
                                                 </div>
                                             </div>
 
-                                            <div>
-                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Eficiencia de Reparación</label>
-                                                <select
-                                                    value={gearFields.repair_efficiency}
-                                                    onChange={(e) => setGearFields(prev => ({ ...prev, repair_efficiency: e.target.value as "bajo" | "medio" | "alto" }))}
-                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                                >
-                                                    <option value="bajo">Bajo</option>
-                                                    <option value="medio">Medio</option>
-                                                    <option value="alto">Alto</option>
-                                                </select>
+                                            {/* Degradation & Falloff */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Disminución de Perforación</label>
+                                                    <div className="flex gap-2">
+                                                        {(["bajo", "medio", "alto"] as const).map(d => (
+                                                            <button
+                                                                key={d}
+                                                                type="button"
+                                                                onClick={() => setAmmoFields(prev => ({ ...prev, armor_pen_degradation: d }))}
+                                                                className={cn(
+                                                                    "flex-1 py-1.5 rounded-lg border text-[0.625rem] font-black uppercase tracking-wider transition-all capitalize",
+                                                                    ammoFields.armor_pen_degradation === d
+                                                                        ? d === "bajo" ? "bg-emerald-500 text-white border-emerald-500"
+                                                                            : d === "medio" ? "bg-orange-500 text-white border-orange-500"
+                                                                                : "bg-rose-500 text-white border-rose-500"
+                                                                        : "border-border text-muted-foreground hover:text-foreground"
+                                                                )}
+                                                            >
+                                                                {d}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Coeficiente de Caída (%)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={ammoFields.pen_falloff_coefficient}
+                                                        onChange={(e) => setAmmoFields(prev => ({ ...prev, pen_falloff_coefficient: parseInt(e.target.value) || 0 }))}
+                                                        min="0" max="100"
+                                                        placeholder="0"
+                                                        className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    />
+                                                </div>
                                             </div>
 
+                                            {/* Damage vs Armor per level */}
                                             <div>
-                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Costo de Durabilidad (Reparación)</label>
-                                                <select
-                                                    value={gearFields.durability_cost}
-                                                    onChange={(e) => setGearFields(prev => ({ ...prev, durability_cost: e.target.value as "bajo" | "medio" | "alto" }))}
-                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                                >
-                                                    <option value="bajo">Bajo</option>
-                                                    <option value="medio">Medio</option>
-                                                    <option value="alto">Alto</option>
-                                                </select>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">
+                                                    Eficiencia de Daño a Durabilidad de Blindaje (%) — por Nivel
+                                                </label>
+                                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                                    {[1, 2, 3, 4, 5, 6].map(n => (
+                                                        <div key={n}>
+                                                            <label className="block text-[0.5625rem] text-center font-bold text-muted-foreground mb-1">Nv.{n}</label>
+                                                            <input
+                                                                type="number"
+                                                                value={(ammoFields as any)[`damage_vs_armor_${n}`]}
+                                                                onChange={(e) => handleDamageVsArmorChange(n, e.target.value)}
+                                                                min="0"
+                                                                className="w-full px-2 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500 text-center text-xs font-mono"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
 
-                                            <div>
-                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Peso (kg)</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={gearFields.weight_kg}
-                                                    onChange={(e) => setGearFields(prev => ({ ...prev, weight_kg: parseFloat(e.target.value) || 0 }))}
-                                                    placeholder="Ej: 8.5"
-                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
-                                                />
+                                            {/* Armas Compatibles (Automático) */}
+                                            <div className="sm:col-span-2 p-3 bg-df-green-500/5 border border-df-green-500/20 rounded-xl text-[0.625rem] text-muted-foreground space-y-1">
+                                                <span className="font-bold text-df-green-600 dark:text-df-green-400 block uppercase tracking-wider">💡 Compatibilidad Automática</span>
+                                                <span>Las armas compatibles con esta munición se determinan dinámicamente en base a su calibre. Actualmente, las armas registradas con el calibre <span className="font-bold text-foreground">"{ammoFields.caliber}"</span> tendrán esta bala disponible de forma automática.</span>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas</label>
-                                            <div className="flex gap-2">
-                                                {["Cabeza", "Orejas", "Cara", "Cuello"].map(z => {
-                                                    const selected = gearFields.zones_protected.includes(z);
+
+                                            {/* Imagen de la Munición con Fallback */}
+                                            <div className="sm:col-span-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-border rounded-xl space-y-2">
+                                                <span className="text-[0.625rem] font-bold text-muted-foreground uppercase block">Imagen de la Munición</span>
+                                                {(() => {
+                                                    const ammoCaliberObj = calibersList.find(c => c.name.toLowerCase() === ammoFields.caliber.toLowerCase());
+                                                    const caliberImg = ammoCaliberObj?.image_url || "";
+                                                    const hasCustomImage = !!ammoFields.image_url;
+                                                    const displayImg = ammoFields.image_url || caliberImg;
+
                                                     return (
-                                                        <button
-                                                            key={z}
-                                                            type="button"
-                                                            onClick={() => toggleZone(z)}
-                                                            className={cn(
-                                                                "px-3 py-1.5 rounded-lg border font-bold text-[0.625rem] transition-all",
-                                                                selected
-                                                                    ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-600 dark:text-cyan-400"
-                                                                    : "bg-zinc-50 dark:bg-zinc-950 border-border text-muted-foreground"
+                                                        <div className="space-y-3">
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={ammoFields.image_url}
+                                                                    onChange={(e) => setAmmoFields(prev => ({ ...prev, image_url: e.target.value }))}
+                                                                    placeholder={caliberImg ? "Usando imagen del calibre (Heredada)" : "Sin imagen. Pega una URL o sube una imagen"}
+                                                                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border text-xs focus:ring-1 focus:ring-df-green-500"
+                                                                />
+                                                                <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-border rounded-xl text-xs font-bold text-foreground cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center shrink-0">
+                                                                    {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Subir Imagen"}
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (file) {
+                                                                                handleImageUpload(file, "delta-force-ammo", (url) => {
+                                                                                    setAmmoFields(prev => ({ ...prev, image_url: url }));
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                        className="hidden"
+                                                                        disabled={uploadingImage}
+                                                                    />
+                                                                </label>
+                                                            </div>
+
+                                                            {/* Selector visual de imágenes del calibre */}
+                                                            {(() => {
+                                                                const caliberImages = getCaliberImages(caliberImg);
+                                                                if (caliberImages.length <= 0) return null;
+                                                                return (
+                                                                    <div className="space-y-1.5 pt-1">
+                                                                        <span className="text-[0.5625rem] font-black text-muted-foreground uppercase tracking-wider block">
+                                                                            Seleccionar de las imágenes del calibre:
+                                                                        </span>
+                                                                        <div className="flex flex-wrap gap-2 p-2 bg-zinc-50 dark:bg-zinc-900/30 border border-border rounded-xl">
+                                                                            {caliberImages.map((url, idx) => {
+                                                                                const isSelected = ammoFields.image_url === url || (!ammoFields.image_url && idx === 0);
+                                                                                return (
+                                                                                    <button
+                                                                                        key={idx}
+                                                                                        type="button"
+                                                                                        onClick={() => setAmmoFields(prev => ({ ...prev, image_url: url }))}
+                                                                                        className={cn(
+                                                                                            "relative w-12 h-12 rounded-lg border bg-white dark:bg-zinc-950 flex items-center justify-center overflow-hidden p-1 transition-all hover:scale-105 active:scale-95",
+                                                                                            isSelected
+                                                                                                ? "border-df-green-500 ring-1 ring-df-green-500/20 shadow-sm"
+                                                                                                : "border-border hover:border-zinc-400"
+                                                                                        )}
+                                                                                        title={`Usar imagen #${idx + 1} del calibre`}
+                                                                                    >
+                                                                                        <img src={url} alt={`Caliber image ${idx + 1}`} className="w-full h-full object-contain" />
+                                                                                        {isSelected && (
+                                                                                            <div className="absolute inset-0 bg-df-green-500/10 flex items-center justify-center">
+                                                                                                <span className="bg-df-green-500 text-white text-[0.4375rem] font-bold px-1 rounded-sm shadow-sm">✓</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                            {displayImg ? (
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-border bg-zinc-100/50 dark:bg-zinc-900/30 flex items-center justify-center">
+                                                                        <img src={displayImg} alt="Preview Munición" className="w-full h-full object-contain p-1" />
+                                                                        {hasCustomImage && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setAmmoFields(prev => ({ ...prev, image_url: "" }))}
+                                                                                className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                                                title="Quitar imagen personalizada"
+                                                                            >
+                                                                                <X className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-[0.625rem] space-y-1">
+                                                                        {hasCustomImage ? (
+                                                                            <>
+                                                                                <span className="inline-flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">
+                                                                                    Imagen Personalizada
+                                                                                </span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setAmmoFields(prev => ({ ...prev, image_url: "" }))}
+                                                                                    className="block text-red-500 hover:underline font-bold mt-1"
+                                                                                >
+                                                                                    Restablecer a imagen del calibre
+                                                                                </button>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center gap-1 font-bold text-zinc-500 bg-zinc-550/10 border border-zinc-500/20 px-1.5 py-0.5 rounded uppercase">
+                                                                                Heredada del calibre
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-[0.625rem] text-muted-foreground italic">
+                                                                    Sube una imagen para esta bala, o sube una imagen al calibre "{ammoFields.caliber}" para usarla como fallback.
+                                                                </p>
                                                             )}
-                                                        >
-                                                            {z}
-                                                        </button>
+                                                        </div>
                                                     );
-                                                })}
+                                                })()}
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
-                                        <textarea
-                                            value={gearFields.description}
-                                            onChange={(e) => setGearFields(prev => ({ ...prev, description: e.target.value }))}
-                                            placeholder="Chaleco pesado que ofrece excelente durabilidad pero limita el movimiento..."
-                                            rows={2}
-                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500 resize-none text-xs"
-                                        />
-                                    </div>
-
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imagen de la Protección</label>
-                                        <div className="space-y-2">
-                                            <div className="flex gap-2">
+                                    {/* GEAR FIELD CONFIGS */}
+                                    {activeFormType === "gear" && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="sm:col-span-2">
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre del Equipamiento</label>
                                                 <input
                                                     type="text"
-                                                    value={gearFields.image_url}
-                                                    onChange={(e) => setGearFields(prev => ({ ...prev, image_url: e.target.value }))}
-                                                    placeholder="https://... o sube una imagen"
-                                                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                    value={gearFields.name}
+                                                    onChange={(e) => setGearFields(prev => ({ ...prev, name: e.target.value }))}
+                                                    required
+                                                    placeholder="Chaleco Pesado Vanguardia Nv.5"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
                                                 />
-                                                <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-border rounded-xl text-xs font-bold text-foreground cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center shrink-0">
-                                                    {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Subir archivo"}
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                handleImageUpload(file, "delta-force-gear", (url) => {
-                                                                    setGearFields(prev => ({ ...prev, image_url: url }));
-                                                                });
-                                                            }
-                                                        }}
-                                                        className="hidden"
-                                                        disabled={uploadingImage}
-                                                    />
-                                                </label>
                                             </div>
-                                            {gearFields.image_url && (
-                                                <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-border bg-zinc-100/50 dark:bg-zinc-900/30 flex items-center justify-center">
-                                                    <img src={gearFields.image_url} alt="Preview" className="w-full h-full object-contain p-1" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setGearFields(prev => ({ ...prev, image_url: "" }))}
-                                                        className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                                                    >
-                                                        <X className="w-3 h-3" />
-                                                    </button>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Tipo de Protección</label>
+                                                <select
+                                                    value={gearFields.type}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value as "armor" | "helmet";
+                                                        setGearFields(prev => ({
+                                                            ...prev,
+                                                            type: val,
+                                                            zones_protected: val === "armor" ? ["pecho"] : ["Cabeza", "Orejas"]
+                                                        }));
+                                                    }}
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                >
+                                                    <option value="armor">Armadura de Torso</option>
+                                                    <option value="helmet">Casco</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nivel (Tier 1-6)</label>
+                                                <select
+                                                    value={gearFields.tier}
+                                                    onChange={(e) => setGearFields(prev => ({ ...prev, tier: parseInt(e.target.value) || 1 }))}
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                >
+                                                    {[1, 2, 3, 4, 5, 6].map(t => (
+                                                        <option key={t} value={t}>Nivel {t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Puntos de Durabilidad Máxima</label>
+                                                <input
+                                                    type="number"
+                                                    value={gearFields.max_durability}
+                                                    onChange={(e) => setGearFields(prev => ({ ...prev, max_durability: parseInt(e.target.value) || 0 }))}
+                                                    required
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Penalización Velocidad (%)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    value={gearFields.speed_penalty}
+                                                    onChange={(e) => setGearFields(prev => ({ ...prev, speed_penalty: parseFloat(e.target.value) || 0 }))}
+                                                    placeholder="Ej: -3"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Penalización Ergo (%)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    value={gearFields.ergo_penalty}
+                                                    onChange={(e) => setGearFields(prev => ({ ...prev, ergo_penalty: parseFloat(e.target.value) || 0 }))}
+                                                    placeholder="Ej: -3"
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                />
+                                            </div>
+
+                                            {gearFields.type === "armor" ? (
+                                                <>
+                                                    <div className="sm:col-span-2">
+                                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas (Chaleco)</label>
+                                                        <div className="flex gap-2">
+                                                            {["pecho", "abdomen", "hombro"].map(z => {
+                                                                const selected = gearFields.zones_protected.includes(z);
+                                                                return (
+                                                                    <button
+                                                                        key={z}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setGearFields(prev => {
+                                                                                const exists = prev.zones_protected.includes(z);
+                                                                                const next = exists
+                                                                                    ? prev.zones_protected.filter(x => x !== z)
+                                                                                    : [...prev.zones_protected, z];
+                                                                                if (next.length === 0) {
+                                                                                    return { ...prev, zones_protected: ["pecho"] };
+                                                                                }
+                                                                                return { ...prev, zones_protected: next };
+                                                                            });
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-3 py-1.5 rounded-lg border font-bold text-[0.625rem] transition-all capitalize",
+                                                                            selected
+                                                                                ? "bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400"
+                                                                                : "bg-zinc-50 dark:bg-zinc-950 border-border text-muted-foreground"
+                                                                        )}
+                                                                    >
+                                                                        {z}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Eficiencia de Reparación</label>
+                                                        <select
+                                                            value={gearFields.repair_efficiency}
+                                                            onChange={(e) => setGearFields(prev => ({ ...prev, repair_efficiency: e.target.value as "bajo" | "medio" | "alto" }))}
+                                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                        >
+                                                            <option value="bajo">Bajo</option>
+                                                            <option value="medio">Medio</option>
+                                                            <option value="alto">Alto</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Costo de Durabilidad (Reparación)</label>
+                                                        <select
+                                                            value={gearFields.durability_cost}
+                                                            onChange={(e) => setGearFields(prev => ({ ...prev, durability_cost: e.target.value as "bajo" | "medio" | "alto" }))}
+                                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                        >
+                                                            <option value="bajo">Bajo</option>
+                                                            <option value="medio">Medio</option>
+                                                            <option value="alto">Alto</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Peso (kg)</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={gearFields.weight_kg}
+                                                            onChange={(e) => setGearFields(prev => ({ ...prev, weight_kg: parseFloat(e.target.value) || 0 }))}
+                                                            placeholder="Ej: 8.5"
+                                                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                        />
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-2">Zonas Protegidas</label>
+                                                    <div className="flex gap-2">
+                                                        {["Cabeza", "Orejas", "Cara", "Cuello"].map(z => {
+                                                            const selected = gearFields.zones_protected.includes(z);
+                                                            return (
+                                                                <button
+                                                                    key={z}
+                                                                    type="button"
+                                                                    onClick={() => toggleZone(z)}
+                                                                    className={cn(
+                                                                        "px-3 py-1.5 rounded-lg border font-bold text-[0.625rem] transition-all",
+                                                                        selected
+                                                                            ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-600 dark:text-cyan-400"
+                                                                            : "bg-zinc-50 dark:bg-zinc-950 border-border text-muted-foreground"
+                                                                    )}
+                                                                >
+                                                                    {z}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                             )}
+
+                                            <div className="sm:col-span-2">
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Descripción</label>
+                                                <textarea
+                                                    value={gearFields.description}
+                                                    onChange={(e) => setGearFields(prev => ({ ...prev, description: e.target.value }))}
+                                                    placeholder="Chaleco pesado que ofrece excelente durabilidad pero limita el movimiento..."
+                                                    rows={2}
+                                                    className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500 resize-none text-xs"
+                                                />
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imagen de la Protección</label>
+                                                <div className="space-y-2">
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={gearFields.image_url}
+                                                            onChange={(e) => setGearFields(prev => ({ ...prev, image_url: e.target.value }))}
+                                                            placeholder="https://... o sube una imagen"
+                                                            className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
+                                                        />
+                                                        <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-border rounded-xl text-xs font-bold text-foreground cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center shrink-0">
+                                                            {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Subir archivo"}
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) {
+                                                                        handleImageUpload(file, "delta-force-gear", (url) => {
+                                                                            setGearFields(prev => ({ ...prev, image_url: url }));
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                className="hidden"
+                                                                disabled={uploadingImage}
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    {gearFields.image_url && (
+                                                        <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-border bg-zinc-100/50 dark:bg-zinc-900/30 flex items-center justify-center">
+                                                            <img src={gearFields.image_url} alt="Preview" className="w-full h-full object-contain p-1" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setGearFields(prev => ({ ...prev, image_url: "" }))}
+                                                                className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )}
-                                    
-                            {/* CALIBERS FIELD CONFIGS */}
-                            {activeFormType === "calibers" && (
-                                <div className="sm:col-span-2 space-y-4">
+                                    )}
+
+                                    {/* CALIBERS FIELD CONFIGS */}
+                                    {activeFormType === "calibers" && (
+                                        <div className="sm:col-span-2 space-y-4">
+                                            <div className="flex items-center gap-2 bg-red-500/10 p-3 rounded-xl border border-red-500/20 mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="hide-caliber-checkbox"
+                                                    checked={caliberFields.is_hidden}
+                                                    onChange={(e) => setCaliberFields(prev => ({ ...prev, is_hidden: e.target.checked }))}
+                                                    className="w-4 h-4 rounded border-red-500/30 text-red-500 focus:ring-red-500 bg-white/5"
+                                                />
+                                                <label htmlFor="hide-caliber-checkbox" className="text-xs font-bold text-red-500 cursor-pointer">
+                                                    Ocultar en la Wiki (Temporal / Fin de temporada)
+                                                </label>
+                                            </div>
                                             <div>
                                                 <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Nombre del Calibre</label>
                                                 <input
@@ -2787,7 +2867,7 @@ export default function DeltaForceDatabaseView({
                                                     value={caliberFields.name}
                                                     onChange={(e) => setCaliberFields(prev => ({ ...prev, name: e.target.value }))}
                                                     required
-                                                    
+
                                                     placeholder="5.56x45mm, 7.62x39mm..."
                                                     className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-border focus:ring-1 focus:ring-df-green-500"
                                                 />
@@ -2797,7 +2877,7 @@ export default function DeltaForceDatabaseView({
                                                     </span>
                                                 )}
                                             </div>
-                                            
+
                                             <div>
                                                 <label className="block text-[0.625rem] font-bold text-muted-foreground uppercase mb-1">Imágenes del Calibre (Galería)</label>
                                                 <div className="space-y-3">
@@ -2863,7 +2943,7 @@ export default function DeltaForceDatabaseView({
                                                             {caliberFields.image_urls.map((url, idx) => (
                                                                 <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-border bg-white dark:bg-zinc-950 flex items-center justify-center group">
                                                                     <img src={url} alt={`Imagen ${idx + 1}`} className="w-full h-full object-contain p-1" />
-                                                                    
+
                                                                     {idx === 0 && (
                                                                         <span className="absolute bottom-1 left-1 px-1.5 py-0.5 text-[0.5rem] font-bold bg-df-green-500 text-black rounded uppercase tracking-wider">
                                                                             Principal
@@ -2916,7 +2996,7 @@ export default function DeltaForceDatabaseView({
                                                             w.weapon_name.toLowerCase().includes(weaponSearchInForm.toLowerCase()) ||
                                                             getCategoryLabel(w.category).toLowerCase().includes(weaponSearchInForm.toLowerCase())
                                                         );
-                                                        
+
                                                         if (filteredFormWeapons.length === 0) {
                                                             return (
                                                                 <div className="text-center py-4 text-muted-foreground italic text-[0.625rem]">
@@ -2924,7 +3004,7 @@ export default function DeltaForceDatabaseView({
                                                                 </div>
                                                             );
                                                         }
-                                                        
+
                                                         return filteredFormWeapons.map((w) => {
                                                             const isSelected = caliberFields.weapons.includes(w.weapon_name);
                                                             return (
@@ -2977,156 +3057,169 @@ export default function DeltaForceDatabaseView({
                                         </div>
                                     )}
 
-                            {/* FOOTER ACTIONS */}
-                            <div className="pt-4 border-t border-border flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsFormOpen(false)}
-                                    className="px-4 py-2 border border-border rounded-xl text-muted-foreground hover:text-foreground font-black uppercase tracking-wider"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="px-4 py-2 bg-df-green-500 hover:bg-df-green-600 disabled:bg-df-green-500/40 text-white rounded-xl font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-df-green-500/25"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            Guardando...
-                                        </>
-                                    ) : (
-                                        "Guardar"
+                                    {/* FOOTER ACTIONS */}
+                                    <div className="pt-4 border-t border-border flex justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsFormOpen(false)}
+                                            className="px-4 py-2 border border-border rounded-xl text-muted-foreground hover:text-foreground font-black uppercase tracking-wider"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="px-4 py-2 bg-df-green-500 hover:bg-df-green-600 disabled:bg-df-green-500/40 text-white rounded-xl font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-df-green-500/25"
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    Guardando...
+                                                </>
+                                            ) : (
+                                                "Guardar"
+                                            )}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL DE CONFIRMACIÓN PREMIUM */}
+                    {deleteConfirm && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                            <div
+                                className="bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl p-6 w-full max-w-md transform scale-100 transition-all duration-300 animate-in zoom-in-95 duration-200"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Header con Icono */}
+                                <div className="flex flex-col items-center text-center space-y-4">
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-full flex items-center justify-center border",
+                                        deleteConfirm.type === "calibers"
+                                            ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                            : "bg-red-500/10 text-red-500 border-red-500/20"
+                                    )}>
+                                        <AlertTriangle className="w-6 h-6 animate-pulse" />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <h3 className="text-base font-black text-white uppercase tracking-wider">
+                                            {deleteConfirm.type === "calibers" && "Eliminar Calibre"}
+                                            {deleteConfirm.type === "weapons" && "Restablecer Arma"}
+                                            {deleteConfirm.type === "ammo" && "Eliminar Munición"}
+                                            {deleteConfirm.type === "gear" && "Eliminar Protección"}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            Estás a punto de eliminar/modificar <span className="font-bold text-white">"{deleteConfirm.name}"</span>.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Error de eliminación */}
+                                {deleteError && (
+                                    <div className="p-3 my-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold text-center">
+                                        {deleteError}
+                                    </div>
+                                )}
+
+                                {/* Detalles específicos del impacto */}
+                                <div className="my-5 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60 text-xs text-zinc-300 space-y-3">
+                                    <p className="font-semibold text-zinc-100">
+                                        {deleteConfirm.type === "calibers"
+                                            ? "⚠️ ATENCIÓN: Esta acción es destructiva y tendrá los siguientes efectos en cascada:"
+                                            : "¿Confirmas que deseas proceder con esta acción?"}
+                                    </p>
+
+                                    {deleteConfirm.type === "calibers" && (
+                                        <ul className="space-y-2.5 pl-1">
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-red-500 shrink-0 font-bold">🔴</span>
+                                                <span>Todas las balas/municiones asociadas a este calibre se eliminarán permanentemente.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-amber-500 shrink-0 font-bold">🔗</span>
+                                                <span>Las armas de este calibre se desvincularán y volverán a su calibre original por defecto.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-zinc-500 shrink-0 font-bold">ℹ️</span>
+                                                <span>Esta acción no se puede deshacer de forma automática.</span>
+                                            </li>
+                                        </ul>
                                     )}
-                                </button>
+
+                                    {deleteConfirm.type === "weapons" && (
+                                        <p className="text-zinc-400">
+                                            Las estadísticas de combate de esta arma serán devueltas a sus valores oficiales de fábrica. Todos los cambios personalizados se perderán.
+                                        </p>
+                                    )}
+
+                                    {deleteConfirm.type === "ammo" && (
+                                        <p className="text-zinc-400">
+                                            Este proyectil se eliminará permanentemente de las tablas de datos y ya no se mostrará en las comparativas de munición ni estará disponible para armas de este calibre.
+                                        </p>
+                                    )}
+
+                                    {deleteConfirm.type === "gear" && (
+                                        <p className="text-zinc-400">
+                                            Esta pieza de equipamiento (chaleco/casco) y sus estadísticas de durabilidad se eliminarán permanentemente de la enciclopedia.
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Botones de acción */}
+                                <div className="flex items-center gap-3 justify-end mt-4">
+                                    <button
+                                        type="button"
+                                        disabled={submitting}
+                                        onClick={() => setDeleteConfirm(null)}
+                                        className="flex-1 sm:flex-initial px-4 py-2.5 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-xs font-black uppercase text-zinc-400 hover:text-white transition-all disabled:opacity-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={submitting}
+                                        onClick={executeDelete}
+                                        className={cn(
+                                            "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-lg active:scale-95 text-white",
+                                            deleteConfirm.type === "calibers"
+                                                ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 disabled:bg-amber-500/40"
+                                                : "bg-red-500 hover:bg-red-600 shadow-red-500/20 disabled:bg-red-500/40"
+                                        )}
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                <span>Procesando...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                                <span>{deleteConfirm.type === "weapons" ? "Restablecer" : "Confirmar Eliminar"}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
-                        </form>
-                    </div>
-                </div>
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* MODAL DE CONFIRMACIÓN PREMIUM */}
-            {deleteConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div 
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl p-6 w-full max-w-md transform scale-100 transition-all duration-300 animate-in zoom-in-95 duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header con Icono */}
-                        <div className="flex flex-col items-center text-center space-y-4">
-                            <div className={cn(
-                                "w-12 h-12 rounded-full flex items-center justify-center border",
-                                deleteConfirm.type === "calibers" 
-                                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20" 
-                                    : "bg-red-500/10 text-red-500 border-red-500/20"
-                            )}>
-                                <AlertTriangle className="w-6 h-6 animate-pulse" />
-                            </div>
-                            
-                            <div className="space-y-1">
-                                <h3 className="text-base font-black text-white uppercase tracking-wider">
-                                    {deleteConfirm.type === "calibers" && "Eliminar Calibre"}
-                                    {deleteConfirm.type === "weapons" && "Restablecer Arma"}
-                                    {deleteConfirm.type === "ammo" && "Eliminar Munición"}
-                                    {deleteConfirm.type === "gear" && "Eliminar Protección"}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">
-                                    Estás a punto de eliminar/modificar <span className="font-bold text-white">"{deleteConfirm.name}"</span>.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Error de eliminación */}
-                        {deleteError && (
-                            <div className="p-3 my-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold text-center">
-                                {deleteError}
-                            </div>
-                        )}
-
-                        {/* Detalles específicos del impacto */}
-                        <div className="my-5 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60 text-xs text-zinc-300 space-y-3">
-                            <p className="font-semibold text-zinc-100">
-                                {deleteConfirm.type === "calibers" 
-                                    ? "⚠️ ATENCIÓN: Esta acción es destructiva y tendrá los siguientes efectos en cascada:" 
-                                    : "¿Confirmas que deseas proceder con esta acción?"}
-                            </p>
-                            
-                            {deleteConfirm.type === "calibers" && (
-                                <ul className="space-y-2.5 pl-1">
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-red-500 shrink-0 font-bold">🔴</span>
-                                        <span>Todas las balas/municiones asociadas a este calibre se eliminarán permanentemente.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-amber-500 shrink-0 font-bold">🔗</span>
-                                        <span>Las armas de este calibre se desvincularán y volverán a su calibre original por defecto.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-zinc-500 shrink-0 font-bold">ℹ️</span>
-                                        <span>Esta acción no se puede deshacer de forma automática.</span>
-                                    </li>
-                                </ul>
-                            )}
-
-                            {deleteConfirm.type === "weapons" && (
-                                <p className="text-zinc-400">
-                                    Las estadísticas de combate de esta arma serán devueltas a sus valores oficiales de fábrica. Todos los cambios personalizados se perderán.
-                                </p>
-                            )}
-
-                            {deleteConfirm.type === "ammo" && (
-                                <p className="text-zinc-400">
-                                    Este proyectil se eliminará permanentemente de las tablas de datos y ya no se mostrará en las comparativas de munición ni estará disponible para armas de este calibre.
-                                </p>
-                            )}
-
-                            {deleteConfirm.type === "gear" && (
-                                <p className="text-zinc-400">
-                                    Esta pieza de equipamiento (chaleco/casco) y sus estadísticas de durabilidad se eliminarán permanentemente de la enciclopedia.
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Botones de acción */}
-                        <div className="flex items-center gap-3 justify-end mt-4">
-                            <button
-                                type="button"
-                                disabled={submitting}
-                                onClick={() => setDeleteConfirm(null)}
-                                className="flex-1 sm:flex-initial px-4 py-2.5 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-xs font-black uppercase text-zinc-400 hover:text-white transition-all disabled:opacity-50"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                disabled={submitting}
-                                onClick={executeDelete}
-                                className={cn(
-                                    "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-lg active:scale-95 text-white",
-                                    deleteConfirm.type === "calibers"
-                                        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 disabled:bg-amber-500/40"
-                                        : "bg-red-500 hover:bg-red-600 shadow-red-500/20 disabled:bg-red-500/40"
-                                )}
-                            >
-                                {submitting ? (
-                                    <>
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        <span>Procesando...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                        <span>{deleteConfirm.type === "weapons" ? "Restablecer" : "Confirmar Eliminar"}</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {profile?.role === "admin" && (
+                <WeaponFormDialog
+                    open={weaponMetaDialogOpen}
+                    onOpenChange={setWeaponMetaDialogOpen}
+                    weapon={null}
+                    gameId="63865a65-f510-4a9e-843f-e83f405f3b42"
+                    existingWeapons={(weapons || []).map(w => ({ ...w, name: w.weapon_name, slug: w.weapon_name })) as any}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ["deltaForceBaseData", "weapons"] });
+                    }}
+                />
             )}
-        </>
-    )}
-</div>
+        </div>
     );
 }

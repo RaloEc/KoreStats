@@ -14,12 +14,15 @@ export interface BaseWeapon {
     base_capacity: number;
     base_muzzle_velocity: number;
     base_armor_penetration: string;
+    /** Modo(s) de disparo base del arma. Ej: "Auto", "Único/Ráfaga", "Auto/Ráfaga/Único" */
+    base_fire_mode?: string | null;
     image_url: string | null;
     // Extended fields from the merge with delta_force_weapons
     official_id?: string;
     base_id?: string | null;
     is_configured?: boolean;
 }
+
 
 export interface BaseCaliber {
     id: string;

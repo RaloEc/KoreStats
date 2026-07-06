@@ -20,7 +20,10 @@ import {
   Gauge,
   Activity,
   Focus,
+  Sparkles,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 interface WeaponStatsCardProps {
   stats: WeaponStats;
@@ -189,10 +192,43 @@ export function WeaponStatsCard({
         </p>
       </div>
 
-      {/* Main Stats with Bars */}
+      {/* Special Badges / Anomaly Chips */}
+      {normalizedStats.special_badges && normalizedStats.special_badges.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <TooltipProvider delayDuration={100}>
+            {normalizedStats.special_badges.map((badge, idx) => {
+              const tooltipText =
+                badge.includes("Conversión") ? "El modo de disparo fue cambiado por un accesorio especial" :
+                badge.includes("Cargador") ? "Esta build usa un cargador ampliado (más del 40% de capacidad base)" :
+                badge.includes("Munión") || badge.includes("Especial") ? "El daño supera en más de 5% al valor base del arma" :
+                "Accesorio especial detectado";
+
+              return (
+                <Tooltip key={idx}>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wide bg-amber-500/15 border border-amber-500/40 text-amber-400 cursor-help select-none transition-colors hover:bg-amber-500/25">
+                      <Sparkles className="w-2.5 h-2.5" />
+                      {badge}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs max-w-[200px]">
+                    {tooltipText}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </TooltipProvider>
+        </div>
+      )}
+
       <div className="space-y-2 mb-3 flex-shrink-0">
         {MAIN_STATS_CONFIG.map((config) => {
-          const rawValue = normalizedStats[config.key];
+          // Si es daño y hay un ui_damage, usamos ese valor para mostrarlo en UI
+          const rawValue =
+            config.key === "damage" && normalizedStats.ui_damage !== undefined
+              ? normalizedStats.ui_damage
+              : normalizedStats[config.key];
+              
           const numericValue = sanitizeToNumber(rawValue);
           const displayValue = Number.isInteger(numericValue)
             ? numericValue
@@ -248,7 +284,9 @@ export function WeaponStatsCard({
               ? ""
               : typeof value === "number"
               ? value
-              : value;
+              : Array.isArray(value)
+              ? value.join(", ")
+              : String(value);
 
           return (
             <div

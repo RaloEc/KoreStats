@@ -6,14 +6,14 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  ShieldAlert,
-  Flame,
-  Sparkles,
+  // ShieldAlert, Flame — usados en el selector de evento (oculto temporalmente, Season 10)
   AlertCircle,
   Infinity,
   RotateCcw,
   Calendar,
 } from "lucide-react";
+
+
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -101,20 +101,21 @@ const FIERY_PERMANENT: typeof OPERATIONS_PERMANENT = [];
 
 // ─── Bloques de Rotación UTC ─────────────────────────────────────────────────
 
-// Operations: Tide Prison Hard + (Space City Hard O Space City Normal + Brakkesh Normal) alternando
+// Operations Season 10: bloques pares → Tide Prison Hard + Space City Normal
+//                       bloques impares → Space City Hard + Brakkesh Normal
 const OPERATIONS_BLOCKS_UTC: MapRotationBlock[] = [
-  { time: "0~2",   map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "Brakkesh", difficulty3: "Normal" },
-  { time: "2~4",   map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Hard",   map3: "",         difficulty3: ""       },
-  { time: "4~6",   map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "Brakkesh", difficulty3: "Normal" },
-  { time: "6~8",   map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Hard",   map3: "",         difficulty3: ""       },
-  { time: "8~10",  map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "Brakkesh", difficulty3: "Normal" },
-  { time: "10~12", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Hard",   map3: "",         difficulty3: ""       },
-  { time: "12~14", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "Brakkesh", difficulty3: "Normal" },
-  { time: "14~16", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Hard",   map3: "",         difficulty3: ""       },
-  { time: "16~18", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "Brakkesh", difficulty3: "Normal" },
-  { time: "18~20", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Hard",   map3: "",         difficulty3: ""       },
-  { time: "20~22", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "Brakkesh", difficulty3: "Normal" },
-  { time: "22~24", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Hard",   map3: "",         difficulty3: ""       },
+  { time: "0~2",   map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "2~4",   map1: "Space City",  difficulty1: "Hard",   map2: "Brakkesh",   difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "4~6",   map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "6~8",   map1: "Space City",  difficulty1: "Hard",   map2: "Brakkesh",   difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "8~10",  map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "10~12", map1: "Space City",  difficulty1: "Hard",   map2: "Brakkesh",   difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "12~14", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "14~16", map1: "Space City",  difficulty1: "Hard",   map2: "Brakkesh",   difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "16~18", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "18~20", map1: "Space City",  difficulty1: "Hard",   map2: "Brakkesh",   difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "20~22", map1: "Tide Prison", difficulty1: "Hard",   map2: "Space City", difficulty2: "Normal", map3: "", difficulty3: "" },
+  { time: "22~24", map1: "Space City",  difficulty1: "Hard",   map2: "Brakkesh",   difficulty2: "Normal", map3: "", difficulty3: "" },
 ];
 
 // Fiery Owl Hunt: Brakkesh Normal + Zero Dam Normal + (Space City Normal O Space City Hard)
@@ -143,23 +144,9 @@ function getDifficultyStyle(diff: string) {
   return { text: "text-neutral-400", bg: "bg-neutral-500/15", border: "border-neutral-500/25", label: diff };
 }
 
-function getMapStatus(mapName: string, difficulty: string, timezoneOffset: number) {
-  if (mapName === "Brakkesh" && difficulty === "Normal") {
-    const now = new Date();
-    const utcH = now.getUTCHours();
-    const utcM = now.getUTCMinutes();
-    const utcTimeFloat = utcH + utcM / 60;
-    
-    // Abierto de 02:00 a 14:00 UTC (21:00 a 09:00 en UTC-5)
-    const isOpen = utcTimeFloat >= 2 && utcTimeFloat < 14;
-    
-    // Convertir 02:00 UTC a hora local
-    const localStartHour = (2 + timezoneOffset + 24) % 24;
-    const opensAtStr = `${String(localStartHour).padStart(2, "0")}:00`;
-    
-    return { isOpen, opensAt: opensAtStr };
-  }
-  return { isOpen: true };
+// Season 10: todos los mapas en rotación están disponibles durante su bloque, sin restricciones horarias adicionales.
+function getMapStatus(_mapName: string, _difficulty: string, _timezoneOffset: number): { isOpen: boolean; opensAt?: string } {
+  return { isOpen: true, opensAt: "" };
 }
 
 // ─── Componente Principal ────────────────────────────────────────────────────
@@ -286,7 +273,9 @@ export default function MapRotationWidget() {
           </div>
         </div>
 
-        {/* Selector de modo */}
+        {/* Selector de modo — Evento Búho oculto temporalmente (Season 10: sin evento activo) */}
+        {/* TODO: Descomentar cuando haya un nuevo evento de rotación disponible */}
+        {/*
         <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/40 text-[0.625rem]">
           <button
             onClick={() => setActiveMode("operations")}
@@ -311,6 +300,7 @@ export default function MapRotationWidget() {
             Evento Búho
           </button>
         </div>
+        */}
       </div>
 
       {/* ── CUERPO ─────────────────────────────────────────────────── */}

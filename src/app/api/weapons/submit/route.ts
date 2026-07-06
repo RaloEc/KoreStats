@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, getServiceClient } from "@/lib/supabase/server";
+import { analyzeWeaponBadges } from "@/lib/delta-force/analyzeWeaponBadges";
+
 
 /**
  * POST /api/weapons/submit
@@ -151,7 +153,7 @@ function extractWeaponName(shareCode: string): string | null {
 
 // ─── Helper: obtener el patch_version activo desde el command_center ──────────
 
-const FALLBACK_PATCH = "Temporada 9 - ECHO";
+const FALLBACK_PATCH = "Season 10 - MELTDOWN";
 
 async function getCurrentPatchVersion(): Promise<string> {
   try {
@@ -160,7 +162,6 @@ async function getCurrentPatchVersion(): Promise<string> {
       .from("game_modules")
       .select("config")
       .eq("module_type", "command_center")
-      .eq("game_slug", "delta-force")
       .eq("enabled", true)
       .single();
 
@@ -241,7 +242,53 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // ── Enrichment: Calcular badges de anomalía ──────────────────────────────
+      // Buscamos las stats actuales del record y el arma base para comparar
+      try {
+        const { data: statsRecord } = await serviceSupabase
+          .from("weapon_stats_records")
+          .select("stats, weapon_name, game_mode")
+          .eq("id", weaponStatsRecordId)
+          .single();
+
+        if (statsRecord?.stats && statsRecord.weapon_name && statsRecord.game_mode) {
+          // Buscar el arma base en delta_force_weapons_base por nombre similar y modo de juego
+          const { data: baseWeapon } = await serviceSupabase
+            .from("delta_force_weapons_base")
+            .select("weapon_name, base_damage, base_fire_rate, base_capacity, base_fire_mode, base_armor_penetration")
+            .ilike("weapon_name", `%${statsRecord.weapon_name}%`)
+            .eq("game_mode", statsRecord.game_mode)
+            .limit(1)
+            .single();
+
+          if (baseWeapon) {
+            const { special_badges, anomalies } = analyzeWeaponBadges(
+              statsRecord.stats,
+              baseWeapon as any
+            );
+
+            if (special_badges.length > 0) {
+              console.log("[weapons/submit] Badges detectados:", { special_badges, anomalies, weaponStatsRecordId });
+              // Enriquecemos el JSONB stats con los badges sin alterar el schema
+              const enrichedStats = {
+                ...(statsRecord.stats as object),
+                special_badges,
+              };
+              await serviceSupabase
+                .from("weapon_stats_records")
+                .update({ stats: enrichedStats })
+                .eq("id", weaponStatsRecordId);
+            }
+          }
+        }
+      } catch (badgeError) {
+        // No es crítico: si falla el badge enrichment, igual guardamos la build
+        console.warn("[weapons/submit] Badge enrichment falló (no crítico):", badgeError);
+      }
+      // ─────────────────────────────────────────────────────────────────────────
+
       return NextResponse.json({ success: true, record: data, detected_mode: detectedMode, patch_version: currentPatch });
+
     } else {
       const weaponName = extractWeaponName(trimmedCode);
 
