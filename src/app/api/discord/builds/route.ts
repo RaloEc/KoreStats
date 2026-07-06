@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase/server";
+import Fuse from "fuse.js";
 
 export const dynamic = "force-dynamic";
 
@@ -19,33 +20,56 @@ export async function GET(request: NextRequest) {
     // 2. Extraer parámetros
     const searchParams = request.nextUrl.searchParams;
     const baseWeaponId = searchParams.get("base_weapon_id");
+    const queryParam = searchParams.get("query");
     const limit = parseInt(searchParams.get("limit") || "3", 10);
     const sort = searchParams.get("sort") || "votes"; // "votes" o "usage"
 
-    if (!baseWeaponId) {
-      return NextResponse.json({ error: "Missing base_weapon_id parameter" }, { status: 400 });
+    if (!baseWeaponId && !queryParam) {
+      return NextResponse.json({ error: "Missing base_weapon_id or query parameter" }, { status: 400 });
     }
 
     const supabase = getServiceClient();
+    let baseWeapon: any = null;
 
-    // 3. Obtener el nombre o slug base del arma y sus estadísticas base
-    const { data: baseWeapon, error: baseWeaponError } = await supabase
-      .from("delta_force_weapons_base")
-      .select("weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range")
-      .eq("id", baseWeaponId)
-      .single();
+    if (baseWeaponId) {
+      // Búsqueda directa por ID (usado por botones de interacción)
+      const { data } = await supabase
+        .from("delta_force_weapons_base")
+        .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range")
+        .eq("id", baseWeaponId)
+        .single();
+      baseWeapon = data;
+    } else if (queryParam) {
+      // Fuzzy Search dinámico en la base de datos completa
+      const { data: allWeapons } = await supabase
+        .from("delta_force_weapons_base")
+        .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range");
 
-    const weaponName = baseWeapon ? baseWeapon.weapon_name : baseWeaponId;
-    const category = baseWeapon ? baseWeapon.category : "Desconocido";
-    const imageUrl = baseWeapon ? baseWeapon.image_url : null;
-    const baseStats = baseWeapon ? {
+      if (allWeapons && allWeapons.length > 0) {
+        const fuse = new Fuse(allWeapons, { keys: ["weapon_name", "category"], threshold: 0.4 });
+        const results = fuse.search(queryParam);
+        if (results.length > 0) {
+          baseWeapon = results[0].item;
+        }
+      }
+    }
+
+    if (!baseWeapon) {
+      return NextResponse.json({ error: "Weapon not found" }, { status: 404 });
+    }
+
+    const actualWeaponId = baseWeapon.id;
+    const weaponName = baseWeapon.weapon_name;
+    const category = baseWeapon.category || "Desconocido";
+    const imageUrl = baseWeapon.image_url || null;
+    const baseStats = {
       damage: baseWeapon.base_damage,
       fire_rate: baseWeapon.base_fire_rate,
       control: baseWeapon.base_control,
       stability: baseWeapon.base_stability,
       accuracy: baseWeapon.base_accuracy,
       range: baseWeapon.base_range
-    } : null;
+    };
 
 
     // 4. Fetch a las builds reales de la comunidad para esta arma
@@ -174,6 +198,7 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({
+      weapon_id: actualWeaponId,
       weapon_name: weaponName,
       category,
       image_url: imageUrl,

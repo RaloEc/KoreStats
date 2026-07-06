@@ -10,29 +10,31 @@ export async function handleBuildCommand(interaction: any) {
 
     const query = options[0].value;
     
-    // 1. Fuzzy Search en Memoria
-    const fuse = new Fuse(baseWeapons, { keys: ['weapon_name', 'category'], threshold: 0.4 });
-    const searchResult = fuse.search(query);
-    
-    if (searchResult.length === 0) {
-      return { content: `No encontré el arma "${query}". Revisa que esté bien escrita.` };
-    }
-    
-    const weapon = searchResult[0].item;
-    
-    // 2. Fetch a la API de Next.js de KoreStats
-    const response = await fetch(`https://korestats.com/api/discord/builds?base_weapon_id=${weapon.id}&limit=3`, {
+    // 1. Fetch a la API de Next.js de KoreStats pasando el query de texto
+    const response = await fetch(`https://korestats.com/api/discord/builds?query=${encodeURIComponent(query)}&limit=3`, {
       headers: {
         'Authorization': `Bearer ${process.env.KORESTATS_BOT_PAT}`,
         'Content-Type': 'application/json'
       }
     });
     
+    if (response.status === 404) {
+      return { content: `No encontré el arma "${query}". Revisa que esté bien escrita.` };
+    }
+
     if (!response.ok) {
       return { content: "Error al comunicarse con la base de datos de KoreStats." };
     }
 
     const data = await response.json();
+    
+    // 2. Construir el objeto weapon dinámicamente usando lo retornado por la API
+    const weapon = {
+      id: data.weapon_id,
+      weapon_name: data.weapon_name || 'Arma',
+      category: data.category || 'Desconocido',
+      image_url: data.image_url || null
+    };
     
     // 3. Crear y retornar el JSON Payload del Embed
     return generateEmbedPayload(weapon, data);
