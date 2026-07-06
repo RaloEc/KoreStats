@@ -11,27 +11,41 @@ export const handler = async (event: any) => {
   const signature = event.headers['x-signature-ed25519'];
   const timestamp = event.headers['x-signature-timestamp'];
   
-  // En Netlify, a veces el body viene codificado en Base64. Debemos decodificarlo.
-  const rawBody = event.isBase64Encoded
+  // Decodificar el body (Netlify a veces lo codifica en base64)
+  const rawBodyStr = event.isBase64Encoded
     ? Buffer.from(event.body, 'base64').toString('utf-8')
     : event.body;
 
-  if (!signature || !timestamp || !rawBody) {
-    console.error("Faltan firmas o body en la petición:", { signature: !!signature, timestamp: !!timestamp, body: !!rawBody });
+  if (!signature || !timestamp || !rawBodyStr) {
+    console.error("[discord-bot] Faltan headers:", { sig: !!signature, ts: !!timestamp, body: !!rawBodyStr });
     return { statusCode: 401, body: 'Missing signature headers' };
   }
 
-  // 2. Validación criptográfica de Discord (Ed25519)
+  // 2. Validación criptográfica Ed25519
+  // verifyKey necesita el body como Buffer para la verificación correcta
   const publicKey = process.env.DISCORD_PUBLIC_KEY || '';
-  const isValidRequest = verifyKey(rawBody, signature, timestamp, publicKey);
+  if (!publicKey) {
+    console.error("[discord-bot] DISCORD_PUBLIC_KEY no está definida en las variables de entorno.");
+    return { statusCode: 500, body: 'Server misconfiguration' };
+  }
+
+  let isValidRequest = false;
+  try {
+    isValidRequest = await verifyKey(Buffer.from(rawBodyStr), signature, timestamp, publicKey);
+  } catch (e) {
+    console.error("[discord-bot] Excepción durante verifyKey:", e);
+    return { statusCode: 401, body: 'Signature verification failed' };
+  }
+
   if (!isValidRequest) {
-    console.error("Firma criptográfica inválida. Verifica que DISCORD_PUBLIC_KEY en Netlify sea correcta.");
+    console.error("[discord-bot] Firma inválida. PublicKey configurada (primeros 10 chars):", publicKey.slice(0, 10));
     return { statusCode: 401, body: 'Bad request signature' };
   }
 
+
   let interaction;
   try {
-    interaction = JSON.parse(rawBody);
+    interaction = JSON.parse(rawBodyStr);
   } catch (e) {
     return { statusCode: 400, body: 'Bad request body' };
   }
