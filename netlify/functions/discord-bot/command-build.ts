@@ -13,7 +13,11 @@ function getSupabase() {
 const STAT_MAP: Record<string, string> = {
   dano: "damage", control: "control", cadenciaDisparo: "fireRate",
   estabilidad: "stability", damage: "damage", fireRate: "fireRate", stability: "stability",
+  alcance: "range", range: "range",
+  precision: "accuracy", accuracy: "accuracy",
+  manejo: "handling", handling: "handling"
 };
+
 const getStat = (stats: any, key: string): number => {
   if (!stats) return 0;
   const mapped = STAT_MAP[key];
@@ -27,7 +31,7 @@ async function findWeapon(query: string) {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("delta_force_weapons_base")
-    .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range");
+    .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range, base_handling");
 
   if (error || !data || data.length === 0) return null;
 
@@ -41,7 +45,7 @@ async function findWeaponById(id: string) {
   const supabase = getSupabase();
   const { data } = await supabase
     .from("delta_force_weapons_base")
-    .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range")
+    .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range, base_handling")
     .eq("id", id)
     .single();
   return data || null;
@@ -57,7 +61,7 @@ async function getBuildsForWeapon(weaponName: string, sort: "votes" | "usage", l
       .select("id, weapon_name, share_code, stats, description")
       .not("weapon_name", "is", null)
       .not("weapon_name", "eq", "")
-      .ilike("weapon_name", `%${weaponName}%`),
+      .ilike("weapon_name", weaponName),
     supabase
       .from("weapon_votes")
       .select("weapon_name, vote")
@@ -75,25 +79,39 @@ async function getBuildsForWeapon(weaponName: string, sort: "votes" | "usage", l
     if (v.vote === 1) entry.upvotes++; else entry.downvotes++;
   }
 
-  // Calcular stats promedio
-  let totalDmg = 0, totalCtrl = 0, totalFr = 0, totalStab = 0, count = 0;
-  const groups = new Map<string, { name: string; share_code: string; upvotes: number; score: number; usages: number }>();
+  const groups = new Map<string, any>();
 
   for (const rec of records) {
-    const dmg = getStat(rec.stats, "damage");
+    const dmg = getStat(rec.stats, "damage") || getStat(rec.stats, "dano");
+    const rng = getStat(rec.stats, "range") || getStat(rec.stats, "alcance");
     const ctrl = getStat(rec.stats, "control");
-    const fr = getStat(rec.stats, "fireRate");
-    const stab = getStat(rec.stats, "stability");
-    if (dmg || ctrl || fr || stab) {
-      totalDmg += dmg; totalCtrl += ctrl; totalFr += fr; totalStab += stab; count++;
-    }
+    const hnd = getStat(rec.stats, "handling") || getStat(rec.stats, "manejo");
+    const stab = getStat(rec.stats, "stability") || getStat(rec.stats, "estabilidad");
+    const acc = getStat(rec.stats, "accuracy") || getStat(rec.stats, "precision");
+    const fr = getStat(rec.stats, "fireRate") || getStat(rec.stats, "cadenciaDisparo");
 
     const key = rec.share_code || rec.id;
     const v = voteMap.get(rec.id) || voteMap.get(rec.share_code || "") || { upvotes: 0, downvotes: 0 };
+    
     if (!groups.has(key)) {
       const rawDesc = rec.description || "";
       const name = rawDesc.length > 35 ? rawDesc.substring(0, 35) + "…" : rawDesc || "Build de la Comunidad";
-      groups.set(key, { name, share_code: rec.share_code || "—", upvotes: v.upvotes, score: v.upvotes - v.downvotes, usages: 0 });
+      groups.set(key, { 
+        name, 
+        share_code: rec.share_code || "—", 
+        upvotes: v.upvotes, 
+        score: v.upvotes - v.downvotes, 
+        usages: 0,
+        stats: {
+          damage: dmg,
+          range: rng,
+          control: ctrl,
+          handling: hnd,
+          stability: stab,
+          accuracy: acc,
+          fire_rate: fr
+        }
+      });
     }
     groups.get(key)!.usages++;
   }
@@ -103,50 +121,51 @@ async function getBuildsForWeapon(weaponName: string, sort: "votes" | "usage", l
   else sorted.sort((a, b) => b.usages - a.usages || b.score - a.score);
 
   return {
-    builds: sorted.slice(0, limit),
-    stats: count > 0 ? {
-      avg_damage: Math.round(totalDmg / count),
-      avg_control: Math.round(totalCtrl / count),
-      avg_fire_rate: Math.round(totalFr / count),
-      avg_stability: Math.round(totalStab / count),
-    } : null,
+    builds: sorted.slice(0, limit)
   };
 }
 
+// ─── Generar Bloque de Texto de Estadísticas ──────────────────────────────────
+function formatStatsGrid(stats: any) {
+  const d = stats?.damage ?? "—";
+  const r = stats?.range ?? "—";
+  const c = stats?.control ?? "—";
+  const m = stats?.handling ?? "—";
+  const s = stats?.stability ?? "—";
+  const p = stats?.accuracy ?? "—";
+
+  const pad = (val: any) => String(val).padEnd(4);
+
+  return `\`\`\`text
+Daño       : ${pad(d)} | Alcance  : ${pad(r)}
+Control    : ${pad(c)} | Manejo   : ${pad(m)}
+Estabilidad: ${pad(s)} | Precisión: ${pad(p)}
+\`\`\``;
+}
+
 // ─── Generar Embed para Discord ───────────────────────────────────────────────
-function generateEmbed(weapon: any, builds: any[], baseStats: any, communityStats: any) {
+function generateEmbed(weapon: any, builds: any[], baseStats: any) {
   const fields: any[] = [];
 
   // Estadísticas base oficiales del arma
   if (baseStats && (baseStats.damage || baseStats.fire_rate)) {
     fields.push({
-      name: "📊 Estadísticas Base",
-      value: [
-        `**Daño:** ${baseStats.damage ?? "—"}  |  **Control:** ${baseStats.control ?? "—"}  |  **Estabilidad:** ${baseStats.stability ?? "—"}`,
-        `**Precisión:** ${baseStats.accuracy ?? "—"}  |  **Alcance:** ${baseStats.range ?? "—"}  |  **Cadencia:** ${baseStats.fire_rate ? `${baseStats.fire_rate} RPM` : "—"}`,
-      ].join("\n"),
-      inline: false
-    });
-  }
-
-  // Promedios de la comunidad (si hay builds con stats)
-  if (communityStats) {
-    fields.push({
-      name: "👥 Promedios de la Comunidad",
-      value: `**Daño:** ${communityStats.avg_damage}  |  **Control:** ${communityStats.avg_control}  |  **Estabilidad:** ${communityStats.avg_stability}  |  **Cadencia:** ${communityStats.avg_fire_rate} RPM`,
+      name: "Estadísticas Base",
+      value: formatStatsGrid(baseStats),
       inline: false
     });
   }
 
   // Builds encontradas
-  if (builds.length > 0) {
-    builds.forEach((b, i) => {
+  if (builds && builds.length > 0) {
+    for (let i = 0; i < builds.length; i++) {
+      const b = builds[i];
       fields.push({
         name: `#${i + 1} — ${b.name}`,
-        value: `Código: \`${b.share_code}\`  •  ${b.upvotes} 🔥`,
+        value: `Código: \`${b.share_code}\`  •  ${b.upvotes} votos\n${formatStatsGrid(b.stats)}`,
         inline: false
       });
-    });
+    }
   } else {
     fields.push({
       name: "Sin resultados",
@@ -158,10 +177,10 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any, communityStat
   return {
     content: "",
     embeds: [{
-      title: `⚡ ${weapon.weapon_name}`,
+      title: weapon.weapon_name,
       description: `Categoría: **${weapon.category || "Desconocido"}**`,
       color: 0xFF7700, // Naranja KoreStats
-      thumbnail: weapon.image_url ? { url: weapon.image_url } : undefined,
+      image: weapon.image_url ? { url: weapon.image_url } : undefined, // Imagen grande
       fields,
       footer: {
         text: "KoreStats.com — Delta Force: Hawk Ops",
@@ -171,8 +190,6 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any, communityStat
     components: [{
       type: 1,
       components: [
-        { type: 2, style: 1, custom_id: `build_top_voted_${weapon.id}`, label: "🔥 Top 3 Más Votadas" },
-        { type: 2, style: 2, custom_id: `build_top_used_${weapon.id}`, label: "📈 Top 3 Más Usadas" },
         { type: 2, style: 5, url: "https://korestats.com/games/delta-force/weapons", label: "Ver en la Web" },
       ]
     }]
@@ -184,28 +201,29 @@ export async function handleBuildCommand(interaction: any) {
   try {
     const options = interaction.data?.options;
     const query = options?.[0]?.value;
-    if (!query) return { content: "❌ Debes especificar el nombre de un arma." };
+    if (!query) return { content: "Debes especificar el nombre de un arma." };
 
     const weapon = await findWeapon(query);
     if (!weapon) {
-      return { content: `❌ No encontré ninguna arma que coincida con **"${query}"**. Prueba con otro nombre o parte del nombre.` };
+      return { content: `No encontré ninguna arma que coincida con **"${query}"**. Prueba con otro nombre o parte del nombre.` };
     }
 
     const baseStats = {
       damage: weapon.base_damage,
       fire_rate: weapon.base_fire_rate,
       control: weapon.base_control,
+      handling: weapon.base_handling,
       stability: weapon.base_stability,
       accuracy: weapon.base_accuracy,
       range: weapon.base_range
     };
 
-    const { builds, stats } = await getBuildsForWeapon(weapon.weapon_name, "votes", 3);
-    return generateEmbed(weapon, builds, baseStats, stats);
+    const { builds } = await getBuildsForWeapon(weapon.weapon_name, "votes", 3);
+    return generateEmbed(weapon, builds, baseStats);
 
   } catch (err) {
     console.error("[discord-bot] Error en handleBuildCommand:", err);
-    return { content: "❌ Ocurrió un error interno. Intenta de nuevo más tarde." };
+    return { content: "Ocurrió un error interno. Intenta de nuevo más tarde." };
   }
 }
 
@@ -215,32 +233,34 @@ export async function handleInteractionButton(interaction: any) {
     const customId: string = interaction.data?.custom_id || "";
 
     if (customId.startsWith("build_top_voted_") || customId.startsWith("build_top_used_")) {
-      // El custom_id tiene el formato: "build_top_voted_<UUID>"
-      // El UUID puede contener guiones, así que NO usamos .split('_').pop()
       const prefix = customId.startsWith("build_top_voted_") ? "build_top_voted_" : "build_top_used_";
       const weaponId = customId.slice(prefix.length);
       const sort = customId.startsWith("build_top_voted_") ? "votes" : "usage";
 
       const weapon = await findWeaponById(weaponId);
-      if (!weapon) return { content: "❌ No se encontró el arma en la base de datos." };
+      if (!weapon) return { content: "No se encontró el arma en la base de datos." };
 
       const baseStats = {
-        damage: weapon.base_damage, fire_rate: weapon.base_fire_rate,
-        control: weapon.base_control, stability: weapon.base_stability,
-        accuracy: weapon.base_accuracy, range: weapon.base_range
+        damage: weapon.base_damage, 
+        fire_rate: weapon.base_fire_rate,
+        control: weapon.base_control, 
+        handling: weapon.base_handling,
+        stability: weapon.base_stability,
+        accuracy: weapon.base_accuracy, 
+        range: weapon.base_range
       };
 
-      const { builds, stats } = await getBuildsForWeapon(weapon.weapon_name, sort as "votes" | "usage", 3);
-      return generateEmbed(weapon, builds, baseStats, stats);
+      const { builds } = await getBuildsForWeapon(weapon.weapon_name, sort as "votes" | "usage", 3);
+      return generateEmbed(weapon, builds, baseStats);
     }
 
     if (customId === "link_account") {
-      return { content: "La funcionalidad de vincular cuenta estará disponible muy pronto. 🔗" };
+      return { content: "La funcionalidad de vincular cuenta estará disponible muy pronto." };
     }
 
   } catch (err) {
     console.error("[discord-bot] Error en handleInteractionButton:", err);
-    return { content: "❌ Ocurrió un error al procesar el botón." };
+    return { content: "Ocurrió un error al procesar el botón." };
   }
 
   return { content: "Interacción no reconocida." };

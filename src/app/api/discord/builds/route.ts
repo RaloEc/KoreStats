@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       // Búsqueda directa por ID (usado por botones de interacción)
       const { data } = await supabase
         .from("delta_force_weapons_base")
-        .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range")
+        .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range, base_handling")
         .eq("id", baseWeaponId)
         .single();
       baseWeapon = data;
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       // Fuzzy Search dinámico en la base de datos completa
       const { data: allWeapons } = await supabase
         .from("delta_force_weapons_base")
-        .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range");
+        .select("id, weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range, base_handling");
 
       if (allWeapons && allWeapons.length > 0) {
         const fuse = new Fuse(allWeapons, { keys: ["weapon_name", "category"], threshold: 0.4 });
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       .select("id, weapon_name, share_code, stats, description, user_id")
       .not("weapon_name", "is", null)
       .not("weapon_name", "eq", "")
-      .ilike("weapon_name", `%${weaponName}%`);
+      .ilike("weapon_name", weaponName);
 
     if (recordsError) {
       console.error("[discord-api] Error fetching records:", recordsError);
