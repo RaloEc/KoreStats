@@ -28,91 +28,162 @@ export async function GET(request: NextRequest) {
 
     const supabase = getServiceClient();
 
-    // 3. Obtener el nombre o slug base del arma (esto asume que se relaciona con weapon_stats_records)
+    // 3. Obtener el nombre o slug base del arma y sus estadísticas base
     const { data: baseWeapon, error: baseWeaponError } = await supabase
       .from("delta_force_weapons_base")
-      .select("weapon_name, category")
+      .select("weapon_name, category, image_url, base_damage, base_fire_rate, base_control, base_stability, base_accuracy, base_range")
       .eq("id", baseWeaponId)
       .single();
 
-    if (baseWeaponError || !baseWeapon) {
-        // Fallback en caso de que pasen un ID dummy del catalogo in memory
-        // Si no está en DB, devolvemos un mock (útil para el dev setup actual)
-    }
-
     const weaponName = baseWeapon ? baseWeapon.weapon_name : baseWeaponId;
+    const category = baseWeapon ? baseWeapon.category : "Desconocido";
+    const imageUrl = baseWeapon ? baseWeapon.image_url : null;
+    const baseStats = baseWeapon ? {
+      damage: baseWeapon.base_damage,
+      fire_rate: baseWeapon.base_fire_rate,
+      control: baseWeapon.base_control,
+      stability: baseWeapon.base_stability,
+      accuracy: baseWeapon.base_accuracy,
+      range: baseWeapon.base_range
+    } : null;
 
-    // 4. Fetch a las stats
-    // Aquí implementamos la lógica simplificada de obtener el Top de builds.
-    // Dependiendo de tu esquema, esto podría ser weapon_stats_records cruzado con weapon_votes
-    
-    // NOTA: Para el bot, simplificaremos trayendo registros que coincidan parcial o totalmente con el nombre.
-    // En la implementación real, deberías tener una consulta óptima o una vista `top_builds_view`
-    
-    let query = supabase
+
+    // 4. Fetch a las builds reales de la comunidad para esta arma
+    // Buscamos registros de weapon_stats_records de delta-force
+    const { data: records, error: recordsError } = await supabase
       .from("weapon_stats_records")
-      .select("id, weapon_name, share_code, stats")
-      // Buscamos que weapon_name contenga el nombre base, o podemos usar el nombre exacto
-      .ilike("weapon_name", `%${weaponName === 'm4a1-id-1234' ? 'M4A1' : weaponName}%`)
-      .order("created_at", { ascending: false })
-      .limit(limit);
+      .select("id, weapon_name, share_code, stats, description, user_id")
+      .not("weapon_name", "is", null)
+      .not("weapon_name", "eq", "")
+      .ilike("weapon_name", `%${weaponName}%`);
 
-    const { data: records, error } = await query;
-
-    if (error) {
-      console.error("[discord-api] Error fetching records:", error);
+    if (recordsError) {
+      console.error("[discord-api] Error fetching records:", recordsError);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    // Calcular stats promedio
-    let avg_damage = 0, avg_control = 0, avg_fire_rate = 0, avg_stability = 0;
-    if (records && records.length > 0) {
-       // Calcular promedios mockeados de los stats 
-       // (esto debe reemplazarse por tu parser real normalizeStats)
-       avg_damage = 35;
-       avg_control = 60;
-       avg_fire_rate = 750;
-       avg_stability = 65;
+    // 5. Cargar votos de la comunidad
+    const { data: votesData, error: votesError } = await supabase
+      .from("weapon_votes")
+      .select("weapon_name, vote");
+
+    if (votesError) {
+      console.error("[discord-api] Error fetching votes:", votesError);
     }
 
-    // Mock data based on the records found
-    const builds = (records || []).map((r: any, idx: number) => ({
-      name: `Build Variante ${idx + 1}`,
-      share_code: r.share_code || `DF-XXXX-YYYY-${idx}`,
-      upvotes: Math.floor(Math.random() * 100) + 10 // Mock upvotes
+    // Mapear votos: weapon_name de la tabla weapon_votes contiene el ID único de la build/registro
+    const voteMap = new Map<string, { upvotes: number; downvotes: number }>();
+    for (const v of (votesData || [])) {
+      const key = v.weapon_name; // ID del registro o share_code
+      if (!voteMap.has(key)) voteMap.set(key, { upvotes: 0, downvotes: 0 });
+      const entry = voteMap.get(key)!;
+      if (v.vote === 1) entry.upvotes++;
+      else entry.downvotes++;
+    }
+
+    // 6. Agrupar y Calcular Estadísticas
+    let totalDamage = 0;
+    let totalControl = 0;
+    let totalFireRate = 0;
+    let totalStability = 0;
+    let statsCount = 0;
+
+    // Spanish-to-English stat key mapping helper
+    const STAT_MAP: Record<string, string> = {
+      dano: "damage",
+      control: "control",
+      cadenciaDisparo: "fireRate",
+      estabilidad: "stability",
+      damage: "damage",
+      fireRate: "fireRate",
+      stability: "stability",
+    };
+
+    const getStat = (stats: any, key: string): number => {
+      if (!stats) return 0;
+      const mappedKey = STAT_MAP[key];
+      if (mappedKey && typeof stats[mappedKey] === "number") return stats[mappedKey];
+      if (typeof stats[key] === "number") return stats[key];
+      return 0;
+    };
+
+    // Agrupar por share_code o por ID del registro si no tiene share_code
+    const groups = new Map<string, {
+      id: string;
+      name: string;
+      share_code: string;
+      upvotes: number;
+      downvotes: number;
+      score: number;
+      usages: number;
+    }>();
+
+    for (const record of (records || [])) {
+      // Extraer stats para promediar
+      const dmg = getStat(record.stats, "damage");
+      const ctrl = getStat(record.stats, "control");
+      const fr = getStat(record.stats, "fireRate");
+      const stab = getStat(record.stats, "stability");
+
+      if (dmg || ctrl || fr || stab) {
+        totalDamage += dmg;
+        totalControl += ctrl;
+        totalFireRate += fr;
+        totalStability += stab;
+        statsCount++;
+      }
+
+      const key = record.share_code || record.id;
+      if (!key) continue;
+
+      const votes = voteMap.get(record.id) || voteMap.get(record.share_code || "") || { upvotes: 0, downvotes: 0 };
+      const score = votes.upvotes - votes.downvotes;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          id: record.id,
+          name: record.description ? (record.description.length > 30 ? record.description.substring(0, 30) + "..." : record.description) : "Build de la Comunidad",
+          share_code: record.share_code || "Código no disponible",
+          upvotes: votes.upvotes,
+          downvotes: votes.downvotes,
+          score: score,
+          usages: 0
+        });
+      }
+      groups.get(key)!.usages++;
+    }
+
+    // Calcular promedios generales
+    const avg_damage = statsCount > 0 ? Math.round(totalDamage / statsCount) : 0;
+    const avg_control = statsCount > 0 ? Math.round(totalControl / statsCount) : 0;
+    const avg_fire_rate = statsCount > 0 ? Math.round(totalFireRate / statsCount) : 0;
+    const avg_stability = statsCount > 0 ? Math.round(totalStability / statsCount) : 0;
+
+    // Ordenar y limitar las builds
+    const sortedBuilds = Array.from(groups.values());
+    if (sort === "votes") {
+      sortedBuilds.sort((a, b) => b.score - a.score || b.upvotes - a.upvotes);
+    } else {
+      sortedBuilds.sort((a, b) => b.usages - a.usages || b.score - a.score);
+    }
+
+    const builds = sortedBuilds.slice(0, limit).map((b) => ({
+      name: b.name,
+      share_code: b.share_code,
+      upvotes: b.upvotes
     }));
-
-    // Si no hay records (como con los ids mock de fuse.js), devolvemos data mock para probar el bot
-    if (builds.length === 0) {
-      builds.push({
-        name: "Meta Laser Build",
-        share_code: "DF-META-LASER-99X",
-        upvotes: 420
-      });
-      builds.push({
-        name: "CQC Aggressive",
-        share_code: "DF-CQC-RUSH-11A",
-        upvotes: 133
-      });
-      builds.push({
-        name: "Long Range Tapper",
-        share_code: "DF-TAP-FIRE-77B",
-        upvotes: 89
-      });
-      avg_damage = 42;
-      avg_control = 80;
-      avg_fire_rate = 800;
-      avg_stability = 70;
-    }
 
     return NextResponse.json({
       weapon_name: weaponName,
-      stats: {
+      category,
+      image_url: imageUrl,
+      base_stats: baseStats,
+      stats: statsCount > 0 ? {
         avg_damage,
         avg_control,
         avg_fire_rate,
         avg_stability
-      },
+      } : null,
       builds
     });
   } catch (error) {

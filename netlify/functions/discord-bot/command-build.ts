@@ -64,7 +64,14 @@ export async function handleInteractionButton(interaction: any) {
       }
   
       const data = await response.json();
-      const weapon = baseWeapons.find(w => w.id === weaponId) || { weapon_name: 'Arma', category: 'Desconocido', image_url: '' };
+      
+      // Construir el objeto weapon dinámicamente usando lo retornado por la API
+      const weapon = {
+        id: weaponId,
+        weapon_name: data.weapon_name || 'Arma',
+        category: data.category || 'Desconocido',
+        image_url: data.image_url || null
+      };
       
       return generateEmbedPayload(weapon, data);
     } else if (customId === 'link_account') {
@@ -100,11 +107,21 @@ function generateEmbedPayload(weapon: any, data: any) {
     inline: false
   })) : [{ name: "Sin resultados", value: "No hay builds registradas para esta arma en la temporada actual.", inline: false }];
 
-  // Agregar estadísticas promedio si las hay
-  if (data.stats) {
+  // Usar categoría e imagen reales devueltas por la API, o fallback a los datos locales
+  const category = data.category || weapon.category || "Desconocido";
+  const imageUrl = data.image_url || weapon.image_url;
+
+  // Agregar estadísticas oficiales base si existen, de lo contrario usar promedios
+  if (data.base_stats) {
     fields.unshift({
-      name: "Atributos Promedio",
-      value: `Daño: ${generateProgressBar(data.stats.avg_damage)}\nControl: ${generateProgressBar(data.stats.avg_control)}\nCadencia: ${data.stats.avg_fire_rate} RPM\nEstabilidad: ${generateProgressBar(data.stats.avg_stability)}`,
+      name: "Estadísticas Base Oficiales",
+      value: `Daño: **${data.base_stats.damage}** | Control: **${data.base_stats.control}** | Estabilidad: **${data.base_stats.stability}**\nPrecisión: **${data.base_stats.accuracy}** | Alcance: **${data.base_stats.range}** | Cadencia: **${data.base_stats.fire_rate} RPM**`,
+      inline: false
+    });
+  } else if (data.stats) {
+    fields.unshift({
+      name: "Atributos Promedio (Comunidad)",
+      value: `Daño: **${data.stats.avg_damage}** | Control: **${data.stats.avg_control}** | Estabilidad: **${data.stats.avg_stability}** | Cadencia: **${data.stats.avg_fire_rate} RPM**`,
       inline: false
     });
   }
@@ -113,10 +130,10 @@ function generateEmbedPayload(weapon: any, data: any) {
     content: "",
     embeds: [
       {
-        title: `⚡ ESTADÍSTICAS: ${weapon.weapon_name}`,
-        description: `Las mejores builds para la temporada actual. Categoría: **${weapon.category}**.`,
+        title: `⚡ ESTADÍSTICAS: ${data.weapon_name || weapon.weapon_name}`,
+        description: `Las mejores builds para la temporada actual. Categoría: **${category}**.`,
         color: 16738560, // Naranja KoreStats
-        thumbnail: weapon.image_url ? { url: weapon.image_url } : undefined,
+        thumbnail: imageUrl ? { url: imageUrl } : undefined,
         fields: fields,
         footer: {
           text: "KoreStats.com - Delta Force: Hawk Ops",
@@ -143,7 +160,7 @@ function generateEmbedPayload(weapon: any, data: any) {
           {
             type: 2, // Button
             style: 5, // Link (Grey)
-            url: "https://korestats.com/juegos/delta-force/weapons",
+            url: "https://korestats.com/games/delta-force/weapons",
             label: "Ver en la Web"
           }
         ]
