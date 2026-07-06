@@ -5,8 +5,7 @@ export async function handleBuildCommand(interaction: any) {
   try {
     const options = interaction.data.options;
     if (!options || options.length === 0) {
-      await patchDiscordMessage(interaction.token, { content: "Debes especificar el nombre de un arma." });
-      return;
+      return { content: "Debes especificar el nombre de un arma." };
     }
 
     const query = options[0].value;
@@ -16,8 +15,7 @@ export async function handleBuildCommand(interaction: any) {
     const searchResult = fuse.search(query);
     
     if (searchResult.length === 0) {
-      await patchDiscordMessage(interaction.token, { content: `No encontré el arma "${query}". Revisa que esté bien escrita.` });
-      return;
+      return { content: `No encontré el arma "${query}". Revisa que esté bien escrita.` };
     }
     
     const weapon = searchResult[0].item;
@@ -31,21 +29,17 @@ export async function handleBuildCommand(interaction: any) {
     });
     
     if (!response.ok) {
-      await patchDiscordMessage(interaction.token, { content: "Error al comunicarse con la base de datos de KoreStats." });
-      return;
+      return { content: "Error al comunicarse con la base de datos de KoreStats." };
     }
 
     const data = await response.json();
     
-    // 3. Crear el JSON Payload del Embed
-    const embedPayload = generateEmbedPayload(weapon, data);
-    
-    // 4. Actualizar (PATCH) el mensaje diferido en Discord
-    await patchDiscordMessage(interaction.token, embedPayload);
+    // 3. Crear y retornar el JSON Payload del Embed
+    return generateEmbedPayload(weapon, data);
     
   } catch (error) {
     console.error("Error en handleBuildCommand:", error);
-    await patchDiscordMessage(interaction.token, { content: "Ocurrió un error consultando las estadísticas. Intenta más tarde." });
+    return { content: "Ocurrió un error consultando las estadísticas. Intenta más tarde." };
   }
 }
 
@@ -66,22 +60,21 @@ export async function handleInteractionButton(interaction: any) {
       });
       
       if (!response.ok) {
-        await patchDiscordMessage(interaction.token, { content: "Error al actualizar las builds." });
-        return;
+        return { content: "Error al actualizar las builds." };
       }
   
       const data = await response.json();
       const weapon = baseWeapons.find(w => w.id === weaponId) || { weapon_name: 'Arma', category: 'Desconocido', image_url: '' };
       
-      const embedPayload = generateEmbedPayload(weapon, data);
-      await patchDiscordMessage(interaction.token, embedPayload);
+      return generateEmbedPayload(weapon, data);
     } else if (customId === 'link_account') {
-       await patchDiscordMessage(interaction.token, { content: "La funcionalidad de vincular cuenta estará disponible muy pronto." });
+       return { content: "La funcionalidad de vincular cuenta estará disponible muy pronto." };
     }
   } catch (error) {
     console.error("Error en handleInteractionButton:", error);
-    await patchDiscordMessage(interaction.token, { content: "Ocurrió un error al procesar el botón." });
+    return { content: "Ocurrió un error al procesar el botón." };
   }
+  return { content: "Interacción no soportada." };
 }
 
 async function patchDiscordMessage(interactionToken: string, payload: any) {

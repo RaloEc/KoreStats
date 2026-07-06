@@ -62,15 +62,14 @@ export const handler = async (event: any) => {
   // 4. Manejo del Comando (Interacción)
   if (interaction.type === 2) { // APPLICATION_COMMAND
     if (interaction.data.name === 'build') {
+      const responseData = await handleBuildCommand(interaction);
       
-      handleBuildCommand(interaction).catch(console.error);
-      
-      // 5. DEFERRED RESPONSE (Regla de los 3 segundos)
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+          type: 4, // CHANNEL_MESSAGE_WITH_SOURCE (Responder directamente)
+          data: responseData,
         }),
       };
     }
@@ -78,13 +77,14 @@ export const handler = async (event: any) => {
 
   // Manejo de interacciones de componentes de mensaje (Botones)
   if (interaction.type === 3) { // MESSAGE_COMPONENT
-    handleInteractionButton(interaction).catch(console.error);
+    const responseData = await handleInteractionButton(interaction);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type: 6, // DEFERRED_UPDATE_MESSAGE
+        type: 7, // UPDATE_MESSAGE (Actualizar el mensaje directamente)
+        data: responseData,
       }),
     };
   }
