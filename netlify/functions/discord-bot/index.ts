@@ -10,15 +10,22 @@ export const handler = async (event: any) => {
   // 1. Extraer Headers de Discord
   const signature = event.headers['x-signature-ed25519'];
   const timestamp = event.headers['x-signature-timestamp'];
-  const rawBody = event.body;
+  
+  // En Netlify, a veces el body viene codificado en Base64. Debemos decodificarlo.
+  const rawBody = event.isBase64Encoded
+    ? Buffer.from(event.body, 'base64').toString('utf-8')
+    : event.body;
 
   if (!signature || !timestamp || !rawBody) {
+    console.error("Faltan firmas o body en la petición:", { signature: !!signature, timestamp: !!timestamp, body: !!rawBody });
     return { statusCode: 401, body: 'Missing signature headers' };
   }
 
   // 2. Validación criptográfica de Discord (Ed25519)
-  const isValidRequest = verifyKey(rawBody, signature, timestamp, process.env.DISCORD_PUBLIC_KEY || '');
+  const publicKey = process.env.DISCORD_PUBLIC_KEY || '';
+  const isValidRequest = verifyKey(rawBody, signature, timestamp, publicKey);
   if (!isValidRequest) {
+    console.error("Firma criptográfica inválida. Verifica que DISCORD_PUBLIC_KEY en Netlify sea correcta.");
     return { statusCode: 401, body: 'Bad request signature' };
   }
 
