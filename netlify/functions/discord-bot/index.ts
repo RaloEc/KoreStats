@@ -1,5 +1,5 @@
 import { verifyKey } from 'discord-interactions';
-import { handleBuildCommand, handleInteractionButton } from './command-build';
+import { handleBuildCommand, handleInteractionButton, handleAutocomplete } from './command-build';
 
 export const handler = async (event: any) => {
   // Solo aceptamos POST
@@ -59,7 +59,20 @@ export const handler = async (event: any) => {
     };
   }
 
-  // 4. Manejo del Comando (Interacción)
+  // 4. Manejo del Autocompletado (Interacción tipo 4)
+  if (interaction.type === 4) { // APPLICATION_COMMAND_AUTOCOMPLETE
+    const responseData = await handleAutocomplete(interaction);
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 8, // APPLICATION_COMMAND_AUTOCOMPLETE_RESULT
+        data: responseData,
+      }),
+    };
+  }
+
+  // 5. Manejo del Comando (Interacción)
   if (interaction.type === 2) { // APPLICATION_COMMAND
     if (interaction.data.name === 'build') {
       const responseData = await handleBuildCommand(interaction);

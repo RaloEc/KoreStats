@@ -265,3 +265,41 @@ export async function handleInteractionButton(interaction: any) {
 
   return { content: "Interacción no reconocida." };
 }
+
+// ─── Buscar armas para autocompletado ─────────────────────────────────────────
+async function searchWeaponsAutocomplete(query: string) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("delta_force_weapons_base")
+    .select("weapon_name, category");
+
+  if (error || !data || data.length === 0) return [];
+
+  if (!query) {
+    return data.slice(0, 25).map((w: any) => ({ name: w.weapon_name, value: w.weapon_name }));
+  }
+
+  const fuse = new Fuse(data, { keys: ["weapon_name", "category"], threshold: 0.4 });
+  const results = fuse.search(query);
+  return results.slice(0, 25).map((r: any) => ({ name: r.item.weapon_name, value: r.item.weapon_name }));
+}
+
+// ─── Handler de Autocompletado ────────────────────────────────────────────────
+export async function handleAutocomplete(interaction: any) {
+  try {
+    const options = interaction.data?.options;
+    if (!options) return { choices: [] };
+    
+    // Buscar la opción que tiene el foco
+    const focusedOption = options.find((opt: any) => opt.focused);
+    if (!focusedOption || focusedOption.name !== 'arma') return { choices: [] };
+
+    const query = focusedOption.value;
+    const choices = await searchWeaponsAutocomplete(query);
+    
+    return { choices };
+  } catch (err) {
+    console.error("[discord-bot] Error en handleAutocomplete:", err);
+    return { choices: [] };
+  }
+}

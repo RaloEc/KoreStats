@@ -27,6 +27,7 @@ const commands = [
         description: 'Nombre del arma (ej. SCAR-H, m4a1, deagle)',
         type: 3, // STRING
         required: true,
+        autocomplete: true,
       }
     ]
   }
