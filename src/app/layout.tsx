@@ -289,7 +289,7 @@ export default async function RootLayout({
           {/* Main: único elemento que hace scroll */}
           <main
             id="main-scroll-container"
-            className="flex-1 overflow-y-auto overflow-x-hidden pt-14 lg:pt-16 pb-24 lg:pb-0"
+            className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0"
           >
             <div className="container mx-auto px-0">{children}</div>
           </main>

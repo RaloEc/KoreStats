@@ -130,11 +130,12 @@ const calculateTTK = (
     category?: string,
     gameMode: string = "operations",
     distance: number = 30,
-    range?: number
+    range?: number,
+    weaponName?: string
 ) => {
     // Para las tarjetas, la comparación estándar es Bala Nivel X contra Chaleco Nivel X (donde X es armorLevel).
     const bulletLevel = armorLevel > 0 ? armorLevel : 4;
-    return calculateStandardTTK(damage, fireRate, armorLevel, bulletLevel, category, gameMode, distance, penetration, range);
+    return calculateStandardTTK(damage, fireRate, armorLevel, bulletLevel, category, gameMode, distance, penetration, range, weaponName);
 };
 
 /* ─── Constants ─── */
@@ -343,7 +344,7 @@ export default function DeltaForceWeaponsMeta() {
         const map = new Map<string, any>();
         const normalize = (name: string) => {
             return name
-                .replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "")
+                .replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Subametralladora|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "")
                 .trim()
                 .toUpperCase()
                 .replace(/\s+/g, "-");
@@ -929,7 +930,16 @@ export default function DeltaForceWeaponsMeta() {
                                                             key={weapon.id}
                                                             weapon={weapon}
                                                             config={config}
-                                                            baseWeapon={baseWeaponsMap.get(weapon.weapon_name.toUpperCase().replace(/\s+/g, "-"))}
+                                                            baseWeapon={(() => {
+                                                                const normalize = (name: string) => {
+                                                                    return name
+                                                                        .replace(/^(Fusil de asalto|Fusil de batalla|Ametralladora ligera|Subfusil|Subametralladora|Rifle de francotirador|Rifle de tirador|Pistola|Escopeta)\s+/i, "")
+                                                                        .trim()
+                                                                        .toUpperCase()
+                                                                        .replace(/\s+/g, "-");
+                                                                };
+                                                                return baseWeaponsMap.get(normalize(weapon.weapon_name));
+                                                            })()}
                                                             voteSystem={voteSystem}
                                                             gameMode={gameMode}
                                                             currentPatch={currentPatch}
@@ -1153,6 +1163,8 @@ function WeaponMetaCard({
                         </div>
                     )}
 
+
+
                     {/* TTK Badge Overlay */}
                     {(() => {
                         if (showTtkBadge === false) return null;
@@ -1164,7 +1176,8 @@ function WeaponMetaCard({
                             weapon.category,
                             gameMode,
                             30,
-                            weapon.avg_range
+                            weapon.avg_range,
+                            weapon.weapon_name
                         );
                         if (!ttk) return null;
                         const tooltipText = gameMode === "warfare"
@@ -1178,7 +1191,7 @@ function WeaponMetaCard({
                                             <div className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/10 flex flex-col items-center cursor-help">
                                                 <span className="text-[0.4375rem] font-black text-gray-400 uppercase leading-none">TTK {armorLevel > 0 ? "Nv4" : "Base"}</span>
                                                 <span className="text-[0.625rem] font-mono font-black text-white leading-tight">
-                                                    {ttk.toFixed(2)}s
+                                                    {(Math.round(ttk * 100) / 100).toFixed(2)}s
                                                 </span>
                                             </div>
                                         </TooltipTrigger>
@@ -1215,35 +1228,7 @@ function WeaponMetaCard({
                     )}
                 </div>
 
-                {/* Special Badges / Anomaly Chips */}
-                {weapon.special_badges && weapon.special_badges.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1.5 mt-2 px-2">
-                        <TooltipProvider delayDuration={100}>
-                            {weapon.special_badges.map((badge: string, idx: number) => {
-                                const tooltipText =
-                                    badge.includes("Conversión") ? "El modo de disparo fue cambiado por un accesorio especial" :
-                                    badge.includes("Cargador") ? "Esta build usa un cargador ampliado (más del 40% de capacidad base)" :
-                                    badge.includes("Cañón Doble") ? "Daño por clic es doble al disparar dos balas simultáneas" :
-                                    badge.includes("Munión") || badge.includes("Especial") ? "El daño supera en más de 5% al valor base del arma" :
-                                    "Accesorio especial detectado";
 
-                                return (
-                                    <Tooltip key={idx}>
-                                        <TooltipTrigger asChild>
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wide bg-amber-500/15 border border-amber-500/40 text-amber-400 cursor-help select-none transition-colors hover:bg-amber-500/25">
-                                                <Sparkles className="w-2.5 h-2.5" />
-                                                {badge}
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="text-[0.625rem] font-bold max-w-[200px]">
-                                            {tooltipText}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                );
-                            })}
-                        </TooltipProvider>
-                    </div>
-                )}
 
                 {/* Main Stats - 2 Column Grid - Segmented HUD bars */}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-4">
@@ -1331,7 +1316,7 @@ function WeaponMetaCard({
                     </div>
                 )}
 
-                {/* Tags Section */}
+                {/* Tags & Special Badges Section */}
                 {(() => {
                     const fireRate = weapon.avg_fire_rate || 0;
                     const handling = weapon.avg_handling || 0;
@@ -1341,17 +1326,56 @@ function WeaponMetaCard({
                     const range = weapon.avg_range || 0;
                     const armorPen = weapon.avg_armor_penetration || 0;
 
-                    const tags: { label: string; desc: string }[] = [];
+                    const specialTags: { label: string; desc: string; isSpecial?: boolean }[] = [];
 
-                    if (fireRate > 750) tags.push({ label: "Alta Cadencia", desc: "Velocidad de disparo extrema (superior a 750 RPM)." });
-                    else if (fireRate < 500) tags.push({ label: "Baja Cadencia", desc: "Disparos lentos pero muy controlables." });
+                    // Almacenar temporalmente los badges especiales de anomalía
+                    if (weapon.special_badges && weapon.special_badges.length > 0) {
+                        weapon.special_badges.forEach((badge) => {
+                            const cleanBadgeName = badge.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+                            const desc = 
+                                badge.includes("Conversión") ? "El modo de disparo fue cambiado por un accesorio especial" :
+                                badge.includes("Cargador") ? "Esta build usa un cargador ampliado (más del 40% de capacidad base)" :
+                                badge.includes("Cañón Doble") ? "Daño por clic es doble al disparar dos balas simultáneas" :
+                                badge.includes("Accesorio") || badge.includes("Especial") ? "El daño supera en más de 5% al valor base del arma" :
+                                "Accesorio especial detectado";
 
-                    if (damage > 35) tags.push({ label: "Alto Poder", desc: "Daño por bala muy elevado (ideal para tiros precisos)." });
-                    if (accuracy > 70) tags.push({ label: "Láser", desc: "Precisión máxima; las balas van exactamente donde apuntas." });
-                    if (handling > 65) tags.push({ label: "Ágil", desc: "Rapidez excepcional al apuntar y cambiar de arma." });
-                    if (stability > 75) tags.push({ label: "Sin Retroceso", desc: "Estructura muy estable que apenas se mueve al disparar." });
-                    if (range > 75) tags.push({ label: "Largo Alcance", desc: "Efectividad garantizada a distancias muy largas." });
-                    if (armorPen > 45) tags.push({ label: "Perforante", desc: "Ignora gran parte del blindaje corporal enemigo." });
+                            specialTags.push({
+                                label: cleanBadgeName,
+                                desc,
+                                isSpecial: true
+                            });
+                        });
+                    }
+
+                    const normalTags: { label: string; desc: string; isSpecial?: boolean }[] = [];
+
+                    if (fireRate > 750) normalTags.push({ label: "Alta Cadencia", desc: "Velocidad de disparo extrema (superior a 750 RPM)." });
+                    else if (fireRate < 500) normalTags.push({ label: "Baja Cadencia", desc: "Disparos lentos pero muy controlables." });
+
+                    if (damage > 35) normalTags.push({ label: "Alto Poder", desc: "Daño por bala muy elevado (ideal para tiros precisos)." });
+                    if (accuracy > 70) normalTags.push({ label: "Láser", desc: "Precisión máxima; las balas van exactamente donde apuntas." });
+                    if (handling > 65) normalTags.push({ label: "Ágil", desc: "Rapidez excepcional al apuntar y cambiar de arma." });
+                    if (stability > 75) normalTags.push({ label: "Sin Retroceso", desc: "Estructura muy estable que apenas se mueve al disparar." });
+                    if (range > 75) normalTags.push({ label: "Largo Alcance", desc: "Efectividad garantizada a distancias muy largas." });
+                    if (armorPen > 45) normalTags.push({ label: "Perforante", desc: "Ignora gran parte del blindaje corporal enemigo." });
+
+                    // Reensamblar la lista de tags para colocar los especiales exactamente en el medio
+                    const tags: { label: string; desc: string; isSpecial?: boolean }[] = [];
+                    if (normalTags.length === 0) {
+                        tags.push(...specialTags);
+                    } else if (specialTags.length === 0) {
+                        tags.push(...normalTags);
+                    } else {
+                        // Encontrar la mitad de la lista de tags normales
+                        const midIndex = Math.floor(normalTags.length / 2);
+                        
+                        // Insertar primera mitad
+                        tags.push(...normalTags.slice(0, midIndex));
+                        // Insertar los especiales en medio
+                        tags.push(...specialTags);
+                        // Insertar la mitad restante
+                        tags.push(...normalTags.slice(midIndex));
+                    }
 
                     if (tags.length === 0) return null;
 
@@ -1361,7 +1385,17 @@ function WeaponMetaCard({
                                 {tags.map(tag => (
                                     <Tooltip key={tag.label}>
                                         <TooltipTrigger asChild>
-                                            <span className="text-[0.5625rem] font-black uppercase tracking-tighter transition-colors cursor-help hover:opacity-80 text-slate-500 dark:text-slate-400">
+                                            <span 
+                                                className={cn(
+                                                    "text-[0.5625rem] font-black uppercase tracking-tighter transition-all cursor-help select-none",
+                                                    tag.isSpecial
+                                                        ? weapon.tier === "S" ? "text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 font-extrabold" :
+                                                          weapon.tier === "A" ? "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-extrabold" :
+                                                          weapon.tier === "B" ? "text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-extrabold" :
+                                                          "text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-extrabold"
+                                                        : "text-slate-500 dark:text-slate-400 hover:opacity-80"
+                                                )}
+                                            >
                                                 {tag.label}
                                             </span>
                                         </TooltipTrigger>

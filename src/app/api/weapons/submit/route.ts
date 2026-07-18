@@ -209,6 +209,17 @@ export async function POST(request: NextRequest) {
     }
 
     const trimmedCode = shareCode.trim();
+
+    // Validar que se pegue el código de compartir completo (debe contener guiones y no ser solo un hash alfanumérico de 20+ caracteres)
+    const isOnlyHash = /^[A-Z0-9]{15,}$/i.test(trimmedCode);
+    const hasDashes = trimmedCode.includes("-");
+    if (isOnlyHash || !hasDashes) {
+      return NextResponse.json(
+        { error: "Por favor, pega el código de compartir completo generado por el juego (debe incluir el nombre del arma, ej: 'Fusil de asalto CI-19-Operations-6K...') en lugar de solo la clave final." },
+        { status: 400 }
+      );
+    }
+
     const detectedMode = detectGameMode(trimmedCode);
     const serviceSupabase = getServiceClient();
 
@@ -252,14 +263,31 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (statsRecord?.stats && statsRecord.weapon_name && statsRecord.game_mode) {
-          // Buscar el arma base en delta_force_weapons_base por nombre similar y modo de juego
-          const { data: baseWeapon } = await serviceSupabase
+          // Buscar todas las armas base del modo de juego actual para hacer el match de forma robusta
+          const { data: baseWeapons } = await serviceSupabase
             .from("delta_force_weapons_base")
             .select("weapon_name, base_damage, base_fire_rate, base_capacity, base_fire_mode, base_armor_penetration")
-            .ilike("weapon_name", `%${statsRecord.weapon_name}%`)
-            .eq("game_mode", statsRecord.game_mode)
-            .limit(1)
-            .single();
+            .eq("game_mode", statsRecord.game_mode);
+
+          let baseWeapon = null;
+          if (baseWeapons && baseWeapons.length > 0) {
+            // Normalizador robusto: convierte a minúsculas y quita espacios, guiones y caracteres no alfanuméricos
+            const normalizeName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const searchNormalized = normalizeName(statsRecord.weapon_name);
+
+            // Intentar encontrar coincidencia exacta normalizada
+            baseWeapon = baseWeapons.find(
+              (w) => normalizeName(w.weapon_name) === searchNormalized
+            );
+
+            // Si no hay match exacto, intentar coincidencia parcial normalizada
+            if (!baseWeapon) {
+              baseWeapon = baseWeapons.find(
+                (w) => normalizeName(w.weapon_name).includes(searchNormalized) || 
+                       searchNormalized.includes(normalizeName(w.weapon_name))
+              );
+            }
+          }
 
           if (baseWeapon) {
             const { special_badges, anomalies } = analyzeWeaponBadges(

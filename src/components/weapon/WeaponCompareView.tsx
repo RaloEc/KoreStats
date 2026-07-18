@@ -940,7 +940,7 @@ export default function WeaponCompareView({ weapons, onBack, isFullPage = false,
                                                                     {w.description || w.weapon_name}
                                                                 </span>
                                                                 <p className="text-sm font-black font-mono leading-none text-foreground flex items-baseline gap-1 mt-0.5">
-                                                                    {computedCombatStats[idx].ttk.toFixed(2)}
+                                                                    {(Math.round(computedCombatStats[idx].ttk * 100) / 100).toFixed(2)}
                                                                     <span className="text-[0.5625rem] text-muted-foreground font-bold">s</span>
                                                                     {isTtkWinner && <Check size={11} strokeWidth={3} className="text-df-green-500 ml-0.5" />}
                                                                 </p>
@@ -1047,7 +1047,7 @@ export default function WeaponCompareView({ weapons, onBack, isFullPage = false,
                                                             return (
                                                                 <td key={w.id} className={cn("p-3.5 text-center font-mono text-sm border-l border-border font-black", isWin && "bg-df-green-500/10 text-df-green-500")}>
                                                                     <div className="flex items-center justify-center gap-1.5">
-                                                                        <span>{computedCombatStats[idx].ttk.toFixed(2)}s</span>
+                                                                        <span>{(Math.round(computedCombatStats[idx].ttk * 100) / 100).toFixed(2)}s</span>
                                                                         {isWin && <Check size={13} strokeWidth={3} />}
                                                                     </div>
                                                                 </td>

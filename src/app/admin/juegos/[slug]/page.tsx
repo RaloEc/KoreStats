@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
@@ -122,6 +122,7 @@ interface GameModule {
 export default function GameConfigPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const slug = params?.slug as string;
     const supabase = createClient();
 
@@ -129,6 +130,14 @@ export default function GameConfigPage() {
     const [modules, setModules] = useState<GameModule[]>([]);
     const [weapons, setWeapons] = useState<DeltaWeapon[]>([]);
     const [activeTab, setActiveTab] = useState<"modules" | "weapons" | "reports" | "patch_extractor">("modules");
+
+    useEffect(() => {
+        const tabParam = searchParams?.get("tab");
+        if (tabParam && ["modules", "weapons", "reports", "patch_extractor"].includes(tabParam)) {
+            setActiveTab(tabParam as any);
+        }
+    }, [searchParams]);
+
     const [loading, setLoading] = useState(true);
     const [togglingModule, setTogglingModule] = useState<string | null>(null);
     const [weaponDialogOpen, setWeaponDialogOpen] = useState(false);

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import Link from "next/link";
 import {
   Activity,
   AlertCircle,
@@ -30,6 +31,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ReportStatus = "pending" | "resolved" | "dismissed";
 
@@ -99,6 +115,11 @@ export default function WeaponReportsAdmin({ gameId }: { gameId: string }) {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Estados para modal de confirmación de eliminación
+  const [deletingReport, setDeletingReport] = useState<{ reportId: string; weaponRecordId: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState<string>("fake_code");
+  const [deleteDetails, setDeleteDetails] = useState<string>("");
+
   const { data: reports = [], isLoading } = useQuery<WeaponReport[]>({
     queryKey: ["admin-weapon-reports"],
     queryFn: async () => {
@@ -132,13 +153,19 @@ export default function WeaponReportsAdmin({ gameId }: { gameId: string }) {
     });
   }, [reports, searchQuery]);
 
-  const handleAction = async (reportId: string, weaponRecordId: string, action: "dismiss" | "delete_weapon") => {
+  const handleAction = async (
+    reportId: string,
+    weaponRecordId: string,
+    action: "dismiss" | "delete_weapon",
+    reason?: string,
+    details?: string
+  ) => {
     setProcessingId(reportId);
     try {
       const res = await fetch(`/api/admin/juegos/delta-force/reports/${reportId}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, weapon_record_id: weaponRecordId }),
+        body: JSON.stringify({ action, weapon_record_id: weaponRecordId, reason, details }),
       });
 
       if (!res.ok) {
@@ -241,6 +268,7 @@ export default function WeaponReportsAdmin({ gameId }: { gameId: string }) {
                 report={report}
                 isProcessing={processingId === report.id}
                 onAction={(action) => handleAction(report.id, report.weapon_stats_record_id, action)}
+                onDeleteClick={() => setDeletingReport({ reportId: report.id, weaponRecordId: report.weapon_stats_record_id })}
               />
             ))}
           </div>
@@ -259,6 +287,63 @@ export default function WeaponReportsAdmin({ gameId }: { gameId: string }) {
           </div>
         </div>
       )}
+
+      {/* Dialog para confirmar eliminación */}
+      <Dialog open={deletingReport !== null} onOpenChange={(open) => { if (!open) setDeletingReport(null); }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Eliminar Build de Arma</DialogTitle>
+            <DialogDescription>
+              Esta acción eliminará permanentemente la configuración de arma seleccionada y enviará una alerta al creador.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="reason" className="text-sm font-bold">Motivo de eliminación</label>
+              <Select value={deleteReason} onValueChange={setDeleteReason}>
+                <SelectTrigger id="reason" className="w-full">
+                  <SelectValue placeholder="Selecciona un motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fake_code">Código falso o inválido</SelectItem>
+                  <SelectItem value="wrong_stats">Estadísticas troll / erróneas</SelectItem>
+                  <SelectItem value="inappropriate_name">Nombre inapropiado</SelectItem>
+                  <SelectItem value="other">Otro motivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="details" className="text-sm font-bold">Detalles adicionales (opcional)</label>
+              <textarea
+                id="details"
+                placeholder="Explica brevemente por qué se borra..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={deleteDetails}
+                onChange={(e) => setDeleteDetails(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingReport(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!deletingReport) return;
+                const { reportId, weaponRecordId } = deletingReport;
+                setDeletingReport(null);
+                await handleAction(reportId, weaponRecordId, "delete_weapon", deleteReason, deleteDetails);
+                // Reset inputs
+                setDeleteReason("fake_code");
+                setDeleteDetails("");
+              }}
+            >
+              Confirmar y Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -268,171 +353,148 @@ function ReportCard({
   isProcessing,
   isPast = false,
   onAction,
+  onDeleteClick,
 }: {
   report: WeaponReport;
   isProcessing?: boolean;
   isPast?: boolean;
   onAction?: (action: "dismiss" | "delete_weapon") => void;
+  onDeleteClick?: () => void;
 }) {
   const ws = report.weapon_stats;
 
   return (
     <div className={cn(
-      "group relative flex flex-col rounded-[2rem] border transition-all duration-500 overflow-hidden h-full",
-      isPast 
-        ? "bg-muted/30 border-border/50" 
-        : "bg-background border-border hover:border-red-500/40 hover:shadow-[0_20px_50px_rgba(239,68,68,0.1)] active:scale-[0.99]"
+      "group relative flex flex-col rounded-2xl border transition-all duration-300 overflow-hidden h-full shadow-sm bg-card hover:shadow-md hover:border-border/80",
+      isPast && "opacity-75 bg-muted/40"
     )}>
-      {/* Banner de Estado del Reporte */}
-      <div className={cn(
-        "px-6 py-3 flex items-center justify-between border-b",
-        isPast ? "bg-muted/50" : "bg-red-50 dark:bg-red-500/5"
-      )}>
-        <Badge variant={isPast ? "secondary" : "destructive"} className="uppercase font-black text-[0.5625rem] px-2">
-          {REASON_LABELS[report.reason] || report.reason}
-        </Badge>
-        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase tracking-widest">
-          {formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: es })}
-        </span>
-      </div>
-
-      {/* Info del Reportador (Minimal) */}
-      <div className="px-6 py-4 flex items-center justify-between bg-muted/10 border-b border-border/40">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[0.5rem] font-black text-primary">
-            {report.reporter?.username?.charAt(0) || "U"}
+      {/* Header del Reporte */}
+      <div className="px-5 py-3 flex flex-col gap-3 border-b border-border/40 bg-muted/20 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "uppercase font-bold text-[0.6rem] tracking-wider w-fit px-2 py-0.5 rounded-md",
+              isPast 
+                ? "border-zinc-200 dark:border-zinc-800 text-zinc-500" 
+                : "border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400"
+            )}
+          >
+            {REASON_LABELS[report.reason] || report.reason}
+          </Badge>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Clock className="w-3 h-3 opacity-60" />
+            <span className="text-[0.65rem] font-bold uppercase tracking-widest opacity-80">
+              {(() => {
+                const raw = formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: es });
+                return raw
+                  .replace("alrededor de ", "")
+                  .replace("aproximadamente ", "")
+                  .replace("cerca de ", "")
+                  .replace("hace menos de un minuto", "hace un momento");
+              })()}
+            </span>
+            {!isPast && <div className="w-1.5 h-1.5 rounded-full bg-red-500 ml-1 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />}
           </div>
-          <span className="text-[0.625rem] font-bold text-muted-foreground">
-            Reportado por <span className="text-foreground">{report.reporter?.username || "Anónimo"}</span>
-          </span>
         </div>
-        {!isPast && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
       </div>
 
-      <div className="flex-1 flex flex-col p-6 gap-6">
-        {/* LA TARJETA DE ESTADÍSTICA (Versión vertical recreada) */}
-        {/* LA TARJETA DE ESTADÍSTICA (Versión vertical mejorada) */}
-        <div className="relative rounded-3xl border-2 bg-white dark:bg-black p-5 shadow-sm transition-colors group-hover:border-primary/40 border-border/80">
-          {ws ? (
-            <div className="space-y-5">
-              {/* Imagen y Categoría */}
-              <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-900 border border-border/60 flex items-center justify-center p-4">
-                <span className="absolute top-3 left-3 text-[0.625rem] font-black uppercase bg-black text-white px-2 py-1 rounded-lg border border-white/20 z-10 shadow-lg">
-                  {ws.category}
-                </span>
-                {ws.image_url ? (
-                  <img src={ws.image_url} alt="" className="w-full h-full object-contain drop-shadow-2xl" />
-                ) : (
-                  <Sword className="opacity-20 w-12 h-12" />
-                )}
+      <div className="flex-1 flex flex-col p-5 gap-4">
+        {ws ? (
+          <div className="flex flex-col gap-3 flex-1">
+            <div className="flex items-center gap-2">
+              <Sword className="w-4 h-4 text-blue-500/80" />
+              <h4 className="font-black text-lg text-foreground uppercase tracking-tight leading-none truncate">
+                {ws.description || ws.weapon_name}
+              </h4>
+            </div>
+            
+            <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-xl border border-border/40">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Arma Base:</span>
+                <span className="font-semibold text-foreground uppercase">{ws.weapon_name}</span>
               </div>
-
-              {/* Título y Autor del Arma */}
-              <div className="text-center space-y-1">
-                <h4 className="font-black text-base text-gray-900 dark:text-white uppercase tracking-tight leading-none truncate">
-                  {ws.description || ws.weapon_name}
-                </h4>
-                <div className="flex items-center justify-center gap-2">
-                  <Badge variant="outline" className="text-[0.625rem] font-black border-primary/20 bg-primary/5 text-primary uppercase px-2 py-0">
-                    {ws.weapon_name}
-                  </Badge>
-                  <span className="text-[0.625rem] font-bold text-gray-500 dark:text-gray-400 uppercase">
-                    Por: <span className="text-gray-900 dark:text-white font-black">{ws.perfil?.username || "Desconocido"}</span>
-                  </span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Creador:</span>
+                <span className="font-semibold text-foreground">{ws.perfil?.username || "Desconocido"}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Reportado por:</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[0.5rem] font-black text-primary ring-1 ring-primary/10">
+                    {report.reporter?.username?.charAt(0) || "U"}
+                  </div>
+                  <span className="text-foreground font-semibold">{report.reporter?.username || "Anónimo"}</span>
                 </div>
               </div>
-
-              {/* Grid de Stats principales */}
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                {STAT_CONFIG.map((s) => {
-                  const val = (ws as any)[s.key] || 0;
-                  const pct = Math.max(5, Math.min((val / s.max) * 100, 100));
-                  const Icon = s.icon;
-                  // Agregar unidad si es Alcance
-                  const unit = s.key === "range" ? "m" : "";
-                  
-                  return (
-                    <div key={s.key} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[0.625rem] font-black uppercase tracking-tight">
-                        <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                          <Icon size={12} className="text-blue-600 dark:text-blue-400 stroke-[2.5]" />
-                          <span>{s.label}</span>
-                        </div>
-                        <span className="text-zinc-950 dark:text-white font-mono text-xs">{val}{unit}</span>
-                      </div>
-                      <div className="h-2 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-300/30 dark:border-white/5 shadow-inner">
-                        <div 
-                          className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-1000 relative overflow-hidden shadow-[0_0_10px_rgba(37,99,235,0.4)]" 
-                          style={{ width: `${pct}%` }} 
-                        >
-                          {/* Sutil brillo metalico */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer" 
-                            style={{ animation: 'shimmer 2.5s infinite linear' }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Extra Bar */}
-              <div className="flex justify-around py-3 border-t border-border/80 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl mt-2 border border-border/40">
-                {EXTRA_CONFIG.map(s => {
-                   const val = (ws as any)[s.key] || 0;
-                   let unit = "";
-                   if (s.key === "fire_rate") unit = ""; // Ya dice RPM arriba o es valor puro
-                   if (s.key === "muzzle_velocity") unit = "m/s";
-                   
-                   return (
-                    <div key={s.key} className="flex flex-col items-center">
-                      <span className="text-[0.5rem] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">{s.label}</span>
-                      <span className="text-xs font-mono font-black text-zinc-950 dark:text-white">{val}{unit}</span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-          ) : (
-            <div className="py-20 flex flex-col items-center justify-center text-red-500 gap-2">
-              <Trash2 className="animate-bounce" />
-              <span className="text-xs font-black uppercase tracking-widest">Arma ya eliminada</span>
+            
+            {/* Comentario del reportador */}
+            {report.details && (
+              <div className="relative px-4 py-3 rounded-xl bg-muted/30 border border-border/40 text-sm text-foreground/80 italic shadow-inner">
+                 <div className="absolute -top-2 left-4 text-[0.5rem] font-black uppercase tracking-wider bg-background px-2 py-0.5 rounded-full border border-border/50 text-muted-foreground shadow-sm flex items-center gap-1">
+                    <AlertCircle size={8} /> Nota
+                 </div>
+                 <p className="mt-1 line-clamp-2">"{report.details}"</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="py-8 flex flex-col items-center justify-center text-red-500/80 gap-3 flex-1">
+            <Trash2 className="w-8 h-8 animate-bounce opacity-50" />
+            <span className="text-xs font-black uppercase tracking-widest opacity-80">Arma no encontrada</span>
+          </div>
+        )}
+
+        <div className="mt-auto space-y-2">
+          {/* Botón Ver Detalles (enlace) */}
+          <Link href={`/admin/juegos/delta-force/reports/${report.id}`}>
+            <Button
+              variant="outline"
+              className="w-full h-10 font-bold uppercase text-[0.65rem] tracking-wider rounded-xl transition-all hover:bg-muted"
+            >
+              <Search size={13} className="mr-2 opacity-75" />
+              Ver Detalles del Reporte
+            </Button>
+          </Link>
+
+          {/* Acciones */}
+          {!isPast && ws && onAction && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-9 font-bold uppercase text-[0.65rem] tracking-wider rounded-xl border-red-500/20 text-red-600 hover:bg-red-500/10 hover:border-red-500/30 transition-all dark:text-red-400"
+                disabled={isProcessing}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onDeleteClick) {
+                    onDeleteClick();
+                  } else {
+                    onAction("delete_weapon");
+                  }
+                }}
+              >
+                {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} className="mr-1.5" />}
+                Eliminar
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex-1 h-9 font-bold uppercase text-[0.65rem] tracking-wider rounded-xl bg-background hover:bg-muted transition-all border-border"
+                disabled={isProcessing}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onAction("dismiss");
+                }}
+              >
+                {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} className="mr-1.5 text-emerald-500/80" />}
+                Ignorar
+              </Button>
             </div>
           )}
         </div>
-
-        {/* Comentario del reportador */}
-        {report.details && (
-          <div className="relative p-4 rounded-2xl bg-muted/30 border border-muted-foreground/10 text-sm leading-relaxed text-muted-foreground italic">
-             <span className="absolute -top-2 left-4 text-[0.4375rem] font-black uppercase bg-background px-1.5 py-0.5 rounded border">Comentario</span>
-             "{report.details}"
-          </div>
-        )}
-
-        {/* Acciones */}
-        {!isPast && ws && onAction && (
-          <div className="mt-auto grid grid-cols-2 gap-3 pt-2">
-            <Button
-              variant="destructive"
-              className="h-11 font-black uppercase text-[0.625rem] tracking-widest rounded-xl hover:scale-105 transition-transform"
-              disabled={isProcessing}
-              onClick={() => onAction("delete_weapon")}
-            >
-              {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} className="mr-2" />}
-              Eliminar
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-11 font-black uppercase text-[0.625rem] tracking-widest rounded-xl hover:bg-muted transition-all"
-              disabled={isProcessing}
-              onClick={() => onAction("dismiss")}
-            >
-              {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <X size={14} className="mr-2" />}
-              Ingorar
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

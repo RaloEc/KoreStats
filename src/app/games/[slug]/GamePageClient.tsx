@@ -116,10 +116,11 @@ const calculateTTK = (
     category?: string,
     gameMode: string = "operations",
     distance: number = 30,
-    range?: number
+    range?: number,
+    weaponName?: string
 ) => {
     const bulletLevel = armorLevel > 0 ? armorLevel : 4;
-    return calculateStandardTTK(damage, fireRate, armorLevel, bulletLevel, category, gameMode, distance, penetration, range);
+    return calculateStandardTTK(damage, fireRate, armorLevel, bulletLevel, category, gameMode, distance, penetration, range, weaponName);
 };
 
 const STAT_BARS = [
@@ -1199,7 +1200,8 @@ const WeaponCard = ({ weapon, baseWeapon }: { weapon: WeaponAggregate; baseWeapo
         weapon.category,
         weapon.game_mode || "operations",
         30,
-        weapon.avg_range
+        weapon.avg_range,
+        weapon.weapon_name
     );
 
     const getShortPatch = (patch: string | null | undefined) => {
@@ -1299,7 +1301,7 @@ const WeaponCard = ({ weapon, baseWeapon }: { weapon: WeaponAggregate; baseWeapo
                                         <div className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/10 flex flex-col items-center cursor-help">
                                             <span className="text-[0.4375rem] font-black text-gray-400 uppercase leading-none">TTK {armorLevel > 0 ? "Nv4" : "Base"}</span>
                                             <span className="text-[0.625rem] font-mono font-black text-white leading-tight">
-                                                {ttk.toFixed(2)}s
+                                                {(Math.round(ttk * 100) / 100).toFixed(2)}s
                                             </span>
                                         </div>
                                     </TooltipTrigger>

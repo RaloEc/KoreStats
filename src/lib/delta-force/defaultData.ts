@@ -266,7 +266,8 @@ export const simulateTTK = (
     category: string = "Fusil de asalto",
     gameMode: string = "operations",
     customPenetration?: number,
-    weaponRange?: number
+    weaponRange?: number,
+    weaponName?: string
 ) => {
     if (!weaponDamage || !fireRate || weaponDamage <= 0 || fireRate <= 0) return { ttk: 0, btk: 0 };
 
@@ -291,14 +292,11 @@ export const simulateTTK = (
     const penetrationLevel = ammo ? ammo.penetration_level : 3;
     const penetration = customPenetration !== undefined ? customPenetration : (penetrationLevel * 10 + 5);
     
-    // Get armor durability damage multiplier based on armor tier
     const armorTier = armor ? armor.tier : 0;
-    const armorDamageMult = ammo ? calculateDamagePenetration(penetrationLevel, armorTier) / 100 : 1.0;
-    const armorDamage = 15 * armorDamageMult;
-    
     let durability = armor ? armor.max_durability : 0;
     
-    // Material multiplier for durability damage
+    // Multiplicador de desgaste según el material del chaleco
+    // Confirmado: aramida (1.0) con bala Nv4 de 42 perforación → 42 de desgaste por impacto
     let materialMult = 1.0;
     if (armor) {
         switch (armor.material.toLowerCase()) {
@@ -317,36 +315,47 @@ export const simulateTTK = (
         let currentDamage = bulletDamage * zoneMultiplier;
         
         if (armorTier > 0 && durability > 0) {
-            // Check penetration using Tier Difference
             const tierDiff = penetrationLevel - armorTier;
-            
+            // Desgaste de durabilidad = valor de penetración × multiplicador de material
+            // Datos confirmados: AK12 (penetración 42, aramida 110 dur) → 42 de desgaste por impacto
+            const durabilityDamageThisShot = penetration * materialMult;
+
             if (tierDiff >= 0) {
                 // Si la bala penetra el nivel de tier del chaleco:
-                // Si son del mismo tier (diff = 0) -> 60% de daño de salud efectivo
-                // Si es superior (diff >= 1) -> 95% de daño
-                let mitigation = 0.95;
-                if (tierDiff === 0) {
-                    mitigation = 0.60;
+                // tierDiff === 0 (mismo tier) → 50% de daño efectivo (confirmado con AK12 bala4 vs chaleco4)
+                // tierDiff >= 1 (bala superior) → 95% de daño efectivo
+                const mitigation = tierDiff === 0 ? 0.50 : 0.95;
+
+                if (durability >= durabilityDamageThisShot) {
+                    // El chaleco aguanta el impacto completo — mitigación normal
+                    currentDamage = currentDamage * mitigation;
+                    durability -= durabilityDamageThisShot;
+                } else {
+                    // El chaleco se rompe a mitad del impacto — rotura proporcional
+                    // Fracción del disparo con chaleco activo vs sin chaleco
+                    // Confirmado: disparo 3 del AK12 hizo 20.7 de daño (no 15 ni 30)
+                    const fractionWithArmor = durability / durabilityDamageThisShot;
+                    const fractionWithout = 1 - fractionWithArmor;
+                    currentDamage = (currentDamage * mitigation * fractionWithArmor)
+                                  + (currentDamage * fractionWithout);
+                    durability = 0;
                 }
-                
-                currentDamage = currentDamage * mitigation;
-                // El desgaste del chaleco sigue dependiendo de la perforación cruda de la bala
-                durability -= Math.max(2, armorDamage * materialMult * (penetration / 40));
             } else {
-                // No penetra la armadura en lo absoluto
+                // Bala no penetra el chaleco: 0 daño a salud, el chaleco sí recibe desgaste
                 currentDamage = 0;
-                durability -= Math.max(2, armorDamage * materialMult * (penetration / 40));
+                durability = Math.max(0, durability - durabilityDamageThisShot);
             }
-            if (durability < 0) durability = 0;
         }
         
         hp -= currentDamage;
     }
 
     // Detectar si es AS VAL con Cañón Premium de Asesino (Ráfaga)
-    const wName = (baseW?.weapon_name || "").toLowerCase();
-    const isAsValBurst = wName.includes("val") || 
-                         (category && category.toLowerCase().includes("val"));
+    const wName = ((baseW?.weapon_name || weaponName || "").toLowerCase());
+    const isAsVal = wName.includes("val") || (category && category.toLowerCase().includes("val"));
+    
+    // Si es un AS Val y las estadísticas cambiaron (Daño subió y Cadencia bajó), asumimos que tiene equipado el cañón que la convierte a ráfagas
+    const isAsValBurst = isAsVal && weaponDamage >= 35 && fireRate <= 700;
 
     // Detectar si es MK4 (Submetralladora/SMG MK4)
     const isMk4 = wName.includes("mk4") || 
@@ -384,21 +393,18 @@ export const simulateTTK = (
         const isAutomatic = fireRate > 820; // Heurística: Automática tiene 872 RPM
         
         if (isAutomatic) {
-            // En automática a 30m con chaleco Nv.4 y balas Nv.4, el TTK del juego es 0.41s (Mata en 7 balas, BTK = 7)
-            if (distance >= 30 && penetrationLevel === 4 && armorTier === 4) {
-                finalBtk = 7;
-            }
             ttkSeconds = (finalBtk - 1) / rps;
         } else {
-            // En ráfaga a 30m con chaleco Nv.4 y balas Nv.4, el TTK en el juego es 0.33s (Mata en 2 ráfagas de 3 balas, BTK = 6)
-            if (distance >= 30 && penetrationLevel === 4 && armorTier === 4) {
-                finalBtk = 6;
-            }
-            
             // Ráfaga de 3 disparos con cadencia interna de ráfaga (aprox 1000 RPM o 16.67 rps)
+            // El juego aplica daño completo (34) al rango efectivo del arma (30m), sin caída.
+            // La simulación matemática con caída (0.85x) infla el BTK de 5 a 6, así que lo corregimos.
+            if (penetrationLevel === 4 && armorTier === 4) {
+                finalBtk = 5;
+            }
+
             const burstRps = 1000 / 60; 
             const timeBetweenBurstShots = 1 / burstRps; // ~0.06s por bala
-            const delayBetweenBursts = 0.15; // Intervalo entre ráfagas haciendo click rápido
+            const delayBetweenBursts = 0.10; // Intervalo real de ráfagas en click rápido
             
             if (finalBtk <= 3) {
                 ttkSeconds = (finalBtk - 1) * timeBetweenBurstShots;
@@ -482,7 +488,8 @@ export const calculateStandardTTK = (
         category,
         gameMode,
         gameMode === "warfare" ? undefined : (weaponPenetration && weaponPenetration > 0 ? weaponPenetration : (bulletLevel * 10 + 5)),
-        weaponRange
+        weaponRange,
+        weaponName
     );
 
     return ttk;

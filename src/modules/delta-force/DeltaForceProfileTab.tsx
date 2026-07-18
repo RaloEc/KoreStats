@@ -791,7 +791,7 @@ function WeaponGroupCard({
                                             <div className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/10 flex flex-col items-center cursor-help">
                                                 <span className="text-[0.4375rem] font-black text-gray-400 uppercase leading-none">TTK {armorLevel > 0 ? "Nv4" : "Base"}</span>
                                                 <span className="text-[0.625rem] font-mono font-black text-white leading-tight">
-                                                    {ttk.toFixed(2)}s
+                                                    {(Math.round(ttk * 100) / 100).toFixed(2)}s
                                                 </span>
                                             </div>
                                         </TooltipTrigger>

@@ -93,7 +93,7 @@ export function analyzeWeaponBadges(
 
   if (extractedMode && baseWeapon.base_fire_mode) {
     if (!fireModesMatch(extractedMode, baseWeapon.base_fire_mode)) {
-      badges.push("🔄 Conversión de Fuego");
+      badges.push("Conversión de Fuego");
       anomalies.fireModeChanged = {
         base: baseWeapon.base_fire_mode,
         extracted: extractedMode,
@@ -131,7 +131,7 @@ export function analyzeWeaponBadges(
     // Formatear para que quede solo "20+20" eliminando letras y espacios
     const cleanSpecialCapacity = extractedCapacityRaw.replace(/[^\d+]/g, '');
     
-    badges.push("🔋 Cargador Especial");
+    badges.push("Cargador Especial");
     anomalies.capacityAmplified = {
       base: baseCapacity,
       extracted: cleanSpecialCapacity,
@@ -171,7 +171,7 @@ export function analyzeWeaponBadges(
     // Limpiar: quitar letras, espacios y unidades ("RPM"), dejando solo "700-600"
     const cleanFireRate = extractedFireRateRaw.replace(/[^\d\-]/g, "").replace(/-$/, "");
 
-    badges.push("⚡ Cadencia Variable");
+    badges.push("Cadencia Variable");
     anomalies.fireRateVariable = { extracted: cleanFireRate };
 
     // Mutar el valor para que la UI lo muestre limpio
@@ -195,7 +195,7 @@ export function analyzeWeaponBadges(
     // Si es la Ash-12, y el daño bajó alrededor de un 25% (ej. de 56 a 42)
     const isAsh12 = baseWeapon.weapon_name?.toLowerCase().includes("ash") ?? false;
     if (isAsh12 && extractedDamage < baseDamage * 0.85) {
-      badges.push("🔥 Cañón Doble");
+      badges.push("Cañón Doble");
       // Engañamos a la calculadora de TTK multiplicando el daño por 2 en las stats
       const doubleDamage = extractedDamage * 2;
       
@@ -218,7 +218,7 @@ export function analyzeWeaponBadges(
         ((extractedDamage - baseDamage) / baseDamage) * 100;
 
       if (damageIncreasePercent > DAMAGE_THRESHOLD_PERCENT) {
-        badges.push("💥 Munición Especial");
+        badges.push("Accesorio especial");
         anomalies.damageAlterated = {
           base: baseDamage,
           extracted: extractedDamage,

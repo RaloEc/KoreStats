@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase/server";
 import Fuse from "fuse.js";
+import { calculateStandardTTK } from "@/lib/delta-force/defaultData";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +69,36 @@ export async function GET(request: NextRequest) {
       control: baseWeapon.base_control,
       stability: baseWeapon.base_stability,
       accuracy: baseWeapon.base_accuracy,
-      range: baseWeapon.base_range
+      range: baseWeapon.base_range,
+      handling: baseWeapon.base_handling
     };
+
+    // Calcular TTK Base
+    const base_ttk_ops = calculateStandardTTK(
+      baseStats.damage || 0,
+      baseStats.fire_rate || 0,
+      4, // armorLevel
+      4, // bulletLevel
+      category,
+      "operations",
+      30, // distance
+      undefined,
+      baseStats.range || undefined,
+      weaponName
+    );
+
+    const base_ttk_warfare = calculateStandardTTK(
+      baseStats.damage || 0,
+      baseStats.fire_rate || 0,
+      0, // armorLevel = 0 para Warfare
+      0, // bulletLevel = 0 para Warfare
+      category,
+      "warfare",
+      30,
+      undefined,
+      baseStats.range || undefined,
+      weaponName
+    );
 
 
     // 4. Fetch a las builds reales de la comunidad para esta arma
@@ -177,12 +206,6 @@ export async function GET(request: NextRequest) {
       groups.get(key)!.usages++;
     }
 
-    // Calcular promedios generales
-    const avg_damage = statsCount > 0 ? Math.round(totalDamage / statsCount) : 0;
-    const avg_control = statsCount > 0 ? Math.round(totalControl / statsCount) : 0;
-    const avg_fire_rate = statsCount > 0 ? Math.round(totalFireRate / statsCount) : 0;
-    const avg_stability = statsCount > 0 ? Math.round(totalStability / statsCount) : 0;
-
     // Ordenar y limitar las builds
     const sortedBuilds = Array.from(groups.values());
     if (sort === "votes") {
@@ -191,24 +214,69 @@ export async function GET(request: NextRequest) {
       sortedBuilds.sort((a, b) => b.usages - a.usages || b.score - a.score);
     }
 
-    const builds = sortedBuilds.slice(0, limit).map((b) => ({
-      name: b.name,
-      share_code: b.share_code,
-      upvotes: b.upvotes
-    }));
+    const builds = sortedBuilds.slice(0, limit).map((b) => {
+      const record = records?.find((r) => r.id === b.id);
+      
+      const dmg = getStat(record?.stats, "damage") || baseStats.damage || 0;
+      const fr = getStat(record?.stats, "fireRate") || baseStats.fire_rate || 0;
+      const rangeVal = getStat(record?.stats, "range") || baseStats.range || 0;
+      const pen = getStat(record?.stats, "armorPenetration") || undefined;
+
+      const ttk_ops = calculateStandardTTK(
+        dmg,
+        fr,
+        4, // armorLevel
+        4, // bulletLevel
+        category,
+        "operations",
+        30,
+        pen,
+        rangeVal || undefined,
+        weaponName
+      );
+
+      const ttk_warfare = calculateStandardTTK(
+        dmg,
+        fr,
+        0, // armorLevel = 0 para Warfare
+        0, // bulletLevel = 0 para Warfare
+        category,
+        "warfare",
+        30,
+        pen,
+        rangeVal || undefined,
+        weaponName
+      );
+
+      return {
+        name: b.name,
+        share_code: b.share_code,
+        upvotes: b.upvotes,
+        stats: record?.stats ? {
+          damage: getStat(record.stats, "damage"),
+          range: getStat(record.stats, "range"),
+          control: getStat(record.stats, "control"),
+          handling: getStat(record.stats, "handling"),
+          stability: getStat(record.stats, "stability"),
+          accuracy: getStat(record.stats, "accuracy"),
+          fire_rate: getStat(record.stats, "fireRate"),
+          armor_penetration: getStat(record.stats, "armorPenetration")
+        } : null,
+        ttk_ops,
+        ttk_warfare
+      };
+    });
 
     return NextResponse.json({
       weapon_id: actualWeaponId,
       weapon_name: weaponName,
       category,
       image_url: imageUrl,
-      base_stats: baseStats,
-      stats: statsCount > 0 ? {
-        avg_damage,
-        avg_control,
-        avg_fire_rate,
-        avg_stability
-      } : null,
+      base_stats: {
+        ...baseStats,
+        ttk_ops: base_ttk_ops,
+        ttk_warfare: base_ttk_warfare
+      },
       builds
     });
   } catch (error) {
