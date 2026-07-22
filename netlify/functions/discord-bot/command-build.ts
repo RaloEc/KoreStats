@@ -283,12 +283,7 @@ function formatStatsGrid(stats: any, baseStats?: any) {
     const base = parseFloat(baseVal);
     const diff = curr - base;
     if (diff === 0) return "";
-    return diff > 0 ? ` (+${diff})` : ` (${diff})`;
-  };
-
-  const pad = (val: any, diff: string) => {
-    const text = `${val}${diff}`;
-    return text.padEnd(12);
+    return diff > 0 ? ` *(+${diff})*` : ` *(${diff})*`;
   };
 
   const diffD = getDiffLabel(d, baseStats?.damage);
@@ -298,11 +293,7 @@ function formatStatsGrid(stats: any, baseStats?: any) {
   const diffS = getDiffLabel(s, baseStats?.stability);
   const diffP = getDiffLabel(p, baseStats?.accuracy);
 
-  return `\`\`\`text
-Daño       : ${pad(d, diffD)} | Alcance  : ${pad(r, diffR)}
-Control    : ${pad(c, diffC)} | Manejo   : ${pad(m, diffM)}
-Estabilidad: ${pad(s, diffS)} | Precisión: ${pad(p, diffP)}
-\`\`\``;
+  return `**Daño:** \`${d}\`${diffD}  •  **Alcance:** \`${r}\`${diffR}\n**Control:** \`${c}\`${diffC}  •  **Manejo:** \`${m}\`${diffM}\n**Estabilidad:** \`${s}\`${diffS}  •  **Precisión:** \`${p}\`${diffP}`;
 }
 
 // ─── Generar Embed para Discord ───────────────────────────────────────────────
@@ -322,21 +313,21 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
   if (baseStats && (baseStats.damage || baseStats.fire_rate)) {
     fields.push({
       name: "Estadísticas Base",
-      value: `**TTK:** \`${baseTtkObj.ttk}s\`  •  **BTK:** \`${baseTtkObj.btk}\` (Vs. Chaleco Nv.4 a 30m)\n${formatStatsGrid(baseStats)}`,
+      value: `**TTK:** \`${baseTtkObj.ttk}s\`  •  **BTK:** \`${baseTtkObj.btk}\` *(Vs. Chaleco Nv.4 a 30m)*\n${formatStatsGrid(baseStats)}`,
       inline: false
     });
   }
 
-  // Builds encontradas
+  // Builds encontradas (más votadas de la comunidad)
   if (builds && builds.length > 0) {
     for (let i = 0; i < builds.length; i++) {
       const b = builds[i];
       // Calcular TTK para esta build en base a sus estadísticas modificadas
       const buildTtkObj = simulateTTK(
-        parseFloat(b.stats.damage || baseStats.damage),
-        parseFloat(b.stats.fire_rate || baseStats.fire_rate),
+        parseFloat(b.stats?.damage || baseStats.damage),
+        parseFloat(b.stats?.fire_rate || baseStats.fire_rate),
         weapon.category || "Fusil de asalto",
-        parseFloat(b.stats.range || baseStats.range),
+        parseFloat(b.stats?.range || baseStats.range),
         weapon.weapon_name
       );
 
@@ -344,8 +335,8 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
       const cleanShareCode = String(b.share_code).trim();
 
       fields.push({
-        name: `#${i + 1} — ${b.name}`,
-        value: `Copiar Código (toca y mantén):\n${cleanShareCode}\n\n**TTK:** \`${buildTtkObj.ttk}s\`  •  **BTK:** \`${buildTtkObj.btk}\`  •  ${b.upvotes} votos\n${formatStatsGrid(b.stats, baseStats)}`,
+        name: `─────────────\nBuild #${i + 1} — ${b.name}`,
+        value: `**Código de Build** *(toca para copiar en móvil)*:\n\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\`  •  **BTK:** \`${buildTtkObj.btk}\`  •  **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats)}`,
         inline: false
       });
     }
@@ -361,8 +352,7 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
     content: "",
     embeds: [{
       title: weapon.weapon_name,
-      description: `Categoría: **${weapon.category || "Desconocido"}**`,
-      color: 0xFF7700, // Naranja KoreStats
+      color: 0x2563EB, // Azul KoreStats (Blue 600)
       image: weapon.image_url ? { url: weapon.image_url } : undefined, // Imagen grande
       fields,
       footer: {
