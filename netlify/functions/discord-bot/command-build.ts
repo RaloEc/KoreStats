@@ -358,7 +358,7 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
 
       fields.push({
         name: `─────────────\nBuild #${i + 1} — ${b.name}`,
-        value: `**Código de Build** *(toca para copiar en móvil)*:\n\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\` | **BTK:** \`${buildTtkObj.btk}\` | **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats, false)}`,
+        value: `\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\` | **BTK:** \`${buildTtkObj.btk}\` | **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats, false)}`,
         inline: false
       });
     }
