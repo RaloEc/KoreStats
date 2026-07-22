@@ -269,31 +269,62 @@ const simulateTTK = (weaponDamage: number, fireRate: number, category: string, w
 };
 
 // ─── Generar Bloque de Texto de Estadísticas Comparadas ───────────────────────
-function formatStatsGrid(stats: any, baseStats?: any) {
-  const d = stats?.damage ?? "—";
-  const r = stats?.range ?? "—";
-  const c = stats?.control ?? "—";
-  const m = stats?.handling ?? "—";
-  const s = stats?.stability ?? "—";
-  const p = stats?.accuracy ?? "—";
-
-  const getDiffLabel = (currentVal: any, baseVal: any) => {
-    if (!baseVal || currentVal === "—" || baseVal === "—") return "";
-    const curr = parseFloat(currentVal);
-    const base = parseFloat(baseVal);
-    const diff = curr - base;
-    if (diff === 0) return "";
-    return diff > 0 ? ` *(+${diff})*` : ` *(${diff})*`;
+function formatStatsGrid(stats: any, baseStats?: any, isBase: boolean = false) {
+  const labels: Record<string, string> = {
+    damage: "Daño",
+    range: "Alcance",
+    control: "Control",
+    handling: "Manejo",
+    stability: "Estabilidad",
+    accuracy: "Precisión"
   };
 
-  const diffD = getDiffLabel(d, baseStats?.damage);
-  const diffR = getDiffLabel(r, baseStats?.range);
-  const diffC = getDiffLabel(c, baseStats?.control);
-  const diffM = getDiffLabel(m, baseStats?.handling);
-  const diffS = getDiffLabel(s, baseStats?.stability);
-  const diffP = getDiffLabel(p, baseStats?.accuracy);
+  const keys = ["damage", "range", "control", "handling", "stability", "accuracy"];
 
-  return `**Daño:** \`${d}\`${diffD}  •  **Alcance:** \`${r}\`${diffR}\n**Control:** \`${c}\`${diffC}  •  **Manejo:** \`${m}\`${diffM}\n**Estabilidad:** \`${s}\`${diffS}  •  **Precisión:** \`${p}\`${diffP}`;
+  if (isBase) {
+    // Para las estadísticas base, mostramos los 6 atributos base organizados en filas
+    const items = keys.map(k => {
+      const val = stats?.[k] ?? "—";
+      return `**${labels[k]}:** \`${val}\``;
+    });
+    return `${items[0]}  •  ${items[1]}\n${items[2]}  •  ${items[3]}\n${items[4]}  •  ${items[5]}`;
+  }
+
+  // Para una build, solo incluimos las estadísticas que han cambiado con respecto a las base
+  const modifiedItems: string[] = [];
+
+  for (const k of keys) {
+    const currentVal = stats?.[k];
+    const baseVal = baseStats?.[k];
+
+    if (currentVal !== undefined && currentVal !== null && baseVal !== undefined && baseVal !== null) {
+      const curr = parseFloat(currentVal);
+      const base = parseFloat(baseVal);
+      if (!isNaN(curr) && !isNaN(base)) {
+        const diff = curr - base;
+        if (diff !== 0) {
+          const diffStr = diff > 0 ? `*(+${diff})*` : `*(${diff})*`;
+          modifiedItems.push(`**${labels[k]}:** \`${curr}\` ${diffStr}`);
+        }
+      }
+    }
+  }
+
+  if (modifiedItems.length === 0) {
+    return "*Sin cambios respecto a las estadísticas base*";
+  }
+
+  // Agrupar de a 2 elementos por línea para formar la cuadrícula/tablita
+  const rows: string[] = [];
+  for (let i = 0; i < modifiedItems.length; i += 2) {
+    if (i + 1 < modifiedItems.length) {
+      rows.push(`${modifiedItems[i]}  •  ${modifiedItems[i + 1]}`);
+    } else {
+      rows.push(modifiedItems[i]);
+    }
+  }
+
+  return rows.join("\n");
 }
 
 // ─── Generar Embed para Discord ───────────────────────────────────────────────
@@ -313,7 +344,7 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
   if (baseStats && (baseStats.damage || baseStats.fire_rate)) {
     fields.push({
       name: "Estadísticas Base",
-      value: `**TTK:** \`${baseTtkObj.ttk}s\`  •  **BTK:** \`${baseTtkObj.btk}\` *(Vs. Chaleco Nv.4 a 30m)*\n${formatStatsGrid(baseStats)}`,
+      value: `**TTK:** \`${baseTtkObj.ttk}s\`  •  **BTK:** \`${baseTtkObj.btk}\` *(Vs. Chaleco Nv.4 a 30m)*\n${formatStatsGrid(baseStats, baseStats, true)}`,
       inline: false
     });
   }
@@ -336,7 +367,7 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
 
       fields.push({
         name: `─────────────\nBuild #${i + 1} — ${b.name}`,
-        value: `**Código de Build** *(toca para copiar en móvil)*:\n\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\`  •  **BTK:** \`${buildTtkObj.btk}\`  •  **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats)}`,
+        value: `**Código de Build** *(toca para copiar en móvil)*:\n\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\`  •  **BTK:** \`${buildTtkObj.btk}\`  •  **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats, false)}`,
         inline: false
       });
     }
