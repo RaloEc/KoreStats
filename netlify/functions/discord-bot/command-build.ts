@@ -282,15 +282,15 @@ function formatStatsGrid(stats: any, baseStats?: any, isBase: boolean = false) {
   const keys = ["damage", "range", "control", "handling", "stability", "accuracy"];
 
   if (isBase) {
-    // Para las estadísticas base, mostramos los 6 atributos base organizados en filas
+    // Para las estadísticas base, mostramos los 6 atributos organizados en 2 columnas separadas por "|"
     const items = keys.map(k => {
       const val = stats?.[k] ?? "—";
       return `**${labels[k]}:** \`${val}\``;
     });
-    return `${items[0]}  •  ${items[1]}\n${items[2]}  •  ${items[3]}\n${items[4]}  •  ${items[5]}`;
+    return `${items[0]} | ${items[1]}\n${items[2]} | ${items[3]}\n${items[4]} | ${items[5]}`;
   }
 
-  // Para una build, solo incluimos las estadísticas que han cambiado con respecto a las base
+  // Para una build, solo incluimos las estadísticas que han cambiado respecto a las base
   const modifiedItems: string[] = [];
 
   for (const k of keys) {
@@ -314,17 +314,8 @@ function formatStatsGrid(stats: any, baseStats?: any, isBase: boolean = false) {
     return "*Sin cambios respecto a las estadísticas base*";
   }
 
-  // Agrupar de a 2 elementos por línea para formar la cuadrícula/tablita
-  const rows: string[] = [];
-  for (let i = 0; i < modifiedItems.length; i += 2) {
-    if (i + 1 < modifiedItems.length) {
-      rows.push(`${modifiedItems[i]}  •  ${modifiedItems[i + 1]}`);
-    } else {
-      rows.push(modifiedItems[i]);
-    }
-  }
-
-  return rows.join("\n");
+  // Se muestran las estadísticas modificadas de forma clara y limpia en su propia línea
+  return modifiedItems.join("\n");
 }
 
 // ─── Generar Embed para Discord ───────────────────────────────────────────────
@@ -344,7 +335,7 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
   if (baseStats && (baseStats.damage || baseStats.fire_rate)) {
     fields.push({
       name: "Estadísticas Base",
-      value: `**TTK:** \`${baseTtkObj.ttk}s\`  •  **BTK:** \`${baseTtkObj.btk}\` *(Vs. Chaleco Nv.4 a 30m)*\n${formatStatsGrid(baseStats, baseStats, true)}`,
+      value: `**TTK:** \`${baseTtkObj.ttk}s\` | **BTK:** \`${baseTtkObj.btk}\` *(Vs. Chaleco Nv.4 a 30m)*\n${formatStatsGrid(baseStats, baseStats, true)}`,
       inline: false
     });
   }
@@ -367,7 +358,7 @@ function generateEmbed(weapon: any, builds: any[], baseStats: any) {
 
       fields.push({
         name: `─────────────\nBuild #${i + 1} — ${b.name}`,
-        value: `**Código de Build** *(toca para copiar en móvil)*:\n\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\`  •  **BTK:** \`${buildTtkObj.btk}\`  •  **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats, false)}`,
+        value: `**Código de Build** *(toca para copiar en móvil)*:\n\`\`\`\n${cleanShareCode}\n\`\`\`\n**TTK:** \`${buildTtkObj.ttk}s\` | **BTK:** \`${buildTtkObj.btk}\` | **${b.upvotes}** votos\n\n${formatStatsGrid(b.stats, baseStats, false)}`,
         inline: false
       });
     }
